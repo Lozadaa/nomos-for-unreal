@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Actualización 2026-10-23.** Las Tareas 6-10 (panel React) ya no se construyen con Ant Design ni tema claro: su especificación visual y de sensación es `2026-10-23-hito8-interfaz-viva.md` (oscuro, tokens de Vercel, shadcn/ui, View Transitions, lista viva en lugar de Kanban). Las Tareas 1-5 (servicio) no cambian. Las rutas y eventos que estas tareas definen siguen siendo el contrato que el panel consume.
+
 **Goal:** Que el panel completo (franja del director y las diez vistas) funcione sobre una producción semilla determinista, con el modelo de datos del plan v2 persistido en SQLite y una bandeja de comandos (outbox) idempotente, sin necesitar Unreal, Meshy ni Codex.
 
 **Architecture:** El servicio del hito 0 crece con las tablas del modelo (`tasks`, `runs`, `worktrees`, `decisions`, `budgets`, `spends`, `artifacts`, `test_runs`, `catalog_entries`, `commands`) y rutas de lectura; `kratos seed` rellena una producción de demostración; el panel es una SPA React + Ant Design construida con Vite a `panel/dist/` y servida por el propio servicio en `/`, leyendo el tema desde `design/tokens.json` del hito 1a. La página de intercambio del hito 0 pasa a ser la vista Chat.
