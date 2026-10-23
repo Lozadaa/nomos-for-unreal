@@ -1,6 +1,6 @@
 import * as http from "node:http";
 import type { DatabaseSync } from "node:sqlite";
-import { createMessage, getMessage, ackEvent, publishReply, heartbeat, status } from "./store.ts";
+import { createMessage, getMessage, ackEvent, publishReply, heartbeat, status, appendEvent } from "./store.ts";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
 import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
@@ -8,6 +8,8 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { openDb } from "./db.ts";
 import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
+import { parseArgs } from "node:util";
+import { acquireLock } from "./lock.ts";
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 export function createServer(db: DatabaseSync, token: string, webDir: string): http.Server {
@@ -40,6 +42,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
         return json(res, message ? 200 : 404, message || { error: "unknown_message" });
       }
       if (method === "POST" && path === "/admin/stop") {
+        appendEvent(db, "director.stopped", null, { session: status(db).director });
         json(res, 202, { ok: true });
         process.nextTick(() => { for (const stream of streams) stream.end(); server.close(); });
         return;
@@ -53,7 +56,11 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
       }
       if (path === "/director/heartbeat" || (parts[1] === "events" && parts[3] === "ack")) {
         if (typeof data.session !== "string" || !data.session.trim()) return json(res, 400, { error: "empty_session" });
-        if (path === "/director/heartbeat") { heartbeat(db, data.session); res.writeHead(204); res.end(); return; }
+        if (path === "/director/heartbeat") {
+          heartbeat(db, data.session);
+          if (data.started === true) appendEvent(db, "director.started", null, { session: data.session });
+          res.writeHead(204); res.end(); return;
+        }
         const seq = Number(parts[2]);
         if (parts.length !== 4 || !Number.isSafeInteger(seq) || seq <= 0) return json(res, 400, { error: "invalid_seq" });
         ackEvent(db, seq, data.session); return json(res, 200, status(db));
@@ -72,6 +79,8 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
 export async function start(opts: { dataDir: string; port?: number; webDir?: string }):
   Promise<{ port: number; token: string; pid: number; url: string }> {
   mkdirSync(opts.dataDir, { recursive: true });
+  const release = acquireLock(opts.dataDir, "start");
+  try {
   const old = readServiceInfo(opts.dataDir);
   if (old && await isAlive(old)) return { ...old, url: serviceUrl(old) };
   const file = join(opts.dataDir, "service.json");
@@ -95,4 +104,13 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
     if (readServiceInfo(opts.dataDir)?.token === token) rmSync(file, { force: true });
   });
   return { port, token, pid: process.pid, url: serviceUrl(info) };
+  } finally { release(); }
+}
+
+if (process.argv.includes("--serve")) {
+  const { values } = parseArgs({ options: { serve: { type: "boolean" },
+    data: { type: "string", default: ".kratos" }, port: { type: "string", default: "8780" } } });
+  await start({ dataDir: values.data!, port: Number(values.port) }).catch(error => {
+    console.error("No se pudo arrancar Kratos:", error.message); process.exitCode = 2;
+  });
 }
