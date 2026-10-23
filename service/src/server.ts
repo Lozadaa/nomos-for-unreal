@@ -16,6 +16,8 @@ import { projectInfo } from "./project-root.ts";
 import { startRunner, type Handler } from './runner.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 import { createAssetHandlers } from './handlers/asset.ts';
+import { recoverMeshy } from './handlers/asset-meshy.ts';
+import { createMeshy } from './adapters/meshy.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string,
@@ -124,6 +126,9 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const info = { pid: process.pid, port, token, startedAt: new Date().toISOString() };
   const temporary = file + `.${process.pid}.tmp`;
   writeFileSync(temporary, JSON.stringify(info), { mode: 0o600 }); renameSync(temporary, file);
+  // jobs de Meshy cobrados cuya respuesta se perdió: se reconcilian antes de que nadie cree otro
+  if(!opts.runner?.handlers && process.env.MESHY_API_KEY) void recoverMeshy(db,createMeshy()).catch(error=>
+    appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));
   runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers()},
     {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});
   server.once("close", async () => {

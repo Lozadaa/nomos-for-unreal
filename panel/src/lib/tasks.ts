@@ -63,6 +63,7 @@ export interface TestRun {
 
 export interface Artifact {
   id: string; taskId: string; kind: string; path: string; license: string | null; createdAt: string
+  previewPath?: string | null; provenance?: Record<string, unknown>
 }
 
 export interface KratosEvent {

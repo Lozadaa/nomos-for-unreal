@@ -10,6 +10,7 @@ import { useAfter } from '@/hooks/time'
 import { useResource } from '@/hooks/useResource'
 import type { Artifact } from '@/lib/tasks'
 import { useStore } from '@/store'
+import { MeshyExpired, meshyExpired } from './MeshyExpired'
 
 const kindLabel: Record<string, string> = { model: 'Modelo', texture: 'Textura', screenshot: 'Captura', video: 'Vídeo', build: 'Compilación', report: 'Informe', diff: 'Cambios' }
 const isImage = (a: Artifact) => /\.(png|jpe?g|webp)$/i.test(a.path)
@@ -17,7 +18,8 @@ const isModel = (a: Artifact) => /\.(glb|gltf)$/i.test(a.path)
 
 function Preview({ a }: { a: Artifact }) {
   const src = useArtifactSrc(a.id)
-  const name = a.path.split('/').pop() ?? a.path
+  const name = a.path.split(/[\\/]/).pop() ?? a.path
+  if (meshyExpired(a)) return <MeshyExpired a={a} />
   if (isModel(a)) return <GlbViewer id={a.id} name={name} />
   if (isImage(a) && src) return <img src={src} alt={name} width={400} height={300} className="size-full object-cover" loading="lazy" />
   return <div className="grid size-full place-items-center text-muted-foreground"><Glyph kind="artifact" value={a.kind} size={48} /></div>
@@ -38,7 +40,7 @@ export function Entregas() {
     <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
       {[...data].reverse().map((a) => {
         const task = tasks.find((t) => t.id === a.taskId)
-        const name = a.path.split('/').pop() ?? a.path
+        const name = a.path.split(/[\\/]/).pop() ?? a.path
         return (
           <li key={a.id} className="flex flex-col overflow-hidden rounded-lg border border-subtle bg-background transition-colors duration-(--k-dur-micro) hover:border-strong">
             <div className="aspect-[4/3] overflow-hidden border-b border-subtle bg-card"><Preview a={a} /></div>

@@ -5,6 +5,7 @@ import { assetConfig } from '../catalog/paths.ts';
 import { createMigrate, type AssetDeps } from './asset-migrate.ts';
 import { assetPrepare } from './asset-prepare.ts';
 import { createDetect, createRequestDownload, type DownloadDeps } from './asset-download.ts';
+import { createMeshyGenerate, createMeshyPoll, type MeshyDeps } from './asset-meshy.ts';
 
 const assetIndex: Handler = async (_command, ctx) => {
   const started = Date.now();
@@ -15,7 +16,8 @@ const assetIndex: Handler = async (_command, ctx) => {
 };
 
 /** Trabajo de assets de la bandeja de comandos; nunca se llama de forma síncrona desde una ruta. */
-export function createAssetHandlers(deps: AssetDeps & DownloadDeps = {}): Record<string, Handler> {
+export function createAssetHandlers(deps: AssetDeps & DownloadDeps & MeshyDeps = {}): Record<string, Handler> {
   return {'asset.index': assetIndex, 'asset.migrate': createMigrate(deps), 'asset.prepare': assetPrepare,
-    'asset.request_download': createRequestDownload(deps), 'asset.detect': createDetect(deps)};
+    'asset.request_download': createRequestDownload(deps), 'asset.detect': createDetect(deps),
+    'asset.meshy_generate': createMeshyGenerate(deps), 'asset.meshy_poll': createMeshyPoll(deps)};
 }
