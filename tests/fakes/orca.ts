@@ -1,4 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 
 const args = process.argv.slice(2);
 const file = process.env.FAKE_ORCA_STATE!;
@@ -30,9 +32,17 @@ if (process.env.FAKE_ORCA_HANG === '1') {
 } else if (args[0] === 'worktree' && args[1] === 'create') {
   if (args.includes('--agent') || args.includes('--prompt') || !args.includes('--no-parent')
     || value('--repo') !== 'id:repo-1') fail('invalid_create');
-  else emit({ worktree: { id: 'repo-1::C:/Juego trabajador', path: 'C:/Juego trabajador',
-    branch: value('--name') }, ...(process.env.FAKE_ORCA_NO_STARTUP ? {} :
-    { startupTerminal: { spawned: true, handle: 'term_fake' } }) });
+  else {
+    let path='C:/Juego trabajador';
+    if (state.realRepo) {
+      path=state.treePath;
+      execFileSync('git',['-C',state.realRepo,'worktree','add','-b',value('--name'),path],{windowsHide:true});
+      state.creates=(state.creates ?? 0)+1; save();
+    }
+    emit({ worktree: { id: `repo-1::${path}`, path,
+      branch: value('--name') }, ...(process.env.FAKE_ORCA_NO_STARTUP ? {} :
+      { startupTerminal: { spawned: true, handle: 'term_fake' } }) });
+  }
 } else if (args[0] === 'worktree' && args[1] === 'rm') {
   if (value('--worktree') !== 'id:repo-1::C:/Juego trabajador') fail('invalid_selector');
   else emit({ removed: true, forced: args.includes('--force') });
@@ -45,21 +55,26 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   if (value('--limit') !== '50') fail('missing_limit');
   else {
     const screen=!args.includes('--cursor') && Array.isArray(state.screen);
-    const cursor = args.includes('--cursor') ? Number(value('--cursor')) : Math.max(0, state.tail.length - 50);
-    const tail = screen ? state.screen.slice(-50) : state.tail.slice(cursor, cursor + 50);
-    const next=screen ? state.screenCursor ?? state.tail.length : cursor+tail.length;
-    emit({ terminal: { handle: value('--terminal'), tail, oldestCursor: '0',
+    const oldest=Number(state.oldestCursor ?? 0);
+    const cursor = Math.max(oldest,args.includes('--cursor') ? Number(value('--cursor')) : oldest+state.tail.length-50);
+    const tail = screen ? state.screen.slice(-50) : state.tail.slice(cursor-oldest, cursor-oldest+50);
+    const next=screen ? state.screenCursor ?? oldest+state.tail.length : cursor+tail.length;
+    emit({ terminal: { handle: value('--terminal'), tail, oldestCursor: state.oldestCursor ?? '0',
       nextCursor: process.env.FAKE_ORCA_NUMERIC_CURSOR ? next : String(next),
-      latestCursor: String(state.tail.length),
+      latestCursor: String(oldest+state.tail.length),
       ...(screen ? {truncated:state.screenTruncated ?? false} : {}),
-      limited: screen ? state.screen.length>50 : cursor + tail.length < state.tail.length,
+      limited: screen ? state.screen.length>50 : cursor + tail.length < oldest+state.tail.length,
       source:screen ? 'screen' : 'stream' } });
   }
 } else if (args[0] === 'terminal' && args[1] === 'send') {
   if (!args.includes('--enter')) fail('missing_enter');
   else {
     const text=value('--text');
+    if (state.realRepo && text === 'codex --yolo --no-daemon' && !existsSync(join(state.treePath,'.kratos-brief.md'))) {
+      fail('missing_brief');
+    } else {
     state.tail.push(text);
+    if (state.realRepo && text === 'codex --yolo --no-daemon') state.tail.push('› Ask Codex');
     save();
     const accepted = process.env.FAKE_ORCA_SEND_MISSING ? {} : { accepted: process.env.FAKE_ORCA_REJECT !== '1' };
     const requestId = 'fake-send-request';
@@ -70,12 +85,13 @@ if (process.env.FAKE_ORCA_HANG === '1') {
           baselineExplicitWorkingStartedAt: null, baselinePermissionSequence: 0 } },
       mutation: { requestId, replayed: false }, warnings: [],
     });
+    }
   }
 } else if (args[0] === 'terminal' && args[1] === 'wait') {
   if (value('--for') !== 'tui-idle' || Number(value('--timeout-ms')) > 60000) fail('invalid_wait');
   else {
     if (process.env.FAKE_ORCA_READY_AFTER_WAIT) { state.tail.push('› Ask Codex'); save(); }
-    const satisfied = process.env.FAKE_ORCA_SATISFIED === '1';
+    const satisfied = process.env.FAKE_ORCA_SATISFIED === '1' || state.idle === true;
     if (!satisfied && process.env.FAKE_ORCA_WAIT_TIMEOUT) fail('timeout');
     else {
       emit({ wait: { satisfied, timedOut: !satisfied } });

@@ -60,3 +60,14 @@ export function resolveDecision(db: DatabaseSync, id: string, optionId: string, 
     return result;
 }
 export const listDecisions = (db: DatabaseSync, state?: Decision['state']) => filtered<Decision>(db, 'decisions', { state });
+
+/** Regenera la pregunta vinculada después de registrar hechos recibidos durante un await. */
+export function refreshPendingDecision(db: DatabaseSync, taskId: string): Decision | undefined {
+    return transaction(db, () => {
+        const task = requireTask(db, taskId);
+        const previous = task.decisionId ? read<Decision>(db, 'decisions', task.decisionId) : undefined;
+        if (!previous || !['open', 'stale'].includes(previous.state)) return undefined;
+        if (previous.state === 'open' && previous.contextHash === hash(db, taskId)) return previous;
+        return openDecision(db, { taskId, reason: previous.reason, evidence: previous.evidence, options: previous.options });
+    });
+}

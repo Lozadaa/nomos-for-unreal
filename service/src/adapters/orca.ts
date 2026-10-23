@@ -85,6 +85,7 @@ export function createOrca(opts: Options = {}): Orca {
     }
   }
   function read(handle: string, cursor?: string, budget?: number) {
+    const requested=cursor;
     return run(['terminal', 'read', '--terminal', handle, '--limit', '50',
       ...(cursor === undefined ? [] : ['--cursor', cursor])], result => {
       const terminal = result?.terminal;
@@ -93,10 +94,12 @@ export function createOrca(opts: Options = {}): Orca {
       }
       const cursor = Number.isSafeInteger(terminal.nextCursor) && terminal.nextCursor >= 0
         ? String(terminal.nextCursor) : required(terminal.nextCursor);
+      const oldest=terminal.oldestCursor;
       return { text: terminal.tail.join('\n'), cursor,
         ...(['stream','screen'].includes(terminal.source) ? {source:terminal.source as 'stream'|'screen'} : {}),
         ...(typeof terminal.limited==='boolean' ? {limited:terminal.limited} : {}),
-        ...(typeof terminal.truncated==='boolean' ? {truncated:terminal.truncated} : {}) };
+        ...(typeof terminal.truncated==='boolean' ? {truncated:terminal.truncated} : {}),
+        ...(requested!==undefined && Number(oldest)>Number(requested) ? {oldestCursor:String(oldest)} : {}) };
     }, budget);
   }
   return {

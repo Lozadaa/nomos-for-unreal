@@ -114,6 +114,19 @@ test('readiness devuelve false al agotar plazo sin Ask Codex', async t => {
   assert.equal(await pending.orca.terminalWaitIdle('term_fake', 200), false);
 });
 
+test('terminalIsIdle consulta señal actual y no usa el Ask Codex histórico',async t=>{
+  const busy=fixture(t);await busy.orca.terminalSend('term_fake','Ask Codex');
+  assert.equal(await busy.orca.terminalIsIdle('term_fake'),false);
+  const idle=fixture(t,{FAKE_ORCA_SATISFIED:'1'});
+  assert.equal(await idle.orca.terminalIsIdle('term_fake'),true);
+});
+
+test('terminalRead informa hueco cuando oldestCursor supera cursor pedido',async t=>{
+  const {orca,file}=fixture(t);
+  writeFileSync(file,JSON.stringify({repos:[],tail:['visible'],oldestCursor:'10'}));
+  assert.equal((await orca.terminalRead('term_fake','0')).oldestCursor,'10');
+});
+
 test('worktreeRemove usa id completo y fuerza solo cuando se solicita', async t => {
   const { orca, calls } = fixture(t);
   await orca.worktreeRemove('repo-1::C:/Juego trabajador');

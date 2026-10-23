@@ -4,7 +4,7 @@ import { appendEvent } from '../store.ts';
 import { insert, read, filtered, transaction, type Input } from './rows.ts';
 export function createTask(db: DatabaseSync, input: Input<Task> & Pick<Task, 'title' | 'area'>): Task {
     return transaction(db, () => {
-        const task = insert<Task>(db, 'tasks', { spec: '', acceptance: [], state: 'pendiente', blockedReason: null, decisionId: null,
+        const task = insert<Task>(db, 'tasks', { spec: '', acceptance: [], scope: [], state: 'pendiente', blockedReason: null, decisionId: null,
             assigneeRole: null, assigneeProvider: null, parentTaskId: null, dependsOn: [], worktreeId: null, budgetId: null, ...input });
         appendEvent(db, 'task.created', null, { taskId: task.id });
         return task;

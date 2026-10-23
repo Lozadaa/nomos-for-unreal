@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { applySchema } from "./schema.ts";
+import { migrateWorker } from './migrations.ts';
 
 export function openDb(file: string): DatabaseSync {
   const db = new DatabaseSync(file);
@@ -18,5 +19,6 @@ export function openDb(file: string): DatabaseSync {
     insert or ignore into director(id) values (1);
   `);
   applySchema(db);
+  migrateWorker(db);
   return db;
 }
