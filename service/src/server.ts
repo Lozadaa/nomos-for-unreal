@@ -3,6 +3,12 @@ import type { DatabaseSync } from "node:sqlite";
 import { createMessage, getMessage, ackEvent, publishReply, heartbeat, status } from "./store.ts";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
+import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
+import { join } from "node:path";
+import { randomBytes } from "node:crypto";
+import { openDb } from "./db.ts";
+import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
+export { readServiceInfo, isAlive } from "./service-info.ts";
 
 export function createServer(db: DatabaseSync, token: string, webDir: string): http.Server {
   const streams = new Set<http.ServerResponse>();
@@ -61,4 +67,32 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
     }
   });
   return server;
+}
+
+export async function start(opts: { dataDir: string; port?: number; webDir?: string }):
+  Promise<{ port: number; token: string; pid: number; url: string }> {
+  mkdirSync(opts.dataDir, { recursive: true });
+  const old = readServiceInfo(opts.dataDir);
+  if (old && await isAlive(old)) return { ...old, url: serviceUrl(old) };
+  const file = join(opts.dataDir, "service.json");
+  rmSync(file, { force: true });
+  const db = openDb(join(opts.dataDir, "kratos.db"));
+  db.exec("update director set alive_at=null where id=1");
+  const token = randomBytes(24).toString("hex");
+  const server = createServer(db, token, opts.webDir || join(import.meta.dirname, "../web"));
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(opts.port ?? 8780, "127.0.0.1", () => { server.removeListener("error", reject); resolve(); });
+    });
+  } catch (error) { db.close(); throw error; }
+  const port = (server.address() as { port: number }).port;
+  const info = { pid: process.pid, port, token, startedAt: new Date().toISOString() };
+  const temporary = file + `.${process.pid}.tmp`;
+  writeFileSync(temporary, JSON.stringify(info), { mode: 0o600 }); renameSync(temporary, file);
+  server.once("close", () => {
+    db.close();
+    if (readServiceInfo(opts.dataDir)?.token === token) rmSync(file, { force: true });
+  });
+  return { port, token, pid: process.pid, url: serviceUrl(info) };
 }
