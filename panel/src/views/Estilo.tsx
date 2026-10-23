@@ -13,9 +13,10 @@ import { toasts } from '@/feel/toasts'
 import { durations } from '@/feel/motion'
 import type { Task, Tone } from '@/lib/tasks'
 import { GlyphLegend } from '@/visual/Glyph'
+import { ArtGallery } from '@/visual/ArtGallery'
 
 const sections = [
-  ['glifos', 'Glifos'],
+  ['glifos', 'Glifos'], ['arte', 'Arte'],
   ['colores', 'Colores'], ['tipografia', 'Tipografía'], ['estado', 'Puntos de estado'], ['botones', 'Botones y campos'],
   ['filas', 'Filas de producción'], ['etapas', 'Etapa de la tarea'], ['movimiento', 'Movimiento'], ['cifras', 'Cifras'],
   ['vacios', 'Vacíos y esqueletos'], ['avisos', 'Avisos'],
@@ -75,6 +76,10 @@ export function Estilo() {
       <div className="flex min-w-0 flex-col gap-12 pb-24">
         <Section id="glifos" title="Glifos">
           <GlyphLegend />
+        </Section>
+
+        <Section id="arte" title="Arte">
+          <ArtGallery />
         </Section>
 
         <Section id="colores" title="Colores">

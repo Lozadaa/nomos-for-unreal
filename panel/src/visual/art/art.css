@@ -1,0 +1,18 @@
+.k-ring { font-family: var(--k-font-mono); }
+.k-ring [pathLength] { transition: stroke-dashoffset 300ms var(--k-ease); }
+.k-map { width: 100%; overflow: visible; }
+.k-map > g:first-of-type { transform: translateY(32px); }
+.k-map > g:last-of-type { transform: translateY(60px); }
+.k-map > path { fill: none; stroke: var(--vbg-border-strong); }
+/* Los extremos redondos de trazos de longitud cero dibujan los ocho nodos. */
+.k-map > path:nth-of-type(2), .k-map > path:nth-of-type(3) { stroke-dasharray: 0 100; stroke-linecap: round; stroke-width: 38; }
+.k-map > path:nth-of-type(3) { stroke: var(--vbg-surface-secondary); stroke-width: 36; }
+.k-map text { fill: var(--vbg-text-primary); text-anchor: middle; font: 12px var(--k-font-mono); cursor: pointer; stroke: currentColor; stroke-width: 24; stroke-opacity: 0; pointer-events: all; }
+.k-map text:hover { fill: var(--vbg-focus); }
+.k-map text:focus-visible { outline: 2px solid var(--vbg-focus); outline-offset: 10px; }
+.k-map [data-point] { fill: var(--vbg-color-info); view-transition-name: match-element; view-transition-class: k-row; }
+.k-map path[data-point], .k-map use[data-point] { fill: none; stroke: var(--vbg-color-warning); stroke-width: 1.5; }
+@media (prefers-reduced-motion: reduce) {
+  .k-ring [pathLength] { transition: none; }
+  .k-map [data-point] { view-transition-name: none; }
+}
