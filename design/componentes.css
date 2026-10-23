@@ -190,3 +190,8 @@ select.input { appearance: none; padding-right: var(--k-space-5); }
 /* Aviso breve (toast) */
 .toast { display: flex; align-items: center; gap: var(--k-space-2); padding: var(--k-space-2) var(--k-space-3); border-radius: var(--k-radius-md); background: var(--k-color-bg-container); box-shadow: var(--k-shadow-2); font-size: var(--k-size-sm); }
 .toast .ico { color: var(--k-state); }
+
+/* Tarjeta de la dirección elegida: sombra 1 en reposo; sombra 2 si está en curso, bajo el cursor o activa */
+.tcard { box-shadow: var(--k-shadow-1); }
+.tcard:hover, .tcard.is-hover, .tcard.is-active { box-shadow: var(--k-shadow-2); }
+.tcard.is-focus { outline: 2px solid var(--k-color-primary); outline-offset: 2px; }

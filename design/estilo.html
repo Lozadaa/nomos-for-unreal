@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kratos · Guía de estilo</title>
+<meta name="description" content="Tokens y componentes del panel de Kratos en todos sus estados">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="componentes.css">
+<style>
+html { scroll-behavior: smooth; scroll-padding-top: var(--k-space-4); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { display: grid; grid-template-columns: var(--k-layout-sidebar) 1fr; }
+.index { position: sticky; top: 0; height: 100vh; overflow: auto; background: var(--k-color-bg-container); box-shadow: var(--k-shadow-1); padding: var(--k-space-3) var(--k-space-2); z-index: 3; }
+.index h1 { font-size: var(--k-size-lg); font-weight: 600; padding: 0 var(--k-space-2); margin-bottom: var(--k-space-2); height: var(--k-layout-control); display: flex; align-items: center; }
+.index a { display: flex; align-items: center; height: calc(var(--k-layout-control) + var(--k-space-0)); padding: 0 var(--k-space-2); border-radius: var(--k-radius-md); color: var(--k-color-text-secondary); font-weight: 500; }
+.index a:hover { background: var(--k-color-bg-subtle); color: var(--k-color-text); }
+.index a:target, .index a[aria-current] { color: var(--k-color-primary); }
+main { padding: var(--k-space-5) var(--k-space-5) var(--k-space-6); min-width: 0; max-width: 1180px; }
+.lead { color: var(--k-color-text-secondary); max-width: 65ch; margin-top: var(--k-space-1); }
+section.sec { margin-top: var(--k-space-6); }
+section.sec > h2 { font-size: var(--k-size-xl); font-weight: 600; margin-bottom: var(--k-space-1); }
+section.sec > .note { color: var(--k-color-text-secondary); margin-bottom: var(--k-space-3); max-width: 65ch; }
+h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4) 0 var(--k-space-2); }
+.grid-sw { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--k-space-2); }
+.sw { display: grid; gap: 2px; padding: var(--k-space-2); background: var(--k-color-bg-container); border-radius: var(--k-radius-md); box-shadow: var(--k-shadow-1); min-width: 0; }
+.sw-chip { height: calc(var(--k-layout-control) * 1.5); border-radius: var(--k-radius-sm); border: 1px solid var(--k-color-border); margin-bottom: var(--k-space-1); }
+.tokval { color: var(--k-color-text-secondary); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--k-space-5); }
+.row-size, .row-space { display: flex; align-items: baseline; gap: var(--k-space-3); padding: var(--k-space-1) 0; border-bottom: 1px solid var(--k-color-border); }
+.row-size > .mono, .row-space > .mono { width: 11em; flex: none; }
+.row-size .tokval, .row-space .tokval { width: 4em; flex: none; }
+.bar { height: var(--k-space-2); background: var(--k-color-primary); border-radius: var(--k-radius-sm); }
+.samples { display: flex; gap: var(--k-space-4); flex-wrap: wrap; }
+.sample { display: grid; gap: var(--k-space-1); justify-items: start; }
+.rad { width: calc(var(--k-layout-control) * 2); height: calc(var(--k-layout-control) * 2); background: var(--k-color-bg-container); border: 1px solid var(--k-color-text-tertiary); }
+.sh { width: calc(var(--k-layout-control) * 5); height: calc(var(--k-layout-control) * 2); background: var(--k-color-bg-container); border-radius: var(--k-radius-md); }
+.mhead, .mrow { display: grid; grid-template-columns: 8em repeat(5, max-content); gap: var(--k-space-3); align-items: center; }
+.mhead { font-size: var(--k-size-xs); color: var(--k-color-text-secondary); margin-bottom: var(--k-space-1); font-weight: 600; }
+.mrow { padding: var(--k-space-2) 0; border-top: 1px solid var(--k-color-border); }
+.mname { font-weight: 500; font-size: var(--k-size-sm); }
+.fhead, .frow { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--k-space-3); }
+.fhead { font-size: var(--k-size-xs); color: var(--k-color-text-secondary); font-weight: 600; margin-bottom: var(--k-space-1); }
+.frow { padding: var(--k-space-2) 0; border-top: 1px solid var(--k-color-border); align-items: start; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--col-w), 1fr)); gap: var(--k-space-3) var(--k-space-2); }
+:root { --card-h: 56px; --col-w: 192px; }
+.fig { margin: 0; display: grid; gap: var(--k-space-1); }
+.fig figcaption, .fig-wide figcaption { font-size: var(--k-size-xs); color: var(--k-color-text-secondary); }
+.fig-wide { margin: 0 0 var(--k-space-3); display: grid; gap: var(--k-space-1); }
+.tcard { height: var(--card-h); padding: var(--k-space-1) var(--k-space-2); display: grid; align-content: center; gap: 2px; }
+.tcard .row { display: flex; align-items: center; gap: var(--k-space-1); min-width: 0; }
+.tcard.k-state-bloqueada { background: color-mix(in srgb, var(--k-color-error) 5%, var(--k-color-bg-container)); }
+.tcard .meta .ico { vertical-align: -0.2em; margin-right: 2px; }
+.director { border-radius: var(--k-radius-lg); }
+.table { table-layout: fixed; }
+.c-name { width: 28%; } .c-origin { width: 13%; } .c-lic { width: 18%; } .c-state { width: 21%; } .c-act { width: 20%; }
+.cell-name { display: flex; align-items: center; gap: var(--k-space-2); min-width: 0; font-weight: 500; }
+.demo-drawer .drawer { position: static; width: 100%; max-width: 720px; height: calc(var(--k-layout-control) * 15); border-radius: var(--k-radius-lg); overflow: hidden; }
+.demo-drawer { display: grid; gap: var(--k-space-4); justify-items: start; }
+.board-empty { display: grid; grid-template-columns: repeat(8, 1fr); gap: var(--k-space-1); align-items: start; }
+.board-empty .col-head { grid-row: 1; }
+.empty-board { grid-column: 1 / -1; background: var(--k-color-bg-container); border-radius: var(--k-radius-lg); box-shadow: var(--k-shadow-1); padding: var(--k-space-5) var(--k-space-3); }
+.lane-demo { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--k-space-3); align-items: start; }
+.lane-demo > div { display: grid; gap: var(--k-space-1); align-content: start; }
+.empty-slot { padding: var(--k-space-3); }
+.opts { display: grid; gap: var(--k-space-2); }
+.toasts { display: grid; gap: var(--k-space-3); justify-items: start; }
+.hatch { background: repeating-linear-gradient(135deg, var(--k-color-bg-subtle) 0 6px, var(--k-color-border) 6px 7px); }
+.sr-skip { position: absolute; left: var(--k-space-2); top: var(--k-space-2); transform: translateY(-200%); background: var(--k-color-bg-container); padding: var(--k-space-1) var(--k-space-2); border-radius: var(--k-radius-md); box-shadow: var(--k-shadow-2); z-index: 10; }
+.sr-skip:focus { transform: none; }
+.attn { display: flex; gap: var(--k-space-1); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-kanban" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="10" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol><symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></symbol><symbol id="i-library" viewBox="0 0 24 24"><rect x="4" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><path d="M16 6l3.5-1 2 14-3.5 1z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></symbol><symbol id="i-coins" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3"/></symbol><symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol><symbol id="i-swatch" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M10 10v10"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol><symbol id="i-waves" viewBox="0 0 24 24"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h-2"/></symbol><symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.1"/></symbol><symbol id="i-plugoff" viewBox="0 0 24 24"><path d="M9 3v4M15 3v4M6 7h12v3a6 6 0 0 1-12 0zM12 16v5"/><path d="M3 3l18 18"/></symbol><symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l3 3 5-6"/></symbol><symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol><symbol id="i-xcircle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.5a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.9-1.1 1.8M12 17v.1"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol><symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol><symbol id="i-dash" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke-dasharray="3.2 3.2"/></symbol><symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol><symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L5 19a1.5 1.5 0 0 0 1.4 2h11.2A1.5 1.5 0 0 0 19 19l-5-10V3"/></symbol><symbol id="i-merge" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 8v8M8 6c6 0 8 2 8 6"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol></svg>
+<a class="sr-skip" href="#contenido">Saltar al contenido</a>
+<nav class="index" aria-label="Secciones de la guía">
+  <h1>Guía de estilo</h1>
+  <a href="#tokens">Tokens</a>
+  <a href="#botones">Botones</a>
+  <a href="#campos">Campos</a>
+  <a href="#tarjetas">Tarjetas de estado</a>
+  <a href="#director">Franja del director</a>
+  <a href="#catalogo">Catálogo</a>
+  <a href="#panel">Panel de detalle</a>
+  <a href="#vacios">Estados vacíos</a>
+  <a href="#avisos">Avisos y decisiones</a>
+</nav>
+<main id="contenido">
+  <h1 style="font-size:var(--k-size-xxl);font-weight:600;line-height:1.2">Guía de estilo</h1>
+  <p class="lead">Todos los componentes del panel en todos sus estados, con la dirección A «Sala de control densa». Todo sale de <span class="mono">tokens.css</span>: ningún color, tamaño ni sombra está escrito a mano.</p>
+
+  <section class="sec" id="tokens" aria-labelledby="h-tokens">
+    <h2 id="h-tokens">Tokens</h2>
+    <p class="note">Los valores se leen de <span class="mono">tokens.css</span> al abrir la página, así que lo que ves es lo que usa el panel.</p>
+    <h3 class="sub">Color</h3>
+    <ul class="grid-sw">
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-primary)"></span><span class="mono ell">--k-color-primary</span><code class="mono tokval" data-var="--k-color-primary"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-primary-hover)"></span><span class="mono ell">--k-color-primary-hover</span><code class="mono tokval" data-var="--k-color-primary-hover"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-primary-text)"></span><span class="mono ell">--k-color-primary-text</span><code class="mono tokval" data-var="--k-color-primary-text"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-bg-layout)"></span><span class="mono ell">--k-color-bg-layout</span><code class="mono tokval" data-var="--k-color-bg-layout"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-bg-container)"></span><span class="mono ell">--k-color-bg-container</span><code class="mono tokval" data-var="--k-color-bg-container"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-bg-subtle)"></span><span class="mono ell">--k-color-bg-subtle</span><code class="mono tokval" data-var="--k-color-bg-subtle"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-text)"></span><span class="mono ell">--k-color-text</span><code class="mono tokval" data-var="--k-color-text"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-text-secondary)"></span><span class="mono ell">--k-color-text-secondary</span><code class="mono tokval" data-var="--k-color-text-secondary"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-text-tertiary)"></span><span class="mono ell">--k-color-text-tertiary</span><code class="mono tokval" data-var="--k-color-text-tertiary"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-border)"></span><span class="mono ell">--k-color-border</span><code class="mono tokval" data-var="--k-color-border"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-success)"></span><span class="mono ell">--k-color-success</span><code class="mono tokval" data-var="--k-color-success"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-warning)"></span><span class="mono ell">--k-color-warning</span><code class="mono tokval" data-var="--k-color-warning"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-error)"></span><span class="mono ell">--k-color-error</span><code class="mono tokval" data-var="--k-color-error"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-info)"></span><span class="mono ell">--k-color-info</span><code class="mono tokval" data-var="--k-color-info"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-neutral)"></span><span class="mono ell">--k-color-neutral</span><code class="mono tokval" data-var="--k-color-neutral"></code></li>
+      <li class="sw"><span class="sw-chip" style="background:var(--k-color-purple)"></span><span class="mono ell">--k-color-purple</span><code class="mono tokval" data-var="--k-color-purple"></code></li>
+    </ul>
+    <div class="two">
+      <div><h3 class="sub">Escala tipográfica</h3><ul>
+      <li class="row-size"><span class="mono">--k-size-xs</span><code class="mono tokval" data-var="--k-size-xs"></code><span style="font-size:var(--k-size-xs)">Kratos atendiendo 3 mensajes</span></li>
+      <li class="row-size"><span class="mono">--k-size-sm</span><code class="mono tokval" data-var="--k-size-sm"></code><span style="font-size:var(--k-size-sm)">Kratos atendiendo 3 mensajes</span></li>
+      <li class="row-size"><span class="mono">--k-size-md</span><code class="mono tokval" data-var="--k-size-md"></code><span style="font-size:var(--k-size-md)">Kratos atendiendo 3 mensajes</span></li>
+      <li class="row-size"><span class="mono">--k-size-lg</span><code class="mono tokval" data-var="--k-size-lg"></code><span style="font-size:var(--k-size-lg)">Kratos atendiendo 3 mensajes</span></li>
+      <li class="row-size"><span class="mono">--k-size-xl</span><code class="mono tokval" data-var="--k-size-xl"></code><span style="font-size:var(--k-size-xl)">Kratos atendiendo 3 mensajes</span></li>
+      <li class="row-size"><span class="mono">--k-size-xxl</span><code class="mono tokval" data-var="--k-size-xxl"></code><span style="font-size:var(--k-size-xxl)">Kratos atendiendo 3 mensajes</span></li></ul><p class="muted" style="margin-top:var(--k-space-2)">Texto: IBM Plex Sans. Logs, IDs y rutas: <span class="mono">JetBrains Mono · r-0142 · ws/fab-cuarentena</span></p></div>
+      <div><h3 class="sub">Espaciado</h3><ul><li class="row-space"><span class="mono">--k-space-0</span><code class="mono tokval" data-var="--k-space-0"></code><span class="bar" style="width:var(--k-space-0)"></span></li><li class="row-space"><span class="mono">--k-space-1</span><code class="mono tokval" data-var="--k-space-1"></code><span class="bar" style="width:var(--k-space-1)"></span></li><li class="row-space"><span class="mono">--k-space-2</span><code class="mono tokval" data-var="--k-space-2"></code><span class="bar" style="width:var(--k-space-2)"></span></li><li class="row-space"><span class="mono">--k-space-3</span><code class="mono tokval" data-var="--k-space-3"></code><span class="bar" style="width:var(--k-space-3)"></span></li><li class="row-space"><span class="mono">--k-space-4</span><code class="mono tokval" data-var="--k-space-4"></code><span class="bar" style="width:var(--k-space-4)"></span></li><li class="row-space"><span class="mono">--k-space-5</span><code class="mono tokval" data-var="--k-space-5"></code><span class="bar" style="width:var(--k-space-5)"></span></li><li class="row-space"><span class="mono">--k-space-6</span><code class="mono tokval" data-var="--k-space-6"></code><span class="bar" style="width:var(--k-space-6)"></span></li></ul><h3 class="sub">Medidas de la pantalla</h3><ul><li class="row-size"><span class="mono">--k-layout-sidebar</span><code class="mono tokval" data-var="--k-layout-sidebar"></code></li><li class="row-size"><span class="mono">--k-layout-sidebar-collapsed</span><code class="mono tokval" data-var="--k-layout-sidebar-collapsed"></code></li><li class="row-size"><span class="mono">--k-layout-header</span><code class="mono tokval" data-var="--k-layout-header"></code></li><li class="row-size"><span class="mono">--k-layout-drawer</span><code class="mono tokval" data-var="--k-layout-drawer"></code></li><li class="row-size"><span class="mono">--k-layout-control</span><code class="mono tokval" data-var="--k-layout-control"></code></li></ul></div>
+    </div>
+    <div class="two">
+      <div><h3 class="sub">Radios</h3><ul class="samples"><li class="sample"><span class="rad" style="border-radius:var(--k-radius-sm)"></span><span class="mono">--k-radius-sm</span><code class="mono tokval" data-var="--k-radius-sm"></code></li><li class="sample"><span class="rad" style="border-radius:var(--k-radius-md)"></span><span class="mono">--k-radius-md</span><code class="mono tokval" data-var="--k-radius-md"></code></li><li class="sample"><span class="rad" style="border-radius:var(--k-radius-lg)"></span><span class="mono">--k-radius-lg</span><code class="mono tokval" data-var="--k-radius-lg"></code></li></ul></div>
+      <div><h3 class="sub">Sombras</h3><ul class="samples"><li class="sample"><span class="sh" style="box-shadow:var(--k-shadow-1)"></span><span class="mono">--k-shadow-1</span><span class="muted">Tarjetas, paneles, barra lateral, franja</span></li><li class="sample"><span class="sh" style="box-shadow:var(--k-shadow-2)"></span><span class="mono">--k-shadow-2</span><span class="muted">Panel de detalle, tarjetas en curso, avisos</span></li></ul></div>
+    </div>
+  </section>
+
+  <section class="sec" id="botones" aria-labelledby="h-botones">
+    <h2 id="h-botones">Botones</h2>
+    <p class="note">Un solo botón primario por pantalla. El peligroso se separa de los demás y pide confirmación.</p>
+    <div class="mhead"><span></span><span>Normal</span><span>Bajo el cursor</span><span>Foco</span><span>Deshabilitado</span><span>Cargando</span></div>
+    
+      <div class="mrow"><span class="mname">Primario</span>
+        <button class="btn btn-primary" type="button">Enviar a Kratos</button>
+        <button class="btn btn-primary is-hover" type="button">Enviar a Kratos</button>
+        <button class="btn btn-primary is-focus" type="button">Enviar a Kratos</button>
+        <button class="btn btn-primary" type="button" disabled>Enviar a Kratos</button>
+        <button class="btn btn-primary is-loading" type="button" aria-busy="true">Enviando a Kratos</button>
+      </div>
+    
+      <div class="mrow"><span class="mname">Secundario</span>
+        <button class="btn " type="button">Pedir cambios</button>
+        <button class="btn  is-hover" type="button">Pedir cambios</button>
+        <button class="btn  is-focus" type="button">Pedir cambios</button>
+        <button class="btn " type="button" disabled>Pedir cambios</button>
+        <button class="btn  is-loading" type="button" aria-busy="true">Enviando a Kratos</button>
+      </div>
+    
+      <div class="mrow"><span class="mname">Fantasma</span>
+        <button class="btn btn-ghost" type="button">Quitar filtro</button>
+        <button class="btn btn-ghost is-hover" type="button">Quitar filtro</button>
+        <button class="btn btn-ghost is-focus" type="button">Quitar filtro</button>
+        <button class="btn btn-ghost" type="button" disabled>Quitar filtro</button>
+        <button class="btn btn-ghost is-loading" type="button" aria-busy="true">Enviando a Kratos</button>
+      </div>
+    
+      <div class="mrow"><span class="mname">Peligro</span>
+        <button class="btn btn-danger" type="button">Descartar tarea</button>
+        <button class="btn btn-danger is-hover" type="button">Descartar tarea</button>
+        <button class="btn btn-danger is-focus" type="button">Descartar tarea</button>
+        <button class="btn btn-danger" type="button" disabled>Descartar tarea</button>
+        <button class="btn btn-danger is-loading" type="button" aria-busy="true">Enviando a Kratos</button>
+      </div>
+  </section>
+
+  <section class="sec" id="campos" aria-labelledby="h-campos">
+    <h2 id="h-campos">Campos</h2>
+    <p class="note">Cada campo reserva una línea para ayuda o error: al aparecer un error no se mueve nada.</p>
+    <div class="fhead"><span>Normal con ayuda</span><span>Con foco</span><span>Con error</span><span>Deshabilitado</span></div>
+      <div class="frow"><div class="field"><label for="f-texto-normal">Nombre de la tarea</label><input class="input" id="f-texto-normal" placeholder="Habilidad Meteorito"><p class="help" id="f-texto-normal-h">Así aparecerá en el tablero.</p></div><div class="field"><label for="f-texto-foco">Nombre de la tarea</label><input class="input is-focus" id="f-texto-foco" placeholder="Habilidad Meteorito"><p class="help" id="f-texto-foco-h">Así aparecerá en el tablero.</p></div><div class="field has-error"><label for="f-texto-error">Nombre de la tarea</label><input class="input" id="f-texto-error" placeholder="Habilidad Meteorito" aria-invalid="true" aria-describedby="f-texto-error-h"><p class="help err" id="f-texto-error-h"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg>Escribe al menos una palabra.</p></div><div class="field"><label for="f-texto-off">Nombre de la tarea</label><input class="input" id="f-texto-off" placeholder="Habilidad Meteorito" disabled><p class="help" id="f-texto-off-h">Así aparecerá en el tablero.</p></div></div>
+      <div class="frow"><div class="field"><label for="f-area-normal">¿Qué quieres construir?</label><textarea class="textarea" id="f-area-normal" rows="2" placeholder="Una frase basta"></textarea><p class="help" id="f-area-normal-h">Una frase basta.</p></div><div class="field"><label for="f-area-foco">¿Qué quieres construir?</label><textarea class="textarea is-focus" id="f-area-foco" rows="2" placeholder="Una frase basta"></textarea><p class="help" id="f-area-foco-h">Una frase basta.</p></div><div class="field has-error"><label for="f-area-error">¿Qué quieres construir?</label><textarea class="textarea" id="f-area-error" rows="2" placeholder="Una frase basta" aria-invalid="true" aria-describedby="f-area-error-h"></textarea><p class="help err" id="f-area-error-h"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg>Cuéntale a Kratos qué quieres construir.</p></div><div class="field"><label for="f-area-off">¿Qué quieres construir?</label><textarea class="textarea" id="f-area-off" rows="2" placeholder="Una frase basta" disabled></textarea><p class="help" id="f-area-off-h">Una frase basta.</p></div></div>
+      <div class="frow"><div class="field"><label for="f-sel-normal">Responsable</label><div class="select-wrap"><select class="input" id="f-sel-normal"><option>Que Kratos decida</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div><p class="help" id="f-sel-normal-h">Quien hará los cambios.</p></div><div class="field"><label for="f-sel-foco">Responsable</label><div class="select-wrap"><select class="input is-focus" id="f-sel-foco"><option>Que Kratos decida</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div><p class="help" id="f-sel-foco-h">Quien hará los cambios.</p></div><div class="field has-error"><label for="f-sel-error">Responsable</label><div class="select-wrap"><select class="input" id="f-sel-error" aria-invalid="true" aria-describedby="f-sel-error-h"><option>Elige una opción</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div><p class="help err" id="f-sel-error-h"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg>Elige un responsable.</p></div><div class="field"><label for="f-sel-off">Responsable</label><div class="select-wrap"><select class="input" id="f-sel-off" disabled><option>Que Kratos decida</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div><p class="help" id="f-sel-off-h">Quien hará los cambios.</p></div></div>
+  </section>
+
+  <section class="sec" id="tarjetas" aria-labelledby="h-tarjetas">
+    <h2 id="h-tarjetas">Tarjetas de estado</h2>
+    <p class="note">Las diez tarjetas del tablero. El estado se lee por el icono y el texto; el color solo lo refuerza. Las tareas en curso llevan sombra 2.</p>
+    <div class="cards">
+    <figure class="fig">
+      <article class="tcard k-state-pendiente" tabindex="0" aria-label="Menú de opciones · Pendiente">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-dash"/></svg><span class="t ell" title="Menú de opciones">Menú de opciones</span></div>
+        <div class="meta ell">Claude Code · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>0/4 · 1 h</div>
+      </article><figcaption><span class="mono">.k-state-pendiente</span> Pendiente</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-preparada" tabindex="0" aria-label="Música del combate · Preparada">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-circle"/></svg><span class="t ell" title="Música del combate">Música del combate</span></div>
+        <div class="meta ell">Kratos · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>0/2 · 40 min</div>
+      </article><figcaption><span class="mono">.k-state-preparada</span> Preparada</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-implementando is-active" tabindex="0" aria-label="HUD de vida y maná · Implementando">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-gear"/></svg><span class="t ell" title="HUD de vida y maná">HUD de vida y maná</span></div>
+        <div class="meta ell">Codex · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>3/5 · 2 min</div>
+      </article><figcaption><span class="mono">.k-state-implementando</span> Implementando</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-revisando is-active" tabindex="0" aria-label="Cámara en tercera persona · Revisando">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-eye"/></svg><span class="t ell" title="Cámara en tercera persona">Cámara en tercera persona</span></div>
+        <div class="meta ell">Claude Code · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>6/6 · 6 min</div>
+      </article><figcaption><span class="mono">.k-state-revisando</span> Revisando</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-probando is-active" tabindex="0" aria-label="Enemigo patrulla · Probando">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-flask"/></svg><span class="t ell" title="Enemigo patrulla">Enemigo patrulla</span></div>
+        <div class="meta ell">Codex · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>8/9 · 1 min</div>
+      </article><figcaption><span class="mono">.k-state-probando</span> Probando</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-integrando is-active" tabindex="0" aria-label="Skybox_Fantasy en el nivel · Integrando">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-merge"/></svg><span class="t ell" title="Skybox_Fantasy en el nivel">Skybox_Fantasy en el nivel</span></div>
+        <div class="meta ell">Codex · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>2/2 · 4 min</div>
+      </article><figcaption><span class="mono">.k-state-integrando</span> Integrando</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-cerrando is-active" tabindex="0" aria-label="Raqueta Nude_Tennis_Racket_🎾 · No se pudo cerrar">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-alert"/></svg><span class="t ell" title="Raqueta Nude_Tennis_Racket_🎾">Raqueta Nude_Tennis_Racket_🎾</span></div>
+        <div class="flag"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg><span class="ell">No se pudo cerrar</span></div>
+      </article><figcaption><span class="mono">.k-state-cerrando</span> Cerrando</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-done" tabindex="0" aria-label="Pelota Free_Tennisball · Hecha">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-check"/></svg><span class="t ell" title="Pelota Free_Tennisball">Pelota Free_Tennisball</span></div>
+        <div class="meta ell">Codex · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>4/4 · 2 h</div>
+      </article><figcaption><span class="mono">.k-state-done</span> Hecha</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-bloqueada is-active" tabindex="0" aria-label="Habilidad Meteorito · Bloqueada">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-ban"/></svg><span class="t ell" title="Habilidad Meteorito">Habilidad Meteorito</span></div>
+        <div class="flag"><svg class="ico " aria-hidden="true"><use href="#i-ban"/></svg><span class="ell">Bloqueada</span></div>
+      </article><figcaption><span class="mono">.k-state-bloqueada</span> Bloqueada</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-decision is-active" tabindex="0" aria-label="Importar pack Fab a cuarentena · Espera decisión">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-help"/></svg><span class="t ell" title="Importar pack Fab a cuarentena">Importar pack Fab a cuarentena</span></div>
+        <div class="flag"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg><span class="ell">Espera decisión</span></div>
+      </article><figcaption><span class="mono">.k-state-decision</span> Espera decisión</figcaption></figure>
+    </div>
+    <h3 class="sub">Interacción</h3>
+    <div class="cards">
+    <figure class="fig">
+      <article class="tcard k-state-implementando is-hover" tabindex="0" aria-label="HUD de vida y maná · Implementando">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-gear"/></svg><span class="t ell" title="HUD de vida y maná">HUD de vida y maná</span></div>
+        <div class="meta ell">Codex · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>3/5 · 2 min</div>
+      </article><figcaption>Bajo el cursor</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-implementando is-focus" tabindex="0" aria-label="HUD de vida y maná · Implementando">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-gear"/></svg><span class="t ell" title="HUD de vida y maná">HUD de vida y maná</span></div>
+        <div class="meta ell">Codex · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>3/5 · 2 min</div>
+      </article><figcaption>Con foco de teclado</figcaption></figure>
+    <figure class="fig">
+      <article class="tcard k-state-preparada is-open" tabindex="0" aria-label="Importar pack Fab a cuarentena · Preparada">
+        <div class="row"><svg class="ico st" aria-hidden="true"><use href="#i-circle"/></svg><span class="t ell" title="Importar pack Fab a cuarentena">Importar pack Fab a cuarentena</span></div>
+        <div class="meta ell">Codex · <svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg>0/2 · 3 min</div>
+      </article><figcaption>Abierta en el panel</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="sec" id="director" aria-labelledby="h-director">
+    <h2 id="h-director">Franja del director</h2>
+    <p class="note">Los cinco estados del servicio. «Vigilante caído» lleva un triángulo de aviso y «Servicio desconectado» un enchufe cortado: no dependen del color.</p>
+    <figure class="fig-wide">
+      <div class="director k-director-esperando" role="status" aria-label="Servicio activo · esperando a Kratos">
+        <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-clock"/></svg></span>
+        <div class="director-main"><p class="director-title ell">Servicio activo · esperando a Kratos</p><p class="director-sub ell">Todavía no hay una sesión conectada.</p></div>
+        <div class="director-meta"><button class="btn" type="button">Ver cómo conectar</button></div>
+      </div>
+      <figcaption><span class="mono">.k-director-esperando</span></figcaption>
+    </figure>
+    <figure class="fig-wide">
+      <div class="director k-director-escuchando" role="status" aria-label="Kratos escuchando">
+        <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-waves"/></svg></span>
+        <div class="director-main"><p class="director-title ell">Kratos escuchando</p><p class="director-sub ell">Última recepción confirmada hace 12 s.</p></div>
+        <div class="director-meta"><button class="btn" type="button"><svg class="ico " aria-hidden="true"><use href="#i-pause"/></svg>Pausar</button></div>
+      </div>
+      <figcaption><span class="mono">.k-director-escuchando</span></figcaption>
+    </figure>
+    <figure class="fig-wide">
+      <div class="director k-director-atendiendo" role="status" aria-label="Kratos atendiendo 3 mensajes">
+        <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-gear"/></svg></span>
+        <div class="director-main"><p class="director-title ell">Kratos atendiendo 3 mensajes</p><p class="director-sub ell">Ahora: Habilidad Meteorito.</p></div>
+        <div class="director-meta"><button class="btn" type="button"><svg class="ico " aria-hidden="true"><use href="#i-pause"/></svg>Pausar</button></div>
+      </div>
+      <figcaption><span class="mono">.k-director-atendiendo</span></figcaption>
+    </figure>
+    <figure class="fig-wide">
+      <div class="director k-director-vigilante-caido" role="status" aria-label="Vigilante caído · 2 mensajes en espera">
+        <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg></span>
+        <div class="director-main"><p class="director-title ell">Vigilante caído · 2 mensajes en espera</p><p class="director-sub ell">Rearmando la escucha. Tus mensajes no se pierden.</p></div>
+        <div class="director-meta"><button class="btn" type="button"><svg class="ico " aria-hidden="true"><use href="#i-play"/></svg>Volver a escuchar</button></div>
+      </div>
+      <figcaption><span class="mono">.k-director-vigilante-caido</span></figcaption>
+    </figure>
+    <figure class="fig-wide">
+      <div class="director k-director-desconectado" role="status" aria-label="Servicio desconectado">
+        <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-plugoff"/></svg></span>
+        <div class="director-main"><p class="director-title ell">Servicio desconectado</p><p class="director-sub ell">Sin conexión con el servicio. Los mensajes nuevos esperan.</p></div>
+        <div class="director-meta"><button class="btn" type="button">Reintentar conexión</button></div>
+      </div>
+      <figcaption><span class="mono">.k-director-desconectado</span></figcaption>
+    </figure>
+    <figure class="fig-wide">
+      <div class="director k-director-escuchando" role="status" aria-label="En pausa">
+        <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-pause"/></svg></span>
+        <div class="director-main"><p class="director-title ell">En pausa · Kratos no recibirá mensajes</p><p class="director-sub ell">Los mensajes nuevos esperan hasta que reanudes.</p></div>
+        <div class="director-meta"><button class="btn btn-primary" type="button"><svg class="ico " aria-hidden="true"><use href="#i-play"/></svg>Reanudar</button></div>
+      </div>
+      <figcaption>En pausa, sobre cualquier estado</figcaption>
+    </figure>
+  </section>
+
+  <section class="sec" id="catalogo" aria-labelledby="h-catalogo">
+    <h2 id="h-catalogo">Catálogo</h2>
+    <p class="note">Fila normal, licencia desconocida y asset prohibido para IA (sin botón de preparar).</p>
+    <div class="panel"><table class="table">
+      <colgroup><col class="c-name"><col class="c-origin"><col class="c-lic"><col class="c-state"><col class="c-act"></colgroup>
+      <thead><tr><th scope="col">Nombre</th><th scope="col">Origen</th><th scope="col">Licencia</th><th scope="col">Estado</th><th scope="col"><span class="sr">Acción</span></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><div class="cell-name"><span class="thumb" aria-hidden="true">A</span><span class="ell" title="Advanced Cel Shader Lite">Advanced Cel Shader Lite</span></div></td>
+          <td class="ell muted">Fab</td>
+          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
+          <td><span class="chip tone-info"><svg class="ico " aria-hidden="true"><use href="#i-circle"/></svg>Disponible</span></td>
+          <td style="text-align:right"><button class="btn btn-sm" type="button">Preparar para Unreal</button></td>
+        </tr>
+        <tr>
+          <td><div class="cell-name"><span class="thumb" aria-hidden="true">F</span><span class="ell" title="Free_Tennisball">Free_Tennisball</span></div></td>
+          <td class="ell muted">Fab</td>
+          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
+          <td><span class="chip tone-success"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Instalado en CrazyPadel</span></td>
+          <td style="text-align:right"><button class="btn btn-sm btn-ghost" type="button">Ver en el proyecto</button></td>
+        </tr>
+        <tr>
+          <td><div class="cell-name"><span class="thumb" aria-hidden="true">N</span><span class="ell" title="Nude_Tennis_Racket_🎾">Nude_Tennis_Racket_🎾</span></div></td>
+          <td class="ell muted">Fab</td>
+          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
+          <td><span class="chip tone-success"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Instalado en CrazyPadel</span></td>
+          <td style="text-align:right"><button class="btn btn-sm btn-ghost" type="button">Ver en el proyecto</button></td>
+        </tr>
+        <tr>
+          <td><div class="cell-name"><span class="thumb" aria-hidden="true">S</span><span class="ell" title="Skybox_Fantasy">Skybox_Fantasy</span></div></td>
+          <td class="ell muted">Fab</td>
+          <td><span class="chip tone-warning"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>Licencia desconocida</span></td>
+          <td><span class="chip tone-info"><svg class="ico " aria-hidden="true"><use href="#i-circle"/></svg>Disponible</span></td>
+          <td style="text-align:right"><button class="btn btn-sm" type="button">Revisar licencia</button></td>
+        </tr>
+        <tr>
+          <td><div class="cell-name"><span class="thumb" aria-hidden="true">P</span><span class="ell" title="Phone">Phone</span></div></td>
+          <td class="ell muted">Fab · unknowncall</td>
+          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
+          <td><span class="chip tone-info"><svg class="ico " aria-hidden="true"><use href="#i-circle"/></svg>Disponible</span></td>
+          <td style="text-align:right"><button class="btn btn-sm" type="button">Preparar para Unreal</button></td>
+        </tr>
+        <tr class="is-forbidden">
+          <td><div class="cell-name"><span class="thumb" aria-hidden="true">M</span><span class="ell" title="MetaHuman · peinados">MetaHuman · peinados</span></div></td>
+          <td class="ell muted">Megascans</td>
+          <td><span class="chip tone-error"><svg class="ico " aria-hidden="true"><use href="#i-ban"/></svg>Prohibido para IA</span></td>
+          <td><span class="chip tone-error"><svg class="ico " aria-hidden="true"><use href="#i-ban"/></svg>No se puede usar con agentes</span></td>
+          <td style="text-align:right"><button class="btn btn-sm btn-ghost" type="button">Ver motivo</button></td>
+        </tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="sec" id="panel" aria-labelledby="h-panel">
+    <h2 id="h-panel">Panel de detalle</h2>
+    <p class="note">720 px de ancho, bajo la franja del director. El cuerpo se desplaza y el pie con la acción queda siempre visible.</p>
+    <div class="demo-drawer">
+      <figure class="fig" style="width:100%"><figcaption>Con contenido · pestaña Resumen</figcaption>
+<aside class="drawer drawer-tarea static"  aria-label="Detalle de la tarea Importar pack Fab a cuarentena">
+  <div class="drawer-head">
+    <div style="min-width:0;flex:1">
+      <p class="chip k-state-decision"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>Espera decisión</p>
+      <h2 class="ell" style="margin-top:var(--k-space-1)">Importar pack Fab a cuarentena</h2>
+      <p class="mono subtle ell">r-0142 · ws/fab-cuarentena</p>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="#cerrar" title="Cerrar el detalle"><span class="sr">Cerrar el detalle</span><svg class="ico " aria-hidden="true"><use href="#i-close"/></svg></a>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Secciones de la tarea">
+    <button class="tab" role="tab" aria-selected="true">Resumen</button>
+    <button class="tab" role="tab" aria-selected="false">Chat</button>
+    <button class="tab" role="tab" aria-selected="false">Cambios</button>
+    <button class="tab" role="tab" aria-selected="false">Pruebas</button>
+    <button class="tab" role="tab" aria-selected="false">Assets</button>
+    <button class="tab" role="tab" aria-selected="false">Línea de tiempo</button>
+  </div>
+  <div class="drawer-body">
+    <section class="callout tone-warning" aria-label="Decisión pendiente"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>
+      <div style="display:grid;gap:var(--k-space-2);flex:1;min-width:0">
+        <p><b>Kratos necesita tu decisión.</b> ¿Qué shader usamos para el pack?</p>
+        <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Advanced Cel Shader Lite</b><span class="muted">Ya está en tu biblioteca de Fab.</span></div><button class="btn btn-primary btn-sm" type="button">Elegir</button></div>
+        <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Material propio</b><span class="muted">Tarda unas 2 horas más.</span></div><button class="btn btn-sm" type="button">Elegir</button></div>
+      </div>
+    </section>
+    <dl class="kv">
+      <dt>Responsable</dt><dd>Codex</dd>
+      <dt>Depende de</dt><dd>Nada</dd>
+      <dt>Habilidades</dt><dd><span class="chip">ue-project-context</span> <span class="chip">asset-optimization</span> <span class="chip">fab-import</span></dd>
+      <dt>Pruebas</dt><dd class="num">0 de 2 · se ejecutan al elegir</dd>
+      <dt>Última actividad</dt><dd>hace 3 min</dd>
+    </dl>
+    <section>
+      <h3 style="font-size:var(--k-size-sm);margin-bottom:var(--k-space-1)">Qué pasó hasta ahora</h3>
+      <ol class="kv" style="grid-template-columns:max-content 1fr">
+        <li style="display:contents"><span class="mono subtle">14:02</span><span>Kratos creó la tarea desde tu petición.</span></li>
+        <li style="display:contents"><span class="mono subtle">14:05</span><span>Codex indexó el pack (89,9 MB) en cuarentena.</span></li>
+        <li style="display:contents"><span class="mono subtle">14:11</span><span>Codex pidió una decisión sobre el shader.</span></li>
+      </ol>
+    </section>
+  </div>
+  <div class="drawer-foot"><button class="btn" type="button">Pedir cambios al responsable</button></div>
+</aside></figure>
+      <figure class="fig" style="width:100%"><figcaption>Vacío · pestaña Pruebas sin datos</figcaption>
+<aside class="drawer static" aria-label="Detalle de la tarea Música del combate">
+  <div class="drawer-head">
+    <div style="min-width:0;flex:1">
+      <p class="chip k-state-preparada"><svg class="ico " aria-hidden="true"><use href="#i-circle"/></svg>Preparada</p>
+      <h2 class="ell" style="margin-top:var(--k-space-1)">Música del combate</h2>
+      <p class="mono subtle ell">r-0151 · ws/musica-combate</p>
+    </div>
+    <button class="btn btn-ghost btn-sm" type="button" title="Cerrar el detalle"><span class="sr">Cerrar el detalle</span><svg class="ico " aria-hidden="true"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Secciones de la tarea">
+    <button class="tab" role="tab" aria-selected="false">Resumen</button><button class="tab" role="tab" aria-selected="false">Chat</button><button class="tab" role="tab" aria-selected="false">Cambios</button><button class="tab" role="tab" aria-selected="true">Pruebas</button><button class="tab" role="tab" aria-selected="false">Assets</button><button class="tab" role="tab" aria-selected="false">Línea de tiempo</button>
+  </div>
+  <div class="drawer-body"><div class="empty"><svg class="ico " aria-hidden="true"><use href="#i-flask"/></svg><b>Esta tarea aún no tiene pruebas</b><span>Aparecerán cuando el responsable las ejecute.</span><button class="btn btn-sm" type="button">Ver resumen</button></div></div>
+  <div class="drawer-foot"><button class="btn" type="button">Pedir cambios al responsable</button></div>
+</aside></figure>
+    </div>
+  </section>
+
+  <section class="sec" id="vacios" aria-labelledby="h-vacios">
+    <h2 id="h-vacios">Estados vacíos</h2>
+    <p class="note">Un estado vacío explica por qué está vacío y ofrece una acción, nunca un hueco.</p>
+    <h3 class="sub">Tablero sin tareas</h3>
+    <div class="board-empty">
+      <h4 class="col-head">Pendiente <span class="n">0</span></h4><h4 class="col-head">Preparada <span class="n">0</span></h4><h4 class="col-head">Implementando <span class="n">0</span></h4><h4 class="col-head">Revisando <span class="n">0</span></h4><h4 class="col-head">Probando <span class="n">0</span></h4><h4 class="col-head">Integrando <span class="n">0</span></h4><h4 class="col-head">Cerrando <span class="n">0</span></h4><h4 class="col-head">Hecha <span class="n">0</span></h4>
+      <div class="empty-board empty" style="grid-column:1/-1"><svg class="ico " aria-hidden="true"><use href="#i-kanban"/></svg><b>Escribe la primera petición a Kratos</b><span>Kratos la convierte en tareas y las reparte.</span><a class="btn btn-primary" href="#"><svg class="ico " aria-hidden="true"><use href="#i-plus"/></svg>Nueva petición</a></div>
+    </div>
+    <h3 class="sub">Columnas vacías</h3>
+    <div class="lane-demo">
+      <div><h4 class="col-head">Pendiente <span class="n">0</span></h4><div class="empty empty-slot"><span>Nada pendiente</span><a class="btn btn-ghost btn-sm" href="#">Nueva petición</a></div></div>
+      <div><h4 class="col-head">Revisando <span class="n">0</span></h4><div class="empty empty-slot"><span>Aquí aparecen las tareas cuando Kratos las mueve</span><a class="btn btn-ghost btn-sm" href="#">Ver actividad</a></div></div>
+    </div>
+    <h3 class="sub">Catálogo sin indexar</h3>
+    <div class="panel"><div class="empty" style="padding:var(--k-space-5)"><svg class="ico " aria-hidden="true"><use href="#i-library"/></svg><b>Aún no se ha indexado nada</b><span>Kratos busca aquí antes de generar un asset nuevo.</span><button class="btn btn-primary" type="button">Indexar ahora</button></div></div>
+    <h3 class="sub">Hueco por desconexión en Actividad</h3>
+    <div class="panel hatch" style="padding:var(--k-space-3);display:flex;align-items:center;gap:var(--k-space-3)"><svg class="ico " aria-hidden="true"><use href="#i-plugoff"/></svg><span style="flex:1">Sin datos de 14:02 a 14:09 · servicio desconectado</span><button class="btn btn-sm" type="button">Ver detalle</button></div>
+  </section>
+
+  <section class="sec" id="avisos" aria-labelledby="h-avisos">
+    <h2 id="h-avisos">Avisos y decisiones</h2>
+    <h3 class="sub">Avisos</h3>
+    <div class="toasts" aria-live="polite">
+      <div class="toast tone-success" role="status"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg><span>Cambios enviados a Codex</span></div>
+      <div class="toast tone-warning" role="status"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg><span>No se pudo cerrar la tarea. Reintenta el cierre.</span><button class="btn btn-sm" type="button">Reintentar cierre</button></div>
+    </div>
+    <h3 class="sub">Decisión con dos opciones</h3>
+    <section class="callout tone-warning" aria-label="Decisión pendiente" style="max-width:720px"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>
+      <div class="opts" style="flex:1;min-width:0">
+        <p><b>¿Qué shader usamos para el pack?</b> Kratos espera tu elección para seguir.</p>
+        <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Advanced Cel Shader Lite</b><span class="muted">Ya está en tu biblioteca de Fab.</span></div><button class="btn btn-primary btn-sm" type="button">Elegir</button></div>
+        <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Material propio</b><span class="muted">Tarda unas 2 horas más.</span></div><button class="btn btn-sm" type="button">Elegir</button></div>
+      </div>
+    </section>
+    <h3 class="sub">Decisión caducada</h3>
+    <div class="callout tone-neutral" style="max-width:720px"><svg class="ico " aria-hidden="true"><use href="#i-clock"/></svg><span style="flex:1">Esta decisión caducó porque cambió el contexto. Kratos la prepara de nuevo.</span><button class="btn btn-sm" type="button">Ver la nueva</button></div>
+  </section>
+</main>
+<script>
+  // Lee cada valor de tokens.css para mostrarlo; sin JavaScript solo se ve el nombre de la variable.
+  const css = getComputedStyle(document.documentElement);
+  document.querySelectorAll('[data-var]').forEach((el) => { el.textContent = css.getPropertyValue(el.dataset.var).trim(); });
+</script>
+</body>
+</html>
