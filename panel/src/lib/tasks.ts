@@ -59,10 +59,12 @@ export interface Run {
 export interface TestRun {
   id: string; taskId: string; result: 'pending' | 'running' | 'passed' | 'failed' | 'skipped' | 'unavailable'
   commit: string | null; map: string | null; createdAt: string
+  /** Comprobación (hito 5): cpp, blueprint, asset, map, umg, build o none (el diff no toca Unreal). */
+  checkId?: string | null; runId?: string | null; engineVersion?: string | null; config?: string | null; reportPath?: string | null
 }
 
 export interface Artifact {
-  id: string; taskId: string; kind: string; path: string; license: string | null; createdAt: string
+  id: string; taskId: string; kind: string; path: string; license: string | null; createdAt: string; runId?: string | null
   previewPath?: string | null; provenance?: Record<string, unknown>
 }
 

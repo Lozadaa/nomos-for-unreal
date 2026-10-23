@@ -16,6 +16,18 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   'asset.migrate': entry,
   'asset.prepare': entry,
   'asset.request_download': entry,
+  'checks.run': (db, p) => {
+    if (!text(p.taskId) || !optionalText(p.runId) || p.files !== undefined
+      && (!Array.isArray(p.files) || !p.files.every(f => typeof f === 'string'))) throw new Error('invalid_command_payload');
+    if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
+  },
+  'ui.cycle': (db, p) => {
+    const pairs = p.resolutions === undefined || Array.isArray(p.resolutions) && p.resolutions.every(r => Array.isArray(r) && r.length === 2
+      && r.every(n => Number.isSafeInteger(n) && n >= 320 && n <= 7680));
+    if (!text(p.taskId) || !optionalText(p.runId) || !optionalText(p.map) || !pairs || p.widgets !== undefined
+      && (!Array.isArray(p.widgets) || !p.widgets.every(w => text(w)))) throw new Error('invalid_command_payload');
+    if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
+  },
   'asset.meshy_generate': (_db, p) => {
     // Meshy solo para piezas hard surface: sin rig ni animate (decisión del usuario, 2026-10-23)
     if (!['text', 'image', 'remesh'].includes(p.kind as string)) throw new Error('meshy_kind_not_allowed');

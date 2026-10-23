@@ -36,22 +36,44 @@ export function Entregas() {
   if (!data?.length) {
     return <VisualEmpty view="entregas" message="Aún no hay entregas" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
+  // agrupadas por tarea, la más reciente primero; dentro, en el orden en que llegaron las evidencias
+  const groups = new Map<string, Artifact[]>()
+  for (const a of [...data].reverse()) groups.set(a.taskId, [...(groups.get(a.taskId) ?? []), a])
   return (
-    <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-      {[...data].reverse().map((a) => {
-        const task = tasks.find((t) => t.id === a.taskId)
-        const name = a.path.split(/[\\/]/).pop() ?? a.path
+    <div className="flex flex-col gap-8">
+      {[...groups].map(([taskId, items]) => {
+        const title = tasks.find((t) => t.id === taskId)?.title ?? taskId.slice(0, 8)
         return (
-          <li key={a.id} className="flex flex-col overflow-hidden rounded-lg border border-subtle bg-background transition-colors duration-(--k-dur-micro) hover:border-strong">
-            <div className="aspect-[4/3] overflow-hidden border-b border-subtle bg-card"><Preview a={a} /></div>
-            <div className="flex flex-col gap-1 p-3 text-sm">
-              <span className="truncate font-mono text-xs" title={a.path}>{name}</span>
-              <span className="text-xs text-muted-foreground">{kindLabel[a.kind] ?? a.kind}{a.license ? ` · ${a.license}` : ''}</span>
-              {task && <span className="truncate text-xs text-muted-foreground">{task.title}</span>}
-            </div>
-          </li>
+          <section key={taskId} aria-label={`Tarea ${title}`} className="flex flex-col gap-3">
+            <h2 className="truncate text-sm font-medium">{title}</h2>
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+              {[...items].reverse().map((a) => <Card key={a.id} a={a} />)}
+            </ul>
+          </section>
         )
       })}
-    </ul>
+    </div>
+  )
+}
+
+/** Captura de una prueba: resolución, mapa y run que la produjo (prueba 8). */
+function captureLabel(a: Artifact): string | null {
+  const p = a.provenance as { resolution?: unknown; map?: unknown } | undefined
+  if (a.kind !== 'screenshot' || typeof p?.resolution !== 'string') return null
+  const map = typeof p.map === 'string' ? p.map.split('/').pop() : null
+  return [p.resolution.replace('x', '×'), map, a.runId ? `run ${a.runId.slice(0, 7)}` : null].filter(Boolean).join(' · ')
+}
+
+function Card({ a }: { a: Artifact }) {
+  const name = a.path.split(/[\\/]/).pop() ?? a.path
+  const capture = captureLabel(a)
+  return (
+    <li className="flex flex-col overflow-hidden rounded-lg border border-subtle bg-background transition-colors duration-(--k-dur-micro) hover:border-strong">
+      <div className="aspect-[4/3] overflow-hidden border-b border-subtle bg-card"><Preview a={a} /></div>
+      <div className="flex flex-col gap-1 p-3 text-sm">
+        <span className="truncate font-mono text-xs" title={a.path}>{name}</span>
+        <span className="text-xs text-muted-foreground">{capture ?? `${kindLabel[a.kind] ?? a.kind}${a.license ? ` · ${a.license}` : ''}`}</span>
+      </div>
+    </li>
   )
 }

@@ -19,6 +19,8 @@ for(const checks of [false,true]) test(`Review Focus 3: aprobación ${checks ? '
   assert.equal(f.reviewer().state,'done');assert.equal(f.current().state,'done');
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,1);
   assert.equal(requireTask(f.db,f.task.id).state,checks ? 'probando' : 'revisando');
+  const queued=f.db.prepare("select payload from commands where type='checks.run'").all().map(r=>JSON.parse(r.payload as string));
+  assert.deepEqual(queued,checks ? [{taskId:f.task.id,runId:f.implementer.id}] : [],'al aprobar con check: se lanzan las comprobaciones');
   const artifact=listArtifacts(f.db,{runId:f.reviewer().id,kind:'report'})[0];assert.ok(artifact);
   assert.deepEqual(JSON.parse(readFileSync(join(f.dataDir,'artifacts',artifact.path),'utf8')).findings,[]);
   assert.equal(listEvents(f.db,0).filter(e=>e.type==='review.finished').length,1);

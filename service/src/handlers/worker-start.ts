@@ -18,6 +18,7 @@ import { schedulingBlocked } from '../scheduler-admission.ts';
 import { readConfig } from '../config.ts';
 import { launchCommand, readyPattern } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
+import { installSkills } from '../skills-install.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -90,10 +91,15 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   await git.renameBranch(created.path,'kratos/'+short+suffix);
   const branch=await git.currentBranch(created.path);
   db.prepare('update worktrees set branch=?,updated_at=? where id=?').run(branch,new Date().toISOString(),created.worktreeId);
-  const contextFile=join(projectDir,'.agents','ue-project-context.md');
+  const contextFile=join(projectDir,'.agents','ue-project-context.md'),uiFile=join(projectDir,'docs','ui-direction.md');
+  // la dirección de arte de la UI (game-ui-art-director) acompaña a todo worker de UI
+  const context=[existsSync(contextFile) ? readFileSync(contextFile,'utf8') : '',
+    task.area==='ui' && existsSync(uiFile) ? `## Dirección de arte de la UI (docs/ui-direction.md)\n\n${readFileSync(uiFile,'utf8')}` : ''].filter(Boolean).join('\n\n');
   writeFileSync(join(created.path,'.kratos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
-    {projectContext:existsSync(contextFile) ? readFileSync(contextFile,'utf8') : undefined}));
+    {projectContext:context || undefined}));
   await git.excludeLocal(created.path);
+  // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
+  installSkills(created.path);
   await orca.terminalSend(created.terminalHandle,launchCommand(run.provider));
   if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,readyPattern(run.provider)))
     throw new Error(`orca: ${run.provider} no estuvo listo antes de 90 s`);

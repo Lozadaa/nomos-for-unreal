@@ -25,3 +25,14 @@ test('CLI task review ID encola revisión con el implementador terminado',async 
   assert.equal(command.type,'review.start');assert.equal(command.payload.implementerRunId,run.id);
   assert.equal(cli(dataDir,'task','review').status,1);
 });
+
+test('CLI task check ID encola checks.run con el último implementador terminado',async t=>{
+  const {dataDir,port}=await cliFixture(t);assert.equal(cli(dataDir,'start','--port',String(port),'--no-open').status,0);
+  const task=await api(dataDir,'/tasks',{title:'HUD',area:'ui',spec:'Barra de vida',acceptance:['check: umg']});
+  const db=openDb(join(dataDir,'kratos.db'));
+  const run=startRun(db,{taskId:task.id,role:'implementacion',provider:'claude'});finishRun(db,run.id,'done','Terminado');db.close();
+  const result=cli(dataDir,'task','check',task.id);assert.equal(result.status,0,result.stderr);
+  const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(result.stdout).commandId);
+  assert.equal(command.type,'checks.run');assert.deepEqual(command.payload,{taskId:task.id,runId:run.id});
+  assert.equal(cli(dataDir,'task','check').status,1);
+});

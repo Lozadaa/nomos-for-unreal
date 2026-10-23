@@ -1,0 +1,22 @@
+{
+  "skill_name": "game-ui-art-director",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Tarea ui en KratosFabTest (AdvancedCelShader, StarterContent, mapa Sample) sin docs/ui-direction.md: «Añade un HUD con barra de vida».",
+      "expected_output": "Lee Content (packs, mapa Sample, materiales cel), usa una captura de Kratos si existe y escribe docs/ui-direction.md con las ocho secciones de la plantilla, hex y contraste medido por par (texto ≥ 4,5:1), tamaños a 1080p y 720p, estados con cambio no solo de color y el ejemplo de la barra de vida. Commit solo de ese archivo; no crea widgets.",
+      "files": [
+        "references/plantilla.md",
+        "references/leer-estilo.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Ya existe docs/ui-direction.md con paleta propia del equipo; nueva tarea pide un menú de pausa.",
+      "expected_output": "No reescribe el archivo: añade el ejemplo del menú de pausa con los tokens existentes y, si un par no cumple contraste, lo anota como decisión abierta en vez de cambiar la paleta. Resumen de tres líneas.",
+      "files": [
+        "references/plantilla.md"
+      ]
+    }
+  ]
+}

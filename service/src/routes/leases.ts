@@ -5,8 +5,23 @@ import { filtered, transaction } from '../repo/rows.ts';
 import { normalizedPaths } from '../handlers/worker-policy.ts';
 import type { Run } from '../model.ts';
 import { id, type Context } from './context.ts';
+import { projectInfo } from '../project-root.ts';
+import { agentLabel } from '../editor/queue.ts';
 
-export async function leases({db,req,res,url}: Context): Promise<boolean> {
+/** Editor por proyecto: el juego del servicio más cualquier proyecto con reserva `editor/<nombre>`. */
+function editors(db: Context['db'], dataDir: string | undefined) {
+  const held=listLeases(db).filter(lease=>lease.path.startsWith('editor/'));
+  const names=[...new Set([projectInfo(dataDir)?.name,...held.map(lease=>lease.path.slice(7))].filter((n): n is string=>!!n))];
+  return names.map(project=>{
+    const lease=held.find(l=>l.path.slice(7).toLowerCase()===project.toLowerCase());
+    const run=lease ? filtered<Run>(db,'runs',{id:lease.runId})[0] : undefined;
+    return {project,busy:lease ? {runId:lease.runId,taskId:lease.taskId,since:lease.acquiredAt,agent:agentLabel(run),
+      provider:run?.provider ?? null,role:run?.role ?? null} : null};
+  });
+}
+
+export async function leases({db,req,res,url,dataDir}: Context): Promise<boolean> {
+  if(req.method==='GET' && url.pathname==='/editors') {json(res,200,editors(db,dataDir));return true;}
   if(req.method==='GET' && url.pathname==='/leases') {
     json(res,200,listLeases(db));return true;
   }

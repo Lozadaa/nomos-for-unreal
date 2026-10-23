@@ -26,7 +26,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
   const flags: Record<string,string[]>={
-    'task.create':['title','area','spec-file','leases','depends','role','provider'],'task.spec':['spec-file'],'task.show':[],'task.review':[],
+    'task.create':['title','area','spec-file','leases','depends','role','provider'],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
     'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key'],'worker.stop':[],
     'run.diff':[],'run.output':['since'],'decision.open':['file'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
@@ -41,6 +41,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (group==='task') {
     if (action==='show') result=await call('/tasks/'+id);
     else if(action==='review') result=await call('/tasks/'+id+'/review',{});
+    else if(action==='check') result=await call('/tasks/'+id+'/checks',values.run===undefined ? {} : {runId:required(values.run,'--run')});
     else {
       const parsed=values['spec-file']===undefined ? undefined : parseTaskSpec(readFileSync(values['spec-file'],'utf8'));
       if (action==='spec') {

@@ -26,6 +26,8 @@ export type RunMetadata = {
   // trabajo de assets (hito 4): orden que lo creó y, en Meshy, el job remoto
   commandId?: string; remoteId?: string; kind?: string; stage?: string; idempotencyKey?: string;
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;
+  // pruebas (hito 5): run implementador cuyo diff se prueba
+  implementerRunId?: string; qa?: {testRunId: string};
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;
@@ -58,7 +60,7 @@ export type TestRun = Entity & {
   taskId: string; runId: string | null; commit: string | null; engineVersion: string | null;
   map: string | null; config: string | null;
   result: 'pending' | 'running' | 'passed' | 'failed' | 'skipped' | 'unavailable';
-  reportPath: string | null;
+  reportPath: string | null; checkId: string | null;
 };
 export type CatalogEntry = Entity & {
   name: string; category: string; description: string;

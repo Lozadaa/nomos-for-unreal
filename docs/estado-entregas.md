@@ -1,6 +1,6 @@
 # Estado de las entregas
 
-Actualizado el 2026-10-23 en `hito9-vistas`, con los hitos 8 y 2 ya en su base. El hito 9 se entrega en esta rama, sin push ni merge. Las cifras de hitos anteriores son evidencia histórica; las verificaciones nuevas se detallan en [el cierre del hito 9](auditoria-9-cierre.md).
+Actualizado el 2026-10-23 en `hito5-unreal` (sobre `main` con los hitos 0-4, 8 y 9). El hito 5 se entrega en esta rama, sin push ni merge. Las cifras de hitos anteriores son evidencia histórica; las del hito 5 están en [su aceptación](aceptacion-hito5.md).
 
 | Hito | Estado | Evidencia |
 |---|---|---|
@@ -13,7 +13,8 @@ Actualizado el 2026-10-23 en `hito9-vistas`, con los hitos 8 y 2 ya en su base. 
 | 9 · Lenguaje visual | Tareas 3–6 completas en `hito9-vistas`; Tareas 1–2/corrección en la base | `docs/auditoria-9-cierre.md`, `docs/capturas-9/`, `docs/diseno/glifos.md` |
 | 3 | En rama paralela según el brief; no se modifica ni valida aquí | `docs/superpowers/plans/` |
 | 4 · Catálogo y extracción | Tareas 1-6 en `hito4-catalogo` (sin push ni merge); aceptación real con Unreal 5.8.3 y Meshy | `docs/aceptacion-hito4.md`, `docs/capturas-4/`, sección «Hito 4» más abajo |
-| 5-7 | Con plan; 5b pausado por decisión del usuario | `docs/superpowers/plans/` |
+| 5 · Unreal, UI del juego y QA | Tareas 1-6 en `hito5-unreal` (sin push ni merge); aceptación real con Unreal 5.8.3 y workers Claude | `docs/aceptacion-hito5.md`, `docs/capturas-5/`, sección «Hito 5» más abajo |
+| 5b, 6, 7 | Con plan; 5b pausado por decisión del usuario | `docs/superpowers/plans/` |
 
 ## Hito 8 (Tareas 4-6): lo que hay y lo que espera
 
@@ -88,4 +89,18 @@ listado Orca y límites: [aceptación del hito 2](aceptacion-hito2.md).
 ```
 node skills/kratos/scripts/kratos.ts asset index|search|migrate|prepare|download|generate --data <juego>/.kratos
 node panel/scripts/capturas-4.ts "<juego>/.kratos"       # capturas → docs/capturas-4/
+```
+
+## Hito 5 — Unreal, UI del juego y QA
+
+**Hecho** (rama `hito5-unreal`): editor por lotes con render (`-game` a resolución fija), `engineVersion`, cola de un editor por proyecto (`editor/<proyecto>`, «ocupado por …»), Build.bat y BuildCookRun con tiempo máximo; comprobaciones por tipo de cambio (`cpp`, `blueprint`, `asset`, `map` con Data Validation, `umg`, `build`) con `TestRun` completo, log como artefacto y resumen de 30 líneas; puerta `probando → integrando` con Decisión «Continuar sin esta comprobación / Reintentar»; ciclo UMG (`ui.cycle`: capturas con y sin UI a 1280×720 y 1920×1080, comparación PNG propia, QA visual de Claude con `ue-visual-qa`); skills `game-ui-art-director`, `ue-umg-ui`, `ue-visual-qa` y `kratos skills install`; `unreal_mcp_conflict`, `GET /editors` y MCP vivo opcional apagado; panel: pestaña Pruebas, Entregas por tarea con resolución y mapa, editor en Capacidades.
+
+**Verificado** en el cierre: `npm test` 400/400 · Vitest 256/256 · build verde · Playwright 61 pasadas, 3 omitidas · skillsmith kratos 98, game-ui-art-director 96, ue-umg-ui 96, ue-visual-qa 96. Aceptación real: petición «HUD con barra de vida que baje al pulsar H» de punta a punta (dirección de arte → worker Claude en C++ → capturas → QA visual → revisión → `cpp` y `build` → `integrando`), prueba 7 con un menú oculto («la captura no contiene la UI» y corrección al responsable), C++ real con éxito y con error, mapa con Data Validation y captura, prueba 29 y MCP vivo una vez.
+
+**Pendiente**: el runner procesa una orden cada vez (un empaquetado de 40 min retrasa los demás comandos); las tareas dependientes no reciben los commits de su dependencia (hito 6), así que la dirección de arte llega por ruta; Blueprint y assets reales en un árbol de trabajo con Content; la tecla H solo la cubre la prueba del worker.
+
+```
+node skills/kratos/scripts/kratos.ts task check <tarea> --data <juego>/.kratos
+node skills/kratos/scripts/kratos.ts skills install --data <juego>/.kratos
+node panel/scripts/capturas-5.ts "<juego>/.kratos" <tarea>      # capturas → docs/capturas-5/
 ```

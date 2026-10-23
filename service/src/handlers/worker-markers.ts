@@ -58,11 +58,12 @@ export function streamMarkers(lines:string[],buffer:string,fence=''): {found:Mar
   }
   return {found,buffer,fence};
 }
-/** Codex sangra con dos espacios las líneas siguientes de un mensaje con viñeta; la salida de herramienta usa └. */
+/** Codex y Claude sangran las líneas siguientes de un mensaje con viñeta; la salida de herramienta usa └ o ⎿. */
 function bulletContinuation(lines:string[],i:number):boolean {
   for(let j=i-1;j>=0;j--) {
     if(/^[•●⏺] /.test(lines[j])) return true;
-    if(!/^ {2}[^\s└│⎿]/.test(lines[j])) return false;
+    // las continuaciones de una lista dentro del mensaje llevan cuatro o más espacios (Claude, hito 5)
+    if(!/^ {2,}[^\s└│⎿]/.test(lines[j])) return false;
   }
   return false;
 }

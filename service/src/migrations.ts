@@ -47,6 +47,14 @@ export function migrateWorkerProviders(db:DatabaseSync):void {
   });
 }
 
+/** Hito 5: cada prueba dice qué comprobación es (cpp, blueprint, asset, map, umg, build). */
+export function migrateChecks(db: DatabaseSync): void {
+  transaction(db, () => {
+    const columns = db.prepare('pragma table_info(test_runs)').all();
+    if (!columns.some(row => row.name === 'check_id')) db.exec('alter table test_runs add column check_id text');
+  });
+}
+
 /** Hito 4: versión del motor con la que se verificó un pack y cola de descargas asistidas del Launcher. */
 export function migrateAssets(db: DatabaseSync): void {
   transaction(db, () => {

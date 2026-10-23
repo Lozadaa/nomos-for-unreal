@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { Task, TaskState } from '../model.ts';
 import { appendEvent } from '../store.ts';
 import { insert, read, filtered, transaction, type Input } from './rows.ts';
+import { checkGate } from '../checks/gate.ts';
 export function createTask(db: DatabaseSync, input: Input<Task> & Pick<Task, 'title' | 'area'>): Task {
     return transaction(db, () => {
         const task = insert<Task>(db, 'tasks', { spec: '', acceptance: [], scope: [], leases: [], reviewApproved: 0, waitReason: null, state: 'pendiente', blockedReason: null, decisionId: null,
@@ -27,6 +28,9 @@ export function moveTask(db: DatabaseSync, id: string, state: TaskState, reason?
     return transaction(db, () => {
         const task = requireTask(db, id);
         if (state === 'done' && task.state !== 'cerrando')
+            throw new Error('invalid_transition');
+        // nada se integra sin las pruebas que su diff exige (hito 5, prueba 7)
+        if (state === 'integrando' && task.state === 'probando' && !checkGate(db, id).ok)
             throw new Error('invalid_transition');
         db.prepare('update tasks set state=?,updated_at=? where id=?').run(state, new Date().toISOString(), id);
         appendEvent(db, 'task.moved', null, { taskId: id, from: task.state, state, reason: reason ?? null });

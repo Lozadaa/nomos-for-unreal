@@ -10,15 +10,19 @@ import { startWorker } from './worker-start.ts';
 import { appendEvent } from '../store.ts';
 import { updateRun } from '../repo/worker.ts';
 import { workerSkillsBrief } from '../brief.ts';
+import { skillsForRole } from '../skills.ts';
+import { qaBrief } from './ui-cycle.ts';
 
 export const reviewStart:Handler=async(cmd,ctx)=>{
   const payload=cmd.payload as any;
+  // QA visual (hito 5): un run revisor más, con las capturas de ui.cycle y sin aprobar el código
+  const qa=payload.qa && typeof payload.qa.testRunId==='string' ? {testRunId:payload.qa.testRunId as string} : undefined;
   const {task,implementer}=reviewTarget(ctx.db,payload.taskId,payload.implementerRunId);
   const {snapshot,patch}=await reviewSnapshot(ctx,task.id,implementer.id),generation=snapshot.generation;
   if(payload.generation && payload.generation!==generation) throw new Error('invalid_review_generation');
   const history=filtered<Run>(ctx.db,'runs',{taskId:task.id});
   const previous=history.find(r=>r.role==='revisor'&&r.metadata.review?.implementerRunId===implementer.id
-    &&r.metadata.review.generation===generation);
+    &&r.metadata.review.generation===generation&&r.metadata.qa?.testRunId===qa?.testRunId);
   if(previous && !(previous.state==='running'&&previous.metadata.phase==='preparing'&&!previous.sessionRef
     &&!previous.metadata.worktreeId&&!previous.metadata.uncertain&&previous.metadata.startCommandId===cmd.id))
     return {runId:previous.id};
@@ -34,11 +38,13 @@ export const reviewStart:Handler=async(cmd,ctx)=>{
   }
   if(previous && previous.provider!==choice.provider) updateRun(ctx.db,previous.id,{}, {provider:choice.provider});
   if(task.decisionId) return {policyBlocked:true,decisionId:task.decisionId};
-  return startWorker({...cmd,payload:{...payload,provider:choice.provider,role:'revisor',skills:[],attempt:1}},ctx,{
+  return startWorker({...cmd,payload:{...payload,provider:choice.provider,role:'revisor',skills:qa ? [...new Set([...skillsForRole('qa',''),'ue-visual-qa'])] : [],attempt:1}},ctx,{
     snapshot,valid:()=>reviewCurrent(ctx,task.id,snapshot),
     brief:(path,run)=>{
       mkdirSync(join(path,'.kratos-review'),{recursive:true});writeFileSync(join(path,'.kratos-review','diff.patch'),patch);
-      appendEvent(ctx.db,'review.started',null,{taskId:task.id,runId:run.id,provider:run.provider,...snapshot,same_provider:choice.sameProvider});
+      appendEvent(ctx.db,'review.started',null,{taskId:task.id,runId:run.id,provider:run.provider,...snapshot,same_provider:choice.sameProvider,
+        ...(qa ? {qa} : {})});
+      if(qa) {updateRun(ctx.db,run.id,{qa});return qaBrief(ctx,task,run,snapshot,qa.testRunId,path);}
       return `# Revisión independiente\n\nSolo inspección: no modificar la implementación, crear commits ni hacer merge.\n\n`
         +workerSkillsBrief(run)
         +`## Encargo\n${task.spec}\n\n## Criterios de aceptación\n${task.acceptance.map(s=>'- '+s).join('\n')}\n\n`
