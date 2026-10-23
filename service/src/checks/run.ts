@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import type { WorkerContext } from '../runner.ts';
 import type { Artifact, JsonValue, Run, Task, TestRun } from '../model.ts';
 import type { Project } from '../handlers/asset-run.ts';
@@ -10,14 +10,18 @@ import { addArtifact, recordTestRun, updateTestRun } from '../repo/artifacts.ts'
 import { appendEvent } from '../store.ts';
 import type { CheckId } from './select.ts';
 import { checkArtifactLabel, checkReportLabel } from '../artifact-label.ts';
+import { readConfig, visualTolerance } from '../config.ts';
+import { compareBaseline } from './visual.ts';
 
 export type CheckDeps = {
   unreal?: (ctx: WorkerContext) => UnrealCmd; build?: (ctx: WorkerContext) => BuildOpts;
   /** Arranca el ejecutable empaquetado y lo cierra al cabo de `ms`; en pruebas se sustituye. */
-  launch?: (exe: string, args: string[], ms: number) => Promise<void>;
+  launch?: (exe: string, args: string[], ms: number) => Promise<Launch | void>;
   /** Segundos de juego antes de capturar (30 en el plan; las pruebas usan 0). */
   playSeconds?: number;
 };
+/** Vida del ejecutable: `killed` = Kratos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
+export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};
 export type CheckInput = {task: Task; run: Run; implementer: Run; project: Project; files: string[]; worktree: string};
 export type Outcome = {
   /** `running`: la máquina terminó y falta un juicio posterior (QA visual del ciclo UMG). */
@@ -59,6 +63,7 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
         ? {result: 'failed', log, summary: ['Tiempo máximo agotado: se cerró el editor', ...log.split(/\r?\n/).filter(l => /error/i.test(l))]}
         : {result: 'failed', log, summary: [`Error al ejecutar la comprobación: ${message}`]};
   }
+  if (['umg', 'build', 'map'].includes(id) && ['passed', 'running'].includes(outcome.result)) outcome = visualCheck(ctx, id, dir, outcome);
   const logPath = join(dir, 'log.txt');
   writeFileSync(logPath, `${outcome.summary.join('\n')}\n\n${outcome.log}`, 'utf8');
   addArtifact(db, {taskId: input.task.id, runId: input.run.id, kind: 'report', path: logPath,
@@ -72,4 +77,24 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
   appendEvent(db, `test.${outcome.result}`, null, {testRunId: row.id, taskId: row.taskId, runId: row.runId, check: id,
     summary: summarize(outcome.summary).join('\n'), logPath, ...(outcome.blocking ? {blocking: outcome.blocking} : {})});
   return row;
+}
+
+/** Regresión visual (hito 7) de cada captura contra `<juego>/docs/baseline/<check>-<captura>.png`. */
+function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outcome): Outcome {
+  const tolerance = visualTolerance(readConfig(ctx.dataDir)), lines: string[] = [], extra: NonNullable<Outcome['artifacts']> = [];
+  let failed = false;
+  for (const shot of (outcome.artifacts ?? []).filter(a => a.kind === 'screenshot')) {
+    const base = basename(shot.path, extname(shot.path)).replace(/^HighresScreenshot\d+$/i, '1280x720');
+    const name = base.startsWith(`${id}-`) ? base : `${id}-${base}`;
+    try {
+      const visual = compareBaseline(shot.path, join(ctx.projectDir, 'docs', 'baseline'), name, tolerance, join(dir, `${name}-diferencia.png`));
+      lines.push(visual.summary);
+      shot.provenance = {...shot.provenance, visual: visual.result, baseline: visual.baseline, ...(visual.ratio === null ? {} : {visualRatio: Number(visual.ratio.toFixed(4))})};
+      if (visual.result === 'failed') failed = true;
+      if (visual.diff) extra.push({kind: 'screenshot', path: visual.diff, provenance: {...shot.provenance, visual: 'diff', source: shot.path}});
+    } catch (error) { lines.push(`${name}: no se pudo comparar (${error instanceof Error ? error.message : String(error)})`); }
+  }
+  if (!lines.length) return outcome;
+  return {...outcome, result: failed ? 'failed' : outcome.result, artifacts: [...(outcome.artifacts ?? []), ...extra],
+    summary: failed ? [...lines.filter(l => /difiere|mide/.test(l)), ...outcome.summary] : [...outcome.summary, ...lines]};
 }
