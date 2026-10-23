@@ -118,3 +118,59 @@ navegador ni a un resultado de Skillsmith.
   rearme/expiración real de Monitor y el enrutado a la sesión original.
 - Tras ejecutar la tarea 8, añade fecha, resultado por prueba y capturas; commit
   sugerido: `docs: resultado de la aceptación del hito 0`. No hacer push ni merge aquí.
+
+## Resultado 2026-10-23
+
+Tarea 8 ejecutada en `C:\Users\richa\Documents\Unreal Projects\KratosFabTest` por una
+sesión de Claude Code (Sonnet 5.5, app de escritorio) con la skill instalada por la
+junction, Node 25.9 y la herramienta Monitor real. Los tokens no se registran aquí.
+Dirigido por los pasos 1–7 del encargo (plan, Task 8, más las comprobaciones de token
+y de vigilante caído). **Resultado: 7 de 7 pasos cumplen lo esperado; 0 fallos de
+funcionamiento; 5 observaciones** (abajo). Esta sesión usó el identificador
+`acept-hito0` como `--session`, no el id interno real de Claude Code, que la skill no
+dice cómo obtener.
+
+| Paso | Resultado | Qué se vio |
+|---|---|---|
+| 1 · `/kratos` | Pasa | `start` imprimió `URL …` y `ARRANCADO` (pid 68452, puerto 8780). Tras armar Monitor con `vigila`, la franja decía «Kratos escuchando». |
+| 2 · «hola, prueba de aceptación 🎾» | Pasa | Enviado desde la web: franja «Kratos atendiendo 1 mensajes» y tarjeta «Enviado». El Monitor imprimió `{"seq":2,"messageId":"9699cd15-…","origin":"web"}` con el emoji intacto. `ack 2` devolvió `lastAckSeq:2`, `reply` devolvió `{"seq":4}`. La página mostró «Recibido por Kratos», la respuesta y «Última confirmación: 11:43:02 PM» sin escribir nada en el chat. Captura: [aceptacion-02-recibido.png](capturas-hito0/aceptacion-02-recibido.png). |
+| 3 · Idempotencia | Pasa | Segundo `start`: `YA_ACTIVO`, misma URL; `service.json` con el mismo hash (`f6fa23de…`), pid y `startedAt` iguales. |
+| 4 · Recuperación | Pasa | Mensaje nuevo enviado con Ctrl+Enter (el Monitor lo imprimió: seq 5) y **no confirmado**. Se detuvo el Monitor, `stop` → `DETENIDO`, `status` → exit 2 «Servicio no disponible», `start` → `ARRANCADO` (pid 70012, `startedAt` nuevo, `pending:1`). Al rearmar `vigila` se reimprimió **una sola vez** el mismo `messageId` (seq 5); `ack 5` + `reply` → `pending:0`, sin segunda entrega a los 5 s. La pestaña vieja mostró «Servicio desconectado» (ver obs. 1); tras recargar con la URL nueva: «Kratos escuchando», dos tarjetas, ambas «Recibido por Kratos». Captura: [aceptacion-04-recuperacion.png](capturas-hito0/aceptacion-04-recuperacion.png). |
+| 5 · Token | Pasa | `POST /messages` sin cabecera → `401 {"error":"unauthorized"}`; con el token de `service.json` anterior → `401` idéntico; ninguno creó mensaje (`pending` siguió en 0). Como control, `GET /status` dio 401, 401 y 200 con el token vigente. |
+| 6 · Vigilante caído | Pasa | Tras `TaskStop` del Monitor y ~11 s: `listener:false`, franja «Servicio activo · esperando a Kratos» (sin pendientes). Con un mensaje enviado y ~28 s: «Vigilante caído · 1 mensajes en espera». Nunca «Kratos escuchando». Capturas: [06a](capturas-hito0/aceptacion-06a-servicio-activo.png), [06b](capturas-hito0/aceptacion-06b-vigilante-caido.png). Al rearmar se entregó el pendiente (seq 10), `ack` + `reply` lo cerraron. |
+| 7 · Cierre | Pasa | Monitor detenido y `stop` → `DETENIDO`; `status` exit 2; `curl` al puerto sin conexión; `service.json` retirado; `kratos.db` conservada. |
+
+### Observaciones (no son fallos del criterio del plan; conviene decidir si se corrigen)
+
+1. **Cambiar solo el fragmento `#token=` en la pestaña abierta no recarga la página**
+   (navegación en el mismo documento): tras `stop`/`start`, navegar a la URL nueva en la
+   misma pestaña siguió mostrando «Servicio desconectado»; hizo falta recargar. Con el
+   navegador del sistema (`start` abre pestaña nueva) no se probó; la skill dice «abre la
+   URL nueva» sin avisar de ello. Una opción: que la página relea `location.hash` en
+   `hashchange`.
+2. **«Navegador abierto» no verificado.** `start` imprime la URL y, según la skill, abre
+   el navegador del sistema; no se comprobó visualmente. La URL se abrió a mano en el
+   navegador integrado (`mcp__Claude_Browser__navigate`); `show_pane preview` respondió
+   que la sesión no estaba abierta en ninguna ventana.
+3. **Numeración de `seq`:** el primer mensaje llevó `seq` 2 y el ack válido fue ese 2;
+   `ack` y `reply` también consumen `seq` (reply de seq 2 → `{"seq":4}`). Coherente con el
+   contrato, pero la skill no lo explica y el plan no fijaba el primer valor.
+4. **Restos tras matar el Monitor:** `watcher.lock.db-journal` (512 B) quedó en `.kratos`
+   tras el `stop` final, junto a `watcher.lock.db` y `start.lock.db`. No causó fallos:
+   los tres rearmes entregaron bien.
+5. **`.gitignore` del juego:** la carpeta de prueba no es un repositorio git ni tiene
+   `.gitignore`; la skill pide añadir `.kratos/` «si no está» y no se hizo.
+
+### Alcance: lo que NO se ejecutó
+
+- Prueba 1.2–1.3 de esta guía (`/kratos estado` y segunda sesión de Claude Code con
+  `/kratos`): el paso 3 se ejerció desde la CLI de esta misma sesión, no desde otra sesión.
+- Prueba 3.1 con «vigilante caído» solo se hizo con `TaskStop`; no se esperó a que
+  expire el Monitor (30 min).
+- Prueba 4 (cierre de la sesión de Claude con mensaje pendiente) y prueba 21 (latido sin
+  `ack`: «atendiendo» se vio en la franja, pero no se mantuvo una pausa deliberada entre
+  entrega y `ack`).
+- Recarga con `<script>alert(1)</script>` (prueba 2.3): no se envió.
+- Las capturas se hicieron del navegador integrado (JPEG convertido a PNG); el panel
+  estaba oculto y el primer intento agotó el tiempo, por eso algunas muestran el
+  desplazamiento del contenedor.
