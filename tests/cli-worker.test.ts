@@ -71,3 +71,19 @@ test('CLI workers/runs y decisiones transportan texto literal y exponen comandos
   const resolved=cli(dataDir,'decision','resolve',decision.id,'--option','answer','--by','kratos');assert.equal(resolved.status,0,resolved.stderr);
   assert.equal(JSON.parse(resolved.stdout).state,'resolved');
 });
+
+test('CLI task create declara reservas, dependencias y asignación antes de preparar',async t=>{
+  const {dataDir,port}=await cliFixture(t);cli(dataDir,'start','--port',String(port),'--no-open');
+  const file=join(dataDir,'spec.md');writeFileSync(file,markdown);
+  const first=JSON.parse(cli(dataDir,'task','create','--title','HUD','--area','ui').stdout);
+  const created=cli(dataDir,'task','create','--title','Vida','--area','ui','--spec-file',file,
+    '--leases','Content/UI/WBP_HUD.uasset, Content/UI/T_Icon.uasset','--depends',first.id,'--role','ui','--provider','claude');
+  assert.equal(created.status,0,created.stderr);const task=JSON.parse(created.stdout);
+  assert.equal(task.state,'preparada');assert.deepEqual(task.leases,['Content/UI/WBP_HUD.uasset','Content/UI/T_Icon.uasset']);
+  assert.deepEqual(task.dependsOn,[first.id]);assert.equal(task.assigneeRole,'ui');assert.equal(task.assigneeProvider,'claude');
+  const types=(await api(dataDir,'/tasks/'+task.id)).events.map((e:any)=>e.type);
+  assert.deepEqual(types.slice(0,3),['task.created','task.dependencies.changed','task.moved']);
+  assert.notEqual(cli(dataDir,'task','create','--title','X','--area','ui','--depends','no-existe').status,0);
+  assert.notEqual(cli(dataDir,'task','create','--title','X','--area','ui','--provider','otro').status,0);
+  assert.equal((await api(dataDir,'/tasks')).length,2,'Sin tareas huérfanas');
+});

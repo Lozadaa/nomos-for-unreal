@@ -7,12 +7,12 @@ con proveedores reales corresponde a T6; la integración final sigue en hitos po
 
 ## Petición → especificación → worker
 
-El planificador despacha tareas preparadas cada cinco segundos. Para tareas con
-dependencias, crea primero una tarea pendiente por `POST /tasks` y asigna allí
-`assigneeRole`/`assigneeProvider` si procede. Declara `POST /tasks/TASK/depends`
-con `{ "dependsOn": ["BASE"] }` antes de preparar con `/tasks/TASK/spec`.
-Ambas rutas requieren Bearer; no uses creación con `--spec-file` antes de declarar
-dependencias, porque ya prepara. Consulta `docs/planificador.md` del repositorio
+El planificador despacha tareas preparadas cada cinco segundos. `task create` con
+`--leases A,B`, `--depends BASE`, `--role` y `--provider` declara reservas,
+dependencias y asignación mientras la tarea sigue pendiente y solo después aplica
+`--spec-file`; valida las dependencias antes de crear. Por HTTP el orden equivale a
+`POST /tasks` (con `leases`, `assigneeRole`, `assigneeProvider`), después
+`POST /tasks/TASK/depends` con `{ "dependsOn": ["BASE"] }` y por último `/spec`. Consulta `docs/planificador.md` del repositorio
 Kratos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
 Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode todavía
 no tiene adaptador: puede declararse, pero no debe seleccionarse ni lanzarse;
