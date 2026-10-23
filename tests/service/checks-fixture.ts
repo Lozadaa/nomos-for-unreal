@@ -21,6 +21,8 @@ export function checksFixture(opts: {files?: string[]; state?: Task['state']; ar
   const engineDir = join(root, 'Engine');
   mkdirSync(dataDir, {recursive: true}); mkdirSync(join(projectDir, 'Content'), {recursive: true}); mkdirSync(join(engineDir, 'Build'), {recursive: true});
   writeFileSync(join(projectDir, 'Juego.uproject'), '{}');
+  // los archivos del diff existen en el árbol (salvo que la prueba los borre)
+  for (const file of opts.files ?? []) { mkdirSync(dirname(join(projectDir, file)), {recursive: true}); writeFileSync(join(projectDir, file), ''); }
   writeFileSync(join(engineDir, 'Build', 'Build.version'), JSON.stringify({MajorVersion: 5, MinorVersion: 8, PatchVersion: 3}));
   const db = openDb(':memory:');
   let files = opts.files ?? [];

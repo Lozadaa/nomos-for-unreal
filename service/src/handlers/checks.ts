@@ -1,11 +1,13 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { Command, Decision, Run, Task, TestRun, Worktree } from '../model.ts';
 import { filtered, read } from '../repo/rows.ts';
 import { moveTask, requireTask } from '../repo/tasks.ts';
 import { finishRun, startRun } from '../repo/runs.ts';
-import { requireRun } from '../repo/worker.ts';
+import { requireRun, updateRun } from '../repo/worker.ts';
 import { recordTestRun, updateTestRun } from '../repo/artifacts.ts';
-import { listDecisions, openDecision } from '../repo/decisions.ts';
+import { listDecisions, openDecision, refreshPendingDecision } from '../repo/decisions.ts';
 import { enqueue } from '../commands.ts';
 import { appendEvent } from '../store.ts';
 import { withEditor } from '../editor/queue.ts';
@@ -73,7 +75,9 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     const task = requireTask(ctx.db, payload.taskId), implementer = implementerOf(ctx, task, payload.runId);
     const {tree, project} = treeOf(ctx, implementer);
     const decision = commandDecision(ctx, task, command);
-    if (decision?.state === 'open') return {deferred: true, reason: `Esperando decisión: ${decision.reason}`};
+    // caducada (otro run escribió en la tarea): se regenera y se sigue esperando; solo «Reintentar» relanza el lote
+    if (decision?.state === 'stale') refreshPendingDecision(ctx.db, task.id);
+    if (decision?.state === 'open' || decision?.state === 'stale') return {deferred: true, reason: `Esperando decisión: ${decision.reason}`};
     if (decision?.state === 'resolved' && decision.chosenOptionId === waiverOption.id) return {passed: true, advanced: advance(ctx, task.id)};
     if (decision?.state === 'resolved' && decision.chosenOptionId === returnOption.id) {
       const failed = filtered<TestRun>(ctx.db, 'test_runs', {taskId: task.id, result: 'failed'}).at(-1)!;
@@ -82,16 +86,23 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     }
     const files = Array.isArray(payload.files) ? payload.files.filter((f): f is string => typeof f === 'string')
       : tree ? await ctx.git.changedFiles!(tree.path, tree.baseCommit) : [];
-    const ids = selectChecks(files, task.scope);
+    const ids = selectChecks(files, task.scope), worktree = tree?.path ?? project.dir;
+    let commit: string | null;
+    try { commit = await ctx.git.head(worktree); } catch { commit = null; }
+    const run = updateRun(ctx.db, checkRun(ctx, command, task, implementer).id, {checks: ids, checksCommit: commit});
     if (!ids.length) {
-      const row = recordTestRun(ctx.db, {taskId: task.id, runId: implementer.id, checkId: 'none', result: 'skipped'});
-      appendEvent(ctx.db, 'test.skipped', null, {testRunId: row.id, taskId: task.id, runId: implementer.id, check: 'none', summary: 'el diff no toca Unreal'});
+      const row = recordTestRun(ctx.db, {taskId: task.id, runId: run.id, checkId: 'none', result: 'skipped', commit});
+      appendEvent(ctx.db, 'test.skipped', null, {testRunId: row.id, taskId: task.id, runId: run.id, check: 'none', summary: 'el diff no toca Unreal'});
+      finishRun(ctx.db, run.id, 'done', 'El diff no toca Unreal');
       return {testRunIds: [row.id], passed: true, advanced: advance(ctx, task.id)};
     }
-    const run = checkRun(ctx, command, task, implementer);
+    // tras un reinicio, la fila que se estaba ejecutando vuelve a la cola del lote
+    for (const row of filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id, result: 'running'})) updateTestRun(ctx.db, row.id, {result: 'pending'});
     let rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
-    if (!rows.length) rows = ids.map(id => recordTestRun(ctx.db, {taskId: task.id, runId: run.id, checkId: id, result: 'pending'}));
-    const input = {task, run, implementer, project, files, worktree: tree?.path ?? project.dir};
+    if (!rows.length) rows = ids.map(id => recordTestRun(ctx.db, {taskId: task.id, runId: run.id, checkId: id, result: 'pending', commit}));
+    // los archivos borrados cuentan para elegir comprobaciones, no para validar ni compilar assets que ya no existen
+    const present = files.filter(file => existsSync(join(worktree, file)));
+    const input = {task, run, implementer, project, files: present, worktree};
     const outcome = await withEditor(ctx, project, run, async () => {
       for (const row of rows) {
         const execute = executors[row.checkId as CheckId];
@@ -102,7 +113,7 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     if (outcome && typeof outcome === 'object' && 'deferred' in outcome) return outcome;
     rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     const umg = rows.find(r => r.checkId === 'umg' && r.result === 'pending');
-    if (umg && !rows.some(r => r.result === 'failed')) umgStep(ctx, task, implementer, umg, rows);
+    if (umg && !rows.some(r => r.result === 'failed')) umgStep(ctx, task, implementer, umg, commit);
     rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     const failed = rows.find(r => r.result === 'failed'), missing = rows.filter(r => ['skipped', 'unavailable'].includes(r.result));
     finishRun(ctx.db, run.id, failed ? 'failed' : 'done', failed ? `Falló ${failed.checkId}` : 'Comprobaciones terminadas');
@@ -129,11 +140,14 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
 }
 
 /** UMG: vale un ciclo UMG aprobado sobre el mismo commit; si no lo hay, se encola `ui.cycle` y la fila queda pendiente. */
-function umgStep(ctx: WorkerContext, task: Task, implementer: Run, row: TestRun, rows: TestRun[]): void {
-  const commit = rows.find(r => r.commit)?.commit ?? null;
-  const approved = filtered<TestRun>(ctx.db, 'test_runs', {taskId: task.id, checkId: 'umg', result: 'passed'}).filter(r => r.commit === commit).at(-1);
-  if (approved) { updateTestRun(ctx.db, row.id, {result: 'passed', commit, reportPath: approved.reportPath, config: approved.config}); return; }
-  enqueue(ctx.db, 'ui.cycle', {taskId: task.id, runId: implementer.id}, uiCycleKey(implementer));
+function umgStep(ctx: WorkerContext, task: Task, implementer: Run, row: TestRun, commit: string | null): void {
+  const cycles = filtered<TestRun>(ctx.db, 'test_runs', {taskId: task.id, checkId: 'umg'}).filter(r => r.id !== row.id && r.commit === commit);
+  const approved = cycles.filter(r => r.result === 'passed').at(-1);
+  if (approved) { updateTestRun(ctx.db, row.id, {result: 'passed', reportPath: approved.reportPath, config: approved.config}); return; }
+  if (cycles.some(r => r.result === 'running' || r.result === 'pending')) return; // el ciclo de este commit aún espera al QA
+  // clave por commit y lanzamiento: la del KRATOS_DONE puede existir ya, terminada
+  const n = ctx.db.prepare("select count(*) n from commands where type='ui.cycle' and json_extract(payload,'$.taskId')=?").get(task.id)!.n;
+  enqueue(ctx.db, 'ui.cycle', {taskId: task.id, runId: implementer.id}, `ui.cycle:${task.id}:${commit ?? 'sin-commit'}:${n}`);
 }
 
 export function createCheckHandlers(deps: CheckDeps = {}): Record<string, Handler> {

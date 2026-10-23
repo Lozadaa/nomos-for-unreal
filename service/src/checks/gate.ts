@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Decision, TestRun } from '../model.ts';
+import type { Decision, Run, TestRun } from '../model.ts';
 import { filtered } from '../repo/rows.ts';
 
 export type Gate = {ok: true} | {ok: false; reason: string; blocking: string[]; unavailable: TestRun[]};
@@ -13,13 +13,26 @@ function waived(db: DatabaseSync, taskId: string): Set<string> {
   return new Set(ids);
 }
 
-/** Puerta probando → integrando: el último TestRun de cada comprobación debe estar passed (o eximido si no se pudo ejecutar).
- *  ponytail: «último por comprobación», sin lote; una comprobación que el diff ya no exige sigue contando hasta que pase. */
+/** Lo que exigió el último checks.run (su run guarda la selección y el commit probado). */
+function selection(db: DatabaseSync, taskId: string): {checks: string[]; commit: string | null} | undefined {
+  const run = filtered<Run>(db, 'runs', {taskId}).filter(r => Array.isArray(r.metadata.checks)).at(-1);
+  return run ? {checks: run.metadata.checks!, commit: run.metadata.checksCommit ?? null} : undefined;
+}
+
+/** Puerta probando → integrando: cada comprobación que exige el último lote, en su commit, debe estar passed (o eximida
+ *  si no se pudo ejecutar). Una fila `pending` es solo el hueco del lote: cuenta la última ya decidida (p. ej. el QA de umg). */
 export function checkGate(db: DatabaseSync, taskId: string): Gate {
   const rows = filtered<TestRun>(db, 'test_runs', {taskId}).filter(r => r.checkId);
-  if (!rows.length) return {ok: false, reason: 'Sin pruebas: lanza las comprobaciones', blocking: [], unavailable: []};
+  const batch = selection(db, taskId);
+  if (!rows.length && !batch) return {ok: false, reason: 'Sin pruebas: lanza las comprobaciones', blocking: [], unavailable: []};
   const latest = new Map<string, TestRun>();
-  for (const row of rows) latest.set(row.checkId!, row);
+  if (batch) {
+    for (const check of batch.checks) {
+      const own = rows.filter(r => r.checkId === check && (!batch.commit || r.commit === batch.commit));
+      const row = own.filter(r => r.result !== 'pending').at(-1) ?? own.at(-1);
+      latest.set(check, row ?? {checkId: check, result: 'pending'} as TestRun);
+    }
+  } else for (const row of rows) latest.set(row.checkId!, row);
   if (latest.size > 1) latest.delete('none');
   const free = waived(db, taskId), blocking: string[] = [], unavailable: TestRun[] = [];
   for (const [check, row] of latest) {

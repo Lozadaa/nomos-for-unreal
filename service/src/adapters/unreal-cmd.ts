@@ -27,11 +27,12 @@ export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[];
     const view = run.render ? [...(run.render.map ? [run.render.map] : []), '-game', `-ResX=${run.render.width}`, `-ResY=${run.render.height}`,
       '-windowed', '-ForceRes'] : ['-NullRHI'];
     // -ExecutePythonScript cierra el editor al volver el script; con render (PIE) el script se lanza con «py» y cierra él mismo
-    const exec = run.render ? `-ExecCmds="py ${script.replaceAll('\\', '/')}"` : `-ExecutePythonScript=${quote(script)}`;
+    // la ruta va por KRATOS_SCRIPT: «py» corta en el primer espacio y ExecCmds en cada coma
+    const exec = run.render ? `-ExecCmds="py import os;exec(open(os.environ['KRATOS_SCRIPT']).read())"` : `-ExecutePythonScript=${quote(script)}`;
     const args = [...[...(opts.baseArgs ?? []), uproject].map(quote), ...view, exec,
       '-unattended', '-nopause', '-nosplash', '-stdout', '-FullStdOutLogOutput'];
     try {
-      const {exitCode, log} = await runLogged(bin, args, {timeoutMs, env: {...process.env, PYTHONUTF8: '1', ...env, KRATOS_REPORT: report}});
+      const {exitCode, log} = await runLogged(bin, args, {timeoutMs, env: {...process.env, PYTHONUTF8: '1', ...env, KRATOS_REPORT: report, KRATOS_SCRIPT: script}});
       let reportJson: Record<string, unknown> | undefined;
       try { reportJson = JSON.parse(readFileSync(report, 'utf8')); } catch { reportJson = undefined; }
       return {exitCode, log, reportJson};

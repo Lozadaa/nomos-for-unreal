@@ -28,8 +28,9 @@ export type Executor = (ctx: WorkerContext, input: CheckInput & {dir: string}, d
 
 export const unrealOf = (ctx: WorkerContext, deps: CheckDeps) => deps.unreal?.(ctx) ?? createUnrealCmd({bin: assetConfig(ctx.dataDir).unrealPath});
 export const buildOf = (ctx: WorkerContext, deps: CheckDeps): BuildOpts => deps.build?.(ctx) ?? {engineDir: engineDirOf(assetConfig(ctx.dataDir).unrealPath)};
-/** Resumen del evento (Review Focus 3): las 30 primeras líneas con «error»; si no hay, las 30 primeras del resumen. */
-export const summarize = (lines: string[]) => (lines.some(l => /error/i.test(l)) ? lines.filter(l => /error/i.test(l)) : lines).slice(0, 30);
+/** Resumen del evento (Review Focus 3): el titular y después las líneas con «error» (30 en total); sin errores, las 30 primeras. */
+export const summarize = (lines: string[]) => [lines[0], ...lines.slice(1).filter(l => /error/i.test(l) || !lines.some(m => /error/i.test(m)))]
+  .filter(l => l !== undefined).slice(0, 30);
 
 async function commitOf(ctx: WorkerContext, dir: string): Promise<string | null> {
   try { return await ctx.git.head(dir); } catch { return null; }
