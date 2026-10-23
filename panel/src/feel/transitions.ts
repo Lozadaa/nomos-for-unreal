@@ -7,9 +7,13 @@ type Transition = { finished: Promise<void> }
 type StartViewTransition = (update: () => void | Promise<void>) => Transition
 
 let current: Transition | null = null
+let applying = 0
+/** Permite que los componentes actualicen sus datos dentro de la captura compartida. */
+export const isApplyingViewTransition = () => applying > 0
 
 /** Cambia de vista con View Transitions; sin la API (Firefox hoy) aplica un fundido CSS equivalente. Siempre resuelve. */
-export async function withViewTransition(update: () => void | Promise<void>): Promise<void> {
+export async function withViewTransition(update: () => void | Promise<void>, { animate = true }: { animate?: boolean } = {}): Promise<void> {
+  if (!animate) { await update(); return }
   const start = (document as unknown as { startViewTransition?: StartViewTransition }).startViewTransition
   if (typeof start !== 'function') {
     const root = document.documentElement
@@ -18,7 +22,10 @@ export async function withViewTransition(update: () => void | Promise<void>): Pr
     setTimeout(() => root.classList.remove('fallback-fade'), durations.standard)
     return
   }
-  const transition = start.call(document, update)
+  const transition = start.call(document, async () => {
+    applying++
+    try { await update() } finally { applying-- }
+  })
   current = transition
   try {
     await transition.finished

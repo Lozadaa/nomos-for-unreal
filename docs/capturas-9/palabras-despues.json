@@ -1,8 +1,8 @@
 {
-  "method": "Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.",
+  "method": "Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden/opacity:0, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.",
   "seed": "Servicio real seed, conversación POST /messages + reply y Git temporal con diff real. Vacíos: respuestas API interceptadas solo en el navegador; no borran datos. Sin fixtures de miniaturas.",
-  "measuredAt": "2026-10-23T16:27:18.531Z",
-  "revision": "4ac81e2f55cea7a4ea3a8fa13b1efc4d1cf69291",
+  "measuredAt": "2026-10-23T16:43:43.776Z",
+  "revision": "7c68c8840ad0c17b52153b3aa72c1cc0fbf40891",
   "views": {
     "produccion": {
       "1366": {
@@ -86,5 +86,23 @@
         "empty": 6
       }
     }
-  }
+  },
+  "workingTree": [
+    "M panel/scripts/capturas-9.ts",
+    " M panel/src/components/Composer.tsx",
+    " M panel/src/feel/transitions.ts",
+    " M panel/src/shell/CommandMenu.tsx",
+    " M panel/src/shell/Header.tsx",
+    " M panel/src/shell/Layout.tsx",
+    " M panel/src/views/Produccion.tsx",
+    " M panel/src/views/map-budget.visual.test.tsx",
+    " M panel/src/visual/Glyph.tsx",
+    " M panel/src/visual/art/ProductionMap.tsx",
+    " M panel/src/visual/art/art.css",
+    " M panel/src/visual/art/charts.test.tsx",
+    "?? panel/src/visual/LegendSheet.tsx",
+    "?? panel/src/visual/Tour.tsx",
+    "?? panel/src/visual/help.css",
+    "?? panel/src/visual/help.test.tsx"
+  ]
 }

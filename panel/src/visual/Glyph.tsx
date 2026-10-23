@@ -22,9 +22,9 @@ const kindLabels: Record<GlyphKind, string> = {
   artifact: 'Artefactos',
 }
 
-export function GlyphLegend() {
+export function GlyphLegend({ compact = false }: { compact?: boolean } = {}) {
   return (
-    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+    <div className={compact ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5 md:grid-cols-2 xl:grid-cols-4'}>
       {(Object.keys(glyphs) as GlyphKind[]).map((kind) => (
         <div key={kind} data-testid={`legend-${kind}`}>
           <h3 className="mb-3 text-xs font-medium text-muted-foreground">{kindLabels[kind]}</h3>

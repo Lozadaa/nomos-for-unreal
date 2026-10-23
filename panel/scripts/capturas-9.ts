@@ -1,5 +1,5 @@
 // Desde panel/, después de npm run build:
-// node scripts/capturas-9.ts [antes|tarea3|tarea4|tarea5|todas]
+// node scripts/capturas-9.ts [antes|tarea3|tarea4|tarea5|tarea6|todas]
 // Puerto libre, servicio/datos/repositorio Git temporales propios; no utiliza el servicio del usuario.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -13,7 +13,7 @@ import { chromium, type Browser, type Locator } from '@playwright/test'
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 const out = resolve(import.meta.dirname, '../../docs/capturas-9')
 const mode = process.argv[2] ?? 'todas'
-assert.ok(['antes', 'agentes', 'tarea3', 'tarea4', 'tarea5', 'todas'].includes(mode), `Conjunto desconocido: ${mode}`)
+assert.ok(['antes', 'agentes', 'tarea3', 'tarea4', 'tarea5', 'tarea6', 'todas'].includes(mode), `Conjunto desconocido: ${mode}`)
 const before = mode === 'antes'
 const countFile = join(out, `palabras-${before ? 'antes' : 'despues'}.json`)
 if (before) assert.ok(!existsSync(countFile), 'El baseline ya existe; no se sobrescribe una medición anterior.')
@@ -91,14 +91,16 @@ async function launchBrowser(): Promise<Browser> {
   catch { return chromium.launch() }
 }
 
-type Counts = { method: string; seed: string; measuredAt: string; revision: string; views: Record<string, Record<string, { full?: number; empty?: number; firstRow?: number }>> }
+type Counts = { method: string; seed: string; measuredAt: string; revision: string; workingTree?: string[]; views: Record<string, Record<string, { full?: number; empty?: number; firstRow?: number }>> }
 const counts: Counts = !before && existsSync(countFile) ? JSON.parse(readFileSync(countFile, 'utf8')) : {
   method: 'Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden/opacity:0, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.',
   seed: 'Servicio real seed, conversación POST /messages + reply y Git temporal con diff real. Vacíos: respuestas API interceptadas solo en el navegador; no borran datos. Sin fixtures de miniaturas.',
   measuredAt: new Date().toISOString(), revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), views: {},
 }
 counts.measuredAt = new Date().toISOString()
+counts.method = 'Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden/opacity:0, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.'
 counts.revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+counts.workingTree = execFileSync('git', ['-C', resolve(import.meta.dirname, '../..'), 'status', '--porcelain', '--', 'panel/src', 'panel/scripts/capturas-9.ts'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
 
 const server = createServer()
 await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok))
@@ -224,6 +226,24 @@ try {
         await page.getByRole('tab', { name: 'Cambios', exact: true }).click()
         await page.getByRole('alert', { name: 'Archivos fuera del alcance declarado' }).waitFor()
         await shot('cambios')
+      }
+      if (mode === 'tarea6' || mode === 'todas') {
+        await goto('/')
+        await page.keyboard.press('Control+k')
+        await page.getByRole('option', { name: 'Ver guía', exact: true }).click()
+        const guide = page.getByRole('dialog', { name: 'Guía de Kratos' })
+        await guide.waitFor()
+        for (const target of ['director', 'compositor', 'mapa']) {
+          await page.waitForTimeout(200)
+          await shot(`tour-${target}`)
+          await guide.getByRole('button', { name: target === 'mapa' ? 'Terminar' : 'Siguiente', exact: true }).click()
+          if (target !== 'mapa') await page.waitForTimeout(80)
+        }
+        await page.getByRole('button', { name: /Definir salto/ }).focus()
+        await page.keyboard.press('?')
+        await page.getByRole('dialog', { name: 'Leyenda', exact: true }).waitFor()
+        await page.waitForTimeout(300)
+        await shot('leyenda')
       }
       await context.close()
     }

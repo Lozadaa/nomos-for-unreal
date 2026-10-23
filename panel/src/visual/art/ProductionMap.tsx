@@ -1,24 +1,25 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { stages, stageLabel, type Stage, type Task } from '@/lib/tasks'
 import { reducedMotion } from '@/feel/motion'
-import { queueWhileTransitioning, supportsViewTransitions, withViewTransition } from '@/feel/transitions'
+import { isApplyingViewTransition, queueWhileTransitioning, supportsViewTransitions, withViewTransition } from '@/feel/transitions'
 import { memoSeed, rng } from './seed'
 import './art.css'
 
 export type MapTask = Pick<Task, 'id' | 'state' | 'blockedReason' | 'decisionId'>
 const signature = (tasks: readonly MapTask[]) => JSON.stringify(tasks.map((t) => [t.id, t.state, !!t.blockedReason, !!t.decisionId]))
 
-export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, id, selected }: {
-  tasks: readonly MapTask[]; onSelect?: (stage: Stage) => void; id?: string; selected?: Stage
+export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, onKeyboardSelect, id, selected }: {
+  tasks: readonly MapTask[]; onSelect?: (stage: Stage) => void; onKeyboardSelect?: (stage: Stage) => void; id?: string; selected?: Stage
 }) {
   const key = signature(tasks)
   const [shown, setShown] = useState(tasks)
   const [hint, setHint] = useState<string>()
   const previous = useRef(key)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previous.current === key) return
     previous.current = key
+    if (isApplyingViewTransition()) { setShown(tasks); return }
     if (reducedMotion() || !supportsViewTransitions()) { setShown(tasks); return }
     let cancelled = false
     void queueWhileTransitioning(async () => {
@@ -53,7 +54,7 @@ export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, id, 
       {stages.map((stage, i) => <text key={stage} role="button" tabIndex={0} aria-label={`${stageLabel[stage]}: ${geometry.counts[i]}`} aria-pressed={stage === selected ? true : undefined} x={50 + i * 100}
         onPointerEnter={() => setHint(`${stageLabel[stage]}: ${geometry.counts[i]}`)} onPointerLeave={() => setHint(undefined)}
         onFocus={() => setHint(`${stageLabel[stage]}: ${geometry.counts[i]}`)} onBlur={() => setHint(undefined)}
-        onClick={() => onSelect?.(stage)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(stage) } }}>{geometry.counts[i]}</text>)}
+        onClick={() => onSelect?.(stage)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (onKeyboardSelect ?? onSelect)?.(stage) } }}>{geometry.counts[i]}</text>)}
     </g>
     {geometry.points.some((p) => p.decisionId) && <defs><path id={question} d="M-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0m3-1q0-2 2-1t-1 3m0 1v1" /></defs>}
     <g>{geometry.points.map((p) => p.decisionId

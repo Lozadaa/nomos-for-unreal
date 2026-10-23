@@ -78,8 +78,10 @@ export function Produccion() {
     <div className="flex flex-col gap-6">
       <Composer autoFocus={params.get('nueva') === '1'} isVisible={matches} onHidden={clearFilters} />
 
-      {loaded && <figure data-tour="mapa" className="rounded-lg border border-subtle px-4 pb-3">
-        <ProductionMap tasks={tasks} selected={filter === 'todas' ? undefined : filter} onSelect={(stage) => void animateUpdate(() => setFilter(filter === stage ? 'todas' : stage))} />
+      {loaded && <figure data-tour="mapa" data-tour-anchor="map" className="rounded-lg border border-subtle px-4 pb-3">
+        <ProductionMap tasks={tasks} selected={filter === 'todas' ? undefined : filter}
+          onSelect={(stage) => void animateUpdate(() => setFilter(filter === stage ? 'todas' : stage))}
+          onKeyboardSelect={(stage) => void withViewTransition(() => setFilter(filter === stage ? 'todas' : stage), { animate: false })} />
         <figcaption className="grid grid-cols-8 text-center text-xs text-muted-foreground">
           {stages.map((stage) => <span key={stage} className={filter === stage ? 'font-medium text-foreground' : undefined}>{stageLabel[stage]}</span>)}
         </figcaption>

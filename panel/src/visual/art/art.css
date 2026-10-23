@@ -1,5 +1,4 @@
 .k-ring { font-family: var(--k-font-mono); }
-.k-ring [pathLength] { transition: stroke-dashoffset 300ms var(--k-ease); }
 .k-map { width: 100%; overflow: visible; }
 .k-map > g:first-of-type { transform: translateY(32px); }
 .k-map > g:last-of-type { transform: translateY(60px); }
@@ -13,6 +12,5 @@
 .k-map [data-point] { fill: var(--vbg-color-info); view-transition-name: match-element; view-transition-class: k-row; }
 .k-map path[data-point], .k-map use[data-point] { fill: none; stroke: var(--vbg-color-warning); stroke-width: 1.5; }
 @media (prefers-reduced-motion: reduce) {
-  .k-ring [pathLength] { transition: none; }
   .k-map [data-point] { view-transition-name: none; }
 }

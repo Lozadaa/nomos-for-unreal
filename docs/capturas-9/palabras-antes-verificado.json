@@ -1,0 +1,103 @@
+{
+  "method": "Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden/opacity:0, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.",
+  "seed": "Servicio real seed, conversación POST /messages + reply y Git temporal con diff real. Vacíos: respuestas API interceptadas solo en el navegador; no borran datos. Sin fixtures de miniaturas.",
+  "measuredAt": "2026-10-23T16:30:21.845Z",
+  "revision": "083ec79d7f68fa9766b256c88449aa6c1d36a86f",
+  "views": {
+    "produccion": {
+      "1366": {
+        "full": 149,
+        "firstRow": 9,
+        "empty": 25
+      },
+      "1920": {
+        "full": 149,
+        "firstRow": 9,
+        "empty": 25
+      }
+    },
+    "chat": {
+      "1366": {
+        "full": 55,
+        "empty": 17
+      },
+      "1920": {
+        "full": 55,
+        "empty": 17
+      }
+    },
+    "actividad": {
+      "1366": {
+        "full": 14,
+        "empty": 12
+      },
+      "1920": {
+        "full": 14,
+        "empty": 12
+      }
+    },
+    "entregas": {
+      "1366": {
+        "full": 24,
+        "empty": 12
+      },
+      "1920": {
+        "full": 24,
+        "empty": 12
+      }
+    },
+    "catalogo": {
+      "1366": {
+        "full": 702,
+        "empty": 15
+      },
+      "1920": {
+        "full": 702,
+        "empty": 15
+      }
+    },
+    "decisiones": {
+      "1366": {
+        "full": 58,
+        "empty": 13
+      },
+      "1920": {
+        "full": 58,
+        "empty": 13
+      }
+    },
+    "presupuesto": {
+      "1366": {
+        "full": 57,
+        "empty": 9
+      },
+      "1920": {
+        "full": 57,
+        "empty": 9
+      }
+    },
+    "capacidades": {
+      "1366": {
+        "full": 53,
+        "empty": 0
+      },
+      "1920": {
+        "full": 53,
+        "empty": 0
+      }
+    }
+  },
+  "provenance": {
+    "archiveRevision": "083ec79d7f68fa9766b256c88449aa6c1d36a86f",
+    "archiveSha256": "CBD55282F76A71C7829E08F9E2EDA704CD9AA82DC6E84792E4EF389900528550",
+    "sourceDriver": "panel/scripts/capturas-9.ts",
+    "sourceDriverSha256": "B417A1D7CF5D586A81958B599D2F7C9193EDC857BB158797395B9F1553C7500C",
+    "temporaryDriverChange": "Solo las dos llamadas git rev-parse HEAD se sustituyeron por archiveRevision para metadatos; git archive no contiene .git.",
+    "dependencies": "Junction a panel/node_modules existente; package.json y package-lock.json del panel iguales a la revisión de archivo.",
+    "buildCommand": "npm --prefix panel run build",
+    "captureCommand": "node scripts/capturas-9.ts antes (desde panel de la copia temporal)",
+    "referenceClock": "2026-10-23T16:00:00.000Z",
+    "originalBaselineSha256": "A1ED14DE8DB20FAA91EE8576EA4F0E32959F8CB857734A3C7B9C84548A2F45EF",
+    "originalBaselinePreserved": true
+  }
+}

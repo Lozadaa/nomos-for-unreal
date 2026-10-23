@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, expect, it, vi } from 'vitest'
-import { createMemoryRouter, RouterProvider } from 'react-router'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { createMemoryRouter } from 'react-router'
+import { RouterProvider } from 'react-router/dom'
 vi.mock('@/api', () => ({ api: vi.fn(), token: null, ApiError: class extends Error { status = 0 } }))
 import { api } from '@/api'
 import { refresh, resetStore } from '@/store'
@@ -8,6 +9,21 @@ import { Produccion } from './Produccion'
 import { Meter, Presupuesto } from './Presupuesto'
 
 beforeEach(() => { resetStore(); vi.mocked(api).mockReset() })
+afterEach(() => { delete (document as unknown as { startViewTransition?: unknown }).startViewTransition })
+
+it.each(['Enter', ' '])('filtrar el mapa con teclado (%s) actualiza la URL y las filas sin animación', async (key) => {
+  const tasks = ['pendiente', 'probando'].map((state, i) => ({ id: `t${i}`, title: `Petición ${i}`, state, area: 'gameplay', assigneeProvider: null, assigneeRole: null, blockedReason: null, decisionId: null, updatedAt: '', createdAt: '', acceptance: [], spec: '' }))
+  vi.mocked(api).mockResolvedValue(tasks)
+  const router = createMemoryRouter([{ path: '/', element: <Produccion /> }])
+  render(<RouterProvider router={router} />)
+  await act(async () => { await refresh() })
+  const capture = vi.fn((update: () => void) => { update(); return { finished: Promise.resolve() } })
+  Object.assign(document, { startViewTransition: capture })
+  fireEvent.keyDown(within(screen.getByRole('group', { name: 'Flujo de producción' })).getByRole('button', { name: 'Probando: 1' }), { key })
+  await waitFor(() => expect(router.state.location.search).toContain('etapa=probando'))
+  expect(screen.queryByRole('button', { name: /Petición 0/ })).not.toBeInTheDocument()
+  expect(capture).not.toHaveBeenCalled()
+})
 
 it('el mapa real filtra las filas, conserva URL y alterna al volver a pulsar el nodo', async () => {
   const tasks = ['pendiente', 'probando'].map((state, i) => ({ id: `t${i}`, title: `Petición ${i}`, state, area: 'gameplay', assigneeProvider: null, assigneeRole: null, blockedReason: null, decisionId: null, updatedAt: '', createdAt: '', acceptance: [], spec: '' }))

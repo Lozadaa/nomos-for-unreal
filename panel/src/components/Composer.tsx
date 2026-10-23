@@ -61,6 +61,7 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
 
   return (
     <form
+      data-tour-anchor="composer"
       ref={root}
       aria-label="Nueva petición"
       onSubmit={(e) => { e.preventDefault(); submit() }}
