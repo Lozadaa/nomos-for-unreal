@@ -1,11 +1,13 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import type { WorkerContext } from '../runner.ts';
 import type { Run } from '../model.ts';
 import type { Meshy, MeshyTask } from '../adapters/meshy.ts';
 import { addArtifact } from '../repo/artifacts.ts';
 import { upsertEntry } from '../repo/catalog.ts';
 import { appendEvent } from '../store.ts';
+import { requireTask } from '../repo/tasks.ts';
+import { lowerFirst } from '../artifact-label.ts';
 
 export const meshyLicense = 'Meshy (según plan)';
 async function fetchTo(meshy: Meshy, url: string | undefined, file: string): Promise<string | null> {
@@ -28,10 +30,12 @@ export async function saveMeshyResult(ctx: WorkerContext, meshy: Meshy, run: Run
   const {kind, prompt, params, estimatedCredits} = run.metadata;
   const provenance = {provider: 'meshy', remoteId: job.id, kind: kind ?? null, prompt: prompt ?? null, params: params ?? {},
     estimatedCredits: estimatedCredits ?? 0, taskId: run.taskId};
+  const title = lowerFirst(requireTask(ctx.db, run.taskId).title);
   const artifact = addArtifact(ctx.db, {taskId: run.taskId, runId: run.id, kind: 'model', path: modelFile,
-    previewPath: model && existsSync(model) ? model : null, provenance, license: meshyLicense});
+    previewPath: model && existsSync(model) ? model : null, provenance: {...provenance, label: `Modelo Meshy · ${title}`}, license: meshyLicense});
   for (const file of textures)
-    addArtifact(ctx.db, {taskId: run.taskId, runId: run.id, kind: 'texture', path: file, previewPath: file, provenance, license: meshyLicense});
+    addArtifact(ctx.db, {taskId: run.taskId, runId: run.id, kind: 'texture', path: file, previewPath: file,
+      provenance: {...provenance, label: `Textura Meshy · ${basename(file, '.png')}`}, license: meshyLicense});
   if (!model) {
     appendEvent(ctx.db, 'meshy.link_expired', null, {taskId: run.taskId, runId: run.id, artifactId: artifact.id, remoteId: job.id});
     return {model: null, artifactId: artifact.id, entryId: null, textures: textures.length};

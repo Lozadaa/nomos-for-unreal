@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { relativeTime } from '@/lib/time'
 import type { Status } from '@/api'
 import { DirectorDot, directorState } from './DirectorDot'
+import { Glyph } from '@/visual/Glyph'
 
 export function Header({ project, status, onCommand, onTogglePause, pausePending = false }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean }) {
   const state = directorState(status)
@@ -20,7 +21,7 @@ export function Header({ project, status, onCommand, onTogglePause, pausePending
           <TooltipContent>Última confirmación: {confirmation}</TooltipContent>
         </Tooltip>
       </div>
-      {status?.paused && <span className="text-sm text-warning">En pausa · Kratos no recibirá mensajes</span>}
+      {status?.paused && <span className="inline-flex items-center gap-2 text-sm text-warning" title="Sin arranques nuevos; lo que integra o cierra termina"><Glyph kind="directorState" value="esperando" tone="warning" />Pausado</span>}
       {status && onTogglePause && (
         <Button variant="ghost" size="sm" disabled={pausePending} aria-busy={pausePending} onClick={onTogglePause}>{status.paused ? 'Reanudar' : 'Pausar'}</Button>
       )}

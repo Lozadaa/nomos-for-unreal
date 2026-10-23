@@ -36,6 +36,11 @@ export interface Task {
   budgetId: string | null
   /** Rutas que el worker puede tocar; vacío = sin restricción declarada. */
   scope?: string[]
+  /** Por qué espera (reserva, pausa, cierre bloqueado…). */
+  waitReason?: string | null
+  /** Hito 6: quién hizo qué (implemento, reviso, genero, integro, verifico) y carpeta de archivo al cerrar. */
+  attribution?: Record<string, { runId: string; provider: string; agentName: string; at: string }[]>
+  archivePath?: string | null
 }
 
 export interface Decision {

@@ -8,6 +8,7 @@ import { chooseProvider } from './scheduler-provider.ts';
 import { leaseWaitReason } from './leases.ts';
 import { normalizedPaths } from './handlers/worker-policy.ts';
 import { transaction } from './repo/rows.ts';
+import { appendEvent } from './store.ts';
 
 export type PlanDecision = {taskId:string;action:'start'|'wait';reason:string;provider?:WorkerProvider};
 export function plan(db:DatabaseSync,config:SchedulerConfig): PlanDecision[] {
@@ -28,12 +29,21 @@ export function plan(db:DatabaseSync,config:SchedulerConfig): PlanDecision[] {
     return {taskId:task.id,action:'start',reason:selected.reason,provider:selected.provider};
   });
 }
+/** Director en pausa (hito 6): no se encolan arranques nuevos; integraciones y cierres en curso siguen. */
+function paused(db:DatabaseSync):boolean {
+  if(!db.prepare('select paused from director where id=1').get()?.paused) return false;
+  const since=Number(db.prepare("select coalesce(max(seq),0) seq from events where type='director.paused'").get()!.seq);
+  if(!db.prepare("select 1 from events where type='scheduler.paused' and seq>?").get(since)) appendEvent(db,'scheduler.paused',null,{});
+  return true;
+}
 export function tick(db:DatabaseSync,config:SchedulerConfig,ctx:WorkerContext):void {
   transaction(db,()=>{
+    const pause=paused(db);
     for(const decision of plan(db,config)) {
-      const task=requireTask(db,decision.taskId),reason=decision.action==='wait' ? decision.reason : null;
+      const task=requireTask(db,decision.taskId);
+      const reason=decision.action==='wait' ? decision.reason : pause ? 'Director en pausa' : null;
       setTaskWait(db,task.id,reason);
-      if(decision.action!=='start') continue;
+      if(decision.action!=='start' || pause) continue;
       // La revisión real tiene un protocolo independiente, que incorpora la tarea siguiente.
       if(task.assigneeRole==='revisor') continue;
       const attempt=nextAttempt(db,task.id);

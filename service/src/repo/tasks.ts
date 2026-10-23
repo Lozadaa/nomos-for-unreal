@@ -29,6 +29,9 @@ export function moveTask(db: DatabaseSync, id: string, state: TaskState, reason?
         const task = requireTask(db, id);
         if (state === 'done' && task.state !== 'cerrando')
             throw new Error('invalid_transition');
+        // hito 6: integrando → cerrando solo lo hace el integrador, y dice dónde quedó integrado
+        if (state === 'cerrando' && task.state === 'integrando' && !reason)
+            throw new Error('invalid_transition');
         // nada se integra sin las pruebas que su diff exige (hito 5, prueba 7)
         if (state === 'integrando' && task.state === 'probando' && !checkGate(db, id).ok)
             throw new Error('invalid_transition');

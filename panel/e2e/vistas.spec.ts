@@ -31,7 +31,7 @@ test('Entregas: las imágenes y el modelo GLB cargan pese a la política de segu
   const problems: string[] = []
   page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()) })
   await page.goto(url().replace('/#', '/entregas#'))
-  const img = page.getByRole('img', { name: 'captura-01.png' })
+  const img = page.getByRole('img', { name: 'Captura UMG 1280×720' })
   await expect(img).toBeVisible()
   await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
   const viewer = page.locator('model-viewer')

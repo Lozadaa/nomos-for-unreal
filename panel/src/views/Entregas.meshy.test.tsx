@@ -20,7 +20,7 @@ describe('Entregas · Meshy sin copia', () => {
     vi.mocked(api).mockImplementation(async (path: string) => path === '/artifacts' ? [expired] : { commandId: 'c' })
     render(<MemoryRouter><Entregas /></MemoryRouter>)
     expect(await screen.findByText('Enlace vencido y sin copia')).toBeInTheDocument()
-    expect(screen.getByText('model.glb')).toBeInTheDocument()
+    expect(screen.getByText('Modelo Meshy · caja de munición')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Regenerar' }))
     await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith('/commands', expect.objectContaining({ method: 'POST' })))
     const body = vi.mocked(api).mock.calls.find(([p]) => p === '/commands')![1]!.body as Record<string, any>

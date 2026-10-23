@@ -151,7 +151,7 @@ describe('Entregas', () => {
       { id: 'a2', taskId: 't', kind: 'screenshot', path: 'captura-01.png', license: 'MIT', createdAt: '' },
     ] : []))
     const { container } = inRouter(<Entregas />)
-    const img = await screen.findByAltText('captura-01.png')
+    const img = await screen.findByAltText('Captura')
     expect(img.getAttribute('src')).toContain('/artifacts/a2/file?token=tok')
     await waitFor(() => expect(container.querySelector('model-viewer')).not.toBeNull())
     expect(container.querySelector('model-viewer')!.getAttribute('src')).toContain('/artifacts/a1/file')

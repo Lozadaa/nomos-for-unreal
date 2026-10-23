@@ -81,7 +81,7 @@ export function createMigrate(deps: AssetDeps = {}): Handler {
       const engine = verified.engine?.split('-')[0] ?? null;
       recordTestRun(ctx.db, {taskId: task.id, runId: run.id, result: verified.ok ? 'passed' : 'failed', engineVersion: engine, reportPath});
       addArtifact(ctx.db, {taskId: task.id, runId: run.id, kind: 'report', path: reportPath,
-        provenance: {provider: 'unreal', entryId: entry.id, root: `/Game/${rel}`, engine}, license: entry.license});
+        provenance: {provider: 'unreal', entryId: entry.id, root: `/Game/${rel}`, engine, label: 'Verificación de pack · informe'}, license: entry.license});
       const detail = {entryId: entry.id, taskId: task.id, runId: run.id, project: project.name, root: `/Game/${rel}`, engine, warning,
         assets: verified.assets.length, missing: verified.missing_dependencies.length};
       if (!verified.ok) {

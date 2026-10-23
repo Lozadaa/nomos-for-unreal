@@ -27,11 +27,12 @@ export function requireEntry(ctx: WorkerContext, entryId: unknown): CatalogEntry
 
 /** Tarea y run de una orden de assets; un reintento o un diferido de la misma orden reutiliza los suyos. */
 export function commandRun(ctx: WorkerContext, command: Command, make: {title: string; provider: Run['provider']; role: string;
-  state?: Task['state']; metadata?: Run['metadata']}): {task: Task; run: Run} {
+  state?: Task['state']; metadata?: Run['metadata']; taskId?: string}): {task: Task; run: Run} {
   const row = ctx.db.prepare(`select id from runs where json_extract(metadata,'$.commandId')=? order by rowid desc limit 1`).get(command.id);
   const last = row ? read<Run>(ctx.db, 'runs', row.id as string)! : undefined;
   if (last?.state === 'running') return {task: requireTask(ctx.db, last.taskId), run: last};
-  const task = last ? requireTask(ctx.db, last.taskId)
+  // `taskId`: la orden trabaja sobre una tarea existente (integrar, cerrar) en vez de crear la suya
+  const task = last ? requireTask(ctx.db, last.taskId) : make.taskId ? requireTask(ctx.db, make.taskId)
     : createTask(ctx.db, {title: make.title, area: 'assets', state: make.state ?? 'probando', assigneeRole: make.role, assigneeProvider: make.provider});
   const run = startRun(ctx.db, {taskId: task.id, role: make.role, provider: make.provider,
     attempt: (last?.attempt ?? 0) + 1, metadata: {...make.metadata, commandId: command.id}});

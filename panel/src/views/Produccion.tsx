@@ -12,6 +12,7 @@ import { useRuns } from '@/hooks/useRuns'
 import { stageLabel, stages, type Stage, type Task } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
+import { ClosingNote } from './Closing'
 import { assignAgentNames } from '@/visual/art/agentName'
 import { ProductionMap } from '@/visual/art/ProductionMap'
 import { EmptyState } from '@/visual/art/EmptyState'
@@ -110,7 +111,8 @@ export function Produccion() {
                 {stageLabel[stage]}<span className="font-mono">{rows.length}</span>
               </h2>
               <ul>
-                {rows.map((t) => <li key={t.id}><TaskRow task={t} run={byTask.get(t.id)} agent={agentsByRunId.get(byTask.get(t.id)?.id ?? '')} now={now} open={t.id === openId} onOpen={open} /></li>)}
+                {rows.map((t) => <li key={t.id}><TaskRow task={t} run={byTask.get(t.id)} agent={agentsByRunId.get(byTask.get(t.id)?.id ?? '')} now={now} open={t.id === openId} onOpen={open} />
+                  {stage === 'cerrando' && <ClosingNote task={t} onOpen={(from) => open(t, from)} />}</li>)}
               </ul>
             </div>
           ))}

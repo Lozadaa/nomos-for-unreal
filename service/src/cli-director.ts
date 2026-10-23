@@ -23,10 +23,17 @@ function integer(value: string): number {
 }
 export async function directorCli(argv: string[]): Promise<boolean> {
   const index=commandIndex(argv),group=argv[index];
+  if (group==='pausar' || group==='reanudar') {
+    // hito 6: el planificador deja de arrancar workers; integraciones y cierres en curso terminan
+    const {values}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'}}});
+    const status=await request(serviceInfo(resolve(values.data ?? '.kratos')),'/director/'+(group==='pausar' ? 'pause' : 'resume'),{});
+    console.log(JSON.stringify(status));return true;
+  }
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
   const flags: Record<string,string[]>={
     'task.create':['title','area','spec-file','leases','depends','role','provider'],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
+    'task.integrate':[],'task.finalize':[],'task.continue':['file','text'],
     'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key'],'worker.stop':[],
     'run.diff':[],'run.output':['since'],'decision.open':['file'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
@@ -42,6 +49,11 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     if (action==='show') result=await call('/tasks/'+id);
     else if(action==='review') result=await call('/tasks/'+id+'/review',{});
     else if(action==='check') result=await call('/tasks/'+id+'/checks',values.run===undefined ? {} : {runId:required(values.run,'--run')});
+    else if(action==='integrate' || action==='finalize') result=await call('/tasks/'+id+'/'+action,{});
+    else if(action==='continue') {
+      if ((values.file===undefined)===(values.text===undefined)) throw new Error('Uso: elige --file o --text');
+      result=await call('/tasks/'+id+'/continue',{text:required(values.file===undefined ? values.text : readFileSync(values.file,'utf8'),'texto')});
+    }
     else {
       const parsed=values['spec-file']===undefined ? undefined : parseTaskSpec(readFileSync(values['spec-file'],'utf8'));
       if (action==='spec') {

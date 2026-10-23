@@ -11,7 +11,7 @@ function contained(root: string, file: string): boolean {
   return rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel);
 }
 
-async function file(res: Context['res'], root: string | undefined, name: string): Promise<void> {
+export async function file(res: Context['res'], root: string | undefined, name: string): Promise<void> {
   const hasTraversal = name.split(/[\\/]/).includes('..');
   const driveRelative = /^[a-z]:[^\\/]/i.test(name) || /^[a-z]:$/i.test(name);
   if (name.includes('\0') || hasTraversal || driveRelative) throw new Error('invalid_artifact_path');

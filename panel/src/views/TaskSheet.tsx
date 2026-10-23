@@ -1,26 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { humanError } from '@/lib/errors'
 import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
 import { SheetSkeleton } from '@/components/Skeletons'
 import { StageStepper } from '@/components/StageStepper'
-import { DecisionDetails, DecisionOptions, decisionText } from '@/components/DecisionOptions'
 import { StatusDot } from '@/components/StatusDot'
 import { nameFor } from '@/feel/transitions'
-import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { relativeTime } from '@/lib/time'
-import { areaLabel, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Decision, type Task, type TaskDetail } from '@/lib/tasks'
-import { patchTask, useStore } from '@/store'
+import { areaLabel, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Task, type TaskDetail } from '@/lib/tasks'
+import { useStore } from '@/store'
 import { Glyph } from '@/visual/Glyph'
 import { glyphFor } from '@/visual/glyphs'
 import { AgentAvatar } from '@/visual/art/AgentAvatar'
 import { agentName, assignAgentNames } from '@/visual/art/agentName'
 import { ArtifactsTab, ChangesTab, TimelineTab, WorkerChatTab } from './TaskTabs'
 import { TestsTab } from './TestsTab'
+import { ArchiveTab, Attribution } from './Closing'
+import { RequestChanges } from './RequestChanges'
+import { DecisionCard, isCheckDecision } from './DecisionCard'
 import { XIcon } from 'lucide-react'
 
 export interface AgentIdentity { name: string; ordinal?: number }
@@ -106,7 +105,8 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
         ) : (
           <Tabs defaultValue="resumen" className="min-h-0 flex-1 gap-0">
             <TabsList variant="line" className="h-10 w-full shrink-0 justify-start gap-1 border-b border-subtle px-4">
-              {[['resumen', 'Resumen'], ['chat', 'Chat'], ['cambios', 'Cambios'], ['pruebas', 'Pruebas'], ['assets', 'Assets'], ['linea', 'Línea de tiempo']].map(([v, label]) => (
+              {[['resumen', 'Resumen'], ['chat', 'Chat'], ['cambios', 'Cambios'], ['pruebas', 'Pruebas'], ['assets', 'Assets'], ['linea', 'Línea de tiempo'],
+                ...(detail.task.state === 'done' ? [['archivo', 'Archivo']] : [])].map(([v, label]) => (
                 <TabsTrigger key={v} value={v} className="flex-none px-3">{label}</TabsTrigger>
               ))}
             </TabsList>
@@ -118,6 +118,7 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
                 ? <DecisionCard decision={detail.decision} task={task ?? detail.task} onStale={() => setReloads((n) => n + 1)} /> : null} /></TabsContent>
               <TabsContent value="assets" className="p-6"><ArtifactsTab detail={detail} /></TabsContent>
               <TabsContent value="linea" className="p-6"><TimelineTab detail={detail} /></TabsContent>
+              {detail.task.state === 'done' && <TabsContent value="archivo" className="p-6"><ArchiveTab taskId={id} /></TabsContent>}
             </div>
           </Tabs>
         )}
@@ -166,74 +167,8 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
           </ul>
         </section>
       )}
+      <Attribution task={detail.task} />
       <RequestChanges task={task} />
     </div>
-  )
-}
-
-// Decisiones que abre checks.run (comprobación no disponible, assets rotos): también se responden desde la pestaña Pruebas
-const isCheckDecision = (d: Decision) => d.evidence.some((e) => e.kind === 'gate:checks' || e.kind === 'command')
-
-function DecisionCard({ decision, task, onStale }: { decision: Decision; task: Task; onStale: () => void }) {
-  const [chosen, setChosen] = useState<string | null>(null)
-  const option = useRef('')
-  const action = useAction(
-    () => api(`/decisions/${encodeURIComponent(decision.id)}/resolve`, { method: 'POST', body: { optionId: option.current, by: 'director' } }),
-    {
-      // la fila deja de esperar decisión en el acto; si el servidor la rechaza, vuelve atrás
-      optimistic: () => patchTask(task.id, { decisionId: null, blockedReason: task.blockedReason === decision.reason ? null : task.blockedReason }),
-      reload: () => { setChosen(null); onStale() },
-    },
-  )
-  const choose = (id: string) => { option.current = id; setChosen(id); void action.fire() }
-  return (
-    <section aria-label="Decisión pendiente" data-decision-card className="flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <h3 aria-label={decision.reason} title={decision.reason} className="text-base font-medium">{decisionText(decision).reason}</h3>
-        <DecisionDetails decision={decision} taskTitle={task.title} />
-      </div>
-      <DecisionOptions decision={decision} area={task.area} selected={chosen} disabled={action.pending} onChoose={choose} />
-      {action.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
-      {action.error && !action.pending && <p className="text-xs text-error" role="alert">No se registró la elección. {humanError(action.error)}</p>}
-    </section>
-  )
-}
-
-function RequestChanges({ task }: { task: Task }) {
-  const [text, setText] = useState('')
-  const [sentText, setSentText] = useState<string | null>(null)
-  const draft = useRef('')
-  const action = useAction(
-    () => api('/messages', { method: 'POST', body: { text: `Cambios en «${task.title}» (${shortId(task.id)}): ${draft.current}` } }),
-    {
-      optimistic: () => { draft.current = text; setSentText(text); setText(''); return () => { setSentText(null); setText(draft.current) } },
-    },
-  )
-  return (
-    <section className="flex flex-col gap-2">
-      <h3 className={label}>Pedir cambios</h3>
-      {task.state === 'done' && (
-        <p className="text-sm text-muted-foreground">
-          Esta tarea ya está hecha. Tu mensaje abre una continuación con {providerLabel[task.assigneeProvider ?? ''] ?? 'Kratos'}, que la hizo.
-        </p>
-      )}
-      <Textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && text.trim()) { e.preventDefault(); void action.fire() } }}
-        placeholder="Qué debería cambiar…" name="cambios" autoComplete="off"
-        aria-label="Pedir cambios al responsable"
-        className="min-h-20"
-      />
-      <div className="flex items-center gap-3">
-        <Button size="sm" disabled={!text.trim() || action.pending} aria-busy={action.pending} onClick={() => void action.fire()}>
-          {action.pending ? 'Enviando…' : 'Pedir cambios'}
-        </Button>
-        {sentText && !action.error && (
-          <span role="status" className="text-xs text-muted-foreground">{action.pending ? 'Enviado · esperando confirmación de Kratos' : 'Recibido · Kratos lo atenderá en breve'}</span>
-        )}
-        {action.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(action.error)}</span>}
-      </div>
-    </section>
   )
 }

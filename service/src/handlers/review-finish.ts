@@ -12,6 +12,7 @@ import { addArtifact, updateTestRun } from '../repo/artifacts.ts';
 import { advance } from './checks.ts';
 import { appendEvent } from '../store.ts';
 import { enqueue } from '../commands.ts';
+import { attribute } from '../attribution.ts';
 
 export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Marker,{kind:'REVIEW'}>):Promise<void> {
   const {db}=ctx,snapshot=run.metadata.review;
@@ -26,7 +27,8 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
     writeFileSync(join(ctx.dataDir,'artifacts',path),JSON.stringify(report,null,2)+'\n');
     finishRun(db,run.id,'done',stale ? 'Revisión desactualizada' : marker.approved ? 'Aprobado' : 'Correcciones requeridas');
     updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:''});
-    addArtifact(db,{taskId:run.taskId,runId:run.id,kind:'report',path,provenance:report});
+    addArtifact(db,{taskId:run.taskId,runId:run.id,kind:'report',path,
+      provenance:{...report,label:run.metadata.qa ? 'QA visual · informe' : 'Revisión · informe'}});
     appendEvent(db,'review.finished',null,{taskId:run.taskId,...report});
     if(stale) return;
     const qa=run.metadata.qa;
@@ -37,7 +39,10 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
       appendEvent(db,`test.${result}`,null,{testRunId:qa.testRunId,taskId:run.taskId,runId:run.id,check:'umg',
         summary:marker.approved ? 'QA visual aprobado' : marker.findings.map(f=>`${f.file}:${f.line} [${f.severity}] ${f.note}`).slice(0,30).join('\n')});
       if(marker.approved) {advance(ctx,run.taskId);return;}
-    } else db.prepare('update tasks set review_approved=? where id=?').run(marker.approved ? 1 : 0,run.taskId);
+    } else {
+      db.prepare('update tasks set review_approved=? where id=?').run(marker.approved ? 1 : 0,run.taskId);
+      attribute(db,run.taskId,'reviso',run);
+    }
     if(marker.approved) {
       if(task.acceptance.some(s=>s.startsWith('check:'))) {
         moveTask(db,run.taskId,'probando');

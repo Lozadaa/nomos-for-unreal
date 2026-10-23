@@ -11,7 +11,10 @@ export type Task = Entity & {
   assigneeRole: string | null; assigneeProvider: string | null; parentTaskId: string | null;
   dependsOn: string[]; worktreeId: string | null; budgetId: string | null; scope: string[];
   leases: string[]; reviewApproved: 0 | 1; waitReason: string | null;
+  attribution: Attribution; archivePath: string | null;
 };
+/** Quién hizo qué en la tarea (hito 6): implemento, reviso, genero, integro, verifico. */
+export type Attribution = Record<string, {runId: string; provider: string; agentName: string; at: string}[]>;
 export type RunMetadata = {
   worktreeId?: string; cursor?: string; waiting?: boolean; question?: string;
   phase?: 'preparing' | 'running' | 'waiting' | 'finished'; deadlineAt?: string;
@@ -28,6 +31,9 @@ export type RunMetadata = {
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;
   // pruebas (hito 5): run implementador cuyo diff se prueba
   implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
+  // integración (hito 6): merge hecho en el workspace y pendiente de publicar
+  integration?: {base: string; commit: string; files: string[]; checked?: boolean};
+  continuationOf?: string; busyAttempts?: number;
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;
