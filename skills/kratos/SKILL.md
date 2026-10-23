@@ -21,6 +21,8 @@ comandos se ejecutan desde el juego con `--data .kratos`.
 
 1. Comprueba un `.uproject` en la carpeta actual; si falta, explica el requisito y para.
    Ejecuta `kratos start --data .kratos`. Lee `URL ...`; `YA_ACTIVO` reutiliza servicio.
+   Después `kratos skills install --data .kratos` copia las skills de UI al juego; si
+   avisa de cambios locales, se conservan y lo dices en una línea.
    Invocar la skill por sí solo no crea tareas ni arranca workers.
 2. El comando abre el navegador. Muestra la URL en `show_pane preview` si existe.
    Tras reiniciar, abre la URL nueva: rota el token y el anterior deja de servir.
