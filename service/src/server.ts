@@ -12,6 +12,7 @@ import { parseArgs } from "node:util";
 import { acquireLock } from "./lock.ts";
 import { production, databaseDirectory } from "./routes/index.ts";
 import { panelStatic } from "./static.ts";
+import { projectInfo } from "./project.ts";
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string): http.Server {
@@ -36,7 +37,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
       }
       if (!authorized(req, url, token)) return json(res, 401, { error: "unauthorized" });
       if (await production({db, req, res, url, dataDir})) return;
-      if (method === "GET" && path === "/status") return json(res, 200, status(db));
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir) });
       if (method === "GET" && path === "/events") {
         const since = Number(url.searchParams.get("since") || 0);
         if (!Number.isSafeInteger(since) || since < 0) return json(res, 400, { error: "invalid_seq" });
