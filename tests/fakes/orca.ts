@@ -41,7 +41,7 @@ if (process.env.FAKE_ORCA_HANG === '1') {
     }
     emit({ worktree: { id: `repo-1::${path}`, path,
       branch: value('--name') }, ...(process.env.FAKE_ORCA_NO_STARTUP ? {} :
-      { startupTerminal: { spawned: true, handle: 'term_fake' } }) });
+      { startupTerminal: { spawned: true, handle: state.terminalHandle ?? 'term_fake' } }) });
   }
 } else if (args[0] === 'worktree' && args[1] === 'rm') {
   if (value('--worktree') !== 'id:repo-1::C:/Juego trabajador') fail('invalid_selector');

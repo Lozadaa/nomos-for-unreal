@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Handler } from '../runner.ts';
-import { requireRun, runTree, updateRun, queuePoll } from '../repo/worker.ts';
+import { requireRun, runTree, updateRun, queuePoll, invalidateImplementation } from '../repo/worker.ts';
 import { requireTask, moveTask,setTaskWait } from '../repo/tasks.ts';
 import { transaction } from '../repo/rows.ts';
 import { workerPolicy, decisionGate } from './worker-policy.ts';
@@ -16,7 +16,8 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   const payload=cmd.payload as any,{db,orca}=ctx;
   let run=requireRun(db,payload.runId);const task=requireTask(db,run.taskId),tree=runTree(db,run);
   const guard=dispatchGuard(db,task);
-  if (!['running','done'].includes(run.state)) throw new Error('invalid_worker_state');
+  const reviewer=run.role==='revisor';
+  if (!['running','done'].includes(run.state) || reviewer&&run.state==='done') throw new Error('invalid_worker_state');
   if (typeof payload.text!=='string'||!payload.text.trim()) throw new Error('invalid_worker_text');
   if (run.metadata.deadlineAt && Date.now()>=Date.parse(run.metadata.deadlineAt)) throw new Error('orca: tiempo máximo de 4 horas agotado');
   const correction=run.state==='done',count=run.metadata.correctionCount ?? 0;
@@ -33,7 +34,7 @@ export const workerSend: Handler=async (cmd,ctx)=>{
     return {blocked:true,runId:run.id,reason:dependency};
   }
   if (!/^[a-f0-9-]+$/i.test(cmd.id)) throw new Error('invalid_command_id');
-  const reservation=acquire(db,run.id,task.id,requireTask(db,task.id).leases);
+  const reservation=acquire(db,run.id,task.id,reviewer ? [] : requireTask(db,task.id).leases);
   if(!reservation.ok) {
     db.prepare('update tasks set wait_reason=?,updated_at=? where id=?')
       .run(leaseWaitReason(reservation.conflicts),new Date().toISOString(),task.id);return;
@@ -41,6 +42,7 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   db.prepare('update tasks set wait_reason=null where id=?').run(task.id);
   const relative=`.kratos-inbox/${cmd.id}.md`;
   mkdirSync(join(tree.path,'.kratos-inbox'),{recursive:true});writeFileSync(join(tree.path,relative),payload.text);
+  invalidateImplementation(db,run.id);
   await orca.terminalSend(run.sessionRef!,`Lee el archivo ${relative} y ejecuta lo que dice.`);
   transaction(db,()=>{
     const previous=run.metadata,lastLines=previous.lastLines ?? [];
@@ -54,7 +56,7 @@ export const workerSend: Handler=async (cmd,ctx)=>{
       seenDoneMarkers,legacyDoneSummaries,
       correctionCount:count+(correction?1:0),pollGeneration:(run.metadata.pollGeneration ?? 0)+1},
       {state:'running',finishedAt:null,summary:null});
-    moveTask(db,run.taskId,'implementando');queuePoll(db,run);
+    moveTask(db,run.taskId,reviewer ? 'revisando' : 'implementando');queuePoll(db,run);
     appendEvent(db,'worker.message_sent',null,{taskId:run.taskId,runId:run.id,path:relative,commandId:cmd.id,correctionCount:run.metadata.correctionCount});
     if(dispatchBlocked(db,guard)) pauseForDecision(db,task.id,run.id);
   });

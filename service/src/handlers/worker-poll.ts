@@ -8,6 +8,7 @@ import { pauseForDecision } from './worker-decisions.ts';
 import { refreshPendingDecision } from '../repo/decisions.ts';
 import { createHash } from 'node:crypto';
 import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './worker-markers.ts';
+import { finishReview } from './review-finish.ts';
 export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
@@ -38,6 +39,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   const seenDoneMarkers=[...new Set([...seen,...observed.flatMap(marker=>marker.kind==='DONE' ? [markerId(marker)] : [])])].slice(-32);
   const idlePolls=lines.length ? 0 : (run.metadata.idlePolls ?? 0)+1;
   const idle=!lines.length && idlePolls>=2 && !run.metadata.waiting && !blockedNow() ? await orca.terminalIsIdle(run.sessionRef!) : false;
+  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined;
   transaction(db,()=>{
     const previous=run.metadata,lastLines=snapshot ? screenLines.slice(-20) : [...(previous.lastLines ?? []),...lines].slice(-20);
     const cursor=stream.source==='screen' ? previous.cursor ?? '0' : stream.cursor;
@@ -57,9 +59,11 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
     };
     for (const marker of fresh) {
       if (marker.kind==='DONE') {
+        if(run.role==='revisor') continue;
         finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:''});
         moveTask(db,run.taskId,'revisando');refreshPendingDecision(db,run.taskId);return;
       }
+      if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) {review=marker;break;}continue;}
       waiting(marker.question);
     }
     if (idle) waiting('Codex espera instrucciones');
@@ -67,4 +71,5 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
     const current=requireTask(db,run.taskId);
     if(current.decisionId || current.blockedReason) pauseForDecision(db,run.taskId,run.id);
   });
+  if(review) await finishReview(ctx,run,review);
 };

@@ -53,7 +53,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
           else complete(db,active.id,result || undefined);
         } catch (error) {
           const message=error instanceof Error ? error.message : String(error);
-          const retry=!!handler && !active.type.startsWith('worker.') && !(error instanceof OrcaError)
+          const retry=!!handler && !active.type.startsWith('worker.') && !active.type.startsWith('review.') && !(error instanceof OrcaError)
             && !message.startsWith('invalid_') && !message.startsWith('orca:');
           fail(db,active.id,message,{retry});
         }

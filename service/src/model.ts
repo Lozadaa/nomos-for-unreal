@@ -19,6 +19,8 @@ export type RunMetadata = {
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
   uncertain?: boolean;
   startCommandId?: string;
+  review?: import('./review.ts').ReviewSnapshot;
+  implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
 };
 export type Run = Entity & {

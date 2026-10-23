@@ -6,15 +6,15 @@ import { listLeases,type LeaseConflict } from './leases.ts';
 import { normalizedPaths } from './handlers/worker-policy.ts';
 import type { WorkerProvider } from './config.ts';
 
-export type StartIntent={id:string;taskId:string;provider:WorkerProvider;attempt:number};
+export type StartIntent={id:string;taskId:string;provider:WorkerProvider;attempt:number;review?:boolean;generation?:string};
 export function startIntents(db:DatabaseSync,beforeId?:string):StartIntent[] {
-  const rows=db.prepare("select rowid,id,payload,state from commands where type='worker.start' order by rowid").all();
+  const rows=db.prepare("select rowid,id,type,payload,state from commands where type in ('worker.start','review.start') order by rowid").all();
   const cutoff=beforeId ? db.prepare('select rowid from commands where id=?').get(beforeId)?.rowid : undefined;
   const previous=cutoff===undefined ? rows : rows.filter(r=>Number(r.rowid)<Number(cutoff));
   return previous.filter(r=>r.state==='pending'||r.state==='running').flatMap(r=>{
     const payload=JSON.parse(r.payload as string);
     return ['codex','claude','opencode'].includes(payload.provider)
-      ? [{id:r.id as string,...payload,attempt:payload.attempt ?? 1}] : [];
+      ? [{id:r.id as string,...payload,attempt:payload.attempt ?? 1,review:r.type==='review.start'}] : [];
   });
 }
 export function reservations(db:DatabaseSync,beforeId?:string) {
@@ -22,10 +22,12 @@ export function reservations(db:DatabaseSync,beforeId?:string) {
   for(const run of runs) if(run.state==='running' && (run.provider==='codex'||run.provider==='claude')) usage[run.provider]++;
   for(const intent of startIntents(db,beforeId)) {
     if(intent.provider==='opencode') continue;
-    if(runs.some(r=>r.taskId===intent.taskId&&r.attempt===intent.attempt)) continue;
+    if(runs.some(r=>intent.review ? r.metadata.startCommandId===intent.id && (r.state==='running'
+      || r.metadata.review?.generation===intent.generation)
+      : r.role!=='revisor'&&r.taskId===intent.taskId&&r.attempt===intent.attempt)) continue;
     usage[intent.provider]++;
     const task=getTask(db,intent.taskId);
-    for(const path of task ? normalizedPaths(task.leases) : []) leases.push({path,taskId:intent.taskId,runId:intent.id});
+    for(const path of task && !intent.review ? normalizedPaths(task.leases) : []) leases.push({path,taskId:intent.taskId,runId:intent.id});
   }
   return {usage,leases,runs};
 }

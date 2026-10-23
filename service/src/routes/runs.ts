@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { body, json } from '../http.ts';
 import { enqueue } from '../commands.ts';
 import { listEvents } from '../store.ts';
-import { requireRun } from '../repo/worker.ts';
+import { requireRun, invalidateImplementation } from '../repo/worker.ts';
 import { requireTask } from '../repo/tasks.ts';
 import { filtered, read, transaction } from '../repo/rows.ts';
 import { createGit } from '../adapters/git.ts';
@@ -50,7 +50,9 @@ export async function runs({db,req,res,url}: Context): Promise<boolean> {
       const current=requireRun(db,run.id);
       const previous=db.prepare('select id from commands where idempotency_key=?').get(key);
       if (previous) return previous.id;
-      if (action==='message' && !['running','done'].includes(current.state)) throw new Error('invalid_transition');
+      if (action==='message' && (!['running','done'].includes(current.state) || current.role==='revisor'&&current.state!=='running'))
+        throw new Error('invalid_transition');
+      if(action==='message') invalidateImplementation(db,current.id);
       return enqueue(db,action==='stop' ? 'worker.stop' : 'worker.send',
         action==='stop' ? {runId:current.id} : {runId:current.id,text:data.text},key).id;
     });

@@ -9,7 +9,8 @@ import { leaseWaitReason, release } from '../leases.ts';
 
 export function workerFailure(db: DatabaseSync, payload: any, cause: string): void {
   transaction(db,()=>{
-  const runs=filtered<Run>(db,'runs',payload.runId ? {id:payload.runId} : {taskId:payload.taskId});
+  const runs=filtered<Run>(db,'runs',payload.runId ? {id:payload.runId} : {taskId:payload.taskId})
+    .filter(r=>!payload.startCommandId || r.role===payload.role && r.metadata.startCommandId===payload.startCommandId);
   const taskId=payload.taskId ?? runs[0]?.taskId;
   for(const run of runs.filter(r=>r.state==='running' || payload.runId && r.state==='done')) {
     if(run.state==='done') updateRun(db,run.id,{}, {state:'running'});
