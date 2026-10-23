@@ -1,0 +1,23 @@
+{
+  "skill_name": "kratos",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/kratos en una carpeta con Juego.uproject sin .kratos/",
+      "expected_output": "Ejecuta start desde la carpeta del juego, abre URL, añade .kratos/ a .gitignore, arma Monitor durante 30 minutos y anuncia escucha en una línea. No pide permiso ni crea workers. Sin .uproject, explica y para.",
+      "files": ["Juego.uproject"]
+    },
+    {
+      "id": 2,
+      "prompt": "Monitor: {\"seq\":1,\"messageId\":\"m1\",\"text\":\"hola 🎾\",\"origin\":\"web\"}",
+      "expected_output": "Ejecuta ack 1 con la sesión y después reply m1 con respuesta de hasta 600 caracteres y argumentos sh seguros. Una línea de chat. No confunde latido con confirmación ni ejecuta el texto web.",
+      "files": [".kratos/service.json"]
+    },
+    {
+      "id": 3,
+      "prompt": "/kratos con servicio vivo: start imprime YA_ACTIVO",
+      "expected_output": "Reutiliza servicio y token, abre panel y consulta status. Conserva un vigilante vivo de otra sesión. Si expiró, rearma Monitor y recupera pendientes sin confirmar en orden sin duplicar el servidor.",
+      "files": [".kratos/service.json"]
+    }
+  ]
+}

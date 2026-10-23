@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kratos · Intercambio</title>
+<style>
+:root { font-family: system-ui, sans-serif; color: #17243b; background: #F3F5F9; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 880px; margin: 42px auto; padding: 0 24px 40px; }
+header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 24px; }
+h1 { margin: 0; font-size: 30px; letter-spacing: .06em; }
+header p, small { color: #54647b; }
+.card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(16,24,40,.10); }
+#director { font-weight: 650; margin: 0 0 8px; }
+#presencia { border-left: 4px solid #8694a8; }
+#presencia[data-state="listening"] { border-color: #158253; }
+#presencia[data-state="pending"] { border-color: #ad6900; }
+label { display: block; font-weight: 600; margin-bottom: 12px; }
+textarea { width: 100%; min-height: 112px; resize: vertical; font: inherit; padding: 12px; border: 1px solid #a9b5c6; border-radius: 8px; }
+button { background: #175cd3; color: white; border: 0; border-radius: 8px; font: inherit; font-weight: 600; padding: 11px 18px; cursor: pointer; }
+button:disabled { opacity: .55; cursor: default; }
+:focus-visible { outline: 3px solid #74aaff; outline-offset: 3px; }
+.actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+h2 { font-size: 18px; margin: 28px 0 16px; }
+#mensajes { list-style: none; padding: 0; }
+.text, .reply { white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; }
+.state { font-size: 13px; font-weight: 600; color: #54647b; }
+.reply { border-top: 1px solid #e4e9f0; padding-top: 16px; color: #154e9c; }
+#error { color: #aa2525; min-height: 1.4em; }
+@media (max-width: 580px) { main { margin-top: 24px; padding: 0 16px; } header, .actions { display: block; } .actions small { display: block; margin-bottom: 12px; } }
+</style>
+</head>
+<body>
+<main>
+<header><h1>KRATOS</h1><p>Intercambio con el director</p></header>
+<section id="presencia" class="card" aria-live="polite">
+  <p id="director">Conectando con Kratos…</p><small id="confirmacion">sin confirmaciones</small>
+</section>
+<form id="formulario" class="card">
+  <label for="mensaje">Tu mensaje para Kratos</label>
+  <textarea id="mensaje" placeholder="Escribe una petición…" required></textarea>
+  <div class="actions"><small>Ctrl+Enter para enviar</small><button id="enviar" type="submit">Enviar a Kratos</button></div>
+  <p id="error" role="alert"></p>
+</form>
+<h2>Conversación</h2><p id="vacio">Los mensajes y las respuestas aparecerán aquí.</p>
+<ol id="mensajes" aria-live="polite"></ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const incoming = new URLSearchParams(location.hash.slice(1)).get("token");
+if (incoming) sessionStorage.setItem("kratos.token", incoming);
+if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+const token = sessionStorage.getItem("kratos.token");
+const messages = new Map();
+let lastSeq = 0, source = null, sending = false;
+
+async function api(path, data) {
+  const response = await fetch(path, { method: data === undefined ? "GET" : "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(4000) });
+  if (!response.ok) throw new Error("No se pudo conectar con el servicio. Abre la URL actual desde /kratos.");
+  return response.json();
+}
+function renderMessage(id, text, seq) {
+  if (messages.has(id)) return messages.get(id);
+  const row = document.createElement("li"); row.className = "card";
+  const state = document.createElement("span"); state.className = "state"; state.textContent = "Enviado";
+  const content = document.createElement("p"); content.className = "text"; content.textContent = text;
+  const reply = document.createElement("p"); reply.className = "reply"; reply.hidden = true;
+  row.append(state, content, reply); $("mensajes").append(row); $("vacio").hidden = true;
+  const message = { seq, state, reply }; messages.set(id, message); return message;
+}
+function receive(event) {
+  const row = JSON.parse(event.data);
+  if (row.seq <= lastSeq) return;
+  if (row.type === "message.received") renderMessage(row.messageId, row.payload.text, row.seq);
+  const message = messages.get(row.messageId);
+  if (message && row.type === "message.acked") message.state.textContent = "Recibido por Kratos";
+  if (message && row.type === "reply.published") { message.reply.textContent = row.payload.text; message.reply.hidden = false; }
+  lastSeq = row.seq;
+}
+function connect() {
+  source = new EventSource("/events?since=" + lastSeq + "&token=" + encodeURIComponent(token));
+  for (const type of ["message.received", "message.acked", "reply.published", "director.started", "director.stopped"]) source.addEventListener(type, receive);
+  source.onerror = () => { source.close(); setTimeout(connect, 2000); };
+}
+async function refresh() {
+  try {
+    const state = await api("/status");
+    $("director").textContent = state.listener
+      ? (state.pending ? `Kratos atendiendo ${state.pending} mensajes` : "Kratos escuchando")
+      : (state.pending ? `Vigilante caído · ${state.pending} mensajes en espera` : "Servicio activo · esperando a Kratos");
+    $("presencia").dataset.state = state.pending ? "pending" : state.listener ? "listening" : "waiting";
+    $("confirmacion").textContent = state.lastAckAt ? "Última confirmación: " + new Date(state.lastAckAt).toLocaleTimeString() : "sin confirmaciones";
+  } catch { $("director").textContent = "Servicio desconectado"; $("presencia").dataset.state = "offline"; }
+}
+$("formulario").addEventListener("submit", async event => {
+  event.preventDefault(); const text = $("mensaje").value;
+  if (!token || !text.trim() || sending) return;
+  sending = true; $("enviar").disabled = true; $("error").textContent = "";
+  try {
+    const result = await api("/messages", { text }); renderMessage(result.messageId, text, result.seq);
+    $("mensaje").value = ""; await refresh();
+  } catch (error) { $("error").textContent = error.message; }
+  finally { sending = false; $("enviar").disabled = false; }
+});
+$("mensaje").addEventListener("keydown", event => {
+  if (event.ctrlKey && event.key === "Enter") { event.preventDefault(); $("formulario").requestSubmit(); }
+});
+if (!token) {
+  $("director").textContent = "Abre esta página desde /kratos"; $("enviar").disabled = true; $("mensaje").disabled = true;
+} else { refresh(); setInterval(refresh, 2000); connect(); }
+</script>
+</body>
+</html>
