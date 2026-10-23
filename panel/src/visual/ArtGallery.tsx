@@ -19,13 +19,13 @@ export function ArtGallery() {
   const [advanced, setAdvanced] = useState(false)
   const tasks = productionExample.map((task, i) => advanced && i === 4 ? { ...task, state: 'revisando' as const } : task)
   return <div className="flex flex-col gap-5">
-    <div className="grid grid-cols-12 gap-2" aria-label="Avatares de las doce tareas de ejemplo">
+    <div className="grid grid-cols-4 gap-2 xl:grid-cols-6" aria-label="Avatares de las doce tareas de ejemplo">
       {productionExample.map((task, i) => <figure key={task.id} className="flex flex-col items-center gap-1" title={task.id}>
         <AgentAvatar id={task.id} provider={task.provider} size={32} />
         <figcaption className="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, '0')}</figcaption>
       </figure>)}
     </div>
-    <div className="flex items-center gap-4" aria-label="Avatares de las ejecuciones y semillas próximas">
+    <div className="flex flex-wrap items-center gap-4" aria-label="Avatares de las ejecuciones y semillas próximas">
       {productionRuns.map((run) => <figure key={run.id} className="flex items-center gap-2"><AgentAvatar {...run} /><figcaption className="font-mono text-xs text-muted-foreground">{run.id}</figcaption></figure>)}
       <AgentAvatar id="codex-1" provider="codex" /><AgentAvatar id="codex-2" provider="codex" />
     </div>

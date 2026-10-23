@@ -6,16 +6,19 @@ import {
   Leaf, Library, MessageCircle, Mountain, Network, Package, PackageCheck, Palette, Play,
   PlugZap, Radio, Reply, Scan, Search, ShieldCheck, TestTube2, Timer, Users, WifiOff, Wrench,
 } from 'lucide-react'
-import { Bone, geometricIcon, providerPaths } from './GeometricIcon'
+import { Bone } from './GeometricIcon'
 
 export type GlyphKind = 'area' | 'taskState' | 'directorState' | 'provider' | 'role' | 'event' | 'artifact' | 'source'
-export type GlyphSpec = {
-  Icon: ComponentType<{ size?: number; className?: string }>
+type GlyphBase = {
   tone: 'neutral' | 'info' | 'success' | 'warning' | 'error' | 'primary'
   label: string
 }
-const spec = (Icon: GlyphSpec['Icon'], label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec => ({ Icon, tone, label })
-const provider = (value: keyof typeof providerPaths, label: string) => spec(geometricIcon(providerPaths[value]), label)
+export type GlyphSpec = GlyphBase & (
+  { Icon: ComponentType<{ size?: number; className?: string }>; presentation?: 'icon' } |
+  { Icon: null; presentation: 'pill' | 'text' }
+)
+const spec = (Icon: NonNullable<GlyphSpec['Icon']>, label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec => ({ Icon, tone, label })
+const provider = (label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec => ({ Icon: null, presentation: 'pill', label, tone })
 
 export const glyphs = {
   area: {
@@ -36,8 +39,8 @@ export const glyphs = {
     desconectado: spec(PlugZap, 'Desconectado', 'error'),
   },
   provider: {
-    codex: provider('codex', 'Codex'), claude: provider('claude', 'Claude Code'), meshy: provider('meshy', 'Meshy'),
-    blender: provider('blender', 'Blender'), unreal: provider('unreal', 'Unreal'), kratos: provider('kratos', 'Kratos'), launcher: provider('launcher', 'Lanzador'),
+    codex: provider('Codex', 'info'), claude: provider('Claude', 'warning'), meshy: provider('Meshy', 'success'),
+    blender: provider('Blender', 'warning'), unreal: provider('Unreal'), kratos: provider('Kratos', 'primary'), launcher: provider('Launcher', 'info'),
   },
   role: {
     director: spec(Crown, 'Director'), implementacion: spec(Code2, 'Implementación'), arte: spec(Palette, 'Arte'),
@@ -58,12 +61,12 @@ export const glyphs = {
     fab: spec(Library, 'Fab'), megascans: spec(Scan, 'Megascans'), polyhaven: spec(Mountain, 'Poly Haven'),
     ambientcg: spec(Leaf, 'ambientCG'), kenney: spec(Gamepad2, 'Kenney'), quaternius: spec(Box, 'Quaternius'),
     sketchfab: spec(Network, 'Sketchfab'), freesound: spec(AudioWaveform, 'Freesound'),
-    meshy: provider('meshy', 'Meshy'), blender: provider('blender', 'Blender'),
+    meshy: provider('Meshy', 'success'), blender: provider('Blender', 'warning'),
   },
 } satisfies Record<GlyphKind, Record<string, GlyphSpec>>
 
 export function glyphFor(kind: GlyphKind, value: string): GlyphSpec {
   const entries: Record<string, GlyphSpec> = glyphs[kind]
   const key = kind === 'event' ? value.split('.')[0] : value
-  return Object.hasOwn(entries, key) ? entries[key] : spec(CircleDashed, value)
+  return Object.hasOwn(entries, key) ? entries[key] : kind === 'provider' ? provider(value) : spec(CircleDashed, value)
 }

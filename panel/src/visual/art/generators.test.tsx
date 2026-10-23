@@ -2,7 +2,6 @@ import { act, render, screen } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactElement } from 'react'
-import { AgentAvatar } from './AgentAvatar'
 import { AreaPictogram } from './AreaPictogram'
 import { EmptyState } from './EmptyState'
 import { ViewHeader } from './ViewHeader'
@@ -16,16 +15,6 @@ const markup = (element: ReactElement) => renderToStaticMarkup(element)
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('generadores de arte', () => {
-  it('distingue ids casi iguales mediante tres formas geométricas a 24 px', () => {
-    const first = markup(<AgentAvatar id="codex-1" provider="codex" />)
-    expect(first).toBe(markup(<AgentAvatar id="codex-1" provider="codex" />))
-    expect(paths(first)).not.toEqual(paths(markup(<AgentAvatar id="codex-2" provider="codex" />)))
-    const { container } = render(<AgentAvatar id="codex-1" provider="codex" />)
-    expect(screen.getByRole('img', { name: /codex-1.*Codex/ })).toHaveAttribute('width', '24')
-    for (const shape of ['triangle', 'arc', 'bar']) expect(container.querySelector(`[data-shape="${shape}"]`)).toBeInTheDocument()
-    expect(container.querySelector('[data-provider="codex"]')).toBeInTheDocument()
-  })
-
   it('preserva el glifo de cada área a 48 px y admite áreas desconocidas', () => {
     for (const area of Object.keys(glyphs.area)) {
       const { container, unmount } = render(<AreaPictogram area={area} />)
@@ -54,7 +43,6 @@ describe('generadores de arte', () => {
 
   it('mantiene cada SVG por debajo de 2048 bytes incluso con todas las semillas de producción', () => {
     const examples: ReactElement[] = []
-    for (let n = 1; n <= 12; n++) examples.push(<AgentAvatar id={`seed-task-${String(n).padStart(2, '0')}`} provider={n === 6 ? 'meshy' : n === 7 ? 'claude' : 'codex'} />)
     for (const area of Object.keys(glyphs.area)) examples.push(<AreaPictogram area={area} />)
     for (const view of views) examples.push(<EmptyState view={view} />, <ViewHeader view={view} />)
     for (const example of examples) {

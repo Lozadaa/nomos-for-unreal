@@ -33,9 +33,9 @@ describe('registro de glifos', () => {
 
   it('desconocidos, incluso claves del prototipo, conservan su texto y tooltip', () => {
     for (const value of ['nuevo', 'constructor', '__proto__', '']) {
-      expect(glyphFor('provider', value)).toEqual({ Icon: CircleDashed, tone: 'neutral', label: value })
+      expect(glyphFor('area', value)).toEqual({ Icon: CircleDashed, tone: 'neutral', label: value })
     }
-    render(<Glyph kind="provider" value="proveedor nuevo" />)
+    render(<Glyph kind="area" value="proveedor nuevo" />)
     expect(screen.getByRole('img', { name: 'proveedor nuevo' })).toHaveAttribute('title', 'proveedor nuevo')
   })
 

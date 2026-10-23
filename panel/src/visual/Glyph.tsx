@@ -1,10 +1,12 @@
 import type { ComponentType, SVGProps } from 'react'
 import { glyphFor, glyphs, type GlyphKind, type GlyphSpec } from './glyphs'
+import { ProviderPill } from './ProviderPill'
 
 export function Glyph({ kind, value, size = 16, tone, showLabel = false }: {
   kind: GlyphKind; value: string; size?: number; tone?: GlyphSpec['tone']; showLabel?: boolean
 }) {
   const spec = glyphFor(kind, value)
+  if (spec.presentation === 'pill') return <ProviderPill label={spec.label} tone={tone ?? spec.tone} size={size} />
   const Icon = spec.Icon as ComponentType<SVGProps<SVGSVGElement> & { size?: number; title?: string }>
   return (
     <span title={spec.label} className="inline-flex shrink-0 items-center gap-2 align-middle" style={{ color: (tone ?? spec.tone) === 'primary' ? 'var(--vbg-color-primary)' : `var(--k-${tone ?? spec.tone})` }}>
