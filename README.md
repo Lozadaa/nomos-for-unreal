@@ -27,3 +27,23 @@ npm test
 ## Licencia
 
 MIT.
+
+## Producción de ejemplo
+
+Con Node ≥ 25, desde la raíz del repositorio:
+
+```bash
+node service/src/cli.ts seed --data .kratos
+node service/src/cli.ts seed --force --data .kratos
+```
+
+El comando funciona sin arrancar el servicio ni conectar proveedores. Crea `kratos.db`
+con 12 tareas, 3 runs, 60 eventos y 30 recursos del catálogo; los archivos de ejemplo
+(GLB, dos capturas e informe) quedan en `artifacts/` junto a la base. Las rutas de
+artefactos almacenadas son relativas a esa carpeta. La fecha de referencia fija es
+`2026-10-22T20:00:00Z`; las capturas proceden del hito 0 y el modelo es un triángulo
+sintético local, no una generación ni una prueba real de Unreal.
+
+Si ya hay tareas, devuelve `not_empty`. `--force` reemplaza los datos de producción,
+conservando mensajes, estado del director y eventos del intercambio del hito 0.
+Los cursores de eventos siguen aumentando; no se reinicia la secuencia SQLite.

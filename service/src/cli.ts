@@ -1,11 +1,13 @@
 import { parseArgs } from "node:util";
 import { spawn } from "node:child_process";
 import { join, resolve } from "node:path";
-import { rmSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
 import { request, serviceInfo, ServiceError } from "./client.ts";
 import { watch } from "./watcher.ts";
+import { openDb } from "./db.ts";
+import { seed } from "./seed.ts";
 
 function openBrowser(url: string) {
   const [command, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
@@ -17,16 +19,23 @@ function openBrowser(url: string) {
 async function main() {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     data: { type: "string", default: ".kratos" }, port: { type: "string", default: "8780" },
-    session: { type: "string" }, "no-open": { type: "boolean", default: false } } });
+    force: { type: "boolean", default: false }, session: { type: "string" }, "no-open": { type: "boolean", default: false } } });
   const [command, ...args] = positionals; const dataDir = resolve(values.data!);
   const session = values.session?.trim(); const port = Number(values.port);
-  const commands = ["start", "status", "vigila", "ack", "reply", "stop"];
+  const commands = ["start", "status", "vigila", "ack", "reply", "stop", "seed"];
   if (!commands.includes(command) || !Number.isInteger(port) || port < 1 || port > 65535
     || (["ack", "vigila"].includes(command) && !session)
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim()))
-    || (["start", "status", "vigila", "stop"].includes(command) && args.length)) {
-    throw new Error("Uso: kratos start|status|vigila --session ID|ack SEQ --session ID|reply ID TEXTO|stop [--data CARPETA]");
+    || (["start", "status", "vigila", "stop", "seed"].includes(command) && args.length)) {
+    throw new Error("Uso: kratos start|status|vigila --session ID|ack SEQ --session ID|reply ID TEXTO|stop|seed [--force] [--data CARPETA]");
+  }
+  if (command === "seed") {
+    mkdirSync(dataDir, { recursive: true });
+    const db = openDb(join(dataDir, "kratos.db"));
+    try { console.log(JSON.stringify(seed(db, { force: values.force }))); }
+    finally { db.close(); }
+    return;
   }
   if (command === "start") {
     let info = readServiceInfo(dataDir); const active = info ? await isAlive(info) : false;
