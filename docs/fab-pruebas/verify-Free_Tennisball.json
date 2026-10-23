@@ -1,0 +1,56 @@
+{
+  "root": "/Game/Fab",
+  "assets": [
+    {
+      "package": "/Game/Fab/Free_Tennisball/scene/Materials/material0",
+      "class": "MaterialInstanceConstant",
+      "loaded": true
+    },
+    {
+      "package": "/Game/Fab/Free_Tennisball/scene/StaticMeshes/scene",
+      "class": "StaticMesh",
+      "loaded": true,
+      "lods": 1,
+      "triangles_lod0": 11430,
+      "materials": [
+        "/Game/Fab/Free_Tennisball/scene/Materials/material0.material0"
+      ],
+      "bounds_cm": [
+        200.0,
+        199.8,
+        199.1
+      ]
+    },
+    {
+      "package": "/Game/Fab/Free_Tennisball/scene/Textures/material0_baseColor",
+      "class": "Texture2D",
+      "loaded": true,
+      "size": [
+        4096,
+        4096
+      ]
+    },
+    {
+      "package": "/Game/Fab/Free_Tennisball/scene/Textures/material0_metallicRoughness",
+      "class": "Texture2D",
+      "loaded": true,
+      "size": [
+        4096,
+        4096
+      ]
+    },
+    {
+      "package": "/Game/Fab/Free_Tennisball/scene/Textures/material0_normal",
+      "class": "Texture2D",
+      "loaded": true,
+      "size": [
+        4096,
+        4096
+      ]
+    }
+  ],
+  "missing_dependencies": [],
+  "external_dependencies": [],
+  "errors": [],
+  "ok": true
+}

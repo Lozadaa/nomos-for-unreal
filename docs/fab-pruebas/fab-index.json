@@ -1,0 +1,244 @@
+{
+  "projects_dir": "C:\\Users\\richa\\Documents\\Unreal Projects",
+  "packs": [
+    {
+      "project": "CrazyPadel",
+      "engine": "{16DB9ECC-4CCD-9329-7984-17BE5144202C}",
+      "pack": "Free_Tennisball",
+      "content_path": "/Game/Fab/Free_Tennisball",
+      "disk_path": "C:\\Users\\richa\\Documents\\Unreal Projects\\CrazyPadel\\Content\\Fab\\Free_Tennisball",
+      "files": 5,
+      "bytes": 45662624,
+      "assets": [
+        {
+          "kind": "material",
+          "name": "material0",
+          "rel": "scene/Materials/material0.uasset"
+        },
+        {
+          "kind": "static_mesh",
+          "name": "scene",
+          "rel": "scene/StaticMeshes/scene.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "material0_baseColor",
+          "rel": "scene/Textures/material0_baseColor.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "material0_metallicRoughness",
+          "rel": "scene/Textures/material0_metallicRoughness.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "material0_normal",
+          "rel": "scene/Textures/material0_normal.uasset"
+        }
+      ]
+    },
+    {
+      "project": "CrazyPadel",
+      "engine": "{16DB9ECC-4CCD-9329-7984-17BE5144202C}",
+      "pack": "Nude_Tennis_Racket_🎾",
+      "content_path": "/Game/Fab/Nude_Tennis_Racket_🎾",
+      "disk_path": "C:\\Users\\richa\\Documents\\Unreal Projects\\CrazyPadel\\Content\\Fab\\Nude_Tennis_Racket_🎾",
+      "files": 5,
+      "bytes": 26722415,
+      "assets": [
+        {
+          "kind": "material",
+          "name": "Material_001",
+          "rel": "raquette_nude/Materials/Material_001.uasset"
+        },
+        {
+          "kind": "static_mesh",
+          "name": "raquette_nude",
+          "rel": "raquette_nude/StaticMeshes/raquette_nude.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "texture_pbr_v128",
+          "rel": "raquette_nude/Textures/texture_pbr_v128.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "texture_pbr_v128_metallic-texture_pbr_v128_roughness",
+          "rel": "raquette_nude/Textures/texture_pbr_v128_metallic-texture_pbr_v128_roughness.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "texture_pbr_v128_normal",
+          "rel": "raquette_nude/Textures/texture_pbr_v128_normal.uasset"
+        }
+      ]
+    },
+    {
+      "project": "CrazyPadel",
+      "engine": "{16DB9ECC-4CCD-9329-7984-17BE5144202C}",
+      "pack": "Skybox_Fantasy___View_2",
+      "content_path": "/Game/Fab/Skybox_Fantasy___View_2",
+      "disk_path": "C:\\Users\\richa\\Documents\\Unreal Projects\\CrazyPadel\\Content\\Fab\\Skybox_Fantasy___View_2",
+      "files": 3,
+      "bytes": 13151834,
+      "assets": [
+        {
+          "kind": "material",
+          "name": "material",
+          "rel": "skybox_fantasy_view_2/Materials/material.uasset"
+        },
+        {
+          "kind": "static_mesh",
+          "name": "skybox_fantasy_view_2",
+          "rel": "skybox_fantasy_view_2/StaticMeshes/skybox_fantasy_view_2.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "skybox_fantasy_view_2_texture_0",
+          "rel": "skybox_fantasy_view_2/Textures/skybox_fantasy_view_2_texture_0.uasset"
+        }
+      ]
+    },
+    {
+      "project": "KratosFabTest",
+      "engine": "5.8",
+      "pack": "Free_Tennisball",
+      "content_path": "/Game/Fab/Free_Tennisball",
+      "disk_path": "C:\\Users\\richa\\Documents\\Unreal Projects\\KratosFabTest\\Content\\Fab\\Free_Tennisball",
+      "files": 5,
+      "bytes": 45662624,
+      "assets": [
+        {
+          "kind": "material",
+          "name": "material0",
+          "rel": "scene/Materials/material0.uasset"
+        },
+        {
+          "kind": "static_mesh",
+          "name": "scene",
+          "rel": "scene/StaticMeshes/scene.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "material0_baseColor",
+          "rel": "scene/Textures/material0_baseColor.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "material0_metallicRoughness",
+          "rel": "scene/Textures/material0_metallicRoughness.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "material0_normal",
+          "rel": "scene/Textures/material0_normal.uasset"
+        }
+      ]
+    },
+    {
+      "project": "unknowncall",
+      "engine": "5.8",
+      "pack": "Phone",
+      "content_path": "/Game/Fab/Phone",
+      "disk_path": "C:\\Users\\richa\\Documents\\Unreal Projects\\unknowncall\\Content\\Fab\\Phone",
+      "files": 6,
+      "bytes": 4341905,
+      "assets": [
+        {
+          "kind": "material",
+          "name": "phonematr",
+          "rel": "phone_low/Materials/phonematr.uasset"
+        },
+        {
+          "kind": "material",
+          "name": "tranparentmat",
+          "rel": "phone_low/Materials/tranparentmat.uasset"
+        },
+        {
+          "kind": "static_mesh",
+          "name": "phone_low",
+          "rel": "phone_low/StaticMeshes/phone_low.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "phonematr_color",
+          "rel": "phone_low/Textures/phonematr_color.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "phonematr_normal",
+          "rel": "phone_low/Textures/phonematr_normal.uasset"
+        },
+        {
+          "kind": "texture",
+          "name": "phonematr_roughness",
+          "rel": "phone_low/Textures/phonematr_roughness.uasset"
+        }
+      ]
+    }
+  ],
+  "launcher_packs": [
+    {
+      "project": "KratosFabTest",
+      "pack": "AdvancedCelShader",
+      "content_path": "/Game/AdvancedCelShader",
+      "disk_path": "C:\\Users\\richa\\Documents\\Unreal Projects\\KratosFabTest\\Content\\AdvancedCelShader",
+      "files": 12,
+      "bytes": 294778
+    }
+  ],
+  "plugin_cache": [
+    {
+      "dir": "C:\\Users\\richa\\AppData\\Local\\Temp\\FabLibrary",
+      "exists": false,
+      "zips": []
+    }
+  ],
+  "megascans": [
+    {
+      "id": "4dlykISk",
+      "name": "Hudson",
+      "type": "metahuman-preset",
+      "dir": "C:\\Users\\richa\\Documents\\Megascans Library\\Downloaded\\UAssets\\4dlykISk",
+      "tiers": [
+        0
+      ]
+    },
+    {
+      "id": "fmsmkISi",
+      "name": "Emory",
+      "type": "metahuman-preset",
+      "dir": "C:\\Users\\richa\\Documents\\Megascans Library\\Downloaded\\UAssets\\fmsmkISi",
+      "tiers": [
+        0
+      ]
+    }
+  ],
+  "launcher_listings": {
+    "db": "C:\\ProgramData\\Epic\\EpicGamesLauncher\\VaultCache\\FabLibrary\\listings_v1.db",
+    "exists": true,
+    "rows": 1,
+    "sample": [
+      {
+        "uid": "ff0ac933-a621-4541-9efc-24f09c6a39e2",
+        "title": "Advanced Cel Shader Lite",
+        "category": "",
+        "type": "",
+        "ai_forbidden": 0,
+        "entitlement": ""
+      }
+    ],
+    "downloads": [
+      {
+        "title": "Advanced Cel Shader Lite",
+        "format": "unreal-engine",
+        "vault": "C:/ProgramData/Epic/EpicGamesLauncher/VaultCache/Advanceddffcefa302e4V2",
+        "bytes": 43787459,
+        "content_dirs": [
+          "AdvancedCelShader",
+          "StarterContent"
+        ]
+      }
+    ]
+  }
+}

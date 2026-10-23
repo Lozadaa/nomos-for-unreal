@@ -1,0 +1,78 @@
+{
+  "root": "/Game/AdvancedCelShader",
+  "assets": [
+    {
+      "package": "/Game/AdvancedCelShader/Maps/Sample_HLOD0_Instancing",
+      "class": "HLODLayer",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Maps/Sample",
+      "class": "World",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/CelshaderV3",
+      "class": "Material",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/DefaultTextMaterialOpaque",
+      "class": "Material",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/MaterialFunctions/CombineSamples",
+      "class": "MaterialFunction",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/MaterialFunctions/EdgeDetectDepthPixelV3",
+      "class": "MaterialFunction",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/MaterialFunctions/EdgeDetectDepthV3",
+      "class": "MaterialFunction",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/MaterialFunctions/GetDepthAtPixel",
+      "class": "MaterialFunction",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/MaterialFunctions/GetOccludedStencil",
+      "class": "MaterialFunction",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/MaterialFunctions/GetSubjectDepth",
+      "class": "MaterialFunction",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/PresetsV3/CelshaderV3Default",
+      "class": "MaterialInstanceConstant",
+      "loaded": true
+    },
+    {
+      "package": "/Game/AdvancedCelShader/Materials/Textures/8bit_LUT",
+      "class": "Texture2D",
+      "loaded": true,
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "missing_dependencies": [],
+  "external_dependencies": [
+    {
+      "from": "/Game/AdvancedCelShader/Maps/Sample",
+      "to": "/Game/__ExternalActors__/AdvancedCelShader/Maps/Sample/2/L6/8KUEU11WFNIPIJJPG95COM"
+    }
+  ],
+  "errors": [],
+  "ok": true
+}
