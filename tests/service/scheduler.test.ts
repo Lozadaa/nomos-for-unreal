@@ -60,22 +60,23 @@ test('implementación alterna a Claude; arte ui qa lo prefieren',t=>{
     assert.equal(plan(db,{})[0].provider,'claude');
   }
 });
+const claudeOne={concurrency:{codex:2,claude:1}};
 test('arte ui qa usan Codex si Claude está deshabilitado o lleno',t=>{
   const {db,add}=setup(t),task=add('QA',{assigneeRole:'qa'});
   assert.equal(plan(db,config)[0].provider,'codex');
   const active=add('Activo',{state:'implementando'});startRun(db,{taskId:active.id,role:'qa',provider:'claude'});
   for(const role of ['arte','ui','qa']) {
     db.prepare('update tasks set assignee_role=? where id=?').run(role,task.id);
-    assert.equal(plan(db,{})[0].provider,'codex');
+    assert.equal(plan(db,claudeOne)[0].provider,'codex');
   }
 });
 test('revisor usa opuesto, espera su cupo y admite mismo proveedor solo con uno habilitado',t=>{
   const {db,add}=setup(t),review=add('Revisar',{assigneeRole:'revisor'});
   const implementation=startRun(db,{taskId:review.id,role:'implementacion',provider:'codex'});
   finishRun(db,implementation.id,'done','Listo');
-  assert.equal(plan(db,{})[0].provider,'claude');
+  assert.equal(plan(db,claudeOne)[0].provider,'claude');
   const active=add('Activo',{state:'implementando'});startRun(db,{taskId:active.id,role:'qa',provider:'claude'});
-  assert.deepEqual(plan(db,{}),[{taskId:review.id,action:'wait',reason:'Sin hueco en claude'}]);
+  assert.deepEqual(plan(db,claudeOne),[{taskId:review.id,action:'wait',reason:'Sin hueco en claude'}]);
   assert.equal(plan(db,config)[0].provider,'codex');
 });
 test('intenciones manuales reservan capacidad sin duplicar runs ya nacidos y preservan payload',t=>{

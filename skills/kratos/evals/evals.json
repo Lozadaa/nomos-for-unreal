@@ -28,7 +28,7 @@
     {
       "id": 4,
       "prompt": "Monitor message.received seq11 m11: crea Docs/README-kratos.md y Scripts/hello.ps1 que lea EngineAssociation del .uproject; juego válido, sin tarea previa.",
-      "expected_output": "ACK11 y clasificación petición de trabajo. Spec con cinco encabezados españoles, criterios numerados, scope y No tocar. task create --spec-file, registro taskId-messageId, reply ID y resumen dos líneas, worker start con codex/implementacion. Un worker, sin gameplay directo ni DONE final. Conserva Monitor30min.",
+      "expected_output": "ACK11 y clasificación petición de trabajo. Spec con cinco encabezados españoles, criterios numerados, scope y No tocar. task create --spec-file, registro taskId-messageId, reply ID y resumen dos líneas, el planificador arranca un worker Claude (proveedor por defecto). Un worker, sin gameplay directo ni DONE final. Conserva Monitor30min.",
       "files": [
         "Juego.uproject",
         "references/ciclo-tarea.md"
@@ -45,7 +45,7 @@
     },
     {
       "id": 6,
-      "prompt": "Monitor m21 y m22: munición y vida en el HUD; ambas tocan Content/UI/WBP_HUD.uasset; cupos codex2 claude1; luego run.finished de la primera y review.finished aprobado.",
+      "prompt": "Monitor m21 y m22: munición y vida en el HUD; ambas tocan Content/UI/WBP_HUD.uasset; cupos claude2 codex0; luego run.finished de la primera y review.finished aprobado.",
       "expected_output": "ACK y dos specs; task create con --spec-file y --leases Content/UI/WBP_HUD.uasset, registro por mensaje y reply con IDs. Sin worker start manual: una arranca y la otra espera reserva con waitReason. En run.finished inspecciona, diff y task review una vez; ignora run.finished del revisor. review.finished vigente aprobado: reply con hallazgos, revisando, nunca done. La segunda arranca sola al liberarse la reserva.",
       "files": [
         "references/ciclo-tarea.md",

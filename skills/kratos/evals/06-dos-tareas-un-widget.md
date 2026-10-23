@@ -2,7 +2,7 @@
 
 Prompt: dos `message.received` seguidos, m21 «muestra la munición en el HUD» y m22
 «muestra la vida en el HUD». Ambas tocan `Content/UI/WBP_HUD.uasset`. Hay dos cupos
-Codex y uno Claude. Ninguna depende de la otra.
+Claude y Codex deshabilitado (`"codex":0`). Ninguna depende de la otra.
 
 Resultado esperado: ACK de cada mensaje y clasificación petición de trabajo. Dos specs
 con los cinco encabezados; cada `task create` lleva `--spec-file`, `--leases

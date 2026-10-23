@@ -22,7 +22,7 @@ export type RunMetadata = {
   review?: import('./review.ts').ReviewSnapshot;
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
-  confirmedSkills?: string[];
+  confirmedSkills?: string[]; seenAskMarkers?: string[];
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;

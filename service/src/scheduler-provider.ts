@@ -9,8 +9,11 @@ export function chooseProvider(role:string,config:SchedulerConfig,usage:Record<W
   if(role==='revisor') {
     if(!implementer) return {reason:'Falta implementación para revisar'};
     candidates=enabled.length===1 ? enabled : enabled.filter(p=>p!==implementer);
-  } else candidates=preferred ? enabled.filter(p=>p===preferred)
-    : ['arte','ui','qa'].includes(role) ? (['claude','codex'] as const).filter(p=>enabled.includes(p)) : enabled;
+  } else {
+    // Claude es el proveedor por defecto; arte, UI y QA lo prefieren siempre.
+    const first=['arte','ui','qa'].includes(role) ? 'claude' : config.defaultProvider ?? 'claude';
+    candidates=preferred ? enabled.filter(p=>p===preferred) : [...enabled].sort((a,b)=>Number(b===first)-Number(a===first));
+  }
   const provider=candidates.find(p=>usage[p]<limits[p]);
   if(!provider) return {reason:candidates.length ? `Sin hueco en ${candidates[0]}` : 'Sin proveedor habilitado'};
   return {provider,reason:'Disponible',...(role==='revisor' ? {sameProvider:provider===implementer} : {})};

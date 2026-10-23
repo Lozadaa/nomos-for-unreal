@@ -61,7 +61,7 @@ del repositorio Kratos, no del juego. Si falta una decisión creativa, pregunta 
 
 ```sh
 kratos task create --title 'Documentar el juego' --area qa --spec-file .kratos/specs/documentacion.md
-kratos worker start TASK --provider codex --role implementacion
+kratos worker start TASK --role implementacion
 ```
 
 Entre ambos comandos, guarda `{taskId,messageId,specFile}` en

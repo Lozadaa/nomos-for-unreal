@@ -130,7 +130,7 @@ test('OpenCode explícito espera sin adaptador y no crea run ni recursos',async 
 
 test('Decisión externa en preparación local exige POST tras resolver sin arranque automático',async t=>{
   const f=fixture(t),base=createTask(f.db,{title:'Base',area:'qa',state:'done'});
-  f.db.prepare("update tasks set state='preparada',depends_on=? where id=?").run(JSON.stringify([base.id]),f.task.id);
+  f.db.prepare("update tasks set state='preparada',assignee_provider='codex',depends_on=? where id=?").run(JSON.stringify([base.id]),f.task.id);
   const repoAdd=f.ctx.orca.repoAdd;
   f.ctx.orca.repoAdd=async path=>{const result=await repoAdd(path);blockTask(f.db,base.id,'Revisar');return result;};
   const server=createServer(f.db,'secret','service/web',f.dataDir);

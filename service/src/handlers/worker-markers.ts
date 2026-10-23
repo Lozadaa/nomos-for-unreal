@@ -58,6 +58,14 @@ export function streamMarkers(lines:string[],buffer:string,fence=''): {found:Mar
   }
   return {found,buffer,fence};
 }
+/** Codex sangra con dos espacios las líneas siguientes de un mensaje con viñeta; la salida de herramienta usa └. */
+function bulletContinuation(lines:string[],i:number):boolean {
+  for(let j=i-1;j>=0;j--) {
+    if(/^[•●⏺] /.test(lines[j])) return true;
+    if(!/^ {2}[^\s└│⎿]/.test(lines[j])) return false;
+  }
+  return false;
+}
 /** Cada frame es autónomo; nunca se conserva JSON parcial de pantalla entre lecturas. */
 export function screenMarkers(lines:string[]): Marker[] {
   const found:Marker[]=[];let fence='';
@@ -65,9 +73,10 @@ export function screenMarkers(lines:string[]): Marker[] {
     const nextFence=fenceLine(lines[i],fence);
     if(nextFence!==undefined) {fence=nextFence;continue;}
     if(fence) continue;
-    const match=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(lines[i]);
+    const line=/^ {2}KRATOS_/.test(lines[i]) && bulletContinuation(lines,i) ? lines[i].slice(2) : lines[i];
+    const match=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
     if(!match) {
-      if(/^(?:[•●⏺] )?KRATOS_REVIEW\b/.test(lines[i])) found.push({kind:'INVALID_REVIEW',question:lines[i]});
+      if(/^(?:[•●⏺] )?KRATOS_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:lines[i]});
       continue;
     }
     const original=lines[i];

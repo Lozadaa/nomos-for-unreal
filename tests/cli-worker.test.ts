@@ -51,7 +51,7 @@ test('CLI workers/runs y decisiones transportan texto literal y exponen comandos
   const started=cli(dataDir,'worker','start',task.id,'--skills','tdd,qa','--attempt','3');assert.equal(started.status,0,started.stderr);
   const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(started.stdout).commandId);
   assert.equal(command.idempotencyKey,'worker.start:'+task.id+':3');
-  assert.deepEqual(command.payload,{taskId:task.id,provider:'codex',role:'implementacion',skills:['tdd','qa'],attempt:3});
+  assert.deepEqual(command.payload,{taskId:task.id,provider:'claude',role:'implementacion',skills:['tdd','qa'],attempt:3});
   const db=openDb(join(dataDir,'kratos.db'));const run=startRun(db,{taskId:task.id,provider:'codex',role:'implementacion'});
   const event=appendEvent(db,'worker.output',null,{taskId:task.id,runId:run.id,lines:['hola']});db.close();
   const text='Corrige "texto"\n$(literal) 🎾',file=join(dataDir,'send.md');writeFileSync(file,text);
