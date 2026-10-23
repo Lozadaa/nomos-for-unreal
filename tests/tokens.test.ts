@@ -72,12 +72,13 @@ function htmlFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return htmlFiles(path);
-    return name.endsWith(".html") ? [path] : [];
+    return /\.(html|css)$/.test(name) && name !== "tokens.css" ? [path] : [];
   });
 }
 
 test("las maquetas y /estilo no llevan colores, tamaños de letra, radios ni sombras a mano", () => {
   const files = htmlFiles(join(root, "design"));
+  assert.ok(files.some((f) => f.endsWith("componentes.css")), "la prueba debe revisar también los .css");
   const bad: string[] = [];
   for (const file of files) {
     const rel = relative(root, file).split(sep).join("/");
@@ -88,7 +89,7 @@ test("las maquetas y /estilo no llevan colores, tamaños de letra, radios ni som
       if (/#[0-9a-fA-F]{3,8}\b/.test(line)) bad.push(`color hexadecimal · ${where}`);
       if (/\b(rgba?|hsla?|oklch|oklab|lab|lch)\(/i.test(line)) bad.push(`color funcional · ${where}`);
       if (/(^|[\s;:"'])(white|black|red|green|blue|gr[ae]y|orange|purple|yellow)\s*[;"'}]/i.test(line)) bad.push(`color con nombre · ${where}`);
-      if (/box-shadow\s*:\s*(?!var\(--k-shadow-[12]\)|none)/i.test(line)) bad.push(`sombra a mano · ${where}`);
+      if (/box-shadow\s*:(?!\s*(var\(--k-shadow-[12]\)|none))/i.test(line)) bad.push(`sombra a mano · ${where}`);
       if (/font-size\s*:\s*[\d.]+(px|rem|em)/i.test(line)) bad.push(`tamaño de letra a mano · ${where}`);
       if (/border-radius\s*:\s*[\d.]+(px|rem|em)/i.test(line)) bad.push(`radio a mano · ${where}`);
     });
