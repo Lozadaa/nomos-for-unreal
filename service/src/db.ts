@@ -1,4 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
+import { applySchema } from "./schema.ts";
 
 export function openDb(file: string): DatabaseSync {
   const db = new DatabaseSync(file);
@@ -16,5 +17,6 @@ export function openDb(file: string): DatabaseSync {
       last_ack_seq integer not null default 0, paused integer not null default 0);
     insert or ignore into director(id) values (1);
   `);
+  applySchema(db);
   return db;
 }

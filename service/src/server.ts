@@ -10,9 +10,11 @@ import { openDb } from "./db.ts";
 import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
 import { parseArgs } from "node:util";
 import { acquireLock } from "./lock.ts";
+import { production, databaseDirectory } from "./routes/index.ts";
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
-export function createServer(db: DatabaseSync, token: string, webDir: string): http.Server {
+export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string): http.Server {
+  dataDir ??= databaseDirectory(db);
   const streams = new Set<http.ServerResponse>();
   const server = http.createServer(async (req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -31,6 +33,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
         return await staticFile(res, webDir, path === "/" ? "index.html" : path.slice(5));
       }
       if (!authorized(req, url, token)) return json(res, 401, { error: "unauthorized" });
+      if (await production({db, req, res, url, dataDir})) return;
       if (method === "GET" && path === "/status") return json(res, 200, status(db));
       if (method === "GET" && path === "/events") {
         const since = Number(url.searchParams.get("since") || 0);
@@ -70,6 +73,8 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
       const message = (error as NodeJS.ErrnoException).code === "ERR_INVALID_URL" ? "invalid_url"
         : error instanceof Error ? error.message : "internal_error";
       const code = message === "body_too_large" ? 413 : ["invalid_json", "invalid_url"].includes(message) ? 400
+        : ["decision_stale", "not_empty", "invalid_transition"].includes(message) ? 409
+        : message.startsWith("invalid_") || message === "unknown_option" ? 400
         : message.startsWith("unknown_") ? 404 : 500;
       if (!res.headersSent) json(res, code, { error: code === 500 ? "internal_error" : message });
     }
@@ -89,7 +94,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const db = openDb(join(opts.dataDir, "kratos.db"));
   db.exec("update director set alive_at=null where id=1");
   const token = randomBytes(24).toString("hex");
-  const server = createServer(db, token, opts.webDir || join(import.meta.dirname, "../web"));
+  const server = createServer(db, token, opts.webDir || join(import.meta.dirname, "../web"), opts.dataDir);
   try {
     await new Promise<void>((resolve, reject) => {
       server.once("error", reject);
