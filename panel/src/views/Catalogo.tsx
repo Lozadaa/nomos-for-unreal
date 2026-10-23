@@ -1,7 +1,7 @@
-import { useId, useMemo, useState, type ComponentType, type SVGProps } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { humanError } from '@/lib/errors'
-import { api, ApiError } from '@/api'
+import { ApiError } from '@/api'
 import { EmptyState } from '@/visual/art/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,11 +14,13 @@ import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
 import { useResource } from '@/hooks/useResource'
-import { useIndexCatalog } from '@/hooks/assetCommands'
+import { sendCommand, useIndexCatalog } from '@/hooks/assetCommands'
+import { useAuthedSrc } from '@/hooks/artifact'
+import { useStatus } from '@/shell/useStatus'
+import { MigrateButton, StatusIcon, VersionWarning, versionWarning } from './CatalogActions'
 import { cn } from '@/lib/utils'
 import { catalogArea, catalogThumbnailUrl } from '@/lib/catalogVisual'
 import { Glyph } from '@/visual/Glyph'
-import { glyphFor } from '@/visual/glyphs'
 import { AreaPictogram } from '@/visual/art/AreaPictogram'
 import { budgets, countWords, truncateWords } from '@/visual/text-budget'
 
@@ -27,6 +29,7 @@ export interface CatalogEntry {
   state: 'owned' | 'downloaded' | 'cached' | 'imported'; projects: string[]; formats: string[]; engineVersions: string[]
   license: string | null; aiForbidden: 0 | 1; tags: string[]
   thumbnailPath?: string | null; thumbnail_path?: string | null
+  thumbnailUrl?: string | null; verifiedEngine?: string | null
 }
 
 const sourceLabel: Record<string, string> = {
@@ -36,14 +39,10 @@ const sourceLabel: Record<string, string> = {
 
 type Mode = 'todos' | 'usables' | 'instalados'
 
-function StatusIcon({ value, label, tone }: { value: string; label: string; tone: 'warning' | 'error' | 'success' }) {
-  const Icon = glyphFor('taskState', value).Icon as ComponentType<SVGProps<SVGSVGElement> & { size?: number }>
-  const colors = { warning: 'text-warning', error: 'text-error', success: 'text-success' }
-  return <Icon size={16} role="img" aria-label={label} aria-hidden={undefined} className={`shrink-0 ${colors[tone]}`} />
-}
-
 function Preview({ entry }: { entry: CatalogEntry }) {
-  const url = catalogThumbnailUrl(entry.thumbnailPath) ?? catalogThumbnailUrl(entry.thumbnail_path)
+  // la miniatura real llega por /catalog/<id>/thumbnail (con token vía service worker); si no hay, el pictograma del área
+  const served = useAuthedSrc(entry.thumbnailUrl ?? null)
+  const url = served ?? catalogThumbnailUrl(entry.thumbnailPath) ?? catalogThumbnailUrl(entry.thumbnail_path)
   const [failed, setFailed] = useState<string | null>(null)
   return <div className="grid aspect-[4/3] place-items-center overflow-hidden rounded-md border border-subtle bg-card">
     {url && failed !== url
@@ -52,14 +51,14 @@ function Preview({ entry }: { entry: CatalogEntry }) {
   </div>
 }
 
-export function CatalogCard({ entry }: { entry: CatalogEntry }) {
+export function CatalogCard({ entry, project }: { entry: CatalogEntry; project?: string }) {
   const [note, setNote] = useState<string | null>(null)
   const [accepted, setAccepted] = useState(false)
   const [actionDetails, setActionDetails] = useState(false)
   const metadataId = useId()
   const actionHintId = useId()
   const prepare = useAction(
-    () => api('/commands', { method: 'POST', body: { type: 'catalog.prepare', payload: { entryId: entry.id }, idempotencyKey: `prepare:${entry.id}` } }),
+    () => sendCommand('asset.prepare', { entryId: entry.id }, `prepare:${entry.id}`),
     {
       optimistic: () => { setNote(null); setActionDetails(false); return () => {} },
       // la bandeja de comandos aún no acepta órdenes del panel (llega con el ejecutor): se dice en la tarjeta, no como fallo genérico
@@ -74,14 +73,17 @@ export function CatalogCard({ entry }: { entry: CatalogEntry }) {
   )
   const forbidden = entry.aiForbidden === 1
   const unknown = !entry.license
-  const installed = entry.state === 'imported'
+  const installed = entry.state === 'imported' && (!project || entry.projects.includes(project))
+  // nivel 1: un pack Fab en disco (caché del Launcher, del plugin o de otro proyecto) se copia sin volver a descargarlo
+  const migratable = !!project && entry.source === 'fab' && entry.state !== 'owned' && !installed
+  const warning = versionWarning(entry.engineVersions, entry.verifiedEngine)
   const source = sourceLabel[entry.source] ?? entry.source
   const forbiddenMessage = 'Prohibido para IA · no se puede usar con agentes'
   const forbiddenLabel = countWords(source) > 1 ? 'No IA' : 'Prohibido para IA'
   const actionLabel = prepare.pending ? 'Preparando…' : accepted ? 'Pendiente' : note ? 'Reintentar' : 'Preparar'
-  const actionWords = forbidden ? countWords(forbiddenLabel) : installed ? 1 : unknown ? 2 : 1
-  const title = truncateWords(entry.name, Math.max(1, budgets.catalogCard - countWords(source) - actionWords))
-  const project = `Instalado en ${entry.projects[0] ?? 'el proyecto'}`
+  const actionWords = forbidden ? countWords(forbiddenLabel) : installed || migratable ? 1 : unknown ? 2 : 1
+  const title = truncateWords(entry.name, Math.max(1, budgets.catalogCard - countWords(source) - actionWords - (warning ? 1 : 0)))
+  const installedLabel = `Instalado en ${(project && entry.projects.includes(project) ? project : entry.projects[0]) ?? 'el proyecto'}`
   const actionHint = note ?? (accepted ? 'Preparación solicitada. Aparecerá en el proyecto cuando termine.' : `Preparar ${entry.name} para Unreal. Licencia: ${entry.license ?? 'desconocida'}.`)
   return (
     <li data-catalog-card={entry.id} className={cn('flex flex-col gap-3 rounded-lg border border-subtle p-4 transition-colors duration-(--k-dur-micro) hover:border-strong', forbidden && 'opacity-80')}>
@@ -93,10 +95,11 @@ export function CatalogCard({ entry }: { entry: CatalogEntry }) {
             <p>{entry.name}</p><p>{entry.description}</p>
             <p>{entry.engineVersions.length ? `UE ${entry.engineVersions.join(', ')} · ` : ''}{entry.formats.join(', ')}</p>
             <p>{entry.license ? `Licencia: ${entry.license}` : 'Licencia desconocida'}</p>
-            {installed && <p>{project}</p>}
+            {installed && <p>{installedLabel}</p>}
           </div></TooltipContent>
         </Tooltip>
         <Glyph kind="source" value={entry.source} />
+        {warning && <VersionWarning text={warning} />}
       </div>
       <div className="mt-auto flex flex-col gap-2">
         {forbidden ? (
@@ -104,10 +107,11 @@ export function CatalogCard({ entry }: { entry: CatalogEntry }) {
             <StatusIcon value="bloqueada" label="Prohibido para IA" tone="error" />{forbiddenLabel}
           </TooltipTrigger><TooltipContent role="tooltip">{forbiddenMessage}</TooltipContent></Tooltip>
         ) : installed ? (
-          <Tooltip><TooltipTrigger render={<span tabIndex={0} title={project} aria-label={project} className="inline-flex items-center gap-2 text-xs outline-offset-2" />}>
+          <Tooltip><TooltipTrigger render={<span tabIndex={0} title={installedLabel} aria-label={installedLabel} className="inline-flex items-center gap-2 text-xs outline-offset-2" />}>
             <StatusIcon value="done" label="Instalado" tone="success" />Instalado
-          </TooltipTrigger><TooltipContent role="tooltip">{project}</TooltipContent></Tooltip>
-        ) : unknown ? (
+          </TooltipTrigger><TooltipContent role="tooltip">{installedLabel}</TooltipContent></Tooltip>
+        ) : migratable ? <MigrateButton entryId={entry.id} name={entry.name} project={project!} />
+        : unknown ? (
           <Sheet><SheetTrigger render={<Button variant="outline" size="sm" aria-label="Revisar licencia" />}>
             <StatusIcon value="decision" label="Licencia desconocida" tone="warning" />Revisar licencia
           </SheetTrigger><SheetContent>
@@ -128,7 +132,8 @@ export function CatalogCard({ entry }: { entry: CatalogEntry }) {
 
 export function Catalogo() {
   const navigate = useNavigate()
-  const { data, loading, error } = useResource<CatalogEntry[]>('/catalog', /^catalog\./)
+  const { data, loading, error } = useResource<CatalogEntry[]>('/catalog', /^(catalog|asset)\./)
+  const project = useStatus()?.project?.name
   const index = useIndexCatalog()
   const slow = useAfter(loading)
   const [modeParam, setMode] = useParam('modo', 'todos')
@@ -167,7 +172,7 @@ export function Catalogo() {
       </div>
       {shown.length === 0
         ? <div className="rounded-lg border border-subtle"><EmptyState view="catalogo" message="Ningún asset coincide con tu búsqueda" action={{ label: 'Quitar filtros', onClick: clear }} /></div>
-        : <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">{shown.map((e) => <CatalogCard key={e.id} entry={e} />)}</ul>}
+        : <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">{shown.map((e) => <CatalogCard key={e.id} entry={e} project={project} />)}</ul>}
     </div>
   )
 }

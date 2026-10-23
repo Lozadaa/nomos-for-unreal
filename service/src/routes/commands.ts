@@ -17,8 +17,9 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   'asset.prepare': entry,
   'asset.request_download': entry,
   'asset.meshy_generate': (_db, p) => {
-    if (!text(p.taskId) || !['text', 'image', 'remesh', 'rig', 'animate'].includes(p.kind as string)
-      || !p.params || typeof p.params !== 'object' || Array.isArray(p.params)
+    // Meshy solo para piezas hard surface: sin rig ni animate (decisión del usuario, 2026-10-23)
+    if (!['text', 'image', 'remesh'].includes(p.kind as string)) throw new Error('meshy_kind_not_allowed');
+    if (!text(p.taskId) || !p.params || typeof p.params !== 'object' || Array.isArray(p.params)
       || typeof p.estimatedCredits !== 'number' || !Number.isFinite(p.estimatedCredits) || p.estimatedCredits < 0)
       throw new Error('invalid_command_payload');
   },

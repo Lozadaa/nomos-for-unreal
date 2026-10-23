@@ -28,7 +28,9 @@ test('POST /commands rechaza tipos fuera de lista, cargas inválidas y entradas 
     assert.deepEqual(await call({type: 'asset.index'}), [400, 'invalid_idempotency_key']);
     assert.deepEqual(await call({type: 'asset.migrate', payload: {}, idempotencyKey: 'k3'}), [400, 'invalid_command_payload']);
     assert.deepEqual(await call({type: 'asset.migrate', payload: {entryId: 'nadie'}, idempotencyKey: 'k4'}), [404, 'unknown_catalog_entry']);
-    assert.deepEqual(await call({type: 'asset.meshy_generate', payload: {taskId: 't', kind: 'video', params: {}, estimatedCredits: 5}, idempotencyKey: 'k5'}), [400, 'invalid_command_payload']);
+    assert.deepEqual(await call({type: 'asset.meshy_generate', payload: {taskId: 't', kind: 'video', params: {}, estimatedCredits: 5}, idempotencyKey: 'k5'}), [400, 'meshy_kind_not_allowed']);
+    for (const kind of ['rig', 'animate'])
+      assert.deepEqual(await call({type: 'asset.meshy_generate', payload: {taskId: 't', kind, params: {}, estimatedCredits: 5}, idempotencyKey: 'k-' + kind}), [400, 'meshy_kind_not_allowed']);
     const entry = upsertEntry(f.db, {name: 'Pack', category: 'pack', description: '', source: 'fab'});
     assert.equal((await f.request('/commands', {type: 'asset.prepare', payload: {entryId: entry.id}, idempotencyKey: 'k6'})).status, 202);
     assert.equal((await f.request('/commands', {type: 'asset.index', idempotencyKey: 'k7'}, false)).status, 401);

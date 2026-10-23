@@ -23,6 +23,9 @@ export type RunMetadata = {
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
   confirmedSkills?: string[]; seenAskMarkers?: string[];
+  // trabajo de assets (hito 4): orden que lo creó y, en Meshy, el job remoto
+  commandId?: string; remoteId?: string; kind?: string; stage?: string; idempotencyKey?: string;
+  prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;
@@ -64,7 +67,7 @@ export type CatalogEntry = Entity & {
   sourceUrl: string | null; fabUid: string | null; entitlementUid: string | null;
   state: 'owned' | 'downloaded' | 'cached' | 'imported'; projects: string[];
   formats: string[]; engineVersions: string[]; license: string | null; aiForbidden: 0 | 1;
-  thumbnailPath: string | null; localPath: string | null; tags: string[];
+  thumbnailPath: string | null; localPath: string | null; tags: string[]; verifiedEngine?: string | null;
 };
 export type Command = Entity & {
   type: string; payload: JsonValue; idempotencyKey: string;
