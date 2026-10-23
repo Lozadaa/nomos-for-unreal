@@ -116,7 +116,7 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground font-sans antialiased; }
+  body { @apply bg-background text-foreground font-sans antialiased; touch-action: manipulation; }
 }
 
 /* Transiciones de vista: crossfade de 180 ms; con movimiento reducido, fundidos de 80 ms */

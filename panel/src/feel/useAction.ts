@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { humanError } from '@/lib/errors'
 import { toasts, type ToastSpec } from './toasts'
 
 export interface ActionOptions<T> {
@@ -60,7 +61,7 @@ export function useAction<T>(run: () => Promise<T>, opts: ActionOptions<T> = {})
           }
         : {
             title: 'No se pudo completar la acción',
-            description: err.message,
+            description: humanError(err),
             action: { label: 'Reintentar', onClick: () => { void fire() } },
           }))
     }

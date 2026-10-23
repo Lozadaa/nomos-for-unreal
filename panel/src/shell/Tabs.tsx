@@ -45,8 +45,8 @@ export function Tabs() {
       ))}
       <span
         aria-hidden
-        className="absolute bottom-0 left-0 h-px bg-foreground transition-[transform,width] duration-(--k-dur-standard) ease-k motion-reduce:duration-75"
-        style={{ width: bar.w, transform: `translateX(${bar.x}px)` }}
+        className="absolute bottom-0 left-0 h-px w-[100px] origin-left bg-foreground transition-transform duration-(--k-dur-standard) ease-k motion-reduce:duration-75"
+        style={{ transform: `translateX(${bar.x}px) scaleX(${bar.w / 100})` }}
       />
     </nav>
   )

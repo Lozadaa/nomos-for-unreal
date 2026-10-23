@@ -1,0 +1,146 @@
+{
+  "fecha": "2026-10-23T12:23:40.718Z",
+  "navegador": "Google Chrome (headless), 1366×768",
+  "sinReducir": {
+    "abrir y cerrar el detalle": {
+      "n": 16,
+      "median": 24,
+      "p75": 32,
+      "max": 32,
+      "longFrames": 0,
+      "worstFrame": 0,
+      "repeticionesConFrameLargo": []
+    },
+    "cambiar de vista": {
+      "n": 8,
+      "median": 0,
+      "p75": 16,
+      "max": 16,
+      "longFrames": 0,
+      "worstFrame": 0,
+      "repeticionesConFrameLargo": []
+    },
+    "filtrar por etapa": {
+      "n": 8,
+      "median": 24,
+      "p75": 24,
+      "max": 24,
+      "longFrames": 0,
+      "worstFrame": 0,
+      "repeticionesConFrameLargo": []
+    },
+    "enviar una petición": {
+      "n": 8,
+      "median": 24,
+      "p75": 32,
+      "max": 32,
+      "longFrames": 0,
+      "worstFrame": 0,
+      "repeticionesConFrameLargo": []
+    },
+    "elegir una decisión": {
+      "n": 5,
+      "median": 0,
+      "p75": 0,
+      "max": 24,
+      "longFrames": 0,
+      "worstFrame": 0,
+      "repeticionesConFrameLargo": []
+    }
+  },
+  "cpu4x": {
+    "abrir y cerrar el detalle": {
+      "n": 16,
+      "median": 104,
+      "p75": 112,
+      "max": 128,
+      "longFrames": 16,
+      "worstFrame": 105.59999999403954,
+      "repeticionesConFrameLargo": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    "cambiar de vista": {
+      "n": 8,
+      "median": 16,
+      "p75": 16,
+      "max": 32,
+      "longFrames": 7,
+      "worstFrame": 108.59999999403954,
+      "repeticionesConFrameLargo": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        7
+      ]
+    },
+    "filtrar por etapa": {
+      "n": 8,
+      "median": 48,
+      "p75": 48,
+      "max": 56,
+      "longFrames": 0,
+      "worstFrame": 0,
+      "repeticionesConFrameLargo": []
+    },
+    "enviar una petición": {
+      "n": 8,
+      "median": 80,
+      "p75": 80,
+      "max": 80,
+      "longFrames": 22,
+      "worstFrame": 200.19999998807907,
+      "repeticionesConFrameLargo": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "elegir una decisión": {
+      "n": 5,
+      "median": 24,
+      "p75": 24,
+      "max": 40,
+      "longFrames": 0,
+      "worstFrame": 0,
+      "repeticionesConFrameLargo": []
+    }
+  },
+  "bundle": {
+    "index-CCIQEYgM.css": {
+      "bytes": 81136,
+      "gzip": 13858
+    },
+    "index-CfgGdZ9-.js": {
+      "bytes": 661385,
+      "gzip": 204510
+    },
+    "model-viewer--YzF5rWt.js": {
+      "bytes": 1025295,
+      "gzip": 288388
+    }
+  }
+}

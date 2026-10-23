@@ -36,7 +36,7 @@ export async function queueWhileTransitioning(fn: () => void | Promise<void>): P
 }
 
 /** Anima un cambio de estructura de una lista con View Transitions (sin la API, lo aplica tal cual: nada de fundidos de página por cada evento). */
-export async function animateUpdate(update: () => void): Promise<void> {
+export async function animateUpdate(update: () => void | Promise<void>): Promise<void> {
   if (!supportsViewTransitions()) return queueWhileTransitioning(update)
   await queueWhileTransitioning(() => withViewTransition(update))
 }

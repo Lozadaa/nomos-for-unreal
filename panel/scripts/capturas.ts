@@ -45,6 +45,7 @@ export const shots: Record<string, Shot[]> = {
     { name: 'presupuesto', run: (p) => goto(p, '/presupuesto') },
     { name: 'capacidades', run: (p) => goto(p, '/capacidades') },
     { name: 'estilo', run: (p) => goto(p, '/estilo') },
+    { name: 'estilo-peor-caso', run: async (p) => { await goto(p, '/estilo#filas'); await p.getByRole('button', { name: 'Peor caso' }).click(); await p.locator('#filas').scrollIntoViewIfNeeded(); await p.evaluate(() => document.getElementById('filas')?.scrollIntoView()); await settle(p) } },
   ],
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { humanError } from '@/lib/errors'
 import { api, ApiError } from '@/api'
 import { useArtifactSrc } from '@/hooks/artifact'
 import { Button } from '@/components/ui/button'
@@ -57,18 +58,18 @@ export function WorkerChatTab({ detail }: { detail: TaskDetail }) {
   const lines = output.state === 'ok' ? output.data : []
   return (
     <div className="flex flex-col gap-4">
-      {output.state === 'error' && <p role="alert" className="text-sm text-error">No se pudo leer la conversación: {output.message}</p>}
+      {output.state === 'error' && <p role="alert" className="text-sm text-error">No se pudo leer la conversación. {humanError(new Error(output.message))}</p>}
       <ul className="flex flex-col gap-1 font-mono text-xs">
         {lines.map((l, i) => <li key={l.seq ?? i} className="whitespace-pre-wrap">{l.payload?.text ?? l.text ?? ''}</li>)}
         {sent.map((s, i) => <li key={`s${i}`} className="whitespace-pre-wrap text-info">Tú: {s}</li>)}
       </ul>
-      <Textarea value={text} onChange={(e) => setText(e.target.value)} aria-label="Pedir cambios al responsable" placeholder="Pide un cambio al responsable" className="min-h-20" />
+      <Textarea value={text} onChange={(e) => setText(e.target.value)} aria-label="Pedir cambios al responsable" placeholder="Pide un cambio al responsable…" name="mensaje" autoComplete="off" className="min-h-20" />
       <div className="flex items-center gap-3">
         <Button size="sm" disabled={!text.trim() || send.pending || run.state !== 'running'} aria-busy={send.pending} onClick={() => void send.fire()}>
           {send.pending ? 'Enviando…' : 'Enviar al worker'}
         </Button>
         {run.state !== 'running' && <span className="text-xs text-muted-foreground">La ejecución ya terminó.</span>}
-        {send.error && <span role="alert" className="text-xs text-error">No se envió: {send.error.message}</span>}
+        {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
       </div>
     </div>
   )
@@ -80,7 +81,7 @@ export function ChangesTab({ detail }: { detail: TaskDetail }) {
   if (!run) return <Empty title="Esta tarea aún no tiene cambios" hint="Los cambios del worker aparecen aquí cuando empiece a escribir código." />
   if (diff.state === 'unavailable') return waitingForWorkers
   if (diff.state === 'loading') return <p className="text-sm text-muted-foreground" role="status">Cargando los cambios</p>
-  if (diff.state === 'error') return <p role="alert" className="text-sm text-error">No se pudieron leer los cambios: {diff.message}</p>
+  if (diff.state === 'error') return <p role="alert" className="text-sm text-error">No se pudieron leer los cambios. {humanError(new Error(diff.message))}</p>
   return (
     <div className="flex flex-col gap-4">
       {diff.data.stat && <pre className="font-mono text-xs whitespace-pre-wrap text-muted-foreground">{diff.data.stat}</pre>}
@@ -123,7 +124,7 @@ const kindLabel: Record<string, string> = { model: 'Modelo', texture: 'Textura',
 function Thumb({ id, name }: { id: string; name: string }) {
   const src = useArtifactSrc(id)
   return src
-    ? <img src={src} alt={name} className="h-24 w-40 rounded-md border border-subtle object-cover" />
+    ? <img src={src} alt={name} width={160} height={96} className="h-24 w-40 rounded-md border border-subtle object-cover" />
     : <div aria-hidden className="h-24 w-40 rounded-md border border-subtle bg-card" />
 }
 

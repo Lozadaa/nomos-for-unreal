@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { humanError } from '@/lib/errors'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router'
 import { api } from '@/api'
@@ -109,11 +110,14 @@ export function Decisiones() {
               <>
                 <div role="group" aria-label="Opciones" className="flex flex-wrap gap-2">
                   {current.options.map((o) => (
-                    <Button key={o.id} variant={justChosen === o.id ? 'default' : 'outline'} aria-pressed={justChosen === o.id} disabled={resolve.pending} title={o.description} onClick={() => choose(o.id)}>{o.label}</Button>
+                    <div key={o.id} className="flex flex-col items-start gap-1">
+                      <Button variant={justChosen === o.id ? 'default' : 'outline'} aria-pressed={justChosen === o.id} disabled={resolve.pending} onClick={() => choose(o.id)}>{o.label}</Button>
+                      {o.description && <span className="max-w-48 text-xs text-muted-foreground">{o.description}</span>}
+                    </div>
                   ))}
                 </div>
                 {resolve.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
-                {resolve.error && !resolve.pending && <p role="alert" className="text-xs text-error">No se registró la elección: {resolve.error.message}</p>}
+                {resolve.error && !resolve.pending && <p role="alert" className="text-xs text-error">No se registró la elección. {humanError(resolve.error)}</p>}
               </>
             )}
             {current.state === 'resolved' && (

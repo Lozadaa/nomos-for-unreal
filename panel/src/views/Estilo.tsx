@@ -66,7 +66,7 @@ export function Estilo() {
   return (
     <div className="grid grid-cols-[200px_minmax(0,1fr)] gap-10">
       <nav aria-label="Secciones de la guía" className="sticky top-6 flex h-fit flex-col gap-1 text-sm">
-        <h1 className="mb-2 text-base font-semibold">Guía de estilo</h1>
+        <h2 className="mb-2 text-base font-semibold">Guía de estilo</h2>
         {sections.map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-md px-2 py-1 text-muted-foreground transition-colors duration-(--k-dur-micro) hover:text-foreground">{label}</a>)}
       </nav>
 

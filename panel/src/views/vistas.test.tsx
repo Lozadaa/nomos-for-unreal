@@ -86,7 +86,7 @@ describe('Chat: burbuja optimista', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar' }))
     await waitFor(() => expect(screen.getByLabelText('Mensaje para Kratos')).toHaveValue('Se pierde?'), { timeout: 2000 })
     expect(screen.queryByText(/Enviado · esperando/)).not.toBeInTheDocument()
-    expect(await screen.findByRole('alert')).toHaveTextContent('http_500')
+    expect(await screen.findByRole('alert')).toHaveTextContent('El servicio falló')
   })
 })
 
@@ -126,13 +126,13 @@ describe('Actividad: carriles estables', () => {
     })
     inRouter(<Actividad />)
     const second = screen.getAllByRole('button', { pressed: false })[1]
-    expect(second.className).toContain('transition-[left]')
-    const before = second.style.left
+    expect(second.className).toContain('transition-transform')
+    const before = second.style.getPropertyValue('--p')
     act(() => { ingest(event('task.activity', { payload: { source: 'Codex' }, createdAt: '2026-10-23T10:55:00.000Z' })) })
     const dots = screen.getAllByRole('button', { pressed: false })
     expect(dots).toHaveLength(3)
-    expect(dots.every((d) => d.className.includes('fade-in'))).toBe(true)
-    expect(second.style.left).not.toBe(before) // el eje crece y el punto se recoloca; la transición CSS lo anima
+    expect(dots.map((d) => d.className.includes('fade-in'))).toEqual([false, false, true]) // solo el recién llegado entra con fundido
+    expect(second.style.getPropertyValue('--p')).not.toBe(before) // el eje crece y el punto se recoloca; la transición CSS lo anima
   })
 
   it('sin eventos explica por qué y ofrece una acción', () => {
@@ -167,7 +167,7 @@ describe('Catálogo', () => {
 
   it('«Prohibido para IA» no ofrece preparar y licencia desconocida pide revisarla', async () => {
     serve(() => [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Explorador', license: null }), entry({ id: 'c3', name: 'Instalado', state: 'imported', projects: ['CrazyPadel'] })])
-    render(<Catalogo />)
+    inRouter(<Catalogo />)
     await screen.findByText('Bruno')
     const card = (name: string) => screen.getByText(name).closest('li')!
     expect(within(card('Bruno')).getByText(/Prohibido para IA/)).toBeInTheDocument()
@@ -182,7 +182,7 @@ describe('Catálogo', () => {
       if (path === '/commands' && init?.method === 'POST') throw new ApiError(404, 'not_found')
       return [entry()]
     })
-    render(<Catalogo />)
+    inRouter(<Catalogo />)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Preparar para Unreal' }))
     const busy = await screen.findByRole('button', { name: 'Preparando…' })
@@ -194,7 +194,7 @@ describe('Catálogo', () => {
 
   it('el filtro «Usables con IA» oculta lo prohibido y sin coincidencias ofrece quitar filtros', async () => {
     serve(() => [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Ada' })])
-    render(<Catalogo />)
+    inRouter(<Catalogo />)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Usables con IA' }))
     await waitFor(() => expect(screen.queryByText('Bruno')).not.toBeInTheDocument())

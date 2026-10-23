@@ -87,7 +87,7 @@ describe('Producción: lista viva', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar a Kratos' }))
     await waitFor(() => expect(screen.queryByRole('button', { name: /Se rechaza/ })).not.toBeInTheDocument(), { timeout: 2000 })
     expect(screen.getByLabelText('Título de la petición')).toHaveValue('Se rechaza')
-    expect(await screen.findByText(/invalid_task/, { selector: '[role="alert"]' })).toBeInTheDocument()
+    expect(await screen.findByText(/El servicio no aceptó los datos/, { selector: '[role="alert"]' })).toBeInTheDocument()
   })
 
   it('no envía una petición sin título y lo dice junto al campo', async () => {

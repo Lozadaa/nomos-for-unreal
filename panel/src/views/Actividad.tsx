@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { memo, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { EmptyState } from '@/components/EmptyState'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
+import { useFresh } from '@/hooks/fresh'
+import { useParam } from '@/hooks/useParam'
 import { eventText, laneOf, lanes } from '@/lib/events'
 import type { KratosEvent } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
@@ -22,21 +23,24 @@ export function Actividad() {
   const events = useStore((s) => s.events)
   const tasks = useStore((s) => s.tasks)
   const gaps = useStore((s) => s.gaps)
-  const [taskId, setTaskId] = useState('')
+  const [taskId, setTaskId] = useParam('tarea')
+  const fresh = useFresh(events.map((e) => e.seq))
   const [selected, setSelected] = useState<number | null>(null)
   const navigate = useNavigate()
 
-  const titleOf = (id: unknown) => tasks.find((t) => t.id === id)?.title
+  const titles = useMemo(() => new Map(tasks.map((t) => [t.id, t.title])), [tasks])
+  const titleOf = (id: unknown) => titles.get(id as string)
   const visible = useMemo(() => events.filter((e) => !taskId || e.payload.taskId === taskId), [events, taskId])
   const [min, max] = useMemo(() => axis(visible.length ? visible.map((e) => Date.parse(e.createdAt)) : [Date.now()]), [visible])
-  const pct = (t: number | string) => `${(((typeof t === 'string' ? Date.parse(t) : t) - min) / (max - min)) * 100}%`
+  const num = (t: number | string) => (((typeof t === 'string' ? Date.parse(t) : t) - min) / (max - min)) * 100
+  const pct = (t: number | string) => `${num(t)}%`
   const byLane = useMemo(() => lanes.map((lane) => ({ lane, items: visible.filter((e) => laneOf(e) === lane) })), [visible])
   const detail = visible.find((e) => e.seq === selected)
 
   const label = (e: KratosEvent) => `${eventText(e)}${titleOf(e.payload.taskId) ? ` · ${titleOf(e.payload.taskId)}` : ''}`
   const cause = detail ? events.find((e) => e.id === detail.payload.correlation) : undefined
   const effects = detail ? events.filter((e) => e.payload.correlation === detail.id) : []
-  const filter = (id: string) => void animateUpdate(() => flushSync(() => { setTaskId(id); setSelected(null) }))
+  const filter = (id: string) => void animateUpdate(() => { setSelected(null); return setTaskId(id) })
 
   if (events.length === 0) {
     return <EmptyState title="Aún no hay actividad" hint="Aparecerá cuando Kratos empiece a trabajar." action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
@@ -62,24 +66,13 @@ export function Actividad() {
           {byLane.map(({ lane, items }) => (
             <div key={lane} role="group" aria-label={lane} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-subtle last:border-b-0 [contain-intrinsic-size:auto_44px] [content-visibility:auto]">
               <h2 className="flex items-center px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">{lane}</h2>
-              <div className="relative mx-4 h-11">
+              <div className="relative mx-4 h-11 [container-type:inline-size]">
                 {gaps.map((g) => (
                   <span key={g.from} aria-hidden title={`Sin datos de ${clock(g.from)} a ${clock(g.to)} · servicio desconectado`}
                     className="absolute inset-y-1 border-x border-dashed border-subtle bg-card" style={{ left: pct(g.from), width: `calc(${pct(g.to)} - ${pct(g.from)})` }} />
                 ))}
                 {items.map((e) => (
-                  <button
-                    key={e.seq}
-                    type="button"
-                    aria-label={label(e)}
-                    aria-pressed={selected === e.seq}
-                    onClick={() => setSelected(e.seq)}
-                    style={{ left: pct(e.createdAt) }}
-                    className="group absolute top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 animate-in items-center justify-center fade-in transition-[left] duration-(--k-dur-reorder) ease-k outline-offset-2"
-                  >
-                    <span className={cn('size-2 rounded-full transition-transform duration-(--k-dur-micro)', laneTone(e), 'group-hover:scale-150 group-aria-pressed:scale-150 group-aria-pressed:ring-2 group-aria-pressed:ring-foreground/40')} />
-                    <span role="tooltip" className="pointer-events-none absolute bottom-full z-10 mb-1 hidden w-max max-w-72 rounded-md border border-subtle bg-popover px-2 py-1 text-xs text-popover-foreground group-hover:block group-focus-visible:block">{label(e)}</span>
-                  </button>
+                  <Dot key={e.seq} e={e} p={num(e.createdAt)} text={label(e)} selected={selected === e.seq} isFresh={fresh(e.seq)} onSelect={setSelected} />
                 ))}
               </div>
             </div>
@@ -98,6 +91,23 @@ export function Actividad() {
     </div>
   )
 }
+
+/** Un evento del carril. Memoizado: un evento nuevo no vuelve a pintar los 500 anteriores salvo que el eje los desplace. */
+const Dot = memo(function Dot({ e, p, text, selected, isFresh, onSelect }: { e: KratosEvent; p: number; text: string; selected: boolean; isFresh: boolean; onSelect: (seq: number) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={text}
+      aria-pressed={selected}
+      onClick={() => onSelect(e.seq)}
+      style={{ '--p': p } as React.CSSProperties}
+      className={cn('group absolute top-1/2 left-0 flex size-5 items-center justify-center transition-transform duration-(--k-dur-reorder) ease-k outline-offset-2 [transform:translate(calc(var(--p)*1cqw_-_50%),-50%)]', isFresh && 'animate-in fade-in motion-reduce:animate-none')}
+    >
+      <span className={cn('size-2 rounded-full transition-transform duration-(--k-dur-micro)', laneTone(e), 'group-hover:scale-150 group-aria-pressed:scale-150 group-aria-pressed:ring-2 group-aria-pressed:ring-foreground/40')} />
+      <span role="tooltip" className="pointer-events-none absolute bottom-full z-10 mb-1 hidden w-max max-w-72 rounded-md border border-subtle bg-popover px-2 py-1 text-xs text-popover-foreground group-hover:block group-focus-visible:block">{text}</span>
+    </button>
+  )
+})
 
 const laneTone = (e: KratosEvent) =>
   e.type.includes('blocked') ? 'bg-error' : e.type.startsWith('decision') ? 'bg-warning' : e.type === 'run.finished' || e.type === 'artifact.created' ? 'bg-success' : e.type.startsWith('run') ? 'bg-info' : 'bg-neutral'

@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { humanError } from '@/lib/errors'
 import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { useFresh } from '@/hooks/fresh'
 import { useAction } from '@/feel/useAction'
 import { relativeTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
@@ -28,9 +30,9 @@ function useConversation(): Message[] {
 const sentCopy = 'Enviado · esperando confirmación de Kratos'
 const receivedCopy = 'Recibido · Kratos lo atenderá en breve'
 
-function Bubble({ text, status, at, from }: { text: string; status?: string; at?: string; from: 'tu' | 'kratos' }) {
+function Bubble({ text, status, at, from, fresh }: { text: string; status?: string; at?: string; from: 'tu' | 'kratos'; fresh: boolean }) {
   return (
-    <li className={cn('flex animate-in flex-col gap-1 duration-(--k-dur-standard) fade-in', from === 'tu' ? 'items-end' : 'items-start')}>
+    <li className={cn('flex flex-col gap-1', fresh && 'animate-in duration-(--k-dur-standard) fade-in motion-reduce:animate-none', from === 'tu' ? 'items-end' : 'items-start')}>
       <p className={cn('max-w-[70%] rounded-lg border px-3 py-2 text-sm whitespace-pre-wrap', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')}>{text}</p>
       <span className="text-xs text-muted-foreground">{from === 'kratos' ? 'Kratos' : status}{at ? ` · ${relativeTime(at)}` : ''}</span>
     </li>
@@ -61,6 +63,7 @@ export function Chat() {
   )
 
   // Un envío ya está en la conversación cuando llegó su evento: por messageId o, si el evento gana la carrera al POST, por texto y hora.
+  const fresh = useFresh(conversation.flatMap((m) => [m.id, `${m.id}:r`]))
   const known = new Set(conversation.map((m) => m.id))
   const claimed = new Set<string>()
   const waiting = outbox.filter((m) => {
@@ -88,11 +91,11 @@ export function Chat() {
         )}
         {conversation.map((m) => (
           <Fragment key={m.id}>
-            <Bubble from="tu" text={m.text} at={m.at} status={m.acked || m.reply ? receivedCopy : sentCopy} />
-            {m.reply && <Bubble from="kratos" text={m.reply.text} at={m.reply.at} />}
+            <Bubble from="tu" text={m.text} at={m.at} status={m.acked || m.reply ? receivedCopy : sentCopy} fresh={fresh(m.id)} />
+            {m.reply && <Bubble from="kratos" text={m.reply.text} at={m.reply.at} fresh={fresh(`${m.id}:r`)} />}
           </Fragment>
         ))}
-        {waiting.map((m) => <Bubble key={m.key} from="tu" text={m.text} status={sentCopy} />)}
+        {waiting.map((m) => <Bubble key={m.key} from="tu" text={m.text} status={sentCopy} fresh />)}
         <li ref={end} aria-hidden className="h-px" />
       </ul>
 
@@ -104,12 +107,12 @@ export function Chat() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit() } }}
-          placeholder="Escribe a Kratos…"
+          placeholder="Escribe a Kratos…" name="mensaje" autoComplete="off"
           aria-label="Mensaje para Kratos"
           className="min-h-20"
         />
         <div className="flex items-center gap-3">
-          {send.error && <span role="alert" className="text-xs text-error">No se envió: {send.error.message}</span>}
+          {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
           <span className="ml-auto text-xs text-muted-foreground"><kbd className="font-mono">Ctrl</kbd>+<kbd className="font-mono">Enter</kbd></span>
           <Button type="submit" size="sm" disabled={!text.trim() || send.pending} aria-busy={send.pending}>{send.pending ? 'Enviando…' : 'Enviar'}</Button>
         </div>

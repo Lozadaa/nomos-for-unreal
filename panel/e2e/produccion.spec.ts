@@ -106,3 +106,19 @@ test('Firefox y demás navegadores sin View Transitions: la navegación entre vi
   await page.getByRole('link', { name: 'Actividad' }).click()
   await expect(page).toHaveURL(/actividad/)
 })
+
+for (const reduce of [false, true]) {
+  test(`el fundido de respaldo dura ${reduce ? '80' : '180'} ms ${reduce ? 'con' : 'sin'} reducir movimiento`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: reduce ? 'reduce' : 'no-preference' })
+    await load(page)
+    const duration = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.className = 'fallback-fade'
+      document.body.append(probe)
+      const value = getComputedStyle(probe).animationDuration
+      probe.remove()
+      return value
+    })
+    expect(duration).toBe(reduce ? '0.08s' : '0.18s')
+  })
+}

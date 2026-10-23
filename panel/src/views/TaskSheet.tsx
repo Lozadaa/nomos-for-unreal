@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { humanError } from '@/lib/errors'
 import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -70,7 +71,7 @@ export function TaskSheet({ id, task: fromStore, onClose }: { id: string; task?:
           )}
           {task && <div className="pt-2"><StageStepper task={task} /></div>}
           {task && statusOf(task) !== 'normal' && task.blockedReason && (
-            <p className="text-sm text-muted-foreground" role="note">
+            <p className="text-sm break-words text-muted-foreground" role="note">
               <span className={statusOf(task) === 'decision' ? 'text-warning' : task.state === 'cerrando' ? 'text-warning' : 'text-error'}>{statusText(task)}.</span>{' '}
               {task.blockedReason}
             </p>
@@ -88,7 +89,7 @@ export function TaskSheet({ id, task: fromStore, onClose }: { id: string; task?:
                 <TabsTrigger key={v} value={v} className="flex-none px-3">{label}</TabsTrigger>
               ))}
             </TabsList>
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <TabsContent value="resumen" className="p-6"><Summary detail={detail} task={task ?? detail.task} onStale={() => setReloads((n) => n + 1)} /></TabsContent>
               <TabsContent value="chat" className="p-6"><WorkerChatTab detail={detail} /></TabsContent>
               <TabsContent value="cambios" className="p-6"><ChangesTab detail={detail} /></TabsContent>
@@ -163,20 +164,14 @@ function DecisionCard({ decision, task, onStale }: { decision: Decision; task: T
       )}
       <div className="flex flex-wrap gap-2" role="group" aria-label="Opciones">
         {decision.options.map((o) => (
-          <Button
-            key={o.id}
-            variant={chosen === o.id ? 'default' : 'outline'}
-            aria-pressed={chosen === o.id}
-            disabled={action.pending}
-            onClick={() => choose(o.id)}
-            title={o.description}
-          >
-            {o.label}
-          </Button>
+          <div key={o.id} className="flex flex-col items-start gap-1">
+            <Button variant={chosen === o.id ? 'default' : 'outline'} aria-pressed={chosen === o.id} disabled={action.pending} onClick={() => choose(o.id)}>{o.label}</Button>
+            {o.description && <span className="max-w-48 text-xs text-muted-foreground">{o.description}</span>}
+          </div>
         ))}
       </div>
       {action.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
-      {action.error && !action.pending && <p className="text-xs text-error" role="alert">No se registró la elección: {action.error.message}</p>}
+      {action.error && !action.pending && <p className="text-xs text-error" role="alert">No se registró la elección. {humanError(action.error)}</p>}
     </section>
   )
 }
@@ -203,7 +198,7 @@ function RequestChanges({ task }: { task: Task }) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && text.trim()) { e.preventDefault(); void action.fire() } }}
-        placeholder="Qué debería cambiar"
+        placeholder="Qué debería cambiar…" name="cambios" autoComplete="off"
         aria-label="Pedir cambios al responsable"
         className="min-h-20"
       />
@@ -214,7 +209,7 @@ function RequestChanges({ task }: { task: Task }) {
         {sentText && !action.error && (
           <span role="status" className="text-xs text-muted-foreground">{action.pending ? 'Enviado · esperando confirmación de Kratos' : 'Recibido · Kratos lo atenderá en breve'}</span>
         )}
-        {action.error && <span role="alert" className="text-xs text-error">No se envió: {action.error.message}</span>}
+        {action.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(action.error)}</span>}
       </div>
     </section>
   )

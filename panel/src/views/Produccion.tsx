@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { useNavigate, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +8,7 @@ import { RowsSkeleton } from '@/components/Skeletons'
 import { TaskRow } from '@/components/TaskRow'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useAfter, useNow } from '@/hooks/time'
+import { useParam } from '@/hooks/useParam'
 import { stageLabel, stages, type Stage, type Task } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
@@ -21,7 +21,8 @@ export function Produccion() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const openId = params.get('tarea')
-  const [filter, setFilter] = useState<Filter>('todas')
+  const [filterParam, setFilter] = useParam('etapa', 'todas')
+  const filter = filterParam as Filter
   const [query, setQuery] = useState('')
   const now = useNow()
   const showSkeleton = useAfter(!loaded)
@@ -52,7 +53,7 @@ export function Produccion() {
     const from = opener.current?.isConnected ? opener.current : rowOf(id)
     from?.focus()
   }
-  const clearFilters = () => void animateUpdate(() => flushSync(() => { setFilter('todas'); setQuery('') }))
+  const clearFilters = () => void animateUpdate(() => { setQuery(''); return setFilter('todas') })
 
   const filtering = filter !== 'todas' || q !== ''
   const openTask = openId ? tasks.find((t) => t.id === openId) : undefined
@@ -65,7 +66,7 @@ export function Produccion() {
         <ToggleGroup
           aria-label="Filtrar por etapa"
           value={[filter]}
-          onValueChange={(v) => void animateUpdate(() => flushSync(() => setFilter((v[0] as Filter | undefined) ?? 'todas')))}
+          onValueChange={(v) => void animateUpdate(() => setFilter(v[0] ?? 'todas'))}
           variant="outline"
           size="sm"
           spacing={0}
@@ -81,7 +82,7 @@ export function Produccion() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar tarea…"
+          placeholder="Buscar tarea…" autoComplete="off" name="q" spellCheck={false}
           aria-label="Buscar tarea"
           className="ml-auto h-8 w-56"
         />

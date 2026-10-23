@@ -1,4 +1,5 @@
 import { EmptyState } from '@/components/EmptyState'
+import { humanError } from '@/lib/errors'
 import { Tick } from '@/components/Tick'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAfter } from '@/hooks/time'
@@ -36,7 +37,7 @@ export function Meter({ name, unit, spent, limit }: { name: string; unit: string
       ) : (
         <div className="flex flex-col gap-2">
           <div role="progressbar" aria-label={`${name}: ${fmt(spent)} de ${fmt(limit)} ${unit}`} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(spent, limit)} className="h-0.5 w-full bg-border">
-            <div className={cn('h-full origin-left transition-[width] duration-300 ease-k motion-reduce:duration-75', exhausted ? 'bg-error' : ratio >= 0.8 ? 'bg-warning' : 'bg-info')} style={{ width: `${ratio * 100}%` }} />
+            <div className={cn('h-full w-full origin-left transition-transform duration-300 ease-k motion-reduce:duration-75', exhausted ? 'bg-error' : ratio >= 0.8 ? 'bg-warning' : 'bg-info')} style={{ transform: `scaleX(${ratio})` }} />
           </div>
           <p className="text-sm">{exhausted ? `${name} · límite agotado` : `${name} · ${fmt(spent)} de ${fmt(limit)} ${unit}`}</p>
           {exhausted && <p className="text-xs text-muted-foreground">Kratos te pedirá una decisión antes de seguir.</p>}
@@ -53,7 +54,7 @@ export function Presupuesto() {
   if (!data) {
     return error === 'unknown_budget'
       ? <EmptyState title="Sin límite definido" hint="Kratos no se detendrá por gasto." />
-      : <p role="alert" className="text-sm text-error">No se pudo cargar el presupuesto: {error}</p>
+      : <p role="alert" className="text-sm text-error">No se pudo cargar el presupuesto. {humanError(new Error(error ?? ""))}</p>
   }
   return (
     <div className="grid grid-cols-2 gap-4">

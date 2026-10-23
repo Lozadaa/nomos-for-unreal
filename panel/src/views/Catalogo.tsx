@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { humanError } from '@/lib/errors'
 import { api, ApiError } from '@/api'
 import { EmptyState } from '@/components/EmptyState'
 import { StatusDot } from '@/components/StatusDot'
@@ -10,6 +10,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { animateUpdate } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
+import { useParam } from '@/hooks/useParam'
 import { useResource } from '@/hooks/useResource'
 import { cn } from '@/lib/utils'
 
@@ -77,8 +78,9 @@ function Card({ entry }: { entry: CatalogEntry }) {
 export function Catalogo() {
   const { data, loading, error } = useResource<CatalogEntry[]>('/catalog')
   const slow = useAfter(loading)
-  const [mode, setMode] = useState<Mode>('todos')
-  const [source, setSource] = useState('')
+  const [modeParam, setMode] = useParam('modo', 'todos')
+  const mode = modeParam as Mode
+  const [source, setSource] = useParam('origen')
   const [query, setQuery] = useState('')
 
   const q = query.trim().toLowerCase()
@@ -87,9 +89,9 @@ export function Catalogo() {
     (mode === 'todos' || (mode === 'usables' ? !e.aiForbidden && e.state !== 'imported' : e.state === 'imported')) &&
     (!q || `${e.name} ${e.description} ${e.tags.join(' ')}`.toLowerCase().includes(q))), [data, mode, source, q])
   const sources = useMemo(() => [...new Set((data ?? []).map((e) => e.source))], [data])
-  const clear = () => void animateUpdate(() => flushSync(() => { setMode('todos'); setSource(''); setQuery('') }))
+  const clear = () => void animateUpdate(async () => { setQuery(''); await setSource(''); await setMode('todos') })
 
-  if (error && !data) return <p role="alert" className="text-sm text-error">No se pudo cargar el catálogo: {error}</p>
+  if (error && !data) return <p role="alert" className="text-sm text-error">No se pudo cargar el catálogo. {humanError(new Error(error))}</p>
   if (loading) return slow ? <div role="status" aria-label="Cargando el catálogo" className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-40" />)}</div> : null
   if (!data?.length) return <EmptyState title="Aún no se ha indexado nada" hint="Kratos busca aquí antes de generar un asset nuevo." />
 
@@ -97,16 +99,16 @@ export function Catalogo() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <ToggleGroup aria-label="Filtrar el catálogo" value={[mode]} variant="outline" size="sm" spacing={0}
-          onValueChange={(v) => void animateUpdate(() => flushSync(() => setMode((v[0] as Mode | undefined) ?? 'todos')))}>
+          onValueChange={(v) => void animateUpdate(() => setMode(v[0] ?? 'todos'))}>
           <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
           <ToggleGroupItem value="usables">Usables con IA</ToggleGroupItem>
           <ToggleGroupItem value="instalados">Instalados</ToggleGroupItem>
         </ToggleGroup>
         <ToggleGroup aria-label="Filtrar por origen" value={source ? [source] : []} variant="outline" size="sm" spacing={0}
-          onValueChange={(v) => void animateUpdate(() => flushSync(() => setSource(v[0] ?? '')))}>
+          onValueChange={(v) => void animateUpdate(() => setSource(v[0] ?? ''))}>
           {sources.map((s) => <ToggleGroupItem key={s} value={s}>{sourceLabel[s] ?? s}</ToggleGroupItem>)}
         </ToggleGroup>
-        <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar asset…" aria-label="Buscar asset" className="ml-auto h-8 w-56" />
+        <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar asset…" autoComplete="off" name="q" spellCheck={false} aria-label="Buscar asset" className="ml-auto h-8 w-56" />
       </div>
       {shown.length === 0
         ? <div className="rounded-lg border border-subtle"><EmptyState title="Ningún asset coincide con tu búsqueda" action={{ label: 'Quitar filtros', onClick: clear }} /></div>

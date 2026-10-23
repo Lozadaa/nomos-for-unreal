@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { humanError } from '@/lib/errors'
 import { api } from '@/api'
 import { StatusDot } from '@/components/StatusDot'
 import { Button } from '@/components/ui/button'
@@ -35,7 +36,7 @@ function Row({ cap, checkedAt, onChecked, now }: { cap: Capability; checkedAt?: 
         </Button>
       </div>
       {help && cap.state === 'ausente' && <p className="px-4 pb-3 pl-10 text-sm text-muted-foreground">{cap.detail}. Instálalo y pulsa «Comprobar ahora».</p>}
-      {check.error && <p role="alert" className="px-4 pb-3 pl-10 text-xs text-error">No se pudo comprobar: {check.error.message}</p>}
+      {check.error && <p role="alert" className="px-4 pb-3 pl-10 text-xs text-error">No se pudo comprobar. {humanError(check.error)}</p>}
     </li>
   )
 }
@@ -46,7 +47,7 @@ export function Capacidades() {
   const slow = useAfter(loading)
   const now = useNow(10000)
 
-  if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron cargar las capacidades: {error}</p>
+  if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron cargar las capacidades. {humanError(new Error(error))}</p>
   if (loading) return slow ? <div role="status" aria-label="Cargando las capacidades" className="flex flex-col gap-2">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
   return (
     <ul aria-label="Capacidades" className="overflow-hidden rounded-lg border border-subtle">
