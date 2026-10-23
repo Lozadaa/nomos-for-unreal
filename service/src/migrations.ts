@@ -27,3 +27,22 @@ export function migrateLeases(db: DatabaseSync): void {
     ]) if (!columns.some(row=>row.name===column)) db.exec(`alter table tasks add column ${column} ${definition}`);
   });
 }
+
+/** Amplía el proveedor persistible sin convertirlo en un adaptador ejecutable. */
+export function migrateWorkerProviders(db:DatabaseSync):void {
+  transaction(db,()=>{
+    const sql=db.prepare("select sql from sqlite_master where type='table' and name='runs'").get()!.sql as string;
+    if(sql.includes("'opencode'")) return;
+    const check=/check\s*\(\s*provider\s+in\s*\(([^)]*)\)\s*\)/i;
+    if(!check.test(sql)) throw new Error('invalid_provider_schema');
+    const definition=sql.replace(check,(_,providers)=>`check(provider in (${providers},'opencode'))`)
+      .replace(/^CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:"runs"|runs)\s*\(/i,'CREATE TABLE runs_migrating(');
+    if(definition===sql || !definition.startsWith('CREATE TABLE runs_migrating(')) throw new Error('invalid_provider_schema');
+    const auxiliaries=db.prepare("select sql from sqlite_master where tbl_name='runs' and type in ('index','trigger') and sql is not null").all();
+    const columns=['rowid',...db.prepare('pragma table_info(runs)').all().map(row=>'"'+String(row.name).replaceAll('"','""')+'"')].join(',');
+    db.exec(definition);
+    db.exec(`insert into runs_migrating(${columns}) select ${columns} from runs order by rowid`);
+    db.exec('drop table runs; alter table runs_migrating rename to runs');
+    for(const auxiliary of auxiliaries) db.exec(auxiliary.sql as string);
+  });
+}

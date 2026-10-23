@@ -34,8 +34,13 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
       !Array.isArray(data.acceptance) || !data.acceptance.every(v => typeof v === 'string')) {
     throw new Error('invalid_task');
   }
+  if(data.assigneeRole!==undefined && !text(data.assigneeRole)
+    || data.assigneeProvider!==undefined && !['codex','claude','opencode'].includes(data.assigneeProvider as string))
+    throw new Error('invalid_worker_payload');
   json(res, 201, createTask(db, {
     title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance,
+    assigneeRole: data.assigneeRole as string | undefined ?? null,
+    assigneeProvider: data.assigneeProvider as string | undefined ?? null,
     scope: data.scope === undefined ? [] : normalizedPaths(data.scope),
     leases: data.leases === undefined ? [] : normalizedPaths(data.leases)
   }));

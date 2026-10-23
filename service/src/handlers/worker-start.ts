@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Handler } from '../runner.ts';
-import { requireTask, moveTask } from '../repo/tasks.ts';
+import { requireTask, moveTask,setTaskWait } from '../repo/tasks.ts';
 import { filtered, insert, transaction } from '../repo/rows.ts';
 import type { Run, Worktree } from '../model.ts';
 import { startRun } from '../repo/runs.ts';
@@ -11,32 +11,46 @@ import { workerPolicy, decisionGate } from './worker-policy.ts';
 import { OrcaError } from '../adapters/orca.ts';
 import { dispatchGuard, dispatchBlocked, pauseForDecision } from './worker-decisions.ts';
 import { requireGameProject } from '../project-root.ts';
-import { acquire } from '../leases.ts';
+import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
+import { schedulingBlocked } from '../scheduler-admission.ts';
+import { readConfig } from '../config.ts';
 
 export const workerStart: Handler=async (cmd,ctx)=>{
   const {db,git,orca,projectDir}=ctx,payload=cmd.payload as any;
   const task=requireTask(db,payload.taskId);
   const guard=dispatchGuard(db,task);
-  if (payload.provider !== 'codex' || typeof payload.role !== 'string' || !payload.role.trim()
+  if (!['codex','claude','opencode'].includes(payload.provider) || typeof payload.role !== 'string' || !payload.role.trim()
     || !Array.isArray(payload.skills) || !payload.skills.every((s:unknown)=>typeof s==='string'&&s.trim())
     || payload.attempt!==undefined && (!Number.isSafeInteger(payload.attempt)||payload.attempt<1)) throw new Error('invalid_worker_payload');
   if (!task.title.trim() || !task.spec.trim() || !task.acceptance.length
     || !task.acceptance.every(s=>typeof s==='string'&&s.trim())) throw new Error('invalid_worker_spec');
+  readConfig(ctx.dataDir);
+  if(payload.provider==='opencode') return {deferred:true,reason:'OpenCode sin adaptador disponible'};
   const history=filtered<Run>(db,'runs',{taskId:task.id});
-  if (history.some(r=>r.state==='running')) throw new Error('worker_exists');
+  const reusable=history.find(r=>r.state==='running'&&r.provider===payload.provider&&r.attempt===(payload.attempt ?? 1)
+    &&r.metadata.startCommandId===cmd.id&&r.metadata.phase==='preparing'
+    && !r.sessionRef&&!r.metadata.worktreeId&&!r.metadata.uncertain);
+  if(task.decisionId) return {policyBlocked:true,decisionId:task.decisionId};
+  if (history.some(r=>r.state==='running'&&r.id!==reusable?.id)) throw new Error('worker_exists');
   if (task.worktreeId || history.some(r=>r.metadata.uncertain)) {
     decisionGate(ctx,task,'reconcile','Reconciliar worker existente antes de continuar',
       {worktreeId:task.worktreeId,runs:filtered<Run>(db,'runs',{taskId:task.id})},undefined,false);return;
   }
+  const waiting=schedulingBlocked(ctx,task,payload.provider,cmd.id,false,reusable?.id);
+  if(waiting) return {deferred:true,reason:waiting};
+  if(payload.provider==='claude') return {deferred:true,reason:'Lanzamiento Claude pendiente de habilitar'};
   await requireGameProject(projectDir);
   if (!await workerPolicy(ctx,task,`start:${payload.attempt ?? 1}`,true)) {
     return {policyBlocked:true,decisionId:requireTask(db,task.id).decisionId};
   }
   if (dispatchBlocked(db,guard)) return pauseForDecision(db,task.id);
+  const changed=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,false,reusable?.id);
+  if(changed) return {deferred:true,reason:changed};
   const short=task.id.slice(0,8);
-  let run=startRun(db,{taskId:task.id,role:payload.role,provider:'codex',skills:payload.skills,attempt:payload.attempt ?? 1,
-    metadata:{phase:'preparing',deadlineAt:new Date(Date.now()+4*3600_000).toISOString(),pollGeneration:0,correctionCount:0}});
+  let run=reusable ?? startRun(db,{taskId:task.id,role:payload.role,provider:'codex',skills:payload.skills,attempt:payload.attempt ?? 1,
+    metadata:{startCommandId:cmd.id,phase:'preparing',deadlineAt:new Date(Date.now()+4*3600_000).toISOString(),pollGeneration:0,correctionCount:0}});
+  if(reusable) run=updateRun(db,run.id,{waiting:false,question:undefined});
   const reservation=acquire(db,run.id,task.id,requireTask(db,task.id).leases);
   if(!reservation.ok) {
     workerFailure(db,{...payload,runId:run.id,conflicts:reservation.conflicts},'lease_conflict');return;
@@ -44,6 +58,15 @@ export const workerStart: Handler=async (cmd,ctx)=>{
   db.prepare('update tasks set wait_reason=null where id=?').run(task.id);
   try {
   const {repoId}=await orca.repoAdd(projectDir);
+  const beforeTree=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,true,run.id);
+  if(beforeTree) {
+    release(db,run.id);updateRun(db,run.id,{waiting:true,question:beforeTree});setTaskWait(db,task.id,beforeTree);
+    return {deferred:true,reason:beforeTree};
+  }
+  const currentReservation=acquire(db,run.id,task.id,requireTask(db,task.id).leases);
+  if(!currentReservation.ok) {
+    workerFailure(db,{...payload,runId:run.id,conflicts:currentReservation.conflicts},'lease_conflict');return;
+  }
   const created=await orca.worktreeCreate(repoId,'kratos-'+short,'codex');
   transaction(db,()=>{
     run=updateRun(db,run.id,{worktreeId:created.worktreeId},{sessionRef:created.terminalHandle});
@@ -62,10 +85,18 @@ export const workerStart: Handler=async (cmd,ctx)=>{
   await git.excludeLocal(created.path);
   await orca.terminalSend(created.terminalHandle,'codex --yolo --no-daemon');
   if (!await orca.terminalWaitIdle(created.terminalHandle,90_000)) throw new Error('orca: Codex no estuvo listo antes de 90 s');
-  if (dispatchBlocked(db,guard)) {queuePoll(db,run);return pauseForDecision(db,task.id,run.id);}
+  const pauseDispatch=()=>{
+    if(dispatchBlocked(db,guard)) {queuePoll(db,run);return pauseForDecision(db,task.id,run.id);}
+    const reason=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,true,run.id);
+    if(!reason) return;
+    setTaskWait(db,task.id,reason);
+    decisionGate(ctx,requireTask(db,task.id),'dispatch',reason,{runId:run.id,reason});
+    queuePoll(db,run);return pauseForDecision(db,task.id,run.id);
+  };
+  const afterIdle=pauseDispatch();if(afterIdle) return afterIdle;
   const {cursor,text}=await orca.terminalRead(created.terminalHandle);
   run=updateRun(db,run.id,{cursor,lastLines:text.split('\n').slice(-20)});
-  if (dispatchBlocked(db,guard)) {queuePoll(db,run);return pauseForDecision(db,task.id,run.id);}
+  const beforeBrief=pauseDispatch();if(beforeBrief) return beforeBrief;
   await orca.terminalSend(created.terminalHandle,'Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.');
   transaction(db,()=>{
     run=updateRun(db,run.id,{phase:'running'});

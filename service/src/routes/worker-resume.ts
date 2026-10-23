@@ -13,7 +13,9 @@ export function resumeWorkerStart(db: DatabaseSync,commandId:string): void {
     const task=requireTask(db,payload.taskId);
     if(task.state!=='preparada' || task.decisionId || task.blockedReason || task.worktreeId) return;
     const history=filtered<Run>(db,'runs',{taskId:task.id});
-    if(history.some(r=>r.attempt===(payload.attempt ?? 1) || r.state==='running' || r.metadata.uncertain)
+    const local=history.find(r=>r.state==='running'&&r.attempt===(payload.attempt ?? 1)&&r.metadata.startCommandId===commandId
+      &&r.metadata.phase==='preparing'&&!r.sessionRef&&!r.metadata.worktreeId&&!r.metadata.uncertain);
+    if(history.some(r=>r.id!==local?.id&&(r.attempt===(payload.attempt ?? 1) || r.state==='running' || r.metadata.uncertain))
       || filtered<Worktree>(db,'worktrees',{taskId:task.id}).some(w=>w.state!=='closed')) return;
     const event=db.prepare("select payload from events where type='command.done' and json_extract(payload,'$.commandId')=? order by seq desc limit 1").get(commandId);
     const completion=event ? JSON.parse(event.payload as string) : undefined;

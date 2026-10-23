@@ -11,6 +11,7 @@ import { catalog } from './catalog.ts';
 import { capabilities } from './capabilities.ts';
 import { commands } from './commands.ts';
 import { leases } from './leases.ts';
+import { taskDepends } from './task-depends.ts';
 import type { Context } from './context.ts';
 
 export function databaseDirectory(db: Context['db']): string | undefined {
@@ -25,7 +26,7 @@ export async function production(context: Context): Promise<boolean> {
     json(context.res, 201, seed(context.db, {force: data.force as boolean | undefined}));
     return true;
   }
-  for (const handler of [tasks, taskWorker, runs, decisions, budget, artifacts, catalog, capabilities, commands, leases]) {
+  for (const handler of [tasks, taskDepends, taskWorker, runs, decisions, budget, artifacts, catalog, capabilities, commands, leases]) {
     if (await handler(context)) return true;
   }
   return false;

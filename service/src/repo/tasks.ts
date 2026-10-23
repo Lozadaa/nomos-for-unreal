@@ -11,6 +11,12 @@ export function createTask(db: DatabaseSync, input: Input<Task> & Pick<Task, 'ti
     });
 }
 export const getTask = (db: DatabaseSync, id: string) => read<Task>(db, 'tasks', id);
+export function setTaskWait(db:DatabaseSync,id:string,reason:string|null):void {
+    const task=requireTask(db,id);
+    if(task.waitReason===reason) return;
+    db.prepare('update tasks set wait_reason=?,updated_at=? where id=?').run(reason,new Date().toISOString(),id);
+    appendEvent(db,'task.waiting',null,{taskId:id,reason});
+}
 export const listTasks = (db: DatabaseSync, filter: {
     area?: Task['area'];
     state?: TaskState;

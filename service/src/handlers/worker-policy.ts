@@ -1,11 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { WorkerContext } from '../runner.ts';
 import type { Task, Budget } from '../model.ts';
 import { filtered } from '../repo/rows.ts';
 import { openDecision, listDecisions } from '../repo/decisions.ts';
 import { blockTask } from '../repo/tasks.ts';
+import { readConfig } from '../config.ts';
 
 export function normalizedPaths(paths: unknown): string[] {
   if (!Array.isArray(paths)) throw new Error('invalid_worker_scope');
@@ -30,15 +29,10 @@ export function decisionGate(ctx: WorkerContext, task: Task, kind: string, reaso
   return false;
 }
 export async function workerPolicy(ctx: WorkerContext,task: Task,execution: string,checkGit=false): Promise<boolean> {
-  const scope=normalizedPaths(task.scope),file=join(ctx.dataDir,'config.json');
-  let critical:string[]=[];
-  if (existsSync(file)) {
-    try {
-      const config=JSON.parse(readFileSync(file,'utf8'));
-      if (!config || typeof config!=='object' || Array.isArray(config)) throw new Error();
-      critical=normalizedPaths(config.criticalSystems === undefined ? [] : config.criticalSystems);
-    } catch {throw new Error('invalid_worker_config');}
-  }
+  const scope=normalizedPaths(task.scope),config=readConfig(ctx.dataDir);
+  let critical:string[];
+  try {critical=normalizedPaths(config.criticalSystems === undefined ? [] : config.criticalSystems);}
+  catch {throw new Error('invalid_worker_config');}
   const fold=(p:string)=>process.platform==='win32' ? p.toLowerCase() : p;
   const overlaps=(a:string,b:string)=>a===b||a.startsWith(b+'/')||b.startsWith(a+'/');
   if (critical.length && (!scope.length || scope.some(s=>critical.some(c=>overlaps(fold(s),fold(c)))))) {

@@ -6,6 +6,17 @@ el worker Codex implementa. Los roles de QA/integración y Claude quedan para hi
 
 ## Petición → especificación → worker
 
+El planificador despacha tareas preparadas cada cinco segundos. Para tareas con
+dependencias, crea primero una tarea pendiente por `POST /tasks` y asigna allí
+`assigneeRole`/`assigneeProvider` si procede. Declara `POST /tasks/TASK/depends`
+con `{ "dependsOn": ["BASE"] }` antes de preparar con `/tasks/TASK/spec`.
+Ambas rutas requieren Bearer; no uses creación con `--spec-file` antes de declarar
+dependencias, porque ya prepara. Consulta `docs/planificador.md` del repositorio
+Kratos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
+Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode todavía
+no tiene adaptador: puede declararse, pero no debe seleccionarse ni lanzarse;
+una espera «sin adaptador» no autoriza a inventar otro comando ni recursos.
+
 Recibe y confirma `message.received`, clasifica el mensaje y consulta el registro
 local de su ID antes de crear nada. Si ya existe taskId, inspecciónalo y continúa.
 Elige un ID local para el archivo; el servicio asignará el taskId definitivo.
