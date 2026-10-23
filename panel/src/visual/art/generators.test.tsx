@@ -1,77 +1,49 @@
-import { act, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ReactElement } from 'react'
+import { describe, expect, it, vi } from 'vitest'
 import { AreaPictogram } from './AreaPictogram'
 import { EmptyState } from './EmptyState'
-import { ViewHeader } from './ViewHeader'
 import { catalog, type ArtView } from './catalog'
+import { Glyph } from '../Glyph'
 import { glyphFor, glyphs } from '../glyphs'
 
 const views: ArtView[] = ['produccion', 'actividad', 'entregas', 'catalogo', 'chat', 'decisiones', 'presupuesto', 'capacidades']
-const paths = (markup: string) => Array.from(markup.matchAll(/ d="([^"]*)"/g), (match) => match[1])
-const markup = (element: ReactElement) => renderToStaticMarkup(element)
 
-afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
-
-describe('generadores de arte', () => {
-  it('preserva el glifo de cada área a 48 px y admite áreas desconocidas', () => {
-    for (const area of Object.keys(glyphs.area)) {
-      const { container, unmount } = render(<AreaPictogram area={area} />)
-      expect(screen.getByRole('img', { name: glyphFor('area', area).label })).toHaveAttribute('width', '48')
-      expect(container.querySelector('svg')).toHaveAttribute('stroke-width', '1.5')
+describe('arte con significado', () => {
+  it('amplía a 48 px la misma forma del glifo de área, también para áreas nuevas', () => {
+    for (const area of [...Object.keys(glyphs.area), 'nueva área']) {
+      const { container, unmount } = render(<><AreaPictogram area={area} /><Glyph kind="area" value={area} /></>)
+      const icons = screen.getAllByRole('img', { name: glyphFor('area', area).label })
+      expect(icons[0]).toHaveAttribute('width', '48')
+      expect(icons[0]).toHaveAttribute('stroke-width', '1.5')
+      const svgs = container.querySelectorAll('svg')
+      expect(svgs[0].innerHTML).toBe(svgs[1].innerHTML)
+      expect(Buffer.byteLength(renderToStaticMarkup(<AreaPictogram area={area} />), 'utf8')).toBeLessThanOrEqual(2048)
       unmount()
     }
-    render(<AreaPictogram area="nueva área" />)
-    expect(screen.getByRole('img', { name: 'nueva área' })).toBeInTheDocument()
   })
 
-  it('tiene ilustraciones y patrones distintos y estables para las ocho vistas', () => {
+  it('cada vacío ofrece un icono de 48 px, exactamente una frase y una acción útil', () => {
     expect(Object.keys(catalog)).toEqual(views)
-    const emptyPaths = [], headerPaths = []
     for (const view of views) {
-      const empty = markup(<EmptyState view={view} />), header = markup(<ViewHeader view={view} />)
-      expect(empty).toBe(markup(<EmptyState view={view} />))
-      expect(header).toBe(markup(<ViewHeader view={view} />))
-      expect(empty).toContain('viewBox="0 0 160 120"')
-      expect(header).toContain('viewBox="0 0 1400 40"')
-      emptyPaths.push(paths(empty).join('|')); headerPaths.push(paths(header).join('|'))
-    }
-    expect(new Set(emptyPaths).size).toBe(8)
-    expect(new Set(headerPaths).size).toBe(8)
-  })
-
-  it('mantiene cada SVG por debajo de 2048 bytes incluso con todas las semillas de producción', () => {
-    const examples: ReactElement[] = []
-    for (const area of Object.keys(glyphs.area)) examples.push(<AreaPictogram area={area} />)
-    for (const view of views) examples.push(<EmptyState view={view} />, <ViewHeader view={view} />)
-    for (const example of examples) {
-      const svg = markup(example)
-      expect(Buffer.byteLength(svg, 'utf8')).toBeLessThanOrEqual(2048)
-      expect(svg).toContain('<svg')
-      expect(svg).not.toMatch(/(?:href|src)="https?:/)
+      const { container, unmount } = render(<EmptyState view={view} />)
+      expect(screen.getByRole('img', { name: `${catalog[view].label} sin elementos` })).toHaveAttribute('width', '48')
+      expect(container.querySelectorAll('p')).toHaveLength(1)
+      const action = screen.getByRole('link')
+      expect(action.getAttribute('href')).toMatch(/^\/(?:\?nueva=1|chat)?$/)
+      if (view === 'chat') expect(action).toHaveAttribute('href', '/?nueva=1')
+      expect(container.querySelectorAll('path')).not.toHaveLength(0)
+      expect(container.querySelector('svg')).toHaveClass('lucide')
+      expect(Buffer.byteLength(container.querySelector('svg')!.outerHTML, 'utf8')).toBeLessThanOrEqual(2048)
+      unmount()
     }
   })
 
-  it('solo realza la cabecera al cambiar de vista y termina a los 180 ms', () => {
-    vi.useFakeTimers()
-    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
-    const { container, rerender } = render(<ViewHeader view="produccion" />)
-    const svg = () => container.querySelector('svg')!
-    expect(svg()).toHaveStyle({ opacity: '0.08' })
-    rerender(<ViewHeader view="actividad" />)
-    expect(svg()).toHaveStyle({ opacity: '0.14' })
-    act(() => vi.advanceTimersByTime(179))
-    expect(svg()).toHaveStyle({ opacity: '0.14' })
-    act(() => vi.advanceTimersByTime(1))
-    expect(svg()).toHaveStyle({ opacity: '0.08' })
-  })
-
-  it('con movimiento reducido conserva la cabecera estática', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
-    const { container, rerender } = render(<ViewHeader view="produccion" />)
-    rerender(<ViewHeader view="actividad" />)
-    expect(container.querySelector('svg')).toHaveStyle({ opacity: '0.08' })
-    expect(container.querySelector('svg')).not.toHaveStyle({ transition: 'opacity var(--k-dur-standard) var(--k-ease)' })
+  it('permite una acción de la vista sin duplicar el enlace predeterminado', () => {
+    const click = vi.fn()
+    render(<EmptyState view="catalogo" action={{ label: 'Indexar assets', onClick: click }} />)
+    expect(screen.queryByRole('link')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Indexar assets' }))
+    expect(click).toHaveBeenCalledOnce()
   })
 })
