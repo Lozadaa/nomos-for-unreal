@@ -30,7 +30,7 @@ export async function cliFixture(t: TestContext) {
 export async function api(dataDir: string, path: string, body?: unknown) {
   const info = readServiceInfo(dataDir)!;
   const res = await fetch(`http://127.0.0.1:${info.port}${path}`, {
-    method: body === undefined ? "GET" : "POST", headers: { Authorization: `Bearer ${info.token}` },
+    method: body === undefined ? "GET" : "POST", headers: { Authorization: `Bearer ${info.token}`, Connection: "close" },
     body: body === undefined ? undefined : JSON.stringify(body) });
   return res.status === 204 ? null : res.json();
 }

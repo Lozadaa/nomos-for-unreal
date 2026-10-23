@@ -11,8 +11,11 @@ test("vigilante mantiene latidos, retoma tras rotar token y no repite lo ya impr
   const child = watcher(t, dataDir); let output = "";
   child.stdout!.on("data", data => { output += data.toString(); });
   await until(async () => output.includes(first.messageId));
-  const age = (await api(dataDir, "/status")).listenerAgeSec;
-  await until(async () => (await api(dataDir, "/status")).listenerAgeSec < age, 4000);
+  let age = (await api(dataDir, "/status")).listenerAgeSec;
+  await until(async () => {
+    const next = (await api(dataDir, "/status")).listenerAgeSec;
+    const refreshed = next < age; age = next; return refreshed;
+  }, 4000);
   const previous = readServiceInfo(dataDir)!;
   assert.equal(cli(dataDir, "stop").status, 0);
   assert.equal(cli(dataDir, "start", "--port", String(port), "--no-open").status, 0);

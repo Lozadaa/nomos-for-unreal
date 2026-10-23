@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { join } from "node:path";
 import { createMessage, listEvents } from "../service/src/store.ts";
 import { fixture, requestJson, baseUrl, readBlocks, token } from "./helpers.ts";
 
@@ -15,6 +16,16 @@ test("sin token o con token erróneo 401; con token crea y lee mensaje", async t
   const message = await created.json();
   const response = await requestJson(server, "GET", `/messages/${message.messageId}`);
   assert.equal((await response.json()).text, "🎾 <script>x</script>");
+});
+
+test("página de intercambio real incluye formulario, SSE y evita innerHTML", async t => {
+  const { server } = await fixture(t, join(import.meta.dirname, "../service/web"));
+  const response = await fetch(baseUrl(server));
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type")!, /text\/html/);
+  const html = await response.text();
+  for (const pattern of [/id="director"/, /id="mensaje"/, /EventSource\(/]) assert.match(html, pattern);
+  assert.doesNotMatch(html, /innerHTML/);
 });
 
 test("texto vacío no genera evento; JSON inválido y cuerpo mayor de 64 KiB se rechazan", async t => {

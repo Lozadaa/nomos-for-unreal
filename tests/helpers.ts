@@ -16,11 +16,11 @@ export function requestJson(server: Server, method: string, path: string, body?:
     Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body) });
 }
-export async function fixture(t: TestContext) {
+export async function fixture(t: TestContext, webDir?: string) {
   const web = mkdtempSync(join(tmpdir(), "kratos-web-"));
   writeFileSync(join(web, "index.html"), '<!doctype html><div id="director"></div>');
   const db = openDb(":memory:");
-  const server = createServer(db, token, web);
+  const server = createServer(db, token, webDir || web);
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   t.after(async () => {
     server.closeAllConnections();
