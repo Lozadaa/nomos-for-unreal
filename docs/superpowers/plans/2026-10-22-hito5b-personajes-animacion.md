@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **PAUSADO 2026-10-23 por decisión del usuario** («No haremos animaciones en meshy just hard surface pawns» y «dejalo pausado ese»). No se refina ni se despacha. Si se retoma, sin Meshy `rig`/`animate`: personajes y animación solo desde el catálogo (Fab, MetaHuman por toolset, packs con esqueleto) y retarget de clips existentes.
+
 > Se refina antes de despachar con el editor administrado del hito 5 funcionando y el adaptador de Meshy del hito 4 probado.
 
 **Goal:** Que una petición como «un héroe de hielo con animación de ataque» produzca un personaje riggeado y animado reproducido en PIE con captura, eligiendo entre Meshy (criaturas y objetos), MetaHuman (humanos realistas, ya en tu motor 5.8.3) y assets del catálogo, y que el retargeting a los esqueletos del proyecto quede verificado.
