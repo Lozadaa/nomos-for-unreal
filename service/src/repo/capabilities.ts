@@ -10,7 +10,22 @@ type FileSystem = {
     existsSync: (path: string) => boolean;
     readFileSync: (path: string, encoding: any) => any;
 };
-export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: FileSystem = nodeFs): Capability[] {
+const sameDir = (a: string, b: string) => win32.resolve(a).toLowerCase() === win32.resolve(b).toLowerCase();
+/** Servidores MCP cuyo nombre contiene «unreal» declarados para el juego: `.mcp.json`, `.claude/settings.json` y `~/.claude.json`. */
+function unrealServers(fs: FileSystem, gameDir: string, home: string | undefined): string[] {
+    const json = (path: string) => { try {
+        return JSON.parse(fs.readFileSync(path, 'utf8'));
+    }
+    catch {
+        return null;
+    } };
+    const servers = (value: any) => value?.mcpServers && typeof value.mcpServers === 'object' ? Object.keys(value.mcpServers) : [];
+    const user = home ? json(win32.join(home, '.claude.json')) : null;
+    const project = Object.entries(user?.projects ?? {}).find(([dir]) => sameDir(dir, gameDir))?.[1];
+    const names = [json(win32.join(gameDir, '.mcp.json')), json(win32.join(gameDir, '.claude', 'settings.json')), user, project].flatMap(servers);
+    return [...new Set(names.filter(name => /unreal/i.test(name)))];
+}
+export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: FileSystem = nodeFs, gameDir?: string): Capability[] {
     let config: {
         unrealPath?: string;
         blenderPath?: string;
@@ -47,5 +62,10 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         ['blender', 'Blender', typeof config.blenderPath === 'string' ? exists(config.blenderPath) : onPath('blender.exe') || onPath('blender'), 'Ejecutable de Blender'],
         ['git', 'Git', onPath('git.exe') || onPath('git'), 'Ejecutable de Git']
     ];
-    return values.map(([id, label, found, detail]) => ({ id, label, state: found ? 'detectado' : 'ausente', detail: detail + (found ? ' detectado' : ' ausente') }));
+    const result: Capability[] = values.map(([id, label, found, detail]) => ({ id, label, state: found ? 'detectado' : 'ausente', detail: detail + (found ? ' detectado' : ' ausente') }));
+    // prueba 29: dos MCP de Unreal a la vez se pisan el editor; se avisa, nunca se elige uno por el usuario
+    const servers = gameDir ? unrealServers(fs, gameDir, env.USERPROFILE ?? env.HOME) : [];
+    if (servers.length > 1)
+        result.push({ id: 'unreal_mcp_conflict', label: 'Conflicto de MCP de Unreal', state: 'roto', detail: `${servers.length} servidores MCP de Unreal: ${servers.join(', ')}. Deja uno solo` });
+    return result;
 }

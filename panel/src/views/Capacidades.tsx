@@ -16,6 +16,7 @@ import { AvatarGroup, type AvatarGroupAgent } from '@/visual/art/AvatarGroup'
 import { assignAgentNames } from '@/visual/art/agentName'
 import type { AgentAvatarState } from '@/visual/art/AgentAvatar'
 import { EmptyState } from '@/visual/art/EmptyState'
+import { EditorQueue, type NamedAgent } from './EditorQueue'
 
 interface Capability { id: string; label: string; state: 'ausente' | 'detectado' | 'comprobado' | 'roto'; detail: string }
 
@@ -86,7 +87,8 @@ export function Capacidades() {
       group.push(agent)
       providers.set(agent.provider, group)
     }
-    return [...providers].map(([provider, agents]) => ({ provider, agents }))
+    const named = new Map<string, NamedAgent>(agents.map((a) => [a.id, a]))
+    return { list: [...providers].map(([provider, agents]) => ({ provider, agents })), named }
   }, [runs, tasks, waiting])
   const [checked, setChecked] = useState<Record<string, number>>({})
   const slow = useAfter(loading)
@@ -96,10 +98,10 @@ export function Capacidades() {
   if (loading) return slow ? <div role="status" aria-label="Cargando las capacidades" className="flex flex-col gap-2">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
   return (
     <div className="flex flex-col gap-6">
-      {groups.length > 0 && <section aria-label="Agentes" className="flex flex-col gap-3">
+      {groups.list.length > 0 && <section aria-label="Agentes" className="flex flex-col gap-3">
         <h2 className="text-sm font-medium">Agentes</h2>
         <ul aria-label="Agentes por proveedor" className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
-          {groups.map(({ provider, agents }) => <li key={provider} className="flex flex-col gap-3 rounded-lg border border-subtle p-4">
+          {groups.list.map(({ provider, agents }) => <li key={provider} className="flex flex-col gap-3 rounded-lg border border-subtle p-4">
             <AvatarGroup agents={agents} size={48} />
             <ul aria-label={`Nombres de ${glyphFor('provider', provider).label}`} className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {agents.map((agent) => <li key={agent.id} title={glyphFor('provider', provider).label}>{agent.name}</li>)}
@@ -107,6 +109,7 @@ export function Capacidades() {
           </li>)}
         </ul>
       </section>}
+      <EditorQueue agents={groups.named} />
       {!data?.length ? <EmptyState view="capacidades" /> : <ul aria-label="Capacidades" className="overflow-hidden rounded-lg border border-subtle">
         {data?.map((cap) => (
           <Row key={cap.id} cap={cap} checkedAt={checked[cap.id]} now={now}

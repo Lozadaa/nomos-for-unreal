@@ -78,10 +78,11 @@ describe('Capacidades · datos visuales comprobables', () => {
   })
 
   it('usa pastilla solo con proveedor conocido y glifos existentes con el nombre del estado de capacidad', async () => {
-    mockApi.mockResolvedValue([
+    const list0 = [
       cap('blender', 'ausente', 'Blender'), cap('unreal_mcp', 'detectado', 'Unreal MCP'),
       cap('meshy', 'comprobado', 'Meshy'), cap('git', 'roto', 'Git'), cap('fab_plugin', 'detectado', 'Fab'),
-    ])
+    ]
+    mockApi.mockImplementation((async (path: string) => path === '/editors' ? [] : list0) as typeof api)
     render(<Capacidades />)
     const list = await screen.findByRole('list', { name: 'Capacidades' })
     expect(await within(list).findByRole('img', { name: 'No instalado' })).toHaveClass('lucide-circle')
@@ -97,7 +98,7 @@ describe('Capacidades · datos visuales comprobables', () => {
 
   it('mantiene ayuda y comprobación por GET sin afirmar comprobado; devuelve el foco al botón', async () => {
     const caps = [cap('blender', 'ausente', 'Blender'), cap('git', 'detectado', 'Git')]
-    mockApi.mockResolvedValue(caps)
+    mockApi.mockImplementation((async (path: string) => path === '/editors' ? [] : caps) as typeof api)
     render(<Capacidades />)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Ver cómo instalar' }))
@@ -110,5 +111,25 @@ describe('Capacidades · datos visuales comprobables', () => {
     expect(mockApi.mock.calls.filter(([path]) => path === '/capabilities')).toHaveLength(2)
     expect(screen.getByText(/Detectado · sin comprobar/)).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: 'Comprobado' })).toBeNull()
+  })
+
+  it('muestra el editor por proyecto: libre, y ocupado por el agente con su avatar', async () => {
+    let busy = false
+    mockApi.mockImplementation((async (path: string) => {
+      if (path === '/tasks') return [task('t1')]
+      if (path === '/capabilities') return []
+      if (path === '/editors') return [{ project: 'KratosFabTest', busy: busy ? { runId: 'r1', taskId: 't1', since: '2026-10-23T10:00:00.000Z', agent: 'qa · claude', provider: 'claude', role: 'qa' } : null }]
+      return { run: { ...run('r1', 'claude', 't1'), role: 'qa' }, latestStatus: { waiting: false } }
+    }) as typeof api)
+    await refresh()
+    act(() => { ingest(event('run.started', { runId: 'r1' })) })
+    render(<Capacidades />)
+    const editor = await screen.findByRole('region', { name: 'Editor de Unreal' })
+    expect(within(editor).getByText('KratosFabTest')).toBeInTheDocument()
+    expect(within(editor).getByText('Libre')).toBeInTheDocument()
+    busy = true
+    act(() => { ingest(event('editor.busy', { project: 'KratosFabTest', runId: 'r1', taskId: 't1' })) })
+    expect(await within(editor).findByText('Ocupado por UI Tester')).toBeInTheDocument()
+    expect(within(editor).getByRole('img', { name: /^UI Tester · Claude/ })).toHaveAttribute('data-state', 'running')
   })
 })

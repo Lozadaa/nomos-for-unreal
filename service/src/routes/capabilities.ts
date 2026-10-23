@@ -18,7 +18,7 @@ export async function capabilities({req, res, url, dataDir}: Context): Promise<b
       return fs.readFileSync(path, encoding);
     }
   };
-  const detected=detectCapabilities(process.env, adapter);
+  const detected=detectCapabilities(process.env, adapter, dataDir ? dirname(dataDir) : undefined);
   if(url.searchParams.get('details')==='1') {
     if(!dataDir) throw new Error('missing_config');
     json(res,200,{capabilities:detected,skills:installedSkills(dirname(dataDir)),concurrency:concurrency(readConfig(dataDir))});
