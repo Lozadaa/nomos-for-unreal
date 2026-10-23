@@ -22,7 +22,7 @@ export function DirectorDot({ state, pending = 0 }: { state: DirectorState; pend
   const { dot, label } = look[state]
   return (
     <span className="inline-flex items-center gap-2 text-sm text-muted-foreground" role="status">
-      <span data-testid="director-dot" data-state={state} aria-hidden className={cn('size-2 rounded-full', dot)} />
+      <span data-testid="director-dot" data-state={state} aria-hidden className={cn('size-2 rounded-full transition-colors duration-(--k-dur-standard)', dot)} />
       {label(pending)}
     </span>
   )

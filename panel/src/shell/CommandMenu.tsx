@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command'
+import { withViewTransition } from '@/feel/transitions'
 import { views } from './Tabs'
 
 export interface TaskRef { id: string; title: string }
@@ -39,7 +40,7 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange }: {
     return () => document.removeEventListener('keydown', onKey)
   }, [open, set])
 
-  const go = (to: string) => { set(false); void navigate(to, { viewTransition: true }) }
+  const go = (to: string) => { set(false); void withViewTransition(() => navigate(to, { flushSync: true })) }
 
   return (
     <CommandDialog open={open} onOpenChange={set} title="Menú de comandos" description="Busca una vista, una tarea o una acción">
@@ -55,7 +56,7 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange }: {
             <CommandSeparator />
             <CommandGroup heading="Tareas">
               {tasks.map((t) => (
-                <CommandItem key={t.id} value={`${t.title} ${t.id}`} onSelect={() => go(`/?tarea=${t.id}`)}>
+                <CommandItem key={t.id} value={`${t.title} ${t.id}`} onSelect={() => go(`/?tarea=${encodeURIComponent(t.id)}`)}>
                   {t.title}<span className="ml-auto font-mono text-xs text-muted-foreground">{t.id.slice(0, 7)}</span>
                 </CommandItem>
               ))}

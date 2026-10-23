@@ -116,7 +116,7 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground font-sans antialiased; }
+  body { @apply bg-background text-foreground font-sans antialiased; touch-action: manipulation; }
 }
 
 /* Transiciones de vista: crossfade de 180 ms; con movimiento reducido, fundidos de 80 ms */
@@ -125,7 +125,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*) { animation-duration: 80ms; }
-  ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 80ms; }
+  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 80ms; }
 }
 
 /* Respaldo sin View Transitions (Firefox hoy): fundido CSS equivalente */
@@ -137,3 +137,28 @@
 @keyframes k-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 .k-pulse { animation: k-pulse 2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .k-pulse { animation: none; } }
+
+/* Fila → encabezado del Sheet (220 ms) y reordenar listas (260 ms) */
+::view-transition-group(*.k-title) { animation-duration: var(--k-dur-panel); animation-timing-function: var(--k-ease); }
+::view-transition-group(*.k-row) { animation-duration: var(--k-dur-reorder); animation-timing-function: var(--k-ease); }
+/* el Sheet entra y sale desplazándose 40 px; el contenido se captura ya colocado, sin su animación de montaje */
+@keyframes k-sheet-in { from { opacity: 0; transform: translateX(40px); } }
+@keyframes k-sheet-out { to { opacity: 0; transform: translateX(40px); } }
+::view-transition-new(k-sheet) { animation: k-sheet-in var(--k-dur-panel) var(--k-ease); }
+::view-transition-old(k-sheet) { animation: k-sheet-out var(--k-dur-panel) var(--k-ease) both; }
+html[data-vt] [data-slot='sheet-content'][data-starting-style],
+html[data-vt] [data-slot='sheet-content'][data-ending-style],
+html[data-vt] [data-slot='sheet-overlay'][data-starting-style],
+html[data-vt] [data-slot='sheet-overlay'][data-ending-style] { opacity: 1; transform: none; transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* sin desplazamiento: las posiciones saltan y solo hay fundidos de 80 ms */
+  ::view-transition-group(*), ::view-transition-group(*.k-title), ::view-transition-group(*.k-row) { animation-duration: 0.01ms; }
+  ::view-transition-new(k-sheet), ::view-transition-old(k-sheet) { animation-name: k-fade-in; animation-duration: 80ms; }
+  ::view-transition-old(k-sheet) { animation-direction: reverse; }
+}
+
+/* «Tick» de las cifras: la nueva sube desde abajo en 300 ms */
+@keyframes k-tick { from { opacity: 0; transform: translateY(40%); } }
+.k-tick { animation: k-tick 300ms var(--k-ease); }
+@media (prefers-reduced-motion: reduce) { .k-tick { animation: k-fade-in 80ms linear; } }

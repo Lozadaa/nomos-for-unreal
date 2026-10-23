@@ -1,70 +1,57 @@
-# Dirección visual del panel de Kratos
+# Dirección visual del panel de Kratos (vigente desde el hito 8)
 
-Elegida en el hito 1a tras comparar tres maquetas (`design/maquetas/{a,b,c}/index.html`) a 1366×768 con la barra lateral abierta y a 1920×1080. Las capturas están en [`docs/diseno/capturas-1a/`](diseno/capturas-1a/). Los tokens viven en `design/tokens.json` y se generan a `design/tokens.css`; la galería de componentes es `design/estilo.html`.
+Esta dirección **sustituye** a la «A · Sala de control densa» del hito 1a (tema claro, Ant Design, tablero de ocho columnas, sombras). El usuario la cambió el 2026-10-23: panel **oscuro con la apariencia de Vercel**, sin Next.js, sin tablero tipo Jira, y «cada acción tiene que tener una respuesta en la misma pantalla y si es una redirección se tiene que sentir». La fuente de verdad de la implementación es `panel/src/styles/theme.css` y `design/tokens.json`; el plan es `docs/superpowers/plans/2026-10-23-hito8-interfaz-viva.md`.
 
-## Elegida: A · Sala de control densa
+## Principios
 
-El tablero de producción manda: ocho columnas, tarjetas compactas de 56 px con una línea de meta, sombra de nivel 1 en superficies y barra lateral siempre abierta. Todo lo demás (catálogo, detalle, nueva petición) se organiza alrededor del tablero.
+1. **Oscura y plana.** Superficies `surface-primary` (negro) y `surface-secondary`; separación con bordes de alfa blanco (`border-subtle|default|strong`). **Sin sombras**: la elevación es borde más fondo. Radio de 8 px (6 px en controles pequeños).
+2. **Geist.** Geist Sans para todo; Geist Mono para ids, rutas, comandos y cifras. Autoalojadas (`@fontsource-variable`).
+3. **El estado se dice con un punto y con texto.** `success`, `warning`, `error`, `info`, `neutral`. Nunca un chip relleno, nunca solo color. Azul solo para foco, enlaces y la acción primaria.
+4. **Producción es una lista viva**, no un tablero: filas de 48 px agrupadas por etapa; el detalle abre en un panel lateral de 720 px con un stepper horizontal de la etapa. Sin arrastrar y soltar.
+5. **Sin modales para pedir cosas.** El compositor de peticiones se expande en el sitio.
+6. **Copy en español**, de `docs/diseno/estados.md`, con errores que dicen qué pasó y qué hacer (`panel/src/lib/errors.ts` traduce los códigos del servicio).
 
-### Comparación
+## Regla de sensación (la verifica `panel/src/feel/` y sus pruebas)
 
-| Criterio | A · Densa | B · Con aire | C · Actividad primero |
-|---|---|---|---|
-| Columnas visibles a 1920 sin panel (barra lateral abierta) | 8 de 8 | 7 de 8 (hay que desplazar; 8 si se pliega la barra lateral) | 8 de 8 |
-| Columnas visibles a 1366 con barra lateral, sin panel | unas 6 | unas 5 | unas 7 (tarjetas muy estrechas) |
-| Con el panel de detalle abierto a 1366 | 2 columnas legibles, la franja libre | 2 columnas, tarjetas más legibles | 2 columnas, títulos a dos líneas |
-| Catálogo con sus 6 filas a 1366 | Todas, sin desplazar la página | Todas, ajustadas | Solo 3-4; el resto exige desplazar |
-| Formulario de nueva petición a 1366 | Título, primera fila y acción visibles | Igual | Igual |
-| Nombre largo o con emoji | Elipsis en una línea | Dos líneas, luego elipsis | Dos líneas, luego elipsis |
-| Estado distinguible sin color | Icono propio por estado; texto en las tarjetas marcadas | Icono + nombre del estado | Solo icono (el texto va al pasar el cursor) |
-| Coste previsto en Ant Design | Bajo (`Card` pequeña + `Table`) | Medio (avatar, dos líneas) | Alto (carriles con eje de tiempo en la vista principal) |
+- Todo control que dispara una acción pasa por `useAction`: estado **pendiente visible antes de 100 ms y mantenido al menos 300 ms** aunque el servidor responda antes.
+- La fila o cifra afectada **cambia en el acto** (optimista) y **vuelve atrás** si el servidor rechaza; el error se escribe **junto al control** y, si el resultado no está a la vista, sale un toast con «Ver», «Reintentar» o «Recargar decisión».
+- Nada recarga la página; esperar más de 300 ms muestra **esqueleto**, no spinner de pantalla completa.
+- Un evento del servicio que llega durante una transición espera a que termine (`queueWhileTransitioning`): no se anima dos veces ni salta.
 
-### Por qué A
+## Regla de movimiento
 
-1. **Es la que cabe.** A 1366×768 el tablero y el catálogo entran sin desplazar la página, y a 1920 se ven las ocho columnas a la vez cuando no hay panel abierto (con el panel de 720 px abierto quedan cinco, y el catálogo entero). B pierde una columna a 1920 incluso sin panel (podría ganar espacio plegando su barra lateral a 64 px) y C obliga a desplazar el catálogo a 1366.
-2. **Se mira más de lo que se teclea.** Doce tarjetas se leen de un vistazo: icono de estado, título y una línea con responsable, pruebas y antigüedad. El detalle completo (ejecución, espacio de trabajo, habilidades, dependencias) está un clic más allá, en el panel lateral.
-3. **Resiste datos reales.** Con `Nude_Tennis_Racket_🎾` o un título de cuarenta caracteres la tarjeta no cambia de altura, así que ninguna columna se descuadra. Es también la más barata de implementar y mantener con Ant Design.
+| Qué | Cómo | Duración |
+|---|---|---|
+| Cambio de vista | `startViewTransition`, fundido del documento | 180 ms |
+| Abrir detalle | La fila **se convierte** en el encabezado del Sheet (`view-transition-name` compartido, clase `k-title`); el Sheet entra 40 px desde la derecha | 220 ms |
+| Reordenar listas, filtrar | View Transitions por fila (`k-row`) | 260 ms |
+| Cifras que cambian | «Tick»: la nueva sube desde abajo (`k-tick`) | 300 ms |
+| Barras de progreso | `transform: scaleX` | 300 ms |
+| Puntos de actividad que se recolocan | `transform` con unidades de contenedor (`cqw`) | 260 ms |
+| Hover y color | `transition` de propiedades explícitas | 120 ms |
+| Pulsar un botón | `scale(0.97)` | 120 ms |
 
-### Lo que se toma de las otras dos
+Curva única `cubic-bezier(.2,.8,.2,1)` (`--k-ease`); duraciones `micro 120 · estándar 180 · panel 220 · reordenar 260`. Todo vive en tokens (`--k-dur-*`, `--k-ease`).
 
-- **De B:** las tarjetas de tareas en curso (implementando, revisando, probando, integrando, cerrando) llevan sombra de nivel 2, así que se separan de las que esperan; y la barra lateral se puede plegar a 64 px (útil a 1366 con el panel abierto). Los datos de B que A no muestra en la tarjeta (ejecución, dependencias, responsable) aparecen al pasar el cursor y en el panel.
-- **De C:** el diseño de los carriles (24 px de alto, trozos con icono de color, eje de tiempo) se usa tal cual en la vista Actividad, que no necesita ocupar la pantalla de Producción.
+**No se anima** lo que se hace decenas de veces al día o con teclado: el menú ⌘K se abre y se cierra sin animación, `j`/`k` en Decisiones salta sin animación, las pestañas del detalle cambian de contenido sin animación, y la carga inicial de una lista no hace entrar 500 elementos a la vez (solo los recién llegados entran con fundido).
 
-## Reglas de aquí en adelante
+**Movimiento reducido** (`prefers-reduced-motion`): los grupos de View Transitions duran 0,01 ms (no hay desplazamiento), los fundidos duran 80 ms, el Sheet solo se funde, el tick y el pulso se reducen a fundido o desaparecen. Se comprueba en un e2e de Chromium (`panel/e2e/produccion.spec.ts`).
 
-**Capas y sombras.** Fondo gris (`bgLayout`), superficies blancas. Sombra 1 en tarjetas, paneles, barra lateral y franja del director. Sombra 2 en el panel de detalle, las tarjetas en curso, las tarjetas bajo el cursor, avisos y desplegables. Nunca una superficie blanca sin sombra sobre el gris, y nunca tarjetas dentro de tarjetas.
+**Sin View Transitions** (la API puede faltar): las listas se actualizan sin animar y la navegación usa la clase `.fallback-fade` (fundido CSS de 180 ms / 80 ms con movimiento reducido). Se prueba en Chromium y Firefox forzando `startViewTransition = undefined`. Firefox reciente ya trae la API.
 
-**Franja del director.** Arriba de la zona principal, 64 px de alto, siempre visible y nunca tapada por el panel de detalle (el panel empieza justo debajo). Lleva, de izquierda a derecha: icono y texto del estado, contadores de atención (bloqueadas, decisiones, cierres fallidos), última recepción confirmada y Pausar/Reanudar. El estado se distingue por icono y texto además del color.
+## Estructura de la interfaz
 
-**Anchos.** Barra lateral 248 px (64 plegada). Panel de detalle 720 px. A 1366 con barra lateral el panel se superpone al tablero: quedan libres la franja del director y unos 398 px de tablero, dos columnas legibles. A partir de 1600 px el panel reserva su ancho (la zona principal se estrecha en vez de quedar tapada), de modo que a 1920 se ven cinco columnas y el catálogo entero junto al panel. Columnas del tablero de 176 px como mínimo; el tablero se desplaza en horizontal dentro de su región (enfocable por teclado) y nunca la página entera.
+- **Cabecera de 56 px**: marca, nombre del proyecto (del `.uproject`, vía `GET /status`), punto vivo del director (verde latiendo 2 s si escucha; ámbar «vigilante caído»; rojo «desconectado»; gris «esperando») y ⌘K.
+- **Pestañas de 40 px** con indicador deslizante (transform): Producción · Actividad · Entregas · Catálogo · Chat · Decisiones (con el número de pendientes) · Presupuesto · Capacidades · Estilo. Sin barra lateral.
+- **Contenido** a 1400 px como máximo. 1366×768 y 1920×1080; mínimo 1280. Toda pantalla con formulario cabe a 1366×768 sin desplazar.
+- Los filtros viven en la URL (`?etapa=`, `?modo=`, `?origen=`, `?tarea=`), igual que el detalle abierto (`?tarea=`) y el compositor (`?nueva=1`).
 
-**Atención.** Lo que necesita al usuario (bloqueadas, decisiones, cierres fallidos) sale en la franja como enlaces que saltan a la tarjeta; la tarjeta marcada muestra el estado y cuánto lleva así («Bloqueada · 9 min») y la causa al pasar el cursor y en el panel. Una decisión elegida avisa de lo que pasa y ofrece Deshacer.
+## Vistas
 
-**IDs y rutas.** Ejecución, espacio de trabajo y habilidades cargadas (datos técnicos, en JetBrains Mono) van plegados bajo «Detalles técnicos» en el panel; no aparecen en primer plano.
+Producción (lista + detalle + compositor), Actividad (siete carriles con ejes estables y etiqueta al pasar o enfocar), Entregas (rejilla con visor GLB `<model-viewer>`), Catálogo (rejilla con filtros segmentados; «Prohibido para IA» como texto, licencia desconocida con punto ámbar), Chat (burbuja optimista «Enviado» → «Recibido»), Decisiones (bandeja `j`/`k`, opción elegida resaltada al instante), Presupuesto (cifras grandes con tick, barras de 2 px), Capacidades, y **Estilo**, la guía de todo lo anterior en todos sus estados con un conmutador «Peor caso» (datos extremos reales: nombre largo con emoji, una letra, texto CJK, proveedor desconocido, motivo de 240 caracteres).
 
-**Densidades.** Control de 32 px y radio de 8. Tarjeta de 56 px. Fila de tabla de 36 px. Carril de actividad de 24 px. Paso de espaciado de 4/8 px (`--k-space-*`).
+Capturas de cada vista a ambas resoluciones: `docs/capturas-8/`.
 
-**Formularios.** Toda pantalla con formulario cabe en 1366×768 con la barra lateral: título, primera fila y acción principal sin desplazar. Los formularios viven en el panel lateral, no en una página aparte. Cada campo reserva una línea de ayuda o error (`.help`, 18 px) para que no haya saltos al aparecer un error. Los párrafos explicativos van bajo el título del panel, fuera del formulario.
+## Qué queda descartado
 
-**Color y texto.** El color de un estado va en un icono (o borde), y el texto de la etiqueta usa el color de texto normal. Motivo: `warning` (3,64:1) y `success` (4,21:1) no llegan a 4,5:1 sobre blanco, así que no se usan como color de texto pequeño. Se admiten como icono, borde o fondo suave (12 % mezclado con blanco).
-
-**Desplegables y capas.** Ninguna capa se corta por la ventana ni queda tapada por la franja: el panel de detalle va debajo de la franja y el cuerpo del panel se desplaza dentro, con el pie de acciones siempre visible.
-
-**Sin.** Rayas de color en el borde de tarjetas, degradados decorativos, iconos de relleno, logs técnicos en primer plano, «cargando» sin decir qué se espera.
-
-**Tipografía.** IBM Plex Sans para texto, JetBrains Mono solo para logs, IDs y rutas. En las maquetas y en `/estilo` se cargan desde Google Fonts con una etiqueta `<link>`; el hito 1b decide si las empaqueta. Si no cargan, el fallback (Segoe UI, sistema) se ve correcto.
-
-**Geometría con nombre.** Los tamaños de letra, radios, sombras, colores y espaciado salen de `tokens.css`. La geometría propia de una pantalla (alto de tarjeta, ancho mínimo de columna, ancho de etiqueta de carril) se declara como variable con nombre al inicio de la página (`--card-h`, `--col-w`), nunca suelta dentro de una regla. Una prueba comprueba que no hay colores, sombras, tamaños de letra ni radios escritos a mano.
-
-## Ajustes respecto a los valores del plan
-
-- **`textTertiary`: `#6B7280` → `#69707E`.** Sobre el gris de fondo (`bgLayout`) el valor original daba 4,43:1; con el mínimo oscurecimiento que pasa AA da 4,56:1 (sobre blanco, 4,98:1). `neutral` sigue en `#6B7280` (se usa en iconos, donde basta 3:1).
-- Contrastes medidos sobre blanco: texto 17,74 · secundario 7,56 · terciario 4,98 · primario 5,70 · éxito 4,21 · aviso 3,64 · error 5,62 · morado 5,15 · neutro 4,83. Blanco sobre primario 5,70, sobre primario al pasar el cursor 7,31.
-
-## Cambios respecto al plan de implementación
-
-- Se añade `design/componentes.css` (botones, campos, etiquetas, tarjetas, tabla, panel de detalle) compartido por las maquetas y `/estilo`, para que la galería enseñe exactamente lo que usan las pantallas. Solo usa `var(--k-*)`.
-- Las maquetas llevan un segundo panel, «Nueva petición», que se abre con `#nueva-peticion` (y `#cerrar` oculta el panel), solo con CSS. Sirve para comprobar la regla del formulario en 1366×768, porque con el panel de detalle abierto el formulario no cabe bajo el tablero.
-- La prueba de «sin valores a mano» revisa también los `.css` (menos `tokens.css`) y comprueba tamaños de letra y radios, no solo colores y sombras.
-- Tras la crítica de diseño (ver `docs/diseno/auditoria-1a.md`), la maqueta A pasa a: tarjetas como enlaces con `id`, chips de atención como enlaces, detalles técnicos plegados, opciones de decisión sin primaria falsa, texto plano en lo habitual del catálogo (etiqueta solo en excepciones). B y C se regeneran con los mismos datos.
-- Capturas extra por maqueta: `-sin-panel` (tablero y catálogo completos) y `-peticion` (formulario).
+Tema claro, Ant Design, tablero de columnas y arrastrar, sombras, chips rellenos, barra lateral, los tokens del hito 1a y las tres maquetas `design/maquetas/{a,b,c}` (siguen en el repositorio como historia; su comparación ya no manda).

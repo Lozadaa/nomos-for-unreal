@@ -8,5 +8,5 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   build: { outDir: 'dist' },
-  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], globals: true, css: false },
+  test: { exclude: ['e2e/**', 'node_modules/**'], environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], globals: true, css: false },
 })
