@@ -151,3 +151,15 @@ El primer intento falló por mi script (ruta del ejecutable sin comillas). Krato
 - **Assets (`asset`)**: solo con el editor falso en esta aceptación (el hito 4 verificó `verifyPack` real).
 - **Pulsar H**: la captura no lo prueba; no ejecuté la prueba de automatización del worker.
 - **Corrección de C**: no se persiguió; el worker se detuvo tras recibirla.
+
+## 11. Revisión final independiente
+
+Un revisor sin contexto previo encontró 1 crítico y 6 importantes, corregidos en `d9e6857` con una
+prueba que falló antes de cada arreglo (`tests/service/checks-review-fixes.test.ts`): la fila
+pendiente de `umg` del lote podía dejar una tarea en `probando` para siempre; la puerta exigía
+comprobaciones que el diff ya no pide; los archivos borrados se validaban; una Decisión caducada
+relanzaba el lote; el resumen perdía el titular del tiempo agotado; la ruta del script de captura
+con espacios o comas rompía `-ExecCmds` (ahora llega por `KRATOS_SCRIPT`; captura real repetida,
+36,6 s); y tras un reinicio una fila en curso quedaba colgada. Suite final: `npm test` 408/408,
+Vitest 256/256, build verde, Playwright 61 pasadas y 3 omitidas.
+

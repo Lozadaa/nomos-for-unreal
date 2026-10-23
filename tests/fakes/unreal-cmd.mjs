@@ -4,8 +4,10 @@ import { crc32, deflateSync } from 'node:zlib';
 
 const mode = process.env.KRATOS_FAKE ?? 'ok';
 const args = process.argv.slice(2);
-const script = args.find(a => a.startsWith('-ExecutePythonScript='))?.slice(21) ?? args.find(a => a.startsWith('-ExecCmds=py '))?.slice(13) ?? '';
+const script = args.find(a => a.startsWith('-ExecutePythonScript='))?.slice(21)
+  ?? (args.some(a => a.startsWith('-ExecCmds=py ') && a.includes('KRATOS_SCRIPT')) ? process.env.KRATOS_SCRIPT : undefined) ?? '';
 console.log(`LogPython: ${script} ${args.join(' ')}`);
+if (process.env.KRATOS_ASSETS) console.log(`KRATOS_ASSETS ${process.env.KRATOS_ASSETS}`);
 const write = report => writeFileSync(process.env.KRATOS_REPORT, JSON.stringify({args, script, ...report}), 'utf8');
 const engine = '5.8.3-58210709+++UE5+Release-5.8';
 
