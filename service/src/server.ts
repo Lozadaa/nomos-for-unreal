@@ -11,6 +11,7 @@ import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
 import { parseArgs } from "node:util";
 import { acquireLock } from "./lock.ts";
 import { production, databaseDirectory } from "./routes/index.ts";
+import { panelStatic } from "./static.ts";
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string): http.Server {
@@ -29,6 +30,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         return json(res, 403, { error: "forbidden_origin" });
       }
       if (method === "GET" && path === "/health") return json(res, 200, { ok: true });
+      if (await panelStatic(req, res, path)) return;
       if (method === "GET" && (path === "/" || path.startsWith("/web/"))) {
         return await staticFile(res, webDir, path === "/" ? "index.html" : path.slice(5));
       }

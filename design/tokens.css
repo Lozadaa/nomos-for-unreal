@@ -1,23 +1,26 @@
 /* Generado por design/build-tokens.ts desde design/tokens.json. No editar a mano. */
 :root {
-  --k-color-primary: #1F5EDB;
-  --k-color-primary-hover: #1A4FBA;
-  --k-color-primary-text: #FFFFFF;
-  --k-color-bg-layout: #F3F5F9;
-  --k-color-bg-container: #FFFFFF;
-  --k-color-bg-subtle: #F7F8FB;
-  --k-color-text: #111827;
-  --k-color-text-secondary: #4B5563;
-  --k-color-text-tertiary: #69707E;
-  --k-color-border: #E5E7EB;
-  --k-color-success: #1E8E3E;
-  --k-color-warning: #B7791F;
-  --k-color-error: #C62828;
-  --k-color-info: #1F5EDB;
-  --k-color-neutral: #6B7280;
-  --k-color-purple: #6D4AFF;
-  --k-font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-  --k-font-mono: 'JetBrains Mono', Consolas, monospace;
+  --k-color-primary: oklch(53.18% 0.2399 256.99);
+  --k-color-primary-hover: oklch(71.7% 0.1648 250.794);
+  --k-color-primary-text: oklch(1 0 0);
+  --k-color-bg-layout: oklch(0 0 0);
+  --k-color-bg-container: oklch(0 0 0);
+  --k-color-bg-subtle: oklch(0.027 0 0);
+  --k-color-text: oklch(0.946 0 0);
+  --k-color-text-secondary: oklch(0.706 0 0);
+  --k-color-text-tertiary: oklch(0.65 0 0);
+  --k-color-border: oklch(1 0 0 / 0.13);
+  --k-color-border-default: oklch(1 0 0 / 0.14);
+  --k-color-border-strong: oklch(1 0 0 / 0.54);
+  --k-color-focus: oklch(71.7% 0.1648 250.794);
+  --k-color-success: oklch(73.1% 0.2158 148.29);
+  --k-color-warning: oklch(77.21% 0.1991 64.28);
+  --k-color-error: oklch(62.56% 0.2234 23.03);
+  --k-color-info: oklch(57.61% 0.2321 258.23);
+  --k-color-neutral: oklch(0.65 0 0);
+  --k-color-purple: oklch(71.7% 0.1648 250.794);
+  --k-font-sans: Geist Variable;
+  --k-font-mono: Geist Mono Variable;
   --k-size-xs: 12px;
   --k-size-sm: 13px;
   --k-size-md: 14px;
@@ -27,26 +30,27 @@
   --k-radius-sm: 6px;
   --k-radius-md: 8px;
   --k-radius-lg: 12px;
-  --k-shadow-1: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
-  --k-shadow-2: 0 8px 24px rgba(16,24,40,.12);
   --k-space-0: 4px;
   --k-space-1: 8px;
   --k-space-2: 12px;
   --k-space-3: 16px;
-  --k-space-4: 24px;
-  --k-space-5: 32px;
-  --k-space-6: 48px;
-  --k-layout-sidebar: 248px;
-  --k-layout-sidebar-collapsed: 64px;
-  --k-layout-header: 64px;
+  --k-space-4: 20px;
+  --k-space-5: 24px;
+  --k-space-6: 32px;
+  --k-space-7: 40px;
+  --k-space-8: 48px;
+  --k-space-9: 64px;
+  --k-layout-header: 56px;
   --k-layout-drawer: 720px;
   --k-layout-control: 32px;
+  --k-layout-tabs: 40px;
+  --k-layout-content: 1400px;
 }
 
 .k-state-pendiente { --k-state: var(--k-color-neutral); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
 .k-state-preparada { --k-state: var(--k-color-info); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
-.k-state-implementando { --k-state: var(--k-color-primary); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
-.k-state-revisando { --k-state: var(--k-color-purple); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
+.k-state-implementando { --k-state: var(--k-color-info); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
+.k-state-revisando { --k-state: var(--k-color-info); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
 .k-state-probando { --k-state: var(--k-color-warning); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
 .k-state-integrando { --k-state: var(--k-color-info); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
 .k-state-cerrando { --k-state: var(--k-color-warning); --k-state-soft: color-mix(in srgb, var(--k-state) 12%, var(--k-color-bg-container)); }
