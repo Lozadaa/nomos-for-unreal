@@ -24,6 +24,10 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   },
   'integrate.run': (db, p) => { if (!optionalText(p.runId)) throw new Error('invalid_command_payload'); integratePayload(db, p.taskId); },
   'finalize.run': (db, p) => { finalizePayload(db, p.taskId); },
+  'task.continue': (db, p) => {
+    if (!text(p.taskId) || !text(p.text) || p.childId !== undefined) throw new Error('invalid_command_payload');
+    if (read<{state: string}>(db, 'tasks', p.taskId)?.state !== 'done') throw new Error('invalid_transition');
+  },
   'ui.cycle': (db, p) => {
     const pairs = p.resolutions === undefined || Array.isArray(p.resolutions) && p.resolutions.every(r => Array.isArray(r) && r.length === 2
       && r.every(n => Number.isSafeInteger(n) && n >= 320 && n <= 7680));

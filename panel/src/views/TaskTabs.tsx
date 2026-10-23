@@ -5,12 +5,11 @@ import { useArtifactSrc } from '@/hooks/artifact'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useAction } from '@/feel/useAction'
-import { relativeTime } from '@/lib/time'
 import type { Run, TaskDetail } from '@/lib/tasks'
 import { useStore } from '@/store'
-import { eventText } from '@/lib/events'
 import { parseDiffStat } from '@/lib/parseDiffStat'
 import { DiffBars } from '@/visual/art/DiffBars'
+import { ContinueTask } from './ContinueTask'
 
 type Resource<T> = { state: 'loading' } | { state: 'ok'; data: T } | { state: 'unavailable' } | { state: 'error'; message: string }
 
@@ -102,6 +101,7 @@ export function WorkerChatTab({ detail }: { detail: TaskDetail }) {
         ))}
         {sent.map((m, i) => <li key={`s${i}`} className="text-xs whitespace-pre-wrap text-info">Tú: {m}</li>)}
       </ol>
+      {detail.task.state === 'done' ? <ContinueTask taskId={detail.task.id} /> : <>
       <Textarea value={text} onChange={(e) => setText(e.target.value)} aria-label="Pedir cambios al responsable" placeholder="Pide un cambio al responsable…" name="mensaje" autoComplete="off" className="min-h-20" />
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" disabled={!text.trim() || send.pending || !running} aria-busy={send.pending} onClick={() => void send.fire()}>
@@ -110,7 +110,7 @@ export function WorkerChatTab({ detail }: { detail: TaskDetail }) {
         {!running && <span className="text-xs text-muted-foreground">La ejecución ya terminó.</span>}
         {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
         {running && <span className="ml-auto"><StopWorker run={run} /></span>}
-      </div>
+      </div></>}
     </div>
   )
 }
@@ -189,16 +189,4 @@ export function ArtifactsTab({ detail }: { detail: TaskDetail }) {
   )
 }
 
-export function TimelineTab({ detail }: { detail: TaskDetail }) {
-  if (!detail.events.length) return <Empty title="Todavía no hay historia" hint="Cada cambio de la tarea queda anotado aquí." />
-  return (
-    <ol className="flex flex-col">
-      {[...detail.events].reverse().map((e) => (
-        <li key={e.seq} className="flex gap-3 border-b border-subtle py-2 text-sm">
-          <span className="w-20 shrink-0 text-xs text-muted-foreground">{relativeTime(e.createdAt)}</span>
-          <span>{eventText(e)}</span>
-        </li>
-      ))}
-    </ol>
-  )
-}
+export { TimelineTab } from './TimelineTab'

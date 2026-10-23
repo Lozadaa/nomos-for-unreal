@@ -4,9 +4,10 @@ import { enqueue } from '../commands.ts';
 import { implementerOf } from '../handlers/checks.ts';
 import type { WorkerContext } from '../runner.ts';
 import type { Task } from '../model.ts';
-import { id, type Context } from './context.ts';
+import { id, text, type Context } from './context.ts';
 import { archiveDir, verifyArchive } from '../archive.ts';
 import { file } from './artifacts.ts';
+import { createContinuation } from '../handlers/continue.ts';
 
 type Db = Context['db'];
 /** Orden viva de ese tipo para la tarea, o una nueva con clave numerada (reintegrar tras resolver un conflicto). */
@@ -48,10 +49,18 @@ export async function taskClosing({db, req, res, url, dataDir}: Context): Promis
       files: Object.entries(manifest.files).map(([name, entry]) => ({name, ...entry}))});
     return true;
   }
-  const match = /^\/tasks\/([^/]+)\/(integrate|finalize)$/.exec(url.pathname);
+  const match = /^\/tasks\/([^/]+)\/(integrate|finalize|continue)$/.exec(url.pathname);
   if (req.method !== 'POST' || !match) return false;
   const taskId = id(match[1]);
-  await body(req).catch(() => ({}));
+  const data = await body(req).catch(() => ({} as Record<string, unknown>));
+  if (match[2] === 'continue') {
+    // «ajusta esto» sobre una tarea done: la hija nace aquí (el panel la abre) y la orden decide terminal vivo o run nuevo
+    if (!text(data.text)) throw new Error('invalid_continuation_text');
+    const child = createContinuation(db, taskId, data.text);
+    const command = enqueue(db, 'task.continue', {taskId, text: data.text, childId: child.id}, `continue:${child.id}`);
+    json(res, 202, {taskId: child.id, commandId: command.id, state: command.state});
+    return true;
+  }
   if (match[2] === 'finalize') {
     const task = finalizePayload(db, taskId);
     json(res, 202, queue(db, 'finalize.run', task, {taskId: task.id}, `finalize:${task.id}`));

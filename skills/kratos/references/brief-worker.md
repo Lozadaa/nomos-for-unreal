@@ -7,7 +7,7 @@ Proveedor: {{provider}}. Rol: {{role}}. Skills: {{skills}}.
 ## Especificación
 
 {{spec}}
-
+{{continuation}}
 ## Criterios de aceptación
 
 {{acceptance}}

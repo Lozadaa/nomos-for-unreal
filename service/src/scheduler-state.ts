@@ -46,7 +46,11 @@ export function dependencyReason(db:DatabaseSync,task:Task):string|null {
 }
 export function nextAttempt(db:DatabaseSync,taskId:string):number {
   const history=filtered<Run>(db,'runs',{taskId});
-  return history.length ? Math.max(...history.map(r=>r.attempt))+1 : 1;
+  if(history.length) return Math.max(...history.map(r=>r.attempt))+1;
+  // continuación después de DONE (hito 6): el run nuevo sigue la numeración del responsable original
+  const parent=getTask(db,taskId)?.parentTaskId;
+  const previous=parent ? filtered<Run>(db,'runs',{taskId:parent}).filter(r=>r.provider==='codex'||r.provider==='claude') : [];
+  return previous.length ? Math.max(...previous.map(r=>r.attempt))+1 : 1;
 }
 export function automaticReason(db:DatabaseSync,task:Task):string|null {
   if(task.blockedReason||task.decisionId) return task.blockedReason ?? 'Esperando decisión';
