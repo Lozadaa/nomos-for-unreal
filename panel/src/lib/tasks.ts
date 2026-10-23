@@ -38,6 +38,7 @@ export interface Task {
 
 export interface Decision {
   id: string
+  createdAt: string
   taskId: string
   reason: string
   evidence: { kind: string; ref: string }[]

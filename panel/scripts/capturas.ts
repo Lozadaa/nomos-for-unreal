@@ -10,6 +10,7 @@ const out = resolve(import.meta.dirname, '../../docs/capturas-8')
 const sizes = [{ w: 1366, h: 768 }, { w: 1920, h: 1080 }]
 type Shot = { name: string; run: (page: Page) => Promise<void> }
 
+let chatSeeded = false
 const settle = (page: Page) => page.waitForTimeout(450)
 const goto = async (page: Page, path: string) => {
   await page.goto(process.env.KRATOS_URL!.replace('/#', `${path}#`))
@@ -24,7 +25,19 @@ export const shots: Record<string, Shot[]> = {
     { name: 'composer', run: async (p) => { await goto(p, '/?nueva=1'); await p.getByLabel('Título de la petición').fill('Habilidad Meteorito'); await p.getByLabel('Descripción').fill('Una bola de fuego que cae del cielo y deja un cráter.'); await settle(p) } },
   ],
   tarea5: [
-    { name: 'chat', run: (p) => goto(p, '/chat') },
+    { name: 'chat', run: async (p) => {
+      // una conversación real: un mensaje confirmado con respuesta y otro todavía sin confirmar
+      const token = new URLSearchParams(new URL(process.env.KRATOS_URL!).hash.slice(1)).get('token')!
+      const origin = new URL(process.env.KRATOS_URL!).origin
+      const call = async (path: string, data: unknown) => (await p.request.post(origin + path, { headers: { Authorization: `Bearer ${token}` }, data })).json()
+      if (!chatSeeded) {
+        const first = await call('/messages', { text: 'Quiero una habilidad Meteorito para el mago' })
+        await call(`/messages/${first.messageId}/reply`, { text: 'Entendido: la divido en diseño, efecto y prueba y se la doy a Codex.' })
+        await call('/messages', { text: 'Y que el cráter quede en el suelo unos segundos' })
+        chatSeeded = true
+      }
+      await goto(p, '/chat')
+    } },
     { name: 'actividad', run: (p) => goto(p, '/actividad') },
     { name: 'entregas', run: (p) => goto(p, '/entregas') },
     { name: 'catalogo', run: (p) => goto(p, '/catalogo') },

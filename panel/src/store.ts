@@ -10,12 +10,16 @@ export interface Snapshot {
   events: KratosEvent[]
   loaded: boolean
   live: boolean
+  /** Intervalos en los que se perdió la conexión con el servicio (para la vista Actividad). */
+  gaps: { from: string; to: string }[]
   /** Sube con cada evento del servicio; las vistas de detalle lo usan para volver a pedir sus datos. */
   version: number
 }
 
 const MAX_EVENTS = 500
-let snap: Snapshot = { tasks: [], events: [], loaded: false, live: false, version: 0 }
+let snap: Snapshot = { tasks: [], events: [], loaded: false, live: false, gaps: [], version: 0 }
+let downSince: string | null = null
+let everLive = false
 const listeners = new Set<() => void>()
 let connection: Live | null = null
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -51,15 +55,28 @@ const schedule = () => {
   timer = setTimeout(() => void refresh(), 80) // agrupa las ráfagas (repetición inicial incluida) en una sola petición
 }
 
+/** Recibe un evento del servicio: lo guarda (hasta 500) y, si toca a las tareas, programa una lectura agrupada. */
+export function ingest(e: KratosEvent): void {
+  set({ events: [...snap.events.filter((x) => x.seq !== e.seq), e].slice(-MAX_EVENTS), version: snap.version + 1 })
+  if (/^(task|decision|run)\./.test(e.type)) schedule()
+}
+
 export function startLive(): () => void {
   if (connection) return () => {}
   void refresh()
   connection = connectEvents(
-    (e) => {
-      set({ events: [...snap.events.filter((x) => x.seq !== e.seq), e].slice(-MAX_EVENTS), version: snap.version + 1 })
-      if (/^(task|decision|run)\./.test(e.type)) schedule()
+    ingest,
+    (live) => {
+      if (live) {
+        everLive = true
+        if (downSince) set({ live, gaps: [...snap.gaps, { from: downSince, to: new Date().toISOString() }] })
+        else set({ live })
+        downSince = null
+      } else {
+        if (everLive && !downSince) downSince = new Date().toISOString()
+        set({ live })
+      }
     },
-    (live) => set({ live }),
   )
   return () => { connection?.close(); connection = null; clearTimeout(timer) }
 }
@@ -89,6 +106,8 @@ export function patchTask(id: string, patch: Partial<Task>): () => void {
 
 export function resetStore(): void {
   connection?.close(); connection = null; clearTimeout(timer)
-  snap = { tasks: [], events: [], loaded: false, live: false, version: 0 }
+  snap = { tasks: [], events: [], loaded: false, live: false, gaps: [], version: 0 }
+  downSince = null
+  everLive = false
   emit()
 }

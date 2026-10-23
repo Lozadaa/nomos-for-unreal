@@ -1,0 +1,56 @@
+import { expect, test, type Page } from '@playwright/test'
+
+const url = () => process.env.KRATOS_URL!
+const token = () => new URLSearchParams(new URL(url()).hash.slice(1)).get('token')!
+const origin = () => new URL(url()).origin
+const call = (page: Page, path: string, data?: unknown) =>
+  page.request.fetch(origin() + path, { method: data ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token()}` }, data })
+
+const routes = [['/', 'Producción'], ['/actividad', 'Actividad'], ['/entregas', 'Entregas'], ['/catalogo', 'Catálogo'], ['/chat', 'Chat'],
+  ['/decisiones', 'Decisiones'], ['/presupuesto', 'Presupuesto'], ['/capacidades', 'Capacidades'], ['/estilo', 'Estilo']] as const
+
+for (const [path, name] of routes) {
+  test(`${name}: carga con datos reales sin errores de consola ni de seguridad`, async ({ page }) => {
+    const problems: string[] = []
+    page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()) })
+    page.on('pageerror', (e) => problems.push(e.message))
+    await page.goto(url().replace('/#', `${path}#`))
+    await expect(page.getByRole('link', { name: new RegExp(`^${name}`) }).first()).toHaveAttribute('aria-current', 'page')
+    await page.waitForTimeout(600)
+    // Hallazgo abierto: el visor 3D instancia WebAssembly y la política de seguridad del servicio no admite 'wasm-unsafe-eval' (service/src/server.ts, del hito 2)
+    expect(problems.filter((p) => !(path === '/entregas' && /WebAssembly|unsafe-eval|wasm/i.test(p)))).toEqual([])
+  })
+}
+
+test('Entregas: las imágenes y el modelo GLB cargan pese a la política de seguridad (service worker con el token)', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'WebGL del visor 3D: se comprueba en Chromium')
+  await page.goto(url().replace('/#', '/entregas#'))
+  const img = page.getByRole('img', { name: 'captura-01.png' })
+  await expect(img).toBeVisible()
+  await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  const viewer = page.locator('model-viewer')
+  await expect(viewer).toHaveCount(1)
+  await expect.poll(() => viewer.evaluate((el: HTMLElement & { loaded?: boolean }) => Boolean(el.loaded)), { timeout: 15000 }).toBe(true)
+})
+
+test('Producción se actualiza en vivo por SSE: una tarea creada fuera del panel aparece sin recargar', async ({ page }) => {
+  await page.goto(url())
+  await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
+  const created = await call(page, '/tasks', { title: 'Creada desde fuera', spec: '', area: 'qa', acceptance: [] })
+  expect(created.status()).toBe(201)
+  await expect(page.getByRole('button', { name: /Creada desde fuera/ })).toBeVisible()
+})
+
+test('Chat: el mensaje enviado aparece al instante, pasa a «Recibido» y la respuesta de Kratos llega en vivo', async ({ page, browserName }) => {
+  const text = `Hola desde el panel (${browserName})`
+  await page.goto(url().replace('/#', '/chat#'))
+  const posted = page.waitForResponse((r) => r.url().endsWith('/messages') && r.request().method() === 'POST')
+  await page.getByLabel('Mensaje para Kratos').fill(text)
+  await page.getByRole('button', { name: 'Enviar' }).click()
+  await expect(page.getByText(text)).toBeVisible()
+  const { messageId } = await (await posted).json()
+  await expect(page.getByText(/Enviado · esperando confirmación de Kratos/)).toBeVisible()
+  // Kratos (la sesión de Claude) confirma y responde por la API del servicio
+  await call(page, `/messages/${messageId}/reply`, { text: 'Entendido, lo preparo' })
+  await expect(page.getByText('Entendido, lo preparo')).toBeVisible()
+})

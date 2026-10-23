@@ -157,3 +157,8 @@ html[data-vt] [data-slot='sheet-overlay'][data-ending-style] { opacity: 1; trans
   ::view-transition-new(k-sheet), ::view-transition-old(k-sheet) { animation-name: k-fade-in; animation-duration: 80ms; }
   ::view-transition-old(k-sheet) { animation-direction: reverse; }
 }
+
+/* «Tick» de las cifras: la nueva sube desde abajo en 300 ms */
+@keyframes k-tick { from { opacity: 0; transform: translateY(40%); } }
+.k-tick { animation: k-tick 300ms var(--k-ease); }
+@media (prefers-reduced-motion: reduce) { .k-tick { animation: k-fade-in 80ms linear; } }

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, ApiError, token } from '@/api'
+import { api, ApiError } from '@/api'
+import { useArtifactSrc } from '@/hooks/artifact'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusDot } from '@/components/StatusDot'
 import { useAction } from '@/feel/useAction'
 import { relativeTime } from '@/lib/time'
-import type { KratosEvent, Run, TaskDetail, TestRun, Tone } from '@/lib/tasks'
+import type { Run, TaskDetail, TestRun, Tone } from '@/lib/tasks'
 import { useStore } from '@/store'
+import { eventText } from '@/lib/events'
 
 type Resource<T> = { state: 'loading' } | { state: 'ok'; data: T } | { state: 'unavailable' } | { state: 'error'; message: string }
 
@@ -118,18 +120,8 @@ export function TestsTab({ detail }: { detail: TaskDetail }) {
 
 const kindLabel: Record<string, string> = { model: 'Modelo', texture: 'Textura', screenshot: 'Captura', video: 'Vídeo', build: 'Compilación', report: 'Informe', diff: 'Cambios' }
 
-/** Las imágenes viven detrás del token, así que se piden con fetch y se muestran como blob. */
 function Thumb({ id, name }: { id: string; name: string }) {
-  const [src, setSrc] = useState<string | null>(null)
-  useEffect(() => {
-    let url: string | null = null
-    let alive = true
-    fetch(`/artifacts/${encodeURIComponent(id)}/file`, { headers: { Authorization: `Bearer ${token ?? ''}` } })
-      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
-      .then((b) => { if (alive) { url = URL.createObjectURL(b); setSrc(url) } })
-      .catch(() => undefined)
-    return () => { alive = false; if (url) URL.revokeObjectURL(url) }
-  }, [id])
+  const src = useArtifactSrc(id)
   return src
     ? <img src={src} alt={name} className="h-24 w-40 rounded-md border border-subtle object-cover" />
     : <div aria-hidden className="h-24 w-40 rounded-md border border-subtle bg-card" />
@@ -151,21 +143,6 @@ export function ArtifactsTab({ detail }: { detail: TaskDetail }) {
       })}
     </ul>
   )
-}
-
-function eventText(e: KratosEvent): string {
-  const p = e.payload
-  switch (e.type) {
-    case 'task.created': return 'Tarea creada'
-    case 'task.moved': return `Pasó de ${String(p.from)} a ${String(p.state)}${p.reason ? ` · ${String(p.reason)}` : ''}`
-    case 'task.blocked': return `Bloqueada: ${String(p.reason)}`
-    case 'decision.opened': return `Se pidió una decisión: ${String(p.reason)}`
-    case 'decision.resolved': return `Decisión resuelta por ${String(p.by)}`
-    case 'run.started': return `Ejecución iniciada con ${String(p.provider)}`
-    case 'run.finished': return `Ejecución terminada (${String(p.state)})${p.summary ? ` · ${String(p.summary)}` : ''}`
-    case 'artifact.created': return 'Nuevo asset'
-    default: return e.type
-  }
 }
 
 export function TimelineTab({ detail }: { detail: TaskDetail }) {

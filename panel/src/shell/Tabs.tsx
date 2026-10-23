@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/store'
 
 export const views = [
   { to: '/', label: 'Producción' },
@@ -18,6 +19,7 @@ export function Tabs() {
   const nav = useRef<HTMLElement>(null)
   const { pathname } = useLocation()
   const [bar, setBar] = useState({ x: 0, w: 0 })
+  const pending = useStore((s) => s.tasks.filter((t) => t.decisionId).length)
 
   // indicador deslizante bajo la pestaña activa (transición de 180 ms en CSS)
   useLayoutEffect(() => {
@@ -38,6 +40,7 @@ export function Tabs() {
               isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}
         >
           {v.label}
+          {v.to === '/decisiones' && pending > 0 && <span className="ml-2 font-mono text-xs text-warning" aria-label={`${pending} pendientes`}>{pending}</span>}
         </NavLink>
       ))}
       <span
