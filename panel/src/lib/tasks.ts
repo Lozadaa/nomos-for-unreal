@@ -52,6 +52,8 @@ export interface Decision {
 export interface Run {
   id: string; taskId: string; role: string; provider: string; state: 'running' | 'done' | 'failed' | 'cancelled'
   startedAt: string; finishedAt: string | null; summary: string | null
+  /** Estado persistido por el servicio; permite restaurar la espera al recargar. */
+  metadata?: { waiting?: boolean }
 }
 
 export interface TestRun {

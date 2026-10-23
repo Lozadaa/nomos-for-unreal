@@ -40,7 +40,7 @@ async function visibleWords(scope: Locator): Promise<number> {
       for (let node: Element | null = el; node; node = node.parentElement) {
         if (node.matches('script,style,option,svg title,[hidden],[inert],[aria-hidden="true"],.sr-only')) return true
         const style = getComputedStyle(node)
-        if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return true
+        if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse' || style.opacity === '0') return true
       }
       return false
     }

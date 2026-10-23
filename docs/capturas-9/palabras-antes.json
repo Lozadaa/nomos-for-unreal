@@ -1,0 +1,90 @@
+{
+  "method": "Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/aria-hidden/sr-only/display:none/visibility:hidden, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.",
+  "seed": "Servicio real seed, conversación POST /messages + reply y Git temporal con diff real. Vacíos: respuestas API interceptadas solo en el navegador; no borran datos. Sin fixtures de miniaturas.",
+  "measuredAt": "2026-10-23T15:43:35.600Z",
+  "revision": "083ec79d7f68fa9766b256c88449aa6c1d36a86f",
+  "views": {
+    "produccion": {
+      "1366": {
+        "full": 156,
+        "firstRow": 9,
+        "empty": 32
+      },
+      "1920": {
+        "full": 156,
+        "firstRow": 9,
+        "empty": 32
+      }
+    },
+    "chat": {
+      "1366": {
+        "full": 55,
+        "empty": 17
+      },
+      "1920": {
+        "full": 55,
+        "empty": 17
+      }
+    },
+    "actividad": {
+      "1366": {
+        "full": 14,
+        "empty": 12
+      },
+      "1920": {
+        "full": 14,
+        "empty": 12
+      }
+    },
+    "entregas": {
+      "1366": {
+        "full": 24,
+        "empty": 12
+      },
+      "1920": {
+        "full": 24,
+        "empty": 12
+      }
+    },
+    "catalogo": {
+      "1366": {
+        "full": 702,
+        "empty": 15
+      },
+      "1920": {
+        "full": 702,
+        "empty": 15
+      }
+    },
+    "decisiones": {
+      "1366": {
+        "full": 58,
+        "empty": 13
+      },
+      "1920": {
+        "full": 58,
+        "empty": 13
+      }
+    },
+    "presupuesto": {
+      "1366": {
+        "full": 57,
+        "empty": 9
+      },
+      "1920": {
+        "full": 57,
+        "empty": 9
+      }
+    },
+    "capacidades": {
+      "1366": {
+        "full": 53,
+        "empty": 0
+      },
+      "1920": {
+        "full": 53,
+        "empty": 0
+      }
+    }
+  }
+}

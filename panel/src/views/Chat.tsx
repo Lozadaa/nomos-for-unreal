@@ -3,11 +3,14 @@ import { humanError } from '@/lib/errors'
 import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useFresh } from '@/hooks/fresh'
 import { useAction } from '@/feel/useAction'
 import { relativeTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
+import { AgentAvatar } from '@/visual/art/AgentAvatar'
+import { CheckCircle2 } from 'lucide-react'
 
 interface Message { id: string; text: string; at: string; acked: boolean; reply: { text: string; at: string } | null }
 interface Outbox { key: string; text: string; sentAt: number; messageId?: string }
@@ -33,8 +36,20 @@ const receivedCopy = 'Recibido · Kratos lo atenderá en breve'
 function Bubble({ text, status, at, from, fresh }: { text: string; status?: string; at?: string; from: 'tu' | 'kratos'; fresh: boolean }) {
   return (
     <li className={cn('flex flex-col gap-1', fresh && 'animate-in duration-(--k-dur-standard) fade-in motion-reduce:animate-none', from === 'tu' ? 'items-end' : 'items-start')}>
+      <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+        {from === 'kratos' ? <><AgentAvatar id="kratos" provider="kratos" name="Kratos" size={32} /><span>Kratos</span></> : <span>Tú</span>}
+        {at && <time dateTime={at} title={relativeTime(at)}>{relativeTime(at).replace(/^hace /, '')}</time>}
+      </span>
       <p className={cn('max-w-[70%] rounded-lg border px-3 py-2 text-sm whitespace-pre-wrap', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')}>{text}</p>
-      <span className="text-xs text-muted-foreground">{from === 'kratos' ? 'Kratos' : status}{at ? ` · ${relativeTime(at)}` : ''}</span>
+      {status === receivedCopy ? (
+        <Tooltip>
+          <TooltipTrigger render={<span tabIndex={0} className="inline-flex text-success" />}>
+            <CheckCircle2 size={14} role="img" aria-label="Recibido por Kratos" aria-hidden={undefined} />
+            <span className="sr-only">{receivedCopy}</span>
+          </TooltipTrigger>
+          <TooltipContent role="tooltip">{receivedCopy}</TooltipContent>
+        </Tooltip>
+      ) : status && <span className="text-xs text-muted-foreground">{status}</span>}
     </li>
   )
 }

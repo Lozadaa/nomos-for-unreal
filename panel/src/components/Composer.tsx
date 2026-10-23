@@ -8,6 +8,7 @@ import { useAction } from '@/feel/useAction'
 import { addOptimistic, confirmOptimistic } from '@/store'
 import { areaLabel, areas, type Area, type Task } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
+import { AreaPictogram } from '@/visual/art/AreaPictogram'
 
 const empty = { title: '', spec: '', area: 'gameplay' as Area }
 
@@ -91,13 +92,14 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
             className="mt-1 min-h-20 resize-none border-0 bg-transparent px-2 text-sm focus-visible:ring-0"
           />
           <div className="flex items-center gap-3 px-2 pt-2 pb-1">
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-              Área
+            <label title={`Área: ${areaLabel[draft.area]}`} className="relative inline-flex size-12 shrink-0 items-center justify-center rounded-md border border-input bg-background focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-2">
+              <AreaPictogram area={draft.area} size={32} />
               <select
                 value={draft.area}
                 onChange={(e) => setDraft({ ...draft, area: e.target.value as Area })}
                 name="area"
-                className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                aria-label="Área"
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
               >
                 {areas.map((a) => <option key={a} value={a}>{areaLabel[a]}</option>)}
               </select>

@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { StageStepper } from './StageStepper'
+import { stageLabel, stages } from '@/lib/tasks'
 
 const task = (over = {}) => ({ state: 'implementando' as const, blockedReason: null, decisionId: null, ...over })
 
 describe('StageStepper', () => {
+  it('identifica las ocho etapas con glifos y muestra el nombre solo en la etapa activa', () => {
+    render(<StageStepper task={task()} />)
+    expect(screen.getAllByRole('img').map((node) => node.getAttribute('aria-label'))).toEqual(stages.map((stage) => stageLabel[stage]))
+    for (const stage of stages) {
+      const name = screen.getByText(stageLabel[stage])
+      expect(name.classList.contains('sr-only')).toBe(stage !== 'implementando')
+    }
+  })
+
   it('marca la etapa actual y deja las demás sin marcar', () => {
     render(<StageStepper task={task()} />)
     expect(screen.getAllByRole('listitem')).toHaveLength(8)

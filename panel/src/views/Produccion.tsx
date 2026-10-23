@@ -9,14 +9,28 @@ import { TaskRow } from '@/components/TaskRow'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useAfter, useNow } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
+import { useRuns } from '@/hooks/useRuns'
 import { stageLabel, stages, type Stage, type Task } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
+import { assignAgentNames } from '@/visual/art/agentName'
 
 type Filter = 'todas' | Stage
 
 export function Produccion() {
   const tasks = useStore((s) => s.tasks)
+  const runs = useRuns()
+  const byTask = useMemo(() => {
+    const map = new Map<string, (typeof runs)[number]>()
+    for (const run of [...runs].sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))) {
+      if (map.get(run.taskId)?.state !== 'running' || run.state === 'running') map.set(run.taskId, run)
+    }
+    return map
+  }, [runs])
+  const agentsByRunId = useMemo(() => new Map(assignAgentNames([...runs]
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
+    .map((run) => ({ ...run, area: tasks.find((t) => t.id === run.taskId)?.area, state: run.state === 'running' ? run.waiting ? 'waiting' : 'running' : 'idle' })))
+    .map((agent) => [agent.id, { name: agent.name, ordinal: agent.ordinal }])), [runs, tasks])
   const loaded = useStore((s) => s.loaded)
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -111,13 +125,13 @@ export function Produccion() {
                 {stageLabel[stage]}<span className="font-mono">{rows.length}</span>
               </h2>
               <ul>
-                {rows.map((t) => <li key={t.id}><TaskRow task={t} now={now} open={t.id === openId} onOpen={open} /></li>)}
+                {rows.map((t) => <li key={t.id}><TaskRow task={t} run={byTask.get(t.id)} agent={agentsByRunId.get(byTask.get(t.id)?.id ?? '')} now={now} open={t.id === openId} onOpen={open} /></li>)}
               </ul>
             </div>
           ))}
       </section>
 
-      {openId && <TaskSheet id={openId} task={openTask} onClose={close} />}
+      {openId && <TaskSheet id={openId} task={openTask} agentsByRunId={agentsByRunId} onClose={close} />}
     </div>
   )
 }
