@@ -15,6 +15,7 @@ import { panelStatic } from "./static.ts";
 import { projectInfo } from "./project-root.ts";
 import { startRunner, type Handler } from './runner.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
+import { createAssetHandlers } from './handlers/asset.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string,
@@ -123,7 +124,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const info = { pid: process.pid, port, token, startedAt: new Date().toISOString() };
   const temporary = file + `.${process.pid}.tmp`;
   writeFileSync(temporary, JSON.stringify(info), { mode: 0o600 }); renameSync(temporary, file);
-  runner=startRunner(db,opts.runner?.handlers ?? createWorkerHandlers(),
+  runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers()},
     {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});
   server.once("close", async () => {
     runner!();await runner!.drained;

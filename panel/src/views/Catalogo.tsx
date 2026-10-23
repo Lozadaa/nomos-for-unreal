@@ -14,6 +14,7 @@ import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
 import { useResource } from '@/hooks/useResource'
+import { useIndexCatalog } from '@/hooks/assetCommands'
 import { cn } from '@/lib/utils'
 import { catalogArea, catalogThumbnailUrl } from '@/lib/catalogVisual'
 import { Glyph } from '@/visual/Glyph'
@@ -127,7 +128,8 @@ export function CatalogCard({ entry }: { entry: CatalogEntry }) {
 
 export function Catalogo() {
   const navigate = useNavigate()
-  const { data, loading, error } = useResource<CatalogEntry[]>('/catalog')
+  const { data, loading, error } = useResource<CatalogEntry[]>('/catalog', /^catalog\./)
+  const index = useIndexCatalog()
   const slow = useAfter(loading)
   const [modeParam, setMode] = useParam('modo', 'todos')
   const mode = modeParam as Mode
@@ -144,7 +146,8 @@ export function Catalogo() {
 
   if (error && !data) return <p role="alert" className="text-sm text-error">No se pudo cargar el catálogo. {humanError(new Error(error))}</p>
   if (loading) return slow ? <div role="status" aria-label="Cargando el catálogo" className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-40" />)}</div> : null
-  if (!data?.length) return <EmptyState view="catalogo" message="Aún no se ha indexado nada" action={{ label: 'Pedir un asset', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
+  const indexButton = <Button variant="outline" size="sm" disabled={index.pending} aria-busy={index.pending} onClick={() => void index.fire()}>{index.pending ? 'Indexando…' : 'Indexar ahora'}</Button>
+  if (!data?.length) return <div className="flex flex-col items-end gap-4">{indexButton}<div className="w-full"><EmptyState view="catalogo" message="Aún no se ha indexado nada" action={{ label: 'Pedir un asset', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} /></div></div>
 
   return (
     <div className="flex flex-col gap-4">
@@ -160,6 +163,7 @@ export function Catalogo() {
           {sources.map((s) => <ToggleGroupItem key={s} value={s}>{sourceLabel[s] ?? s}</ToggleGroupItem>)}
         </ToggleGroup>
         <Input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar asset…" autoComplete="off" name="q" spellCheck={false} aria-label="Buscar asset" className="ml-auto h-8 w-56" />
+        {indexButton}
       </div>
       {shown.length === 0
         ? <div className="rounded-lg border border-subtle"><EmptyState view="catalogo" message="Ningún asset coincide con tu búsqueda" action={{ label: 'Quitar filtros', onClick: clear }} /></div>
