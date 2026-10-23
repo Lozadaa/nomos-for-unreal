@@ -17,7 +17,8 @@ export function fixture(t: any, env: Record<string,string> = {}) {
   mkdirSync(dataDir,{recursive:true});
   const git=(...args:string[])=>execFileSync('git',['-C',projectDir,...args],{encoding:'utf8',windowsHide:true,stdio:['pipe','pipe','pipe']});
   git('init');git('config','core.autocrlf','false');git('config','user.name','Kratos test');git('config','user.email','test@example.invalid');
-  writeFileSync(join(projectDir,'base.txt'),'base\n');git('add','base.txt');git('commit','-m','Base');
+  writeFileSync(join(projectDir,'Game.uproject'),'{"FileVersion":3}\n');
+  writeFileSync(join(projectDir,'base.txt'),'base\n');git('add','base.txt','Game.uproject');git('commit','-m','Base');
   const db=openDb(join(dataDir,'kratos.db')), file=join(dir,'orca.json');
   const state=()=>JSON.parse(readFileSync(file,'utf8'));
   const output=(...lines:string[])=>{const data=state();data.tail.push(...lines);writeFileSync(file,JSON.stringify(data));};

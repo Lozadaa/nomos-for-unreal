@@ -21,6 +21,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
   const streams = new Set<http.ServerResponse>();
   let stopping=false;
   const server = http.createServer(async (req, res) => {
+    if (stopping) res.setHeader('Connection','close');
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'");
@@ -40,6 +41,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
       if (await production({db, req, res, url, dataDir})) return;
       if (method === "GET" && path === "/status") return json(res, 200, status(db));
       if (method === "GET" && path === "/events") {
+        if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);
         if (!Number.isSafeInteger(since) || since < 0) return json(res, 400, { error: "invalid_seq" });
         return streamEvents(db, req, res, since, streams);
@@ -49,12 +51,14 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         return json(res, message ? 200 : 404, message || { error: "unknown_message" });
       }
       if (method === "POST" && path === "/admin/stop") {
+        res.setHeader('Connection','close');
         if(stopping) return json(res,202,{ok:true});
         stopping=true;
         const drained=Promise.resolve(onStopping?.());
         appendEvent(db, "director.stopped", null, { session: status(db).director });
         json(res, 202, { ok: true });
-        process.nextTick(() => { for (const stream of streams) stream.end(); void drained.then(()=>server.close()); });
+        const closeStreams=()=>{for(const stream of streams) stream.end();};
+        process.nextTick(() => {closeStreams();void drained.then(()=>{closeStreams();server.close();});});
         return;
       }
       if (method !== "POST") return json(res, 404, { error: "not_found" });

@@ -1,13 +1,14 @@
 import { parseArgs } from "node:util";
 import { spawn } from "node:child_process";
 import { join, resolve } from "node:path";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
 import { request, serviceInfo, ServiceError } from "./client.ts";
 import { watch } from "./watcher.ts";
 import { openDb } from "./db.ts";
 import { seed } from "./seed.ts";
+import { directorCli } from './cli-director.ts';
 
 function openBrowser(url: string) {
   const [command, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
@@ -17,6 +18,7 @@ function openBrowser(url: string) {
 }
 
 async function main() {
+  if (await directorCli(process.argv.slice(2))) return;
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     data: { type: "string", default: ".kratos" }, port: { type: "string", default: "8780" },
     force: { type: "boolean", default: false }, session: { type: "string" }, "no-open": { type: "boolean", default: false } } });
@@ -63,12 +65,11 @@ async function main() {
   if (command === "reply") console.log(JSON.stringify(await request(info, `/messages/${encodeURIComponent(args[0])}/reply`, { text: args.slice(1).join(" ") })));
   if (command === "stop") {
     await request(info, "/admin/stop", {});
-    const deadline = Date.now() + 2000;
-    while (await isAlive(info)) {
-      if (Date.now() > deadline) throw new ServiceError("El servicio no terminó de detenerse");
+    const deadline = Date.now() + 10 * 60_000;
+    while (await isAlive(info) || readServiceInfo(dataDir)?.token === info.token) {
+      if (Date.now() > deadline) throw new ServiceError("Drenaje pendiente: el servidor aún no confirmó cierre y retirada de su token");
       await sleep(50);
     }
-    if (readServiceInfo(dataDir)?.token === info.token) rmSync(join(dataDir, "service.json"), { force: true });
     console.log("DETENIDO");
   }
 }

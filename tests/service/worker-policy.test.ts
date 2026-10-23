@@ -11,6 +11,7 @@ import type { Decision } from '../../service/src/model.ts';
 
 test('sin Git abre init_git resoluble sin efectos ni bloqueo stale',async t=>{
   const f=fixture(t);const absent=join(f.dir,'not repo');mkdirSync(absent);f.ctx.projectDir=absent;
+  writeFileSync(join(absent,'Game.uproject'),'{"FileVersion":3}');
   await f.start();const task=getTask(f.db,f.task.id)!;
   assert.ok(task.decisionId);assert.equal(f.run(),undefined);assert.equal(f.state().repos.length,0);
   const decision=read<Decision>(f.db,'decisions',task.decisionId!)!;

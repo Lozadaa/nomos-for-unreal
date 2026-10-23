@@ -10,6 +10,7 @@ import { renderBrief } from '../brief.ts';
 import { workerPolicy, decisionGate } from './worker-policy.ts';
 import { OrcaError } from '../adapters/orca.ts';
 import { dispatchGuard, dispatchBlocked, pauseForDecision } from './worker-decisions.ts';
+import { requireGameProject } from '../project-root.ts';
 
 export const workerStart: Handler=async (cmd,ctx)=>{
   const {db,git,orca,projectDir}=ctx,payload=cmd.payload as any;
@@ -26,6 +27,7 @@ export const workerStart: Handler=async (cmd,ctx)=>{
     decisionGate(ctx,task,'reconcile','Reconciliar worker existente antes de continuar',
       {worktreeId:task.worktreeId,runs:filtered<Run>(db,'runs',{taskId:task.id})},undefined,false);return;
   }
+  await requireGameProject(projectDir);
   if (!await workerPolicy(ctx,task,`start:${payload.attempt ?? 1}`,true)) {
     return {policyBlocked:true,decisionId:requireTask(db,task.id).decisionId};
   }
