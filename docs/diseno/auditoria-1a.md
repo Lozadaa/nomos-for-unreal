@@ -11,7 +11,7 @@ Superficies auditadas: la maqueta elegida `design/maquetas/a/index.html` y `desi
 | 2b. Pulido | `impeccable` (`polish`, manual) | Hecho a mano siguiendo `polish.md` | — | Lista abajo | — |
 | 3. Heurísticas | `ux-heuristics` Quick Diagnostic | Hecha por quien implementa | 4 filas fallidas | 1 | 3 |
 | 4. Teclado | Revisión estática + DOM | **Parcial**: sin pulsaciones reales | 2 | 2 | 1 (verificación manual) |
-| 5. Contraste AA | `tests/tokens.test.ts` | Verde (6 pruebas) | 1 (`textTertiary`) | 1 | 0 |
+| 5. Contraste AA | `tests/tokens.test.ts` | Verde (7 pruebas en total) | 1 (`textTertiary`) | 1 | 0 |
 | 6. 1366×768 | DOM en el navegador integrado | Cumple | 0 | — | 0 |
 
 ### Lo que NO se pudo ejecutar
@@ -123,7 +123,7 @@ Hecho por inspección y consulta al DOM; no con pulsaciones reales.
 
 ## 5. Contraste AA
 
-Calculado en `tests/tokens.test.ts` (6 pruebas en verde): texto, secundario y terciario sobre blanco, gris de fondo y gris suave; blanco sobre el azul y sobre el azul al pasar el cursor; azul de enlaces sobre blanco; colores semánticos a 3:1 sobre blanco; y el texto y los iconos sobre los fondos suaves de estado (12 %) y los 10 % y 5 % de azul y rojo. Un valor del plan cambió: `textTertiary` pasa de `#6B7280` a `#69707E` (ver `docs/diseno-visual.md`). `warning` (3,64:1) y `success` (4,21:1) solo se usan en iconos, bordes y fondos suaves, nunca como texto pequeño.
+Calculado en `tests/tokens.test.ts` (7 pruebas del archivo en verde): texto, secundario y terciario sobre blanco, sobre el gris de fondo (`bgLayout`) y sobre el gris suave (`bgSubtle`); blanco sobre el azul y sobre el azul al pasar el cursor; azul de enlaces sobre blanco; colores semánticos a 3:1 sobre blanco; y el texto y los iconos sobre los fondos suaves de estado (12 %) y los 10 % y 5 % de azul y rojo. Un valor del plan cambió: `textTertiary` pasa de `#6B7280` a `#69707E` (ver `docs/diseno-visual.md`). `warning` (3,64:1) y `success` (4,21:1) solo se usan en iconos, bordes y fondos suaves, nunca como texto pequeño.
 
 ## 6. 1366×768 con barra lateral (medido en el DOM, maqueta A)
 
@@ -132,3 +132,31 @@ Calculado en `tests/tokens.test.ts` (6 pruebas en verde): texto, secundario y te
 - Formulario «Nueva petición» (panel): título, primer campo y botón «Enviar a Kratos» visibles sin desplazar (el botón termina a 756 px de 768); el cuerpo no desplaza; cada campo reserva 18 px de ayuda o error.
 - Tablero y catálogo caben sin desplazar la página; el tablero se desplaza en horizontal dentro de su región.
 - Nombre con emoji (`Raqueta Nude_Tennis_Racket_🎾`): elipsis, sin romper la columna.
+
+## 7. Revisión final de la rama y correcciones posteriores
+
+Un revisor con contexto fresco leyó la rama completa. Sin hallazgos críticos. Lo que se corrigió después, cada cosa con una prueba que fallaba antes:
+
+| Hallazgo | Corrección |
+|---|---|
+| La prueba de `tokens.css` regeneraba el archivo antes de compararlo, así que nunca fallaba por un CSS desfasado | Ahora compara primero el archivo versionado con el generado (comprobado a mano: cambiar `--k-size-md` en `tokens.css` hace fallar la prueba) |
+| El escáner de «sin valores a mano» tenía huecos (nombres de color, `hwb(`, `font:`, `border-radius` en px o %, sombras compuestas, `text-shadow`, degradados, px dentro de `style=""`) | Escáner ampliado y probado con 20 casos sintéticos; limpiados los 6 sitios que ya incumplían (`width:240px` ×3, `max-width:720px` ×2, el degradado de «hueco por desconexión») |
+| `/estilo` usaba `--col-w` de 192 px y la maqueta 176 px | Igualados a 176 px |
+| `role="status"` en las seis franjas de ejemplo de `/estilo` | Quitado (se mantiene en los avisos) |
+| La sección 5 decía comprobar el terciario sobre el gris suave y la prueba no lo hacía | Prueba añadida |
+| `docs/diseno-visual.md` decía «8 columnas a 1920» sin aclarar que es sin panel | Corregido |
+| `live-browser.js` y `modern-screenshot.umd.js` de Impeccable sin documentar | Anotados en `skills-instaladas.md` |
+| La captura completa de `/estilo` se cortaba antes de los estados vacíos | Recapturada más alta |
+
+Observaciones menores que se dejan anotadas (no bloquean el hito):
+
+- El emoji de `Raqueta Nude_Tennis_Racket_🎾` solo se ve en el catálogo; en las tarjetas la elipsis corta antes (a 1366 la columna «Cerrando» queda fuera de vista).
+- Con el panel abierto a 1366 asoma una tira roja de la tarjeta bloqueada junto al borde del panel y el catálogo pierde las columnas Licencia y Estado.
+- El tablero a 1366 no da ninguna pista de que «Cerrando» y «Hecha» existen más a la derecha.
+- La franja «En pausa» de `/estilo` usa la clase de «escuchando» (verde).
+- `.help` no admite errores largos (una línea con elipsis).
+- La ayuda de los campos no está enlazada con `aria-describedby`; el `aria-label` de las tarjetas oculta «responsable · pruebas» al lector; «Enviar a Kratos» está fuera de un `<form>`.
+- En `/estilo`: enlaces `href="#cerrar"` y `href="#"` sin destino; el panel vacío muestra `r-0151 · ws/…` en primer plano; todos los botones en carga dicen «Enviando a Kratos…».
+- «Kratos atendiendo N mensajes» dará «1 mensajes» (copy fijado por el hito 0; resolver el plural en 1b).
+- `contrast()` y `mix()` no admiten hex de 3 dígitos ni con alfa.
+- `opacity` y `gap` en px siguen sueltos en `componentes.css` (el escáner no los vigila).

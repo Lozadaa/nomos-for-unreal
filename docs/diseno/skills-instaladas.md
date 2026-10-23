@@ -12,6 +12,8 @@ Instaladas con el procedimiento del plan v2 §3.1: copia de inspección desde el
 
 Notas sobre `impeccable`:
 - Se copia solo la skill (`SKILL.md`, `reference/`, `scripts/`). No se copian los `hooks` ni los `agents` del plugin: los hooks ejecutarían un binario en cada edición.
+- Dentro de `scripts/` también viajan `live-browser.js` (unos 560 KB; el modo `live` lo inyecta en la página abierta y habla con un servidor local) y `modern-screenshot.umd.js` (librería de terceros minificada, para capturas). Ninguno se ha ejecutado ni inspeccionado línea a línea; la licencia de la librería no está anotada en `NOTICE.upstream.md`. Revisarlos antes de usar `/impeccable live`.
+- `SKILL.md` ofrece `/impeccable hooks on`, que instalaría un hook que descarga y ejecuta el binario en cada edición. No activarlo sin leer antes `reference/hooks.md`.
 - Su lanzador `scripts/impeccable` descarga un binario de GitHub (con comprobación sha256) la primera vez que se usa. No se ha ejecutado. Su `SKILL.md` prevé el caso «launcher unavailable»: leer `PRODUCT.md`/`DESIGN.md` directamente. Si se quiere el detector automático, ejecutarlo una vez a mano tras leerlo.
 
 ## Ya disponibles en el equipo

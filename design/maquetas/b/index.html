@@ -17,6 +17,8 @@ body { overflow: hidden; }
 .ws { margin-top: auto; display: grid; gap: 2px; padding: var(--k-space-2); border-radius: var(--k-radius-md); background: var(--k-color-bg-subtle); font-size: var(--k-size-sm); }
 .ws b { font-weight: 600; }
 .attn { display: flex; gap: var(--k-space-1); }
+:root { --search-w: 240px; }
+.cat-search { margin-left: auto; width: var(--search-w); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--k-space-3); }
 .drawer-peticion { display: none; }
 #nueva-peticion:target ~ .drawer-tarea { display: none; }
@@ -246,7 +248,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
 <section class="panel catalogo" aria-labelledby="h-cat">
   <div class="panel-head">
     <h2 id="h-cat">Catálogo</h2><span class="muted">6 de 30 assets</span>
-    <div class="search" style="margin-left:auto;width:240px"><input class="input" name="buscar" type="search" autocomplete="off" placeholder="Buscar assets…" aria-label="Buscar assets" /><svg class="ico " aria-hidden="true"><use href="#i-search"/></svg></div>
+    <div class="search cat-search"><input class="input" name="buscar" type="search" autocomplete="off" placeholder="Buscar assets…" aria-label="Buscar assets" /><svg class="ico " aria-hidden="true"><use href="#i-search"/></svg></div>
     <button class="btn btn-sm" type="button">Indexar ahora</button>
   </div>
   <div class="tbl-wrap" >

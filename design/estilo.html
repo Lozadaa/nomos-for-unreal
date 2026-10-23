@@ -19,7 +19,7 @@ body { display: grid; grid-template-columns: var(--k-layout-sidebar) 1fr; }
 .index a { display: flex; align-items: center; height: calc(var(--k-layout-control) + var(--k-space-0)); padding: 0 var(--k-space-2); border-radius: var(--k-radius-md); color: var(--k-color-text-secondary); font-weight: 500; }
 .index a:hover { background: var(--k-color-bg-subtle); color: var(--k-color-text); }
 .index a:target, .index a[aria-current] { color: var(--k-color-primary); }
-main { padding: var(--k-space-5) var(--k-space-5) var(--k-space-6); min-width: 0; max-width: 1180px; }
+main { padding: var(--k-space-5) var(--k-space-5) var(--k-space-6); min-width: 0; max-width: var(--page-max); }
 .lead { color: var(--k-color-text-secondary); max-width: 65ch; margin-top: var(--k-space-1); }
 section.sec { margin-top: var(--k-space-6); }
 section.sec > h2 { font-size: var(--k-size-xl); font-weight: 600; margin-bottom: var(--k-space-1); }
@@ -46,7 +46,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
 .fhead { font-size: var(--k-size-xs); color: var(--k-color-text-secondary); font-weight: 600; margin-bottom: var(--k-space-1); }
 .frow { padding: var(--k-space-2) 0; border-top: 1px solid var(--k-color-border); align-items: start; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--col-w), 1fr)); gap: var(--k-space-3) var(--k-space-2); }
-:root { --card-h: 56px; --col-w: 192px; }
+:root { --card-h: 56px; --col-w: 176px; --page-max: 1180px; }
 .fig { margin: 0; display: grid; gap: var(--k-space-1); }
 .fig figcaption, .fig-wide figcaption { font-size: var(--k-size-xs); color: var(--k-color-text-secondary); }
 .fig-wide { margin: 0 0 var(--k-space-3); display: grid; gap: var(--k-space-1); }
@@ -68,7 +68,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
 .empty-slot { padding: var(--k-space-3); }
 .opts { display: grid; gap: var(--k-space-2); }
 .toasts { display: grid; gap: var(--k-space-3); justify-items: start; }
-.hatch { background: repeating-linear-gradient(135deg, var(--k-color-bg-subtle) 0 6px, var(--k-color-border) 6px 7px); }
+.hatch { background: var(--k-color-bg-subtle); border: 1px dashed var(--k-color-text-tertiary); }
 .attn { display: flex; gap: var(--k-space-1); }
 </style>
 </head>
@@ -255,7 +255,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
     <h2 id="h-director">Franja del director</h2>
     <p class="note">Los cinco estados del servicio. «Vigilante caído» lleva un triángulo de aviso y «Servicio desconectado» un enchufe cortado: no dependen del color.</p>
     <figure class="fig-wide">
-      <div class="director k-director-esperando" role="status" aria-label="Servicio activo · esperando a Kratos">
+      <div class="director k-director-esperando">
         <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-clock"/></svg></span>
         <div class="director-main"><p class="director-title ell">Servicio activo · esperando a Kratos</p><p class="director-sub ell">Todavía no hay una sesión conectada.</p></div>
         <div class="director-meta"><button class="btn" type="button">Ver cómo conectar</button></div>
@@ -263,7 +263,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
       <figcaption><span class="mono">.k-director-esperando</span></figcaption>
     </figure>
     <figure class="fig-wide">
-      <div class="director k-director-escuchando" role="status" aria-label="Kratos escuchando">
+      <div class="director k-director-escuchando">
         <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-waves"/></svg></span>
         <div class="director-main"><p class="director-title ell">Kratos escuchando</p><p class="director-sub ell">Última recepción confirmada hace 12 s.</p></div>
         <div class="director-meta"><button class="btn" type="button"><svg class="ico " aria-hidden="true"><use href="#i-pause"/></svg>Pausar</button></div>
@@ -271,7 +271,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
       <figcaption><span class="mono">.k-director-escuchando</span></figcaption>
     </figure>
     <figure class="fig-wide">
-      <div class="director k-director-atendiendo" role="status" aria-label="Kratos atendiendo 3 mensajes">
+      <div class="director k-director-atendiendo">
         <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-gear"/></svg></span>
         <div class="director-main"><p class="director-title ell">Kratos atendiendo 3 mensajes</p><p class="director-sub ell">Ahora: Habilidad Meteorito.</p></div>
         <div class="director-meta"><button class="btn" type="button"><svg class="ico " aria-hidden="true"><use href="#i-pause"/></svg>Pausar</button></div>
@@ -279,7 +279,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
       <figcaption><span class="mono">.k-director-atendiendo</span></figcaption>
     </figure>
     <figure class="fig-wide">
-      <div class="director k-director-vigilante-caido" role="status" aria-label="Vigilante caído · 2 mensajes en espera">
+      <div class="director k-director-vigilante-caido">
         <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg></span>
         <div class="director-main"><p class="director-title ell">Vigilante caído · 2 mensajes en espera</p><p class="director-sub ell">Rearmando la escucha. Tus mensajes no se pierden.</p></div>
         <div class="director-meta"><button class="btn" type="button"><svg class="ico " aria-hidden="true"><use href="#i-play"/></svg>Volver a escuchar</button></div>
@@ -287,7 +287,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
       <figcaption><span class="mono">.k-director-vigilante-caido</span></figcaption>
     </figure>
     <figure class="fig-wide">
-      <div class="director k-director-desconectado" role="status" aria-label="Servicio desconectado">
+      <div class="director k-director-desconectado">
         <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-plugoff"/></svg></span>
         <div class="director-main"><p class="director-title ell">Servicio desconectado</p><p class="director-sub ell">Sin conexión con el servicio. Los mensajes nuevos esperan.</p></div>
         <div class="director-meta"><button class="btn" type="button">Reintentar conexión</button></div>
@@ -295,7 +295,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
       <figcaption><span class="mono">.k-director-desconectado</span></figcaption>
     </figure>
     <figure class="fig-wide">
-      <div class="director k-director-escuchando" role="status" aria-label="En pausa">
+      <div class="director k-director-escuchando">
         <span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-pause"/></svg></span>
         <div class="director-main"><p class="director-title ell">En pausa · Kratos no recibirá mensajes</p><p class="director-sub ell">Los mensajes nuevos esperan hasta que reanudes.</p></div>
         <div class="director-meta"><button class="btn btn-primary" type="button"><svg class="ico " aria-hidden="true"><use href="#i-play"/></svg>Reanudar</button></div>
@@ -454,7 +454,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
       <div class="toast tone-warning" role="status"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg><span>No se pudo cerrar la tarea. Reintenta el cierre.</span><button class="btn btn-sm" type="button">Reintentar cierre</button></div>
     </div>
     <h3 class="sub">Decisión con dos opciones</h3>
-    <section class="callout tone-warning" aria-label="Decisión pendiente" style="max-width:720px"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>
+    <section class="callout tone-warning" aria-label="Decisión pendiente" style="max-width:var(--k-layout-drawer)"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>
       <div class="opts" style="flex:1;min-width:0">
         <p><b>¿Qué shader usamos para el pack?</b> Kratos espera tu elección para seguir.</p>
         <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Advanced Cel Shader Lite</b><span class="muted">Ya está en tu biblioteca de Fab.</span></div><button class="btn btn-sm" type="button">Elegir</button></div>
@@ -463,7 +463,7 @@ h3.sub { font-size: var(--k-size-md); font-weight: 600; margin: var(--k-space-4)
       </div>
     </section>
     <h3 class="sub">Decisión caducada</h3>
-    <div class="callout tone-neutral" style="max-width:720px"><svg class="ico " aria-hidden="true"><use href="#i-clock"/></svg><span style="flex:1">Esta decisión caducó porque cambió el contexto. Kratos la prepara de nuevo.</span><button class="btn btn-sm" type="button">Ver la nueva</button></div>
+    <div class="callout tone-neutral" style="max-width:var(--k-layout-drawer)"><svg class="ico " aria-hidden="true"><use href="#i-clock"/></svg><span style="flex:1">Esta decisión caducó porque cambió el contexto. Kratos la prepara de nuevo.</span><button class="btn btn-sm" type="button">Ver la nueva</button></div>
   </section>
 </main>
 <script>

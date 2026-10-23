@@ -40,7 +40,7 @@ Siete carriles: Kratos, Codex, Claude Code, Meshy, Blender, Unreal, Compilacione
 |---|---|---|---|
 | Vacío | Carriles sin eventos | `Aún no hay actividad` · apoyo: `Aparecerá cuando Kratos empiece a trabajar.` | Botón `Nueva petición` |
 | Sin resultados | Carriles filtrados, vacíos | `Ningún evento coincide con el filtro` | `Quitar filtro` |
-| Hueco por desconexión | Franja rayada en el carril con el intervalo | `Sin datos de 14:02 a 14:09 · servicio desconectado` | `Ver detalle` |
+| Hueco por desconexión | Franja de borde discontinuo en el carril con el intervalo | `Sin datos de 14:02 a 14:09 · servicio desconectado` | `Ver detalle` |
 
 ## Entregas (galería)
 

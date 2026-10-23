@@ -10,7 +10,7 @@ El tablero de producción manda: ocho columnas, tarjetas compactas de 56 px con 
 
 | Criterio | A · Densa | B · Con aire | C · Actividad primero |
 |---|---|---|---|
-| Columnas visibles a 1920 (barra lateral abierta) | 8 de 8 | 7 de 8 (hay que desplazar) | 8 de 8 |
+| Columnas visibles a 1920 sin panel (barra lateral abierta) | 8 de 8 | 7 de 8 (hay que desplazar; 8 si se pliega la barra lateral) | 8 de 8 |
 | Columnas visibles a 1366 con barra lateral, sin panel | unas 6 | unas 5 | unas 7 (tarjetas muy estrechas) |
 | Con el panel de detalle abierto a 1366 | 2 columnas legibles, la franja libre | 2 columnas, tarjetas más legibles | 2 columnas, títulos a dos líneas |
 | Catálogo con sus 6 filas a 1366 | Todas, sin desplazar la página | Todas, ajustadas | Solo 3-4; el resto exige desplazar |
@@ -21,7 +21,7 @@ El tablero de producción manda: ocho columnas, tarjetas compactas de 56 px con 
 
 ### Por qué A
 
-1. **Es la que cabe.** A 1366×768 el tablero y el catálogo entran sin desplazar la página, y a 1920 se ven las ocho columnas a la vez. B pierde una columna a 1920 y C obliga a desplazar el catálogo a 1366.
+1. **Es la que cabe.** A 1366×768 el tablero y el catálogo entran sin desplazar la página, y a 1920 se ven las ocho columnas a la vez cuando no hay panel abierto (con el panel de 720 px abierto quedan cinco, y el catálogo entero). B pierde una columna a 1920 incluso sin panel (podría ganar espacio plegando su barra lateral a 64 px) y C obliga a desplazar el catálogo a 1366.
 2. **Se mira más de lo que se teclea.** Doce tarjetas se leen de un vistazo: icono de estado, título y una línea con responsable, pruebas y antigüedad. El detalle completo (ejecución, espacio de trabajo, habilidades, dependencias) está un clic más allá, en el panel lateral.
 3. **Resiste datos reales.** Con `Nude_Tennis_Racket_🎾` o un título de cuarenta caracteres la tarjeta no cambia de altura, así que ninguna columna se descuadra. Es también la más barata de implementar y mantener con Ant Design.
 
