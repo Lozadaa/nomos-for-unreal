@@ -10,6 +10,8 @@ import { relativeTime } from '@/lib/time'
 import type { Run, TaskDetail, TestRun, Tone } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { eventText } from '@/lib/events'
+import { parseDiffStat } from '@/lib/parseDiffStat'
+import { DiffBars } from '@/visual/art/DiffBars'
 
 type Resource<T> = { state: 'loading' } | { state: 'ok'; data: T } | { state: 'unavailable' } | { state: 'error'; message: string }
 
@@ -132,6 +134,7 @@ export function ChangesTab({ detail }: { detail: TaskDetail }) {
   const scope = detail.task.scope ?? []
   const outside = scope.length ? files.filter((f) => f.file && !inScope(f.file, scope)).map((f) => f.file) : []
   const shown = only ? files.filter((f) => f.file === only) : files
+  const stat = parseDiffStat(diff.data.stat)
   if (!files.length && !diff.data.stat) return <Empty title="El worker aún no ha cambiado archivos" />
   return (
     <div className="flex flex-col gap-4">
@@ -141,6 +144,7 @@ export function ChangesTab({ detail }: { detail: TaskDetail }) {
           <ul className="font-mono text-xs">{outside.map((f) => <li key={f}>{f}</li>)}</ul>
         </section>
       )}
+      {stat && <DiffBars added={stat.added} removed={stat.removed} files={stat.files} />}
       {diff.data.stat && <pre className="font-mono text-xs whitespace-pre-wrap text-muted-foreground">{diff.data.stat}</pre>}
       {files.length > 1 && (
         <select aria-label="Filtrar por archivo" value={only} onChange={(e) => setOnly(e.target.value)} className="h-8 self-start rounded-md border border-subtle bg-background px-2 font-mono text-xs">

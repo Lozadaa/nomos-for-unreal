@@ -113,9 +113,9 @@ describe('Actividad: carriles estables', () => {
     act(() => { ingest(event('task.activity', { payload: { source: 'Codex', taskId: 't1' } })); ingest(event('task.activity', { payload: { source: 'Kratos', taskId: 't2' } })) })
     inRouter(<Actividad />)
     expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2)
-    fireEvent.change(screen.getByLabelText('Tarea'), { target: { value: 't1' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Tarea' }), { target: { value: 't1' } })
     await waitFor(() => expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(1))
-    fireEvent.change(screen.getByLabelText('Tarea'), { target: { value: '' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Tarea' }), { target: { value: '' } })
     await waitFor(() => expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2))
   })
 

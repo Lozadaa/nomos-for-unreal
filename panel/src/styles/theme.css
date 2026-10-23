@@ -197,4 +197,5 @@ html[data-vt] [data-slot='sheet-overlay'][data-ending-style] { opacity: 1; trans
   background: var(--vbg-surface-secondary); color: var(--vbg-text-primary); font: 11px var(--k-font-mono);
 }
 .k-avatar-summary { display: flex; flex-wrap: wrap; gap: var(--vbg-space-3); color: var(--vbg-text-secondary); font-size: 12px; }
+.k-map text[aria-pressed='true'] { fill: var(--vbg-focus); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .k-agent-avatar::before { animation: none; } }

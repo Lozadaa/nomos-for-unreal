@@ -14,7 +14,7 @@ export const areaLabel: Record<Area, string> = {
 }
 
 export const providerLabel: Record<string, string> = {
-  codex: 'Codex', claude: 'Claude Code', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', kratos: 'Kratos',
+  codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', kratos: 'Kratos', launcher: 'Launcher',
 }
 
 export interface Task {

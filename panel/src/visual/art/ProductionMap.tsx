@@ -9,8 +9,8 @@ import './art.css'
 export type MapTask = Pick<Task, 'id' | 'state' | 'blockedReason' | 'decisionId'>
 const signature = (tasks: readonly MapTask[]) => JSON.stringify(tasks.map((t) => [t.id, t.state, !!t.blockedReason, !!t.decisionId]))
 
-export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, id }: {
-  tasks: readonly MapTask[]; onSelect?: (stage: Stage) => void; id?: string
+export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, id, selected }: {
+  tasks: readonly MapTask[]; onSelect?: (stage: Stage) => void; id?: string; selected?: Stage
 }) {
   const key = signature(tasks)
   const [shown, setShown] = useState(tasks)
@@ -50,7 +50,7 @@ export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, id }
     <path d="M50 28H751" />
     <path d="M50 28H751" />
     <g>
-      {stages.map((stage, i) => <text key={stage} role="button" tabIndex={0} aria-label={`${stageLabel[stage]}: ${geometry.counts[i]}`} x={50 + i * 100}
+      {stages.map((stage, i) => <text key={stage} role="button" tabIndex={0} aria-label={`${stageLabel[stage]}: ${geometry.counts[i]}`} aria-pressed={stage === selected ? true : undefined} x={50 + i * 100}
         onPointerEnter={() => setHint(`${stageLabel[stage]}: ${geometry.counts[i]}`)} onPointerLeave={() => setHint(undefined)}
         onFocus={() => setHint(`${stageLabel[stage]}: ${geometry.counts[i]}`)} onBlur={() => setHint(undefined)}
         onClick={() => onSelect?.(stage)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(stage) } }}>{geometry.counts[i]}</text>)}

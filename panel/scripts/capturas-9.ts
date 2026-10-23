@@ -81,6 +81,8 @@ function seedWorker() {
     put('worker.output', { ...ids, lines: ['Leí Salto.cpp y DefaultGame.ini.', 'Subo la velocidad de salto a 720 y añado coyote time.'] }, 1)
     put('worker.output', { ...ids, lines: ['Compilando Source/Locomocion…', 'Compilación correcta (38 s).'] }, 5)
     put('worker.waiting', { ...ids, question: '¿El coyote time debe valer 0,12 s o prefieres 0,2 s para el mando?' }, 9)
+    db.prepare("update runs set metadata=json_set(metadata,'$.waiting',json('true'),'$.question',?) where id=?")
+      .run('¿El coyote time debe valer 0,12 s o prefieres 0,2 s para el mando?', ids.runId)
   } finally { db.close() }
 }
 
@@ -91,7 +93,7 @@ async function launchBrowser(): Promise<Browser> {
 
 type Counts = { method: string; seed: string; measuredAt: string; revision: string; views: Record<string, Record<string, { full?: number; empty?: number; firstRow?: number }>> }
 const counts: Counts = !before && existsSync(countFile) ? JSON.parse(readFileSync(countFile, 'utf8')) : {
-  method: 'Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.',
+  method: 'Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden/opacity:0, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.',
   seed: 'Servicio real seed, conversación POST /messages + reply y Git temporal con diff real. Vacíos: respuestas API interceptadas solo en el navegador; no borran datos. Sin fixtures de miniaturas.',
   measuredAt: new Date().toISOString(), revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), views: {},
 }
@@ -122,7 +124,16 @@ try {
     }
     const message = await post('/messages', { text: 'Quiero una habilidad Meteorito para el mago' })
     await post(`/messages/${message.messageId}/reply`, { text: 'Entendido: la divido en diseño, efecto y prueba y se la doy a Codex.' })
-    await post('/messages', { text: 'Y que el cráter quede en el suelo unos segundos' })
+    const second = await post('/messages', { text: 'Y que el cráter quede en el suelo unos segundos' })
+    // El reloj de captura no cambia el servicio: fijamos las fechas de esta conversación aislada.
+    const chatDb = new DatabaseSync(join(data, 'kratos.db'))
+    try {
+      for (const [id, ago] of [[message.messageId, 120_000], [second.messageId, 60_000]] as const) {
+        const at = new Date(Date.parse(stamp) - ago).toISOString()
+        chatDb.prepare('update messages set created_at=? where id=?').run(at, id)
+        chatDb.prepare('update events set created_at=? where message_id=?').run(at, id)
+      }
+    } finally { chatDb.close() }
     await request.close()
 
     for (const [width, height] of sizes) {
@@ -196,6 +207,16 @@ try {
       if (mode === 'tarea4' || mode === 'todas') {
         for (const name of ['produccion', 'actividad', 'presupuesto', 'capacidades']) {
           await goto(views.find(([view]) => view === name)![1])
+          if (name === 'actividad') {
+            const boxes = await page.getByRole('region', { name: 'Actividad por carriles' }).getByRole('button', { name: /^(Mensaje recibido|Kratos respondió)$/ }).evaluateAll((nodes) => nodes.map((node) => {
+              const r = node.getBoundingClientRect(); return { x: r.x, right: r.right, y: r.y, bottom: r.bottom }
+            }))
+            assert.equal(boxes.length, 3)
+            for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+              const a = boxes[i], b = boxes[j]
+              assert.ok(a.right <= b.x || b.right <= a.x || a.bottom <= b.y || b.bottom <= a.y, 'Eventos de Chat superpuestos')
+            }
+          }
           await measure(name, 'full')
           await shot(name === 'produccion' ? 'produccion-mapa' : name)
         }

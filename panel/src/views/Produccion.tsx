@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Composer } from '@/components/Composer'
 import { RowsSkeleton } from '@/components/Skeletons'
 import { TaskRow } from '@/components/TaskRow'
@@ -14,6 +13,7 @@ import { stageLabel, stages, type Stage, type Task } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
 import { assignAgentNames } from '@/visual/art/agentName'
+import { ProductionMap } from '@/visual/art/ProductionMap'
 
 type Filter = 'todas' | Stage
 
@@ -51,12 +51,6 @@ export function Produccion() {
     .map((stage) => ({ stage, rows: tasks.filter((t) => t.state === stage && matches(t)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) }))
     .filter((g) => g.rows.length), [tasks, filter, q]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const counts = useMemo(() => {
-    const c = new Map<Stage, number>()
-    for (const t of tasks) c.set(t.state, (c.get(t.state) ?? 0) + 1)
-    return c
-  }, [tasks])
-
   const go = (to: string) => withViewTransition(() => navigate(to, { flushSync: true }))
   const rowOf = (id: string | null) => document.querySelector<HTMLElement>(`[data-task-id="${CSS.escape(id ?? '')}"]`)
   // abrir y cerrar el detalle solo tocan ?tarea: el resto de parámetros (etapa, nueva…) se conserva
@@ -83,22 +77,15 @@ export function Produccion() {
     <div className="flex flex-col gap-6">
       <Composer autoFocus={params.get('nueva') === '1'} isVisible={matches} onHidden={clearFilters} />
 
+      {loaded && <figure data-tour="mapa" className="rounded-lg border border-subtle px-4 pb-3">
+        <ProductionMap tasks={tasks} selected={filter === 'todas' ? undefined : filter} onSelect={(stage) => void animateUpdate(() => setFilter(filter === stage ? 'todas' : stage))} />
+        <figcaption className="grid grid-cols-8 text-center text-xs text-muted-foreground">
+          {stages.map((stage) => <span key={stage} className={filter === stage ? 'font-medium text-foreground' : undefined}>{stageLabel[stage]}</span>)}
+        </figcaption>
+      </figure>}
+
       <div className="flex flex-wrap items-center gap-3">
-        <ToggleGroup
-          aria-label="Filtrar por etapa"
-          value={[filter]}
-          onValueChange={(v) => void animateUpdate(() => setFilter(v[0] ?? 'todas'))}
-          variant="outline"
-          size="sm"
-          spacing={0}
-        >
-          <ToggleGroupItem value="todas">Todas</ToggleGroupItem>
-          {stages.map((s) => (
-            <ToggleGroupItem key={s} value={s}>
-              {stageLabel[s]}{counts.get(s) ? <span className="ml-1.5 font-mono text-xs text-muted-foreground">{counts.get(s)}</span> : null}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <Button variant="outline" size="sm" aria-pressed={filter === 'todas'} onClick={() => void animateUpdate(() => setFilter('todas'))}>Todas</Button>
         <Input
           type="search"
           value={query}

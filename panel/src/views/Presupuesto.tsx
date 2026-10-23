@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '@/api'
 import { EmptyState } from '@/components/EmptyState'
 import { humanError } from '@/lib/errors'
@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { useResource } from '@/hooks/useResource'
-import { cn } from '@/lib/utils'
+import { Ring } from '@/visual/art/Ring'
 
 type Metric = 'meshyCredits' | 'elevenlabsCredits' | 'tokens' | 'buildMinutes'
 interface Summary { scope: 'workspace' | 'task'; scopeId: string; limits: Record<Metric, number | null>; spent: Record<Metric, number>; remaining: Record<Metric, number | null> }
@@ -27,25 +27,28 @@ const fmt = (n: number) => new Intl.NumberFormat('es').format(n)
 function LimitEditor({ name, limit, exhausted, save }: { name: string; limit: number | null; exhausted: boolean; save: (value: number) => Promise<unknown> }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState('')
+  const trigger = useRef<HTMLButtonElement>(null)
+  const returning = useRef(false)
+  const close = () => { returning.current = true; setEditing(false) }
+  useEffect(() => { if (!editing && returning.current) { trigger.current?.focus(); returning.current = false } }, [editing])
   const parsed = Number(value)
   const valid = value.trim() !== '' && Number.isFinite(parsed) && parsed >= 0
-  const action = useAction(() => save(parsed), { success: () => ({ title: `Límite de ${name} guardado` }) })
+  const action = useAction(() => save(parsed), { success: () => { close(); return { title: `Límite de ${name} guardado` } } })
   const label = limit === null ? 'Definir límite' : exhausted ? 'Subir límite' : 'Cambiar límite'
-  if (!editing) return <Button variant="outline" size="sm" className="self-start" onClick={() => { setValue(limit === null ? '' : String(limit)); setEditing(true) }}>{label}</Button>
+  if (!editing) return <Button ref={trigger} variant="outline" size="sm" className="self-start" onClick={() => { setValue(limit === null ? '' : String(limit)); setEditing(true) }}>{label}</Button>
   return (
-    <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (valid) void action.fire().then(() => setEditing(false)) }}>
+    <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (valid) void action.fire() }}>
       <Input type="number" inputMode="numeric" min={0} step="any" autoFocus aria-label={`Límite de ${name}`} name="limite" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} className="w-32" />
       <Button type="submit" size="sm" disabled={!valid || action.pending} aria-busy={action.pending}>{action.pending ? 'Guardando…' : 'Guardar'}</Button>
-      <Button type="button" variant="ghost" size="sm" disabled={action.pending} onClick={() => setEditing(false)}>Cancelar</Button>
+      <Button type="button" variant="ghost" size="sm" disabled={action.pending} onClick={close}>Cancelar</Button>
       {action.error && <span role="alert" className="text-xs text-error">No se guardó.</span>}
     </form>
   )
 }
 
-/** Una métrica del presupuesto: cifra grande en mono que hace tick al cambiar y barra fina de progreso. */
+/** Una métrica del presupuesto: cifra con tick y anillo solo cuando hay un límite real. */
 export function Meter({ name, unit, spent, limit, save }: { name: string; unit: string; spent: number; limit: number | null; save?: (value: number) => Promise<unknown> }) {
   const exhausted = limit !== null && spent >= limit
-  const ratio = limit ? Math.min(1, spent / limit) : 0
   return (
     <section aria-label={name} className="flex flex-col gap-3 rounded-lg border border-subtle p-6">
       <h3 className="text-sm text-muted-foreground">{name}</h3>
@@ -61,8 +64,8 @@ export function Meter({ name, unit, spent, limit, save }: { name: string; unit: 
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <div role="progressbar" aria-label={`${name}: ${fmt(spent)} de ${fmt(limit)} ${unit}`} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(spent, limit)} className="h-0.5 w-full bg-border">
-            <div className={cn('h-full w-full origin-left transition-transform duration-300 ease-k motion-reduce:duration-75', exhausted ? 'bg-error' : ratio >= 0.8 ? 'bg-warning' : 'bg-info')} style={{ transform: `scaleX(${ratio})` }} />
+          <div role="progressbar" aria-label={`${name}: ${fmt(spent)} de ${fmt(limit)} ${unit}`} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(spent, limit)} className="self-start">
+            <Ring value={limit === 0 ? 1 : spent} max={limit === 0 ? 1 : limit} size={64} />
           </div>
           <p className="text-sm">{exhausted ? `${name} · límite agotado` : `${name} · ${fmt(spent)} de ${fmt(limit)} ${unit}`}</p>
           {exhausted && <p className="text-xs text-muted-foreground">Kratos te pedirá una decisión antes de seguir.</p>}
