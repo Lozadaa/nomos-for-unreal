@@ -6,7 +6,7 @@ import { requireTask } from './tasks.ts';
 export function startRun(db: DatabaseSync, input: Input<Run> & Pick<Run, 'taskId' | 'role' | 'provider'>): Run {
     return transaction(db, () => {
         requireTask(db, input.taskId);
-        const run = insert<Run>(db, 'runs', { model: null, sessionRef: null, attempt: 1, state: 'running', startedAt: new Date().toISOString(), finishedAt: null, summary: null, skills: [], ...input });
+        const run = insert<Run>(db, 'runs', { model: null, sessionRef: null, attempt: 1, state: 'running', startedAt: new Date().toISOString(), finishedAt: null, summary: null, skills: [], metadata: {}, ...input });
         appendEvent(db, 'run.started', null, { taskId: run.taskId, runId: run.id, provider: run.provider });
         return run;
     });

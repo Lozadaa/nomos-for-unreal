@@ -9,12 +9,20 @@ export type Task = Entity & {
   title: string; spec: string; acceptance: string[]; state: TaskState;
   blockedReason: string | null; decisionId: string | null; area: TaskArea;
   assigneeRole: string | null; assigneeProvider: string | null; parentTaskId: string | null;
-  dependsOn: string[]; worktreeId: string | null; budgetId: string | null;
+  dependsOn: string[]; worktreeId: string | null; budgetId: string | null; scope: string[];
+};
+export type RunMetadata = {
+  worktreeId?: string; cursor?: string; waiting?: boolean; question?: string;
+  phase?: 'preparing' | 'running' | 'waiting' | 'finished'; deadlineAt?: string;
+  lastOutputAt?: string; correctionCount?: number; pollGeneration?: number;
+  lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
+  uncertain?: boolean;
+  screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;
   sessionRef: string | null; attempt: number; state: 'running' | 'done' | 'failed' | 'cancelled';
-  startedAt: string; finishedAt: string | null; summary: string | null; skills: string[];
+  startedAt: string; finishedAt: string | null; summary: string | null; skills: string[]; metadata: RunMetadata;
 };
 export type Worktree = Entity & {
   taskId: string; path: string; branch: string; baseCommit: string;
@@ -56,5 +64,5 @@ export type CatalogEntry = Entity & {
 export type Command = Entity & {
   type: string; payload: JsonValue; idempotencyKey: string;
   state: 'pending' | 'running' | 'done' | 'failed'; attempts: number;
-  error: string | null; claimedBy: string | null; startedAt: string | null; finishedAt: string | null;
+  error: string | null; claimedBy: string | null; startedAt: string | null; finishedAt: string | null; notBefore: string | null;
 };

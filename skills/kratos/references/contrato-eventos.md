@@ -1,4 +1,4 @@
-# Contrato del hito 0
+# Contrato de eventos y dirección (hitos 0–2)
 
 HTTP en `127.0.0.1:8780` por defecto. SQLite y `service.json` viven en `.kratos/`
 de la carpeta del juego, excluida de Git. Token de 48 caracteres hexadecimales
@@ -14,7 +14,7 @@ y limpia el hash. Sin token válido: `401 {"error":"unauthorized"}`.
 | GET | `/web/*` | — | 200 estático / 404 | No |
 | POST | `/messages` | `{text}` | 201 `{messageId,seq}` | Bearer |
 | GET | `/messages/:id` | — | 200 MessageRow / 404 | Bearer |
-| POST | `/events/:seq/ack` | `{session}` | 200 Status / 404 | Bearer |
+| POST | `/events/:seq/ack` | `{session}` | 200 Status / 404 si no es mensaje | Bearer |
 | POST | `/messages/:id/reply` | `{text}` | 201 `{seq}` / 404 | Bearer |
 | POST | `/director/heartbeat` | `{session,started?:true}` | 204 | Bearer |
 | GET | `/status` | — | 200 Status | Bearer |
@@ -38,6 +38,9 @@ No hay CORS para orígenes ajenos. CSP impide scripts externos. No se usan frame
 | `reply.published` | `{messageId,text}` | POST reply |
 | `director.started` | `{session}` | Vigilante: heartbeat con started true |
 | `director.stopped` | `{session}` | POST admin/stop; sesión null si nunca hubo director |
+| `run.finished` | `{taskId,runId,state,summary}` | Fin de vuelta del run; no cierra tarea |
+| `worker.waiting` | `{taskId,runId,question,lastLines}` | Pregunta o terminal idle actual |
+| `command.failed` | `{commandId,...command}` | Error terminal; payload de command conserva taskId/runId |
 
 SSE: `id: <seq>`, `event: <type>`, `data: <JSON EventRow>` y línea vacía.
 El cursor efectivo usa el mayor entre `since` y `Last-Event-ID`.
@@ -61,11 +64,12 @@ Además: `Última confirmación: <hora local>` o `sin confirmaciones`.
 ## Ciclo y recuperación
 
 1. La web persiste mensaje + evento en una transacción; muestra «Enviado».
-2. Monitor recibe JSON `{seq,messageId,text,origin}` del vigilante.
+2. Monitor recibe JSON `{seq,type:"message.received",messageId,text,origin}` del vigilante.
 3. Claude ejecuta ack **en orden ascendente**; el cursor acumulativo avanza sin
    retroceder y SSE cambia el mensaje a «Recibido por Kratos».
 4. Claude publica reply con el mismo messageId; SSE muestra la respuesta.
-5. Rearmar otro vigilante recupera `message.received` con `seq>lastAckSeq`.
+5. Rearmar recupera `message.received` con `seq>lastAckSeq`, aunque ya se haya impreso.
+   Los eventos del director usan un cursor de entrega separado, nunca el ACK.
 
 Solo un vigilante reserva la carpeta mediante un lock local SQLite exclusivo,
 liberado por el SO al morir el proceso. El servicio reutiliza
@@ -76,4 +80,57 @@ historial desde SQLite sin duplicar tarjetas.
 Pendientes significa **sin confirmar**, no «sin respuesta». Una caída entre ack y
 reply requiere revisar el mensaje conservado y completar su respuesta. Repetir
 un POST mensaje crea otra petición; esta API no promete ejecución exactamente una vez.
-`paused` se reserva para el hito 2; en el hito 0 no hay workers ni despachos.
+`paused` refleja Global Constraints en status. Frenar despachos por este valor sigue
+pendiente; en este hito no pausa al runner ni apaga el vigilante y no constituye un ACK.
+
+## Tipos y checkpoint del vigilante
+
+`kratos vigila --session ID [--types a,b] --data .kratos` imprime por defecto
+`message.received,run.finished,worker.waiting,command.failed`. Una lista custom
+reemplaza los cuatro; se recorta, deduplica y ordena. Vacíos/tipos malformados
+fallan antes de conectar. Ejemplo: `--types run.finished,worker.waiting`.
+
+Mensajes conservan seq/messageId/text/origin y añaden type. Otros eventos:
+`{seq,type,payload,createdAt}`. `worker.output` solo aparece si se solicita por types;
+para leerlo por run usa `kratos run output RUN --since N`.
+ACK sigue exclusivo de message.received; intentar ack de run.finished, waiting o
+failed devuelve 404 `unknown_event`. El vigilante no confirma ningún evento.
+
+`.kratos/watcher-cursors.json` guarda `{version:1,cursors:{CLAVE:SEQ}}`.
+CLAVE es JSON de `[sesion,tiposNormalizados]`; SEQ es entero seguro no negativo.
+No contiene token ni depende de él. Cambiar sesión o tipos crea suscripción con
+cursor0; orden y duplicados equivalentes reutilizan la misma. Se escribe `.tmp`
+y se renombra bajo el lock de único vigilante, después del callback stdout.write.
+Los eventos omitidos también avanzan entrega. El cursor de transporte en memoria
+avanza solo por frames completos y evita repetir líneas durante la misma escucha.
+
+Cada reconexión relee credenciales y status. Al iniciar el proceso parte de
+`min(lastAckSeq,deliveryCursor)`; durante la misma escucha, incluso al rotar el token,
+solicita desde el mayor
+entre ese mínimo y el cursor de transporte ya consumido,
+y filtra: mensaje seleccionado con seq>lastAckSeq; director seleccionado con
+seq>deliveryCursor. El transporte vivo descarta lo ya leído por ese proceso.
+Así run.finished10 pendiente se entrega aunque mensaje11 ya tenga ACK; director10
+entregado no se repite al rearmar para recuperar mensaje11 sin ACK.
+
+Archivo ausente empieza en cero silenciosamente (primera invocación normal).
+Si se borró un archivo anterior, esto también permite replay. Archivo corrupto
+avisa `watcher_checkpoint_recovery` por stderr y recupera cero, sin usar ACK para
+suprimir eventos del director. Error real de lectura/permisos/guardado detiene con
+`watcher_checkpoint_error`, sin etiquetar service_down un fallo de disco.
+Conserva archivo previo/temporal para diagnosticar, corrige disco/permisos y rearma
+la misma sesión/tipos; si recuperas desde cero, espera reentregas e inspecciona estado.
+
+La garantía es entrega recuperable, no procesamiento exactamente una vez:
+caída entre impresión y guardado puede repetir; entre guardado y acción requiere
+consultar tarea/run/comando actual. No hay inbox de director ni ACK general (hito 7).
+No corrijas por run.finished viejo si el run ya reanudó o tiene Decisión pendiente.
+
+## Recursos de dirección
+
+CLI real: `task create|spec|show`, `worker start|send|stop`, `run diff|output`,
+`decision open|list|resolve`; ejemplos y decisiones en ciclo-tarea.md, enlazado desde SKILL.md.
+HTTP autenticado: `GET /tasks/:id`, `GET /runs/:id`, `GET /runs/:id/output?since=N`,
+`GET /runs/:id/diff`, `GET /commands` (filtrar id en cliente), `POST /decisions`.
+No hay ruta `GET /commands/:id` ni subcomando CLI `run show`.
+El panel nuevo y la aceptación real con Codex/Claude pertenecen a entregas separadas.

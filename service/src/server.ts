@@ -13,12 +13,17 @@ import { acquireLock } from "./lock.ts";
 import { production, databaseDirectory } from "./routes/index.ts";
 import { panelStatic } from "./static.ts";
 import { projectInfo } from "./project.ts";
+import { startRunner, type Handler } from './runner.ts';
+import { createWorkerHandlers } from './handlers/worker.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
-export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string): http.Server {
+export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string,
+  onStopping?: () => void | Promise<void>): http.Server {
   dataDir ??= databaseDirectory(db);
   const streams = new Set<http.ServerResponse>();
+  let stopping=false;
   const server = http.createServer(async (req, res) => {
+    if (stopping) res.setHeader('Connection','close');
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'");
@@ -39,6 +44,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
       if (await production({db, req, res, url, dataDir})) return;
       if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir) });
       if (method === "GET" && path === "/events") {
+        if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);
         if (!Number.isSafeInteger(since) || since < 0) return json(res, 400, { error: "invalid_seq" });
         return streamEvents(db, req, res, since, streams);
@@ -48,9 +54,14 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         return json(res, message ? 200 : 404, message || { error: "unknown_message" });
       }
       if (method === "POST" && path === "/admin/stop") {
+        res.setHeader('Connection','close');
+        if(stopping) return json(res,202,{ok:true});
+        stopping=true;
+        const drained=Promise.resolve(onStopping?.());
         appendEvent(db, "director.stopped", null, { session: status(db).director });
         json(res, 202, { ok: true });
-        process.nextTick(() => { for (const stream of streams) stream.end(); server.close(); });
+        const closeStreams=()=>{for(const stream of streams) stream.end();};
+        process.nextTick(() => {closeStreams();void drained.then(()=>{closeStreams();server.close();});});
         return;
       }
       if (method !== "POST") return json(res, 404, { error: "not_found" });
@@ -85,7 +96,8 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
   return server;
 }
 
-export async function start(opts: { dataDir: string; port?: number; webDir?: string }):
+export async function start(opts: { dataDir: string; port?: number; webDir?: string;
+  runner?: Parameters<typeof startRunner>[2] & {handlers?:Record<string,Handler>} }):
   Promise<{ port: number; token: string; pid: number; url: string }> {
   mkdirSync(opts.dataDir, { recursive: true });
   const release = acquireLock(opts.dataDir, "start");
@@ -97,7 +109,10 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const db = openDb(join(opts.dataDir, "kratos.db"));
   db.exec("update director set alive_at=null where id=1");
   const token = randomBytes(24).toString("hex");
-  const server = createServer(db, token, opts.webDir || join(import.meta.dirname, "../web"), opts.dataDir);
+  let runner: ReturnType<typeof startRunner> | undefined;
+  const server = createServer(db, token, opts.webDir || join(import.meta.dirname, "../web"), opts.dataDir,()=>{
+    runner?.();return runner?.drained;
+  });
   try {
     await new Promise<void>((resolve, reject) => {
       server.once("error", reject);
@@ -108,7 +123,10 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const info = { pid: process.pid, port, token, startedAt: new Date().toISOString() };
   const temporary = file + `.${process.pid}.tmp`;
   writeFileSync(temporary, JSON.stringify(info), { mode: 0o600 }); renameSync(temporary, file);
-  server.once("close", () => {
+  runner=startRunner(db,opts.runner?.handlers ?? createWorkerHandlers(),
+    {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});
+  server.once("close", async () => {
+    runner!();await runner!.drained;
     db.close();
     if (readServiceInfo(opts.dataDir)?.token === token) rmSync(file, { force: true });
   });

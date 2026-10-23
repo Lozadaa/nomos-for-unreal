@@ -2,6 +2,8 @@ import { dirname } from 'node:path';
 import { body, json } from '../http.ts';
 import { seed } from '../seed.ts';
 import { tasks } from './tasks.ts';
+import { taskWorker } from './task-worker.ts';
+import { runs } from './runs.ts';
 import { decisions } from './decisions.ts';
 import { budget } from './budget.ts';
 import { artifacts } from './artifacts.ts';
@@ -22,7 +24,7 @@ export async function production(context: Context): Promise<boolean> {
     json(context.res, 201, seed(context.db, {force: data.force as boolean | undefined}));
     return true;
   }
-  for (const handler of [tasks, decisions, budget, artifacts, catalog, capabilities, commands]) {
+  for (const handler of [tasks, taskWorker, runs, decisions, budget, artifacts, catalog, capabilities, commands]) {
     if (await handler(context)) return true;
   }
   return false;

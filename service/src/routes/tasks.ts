@@ -3,6 +3,7 @@ import { createTask, listTasks, requireTask } from '../repo/tasks.ts';
 import { filtered, read } from '../repo/rows.ts';
 import { listEvents } from '../store.ts';
 import { areas, states, choice, text, id, type Context } from './context.ts';
+import { normalizedPaths } from '../handlers/worker-policy.ts';
 
 export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   const match = /^\/tasks\/([^/]+)$/.exec(url.pathname);
@@ -34,7 +35,8 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     throw new Error('invalid_task');
   }
   json(res, 201, createTask(db, {
-    title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance
+    title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance,
+    scope: data.scope === undefined ? [] : normalizedPaths(data.scope)
   }));
   return true;
 }
