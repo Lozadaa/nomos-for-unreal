@@ -3,6 +3,7 @@ import { filtered, read } from '../repo/rows.ts';
 import { enqueue } from '../commands.ts';
 import { choice, text, type Context } from './context.ts';
 import type { CatalogEntry, Command } from '../model.ts';
+import { integratePayload } from './task-closing.ts';
 
 type Payload = Record<string, unknown>;
 const optionalText = (value: unknown) => value === undefined || text(value);
@@ -17,10 +18,11 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   'asset.prepare': entry,
   'asset.request_download': entry,
   'checks.run': (db, p) => {
-    if (!text(p.taskId) || !optionalText(p.runId) || p.files !== undefined
+    if (!text(p.taskId) || !optionalText(p.runId) || p.dir !== undefined || p.files !== undefined
       && (!Array.isArray(p.files) || !p.files.every(f => typeof f === 'string'))) throw new Error('invalid_command_payload');
     if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
   },
+  'integrate.run': (db, p) => { if (!optionalText(p.runId)) throw new Error('invalid_command_payload'); integratePayload(db, p.taskId); },
   'ui.cycle': (db, p) => {
     const pairs = p.resolutions === undefined || Array.isArray(p.resolutions) && p.resolutions.every(r => Array.isArray(r) && r.length === 2
       && r.every(n => Number.isSafeInteger(n) && n >= 320 && n <= 7680));

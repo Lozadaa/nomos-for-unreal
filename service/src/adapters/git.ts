@@ -10,6 +10,19 @@ export type Git = {
   diff(dir: string, base: string): Promise<{stat: string; patch: string; fingerprint?:string}>;
   log(dir: string, base: string): Promise<{sha: string; subject: string}[]>;
   changedFiles?(dir: string, base: string): Promise<string[]>;
+  // integración y cierre (hito 6)
+  merge(dir: string, branch: string, opts: {noFf: true; message?: string}): Promise<{ok: true; commit: string} | {ok: false; conflicts: string[]}>;
+  conflictKinds(dir: string): Promise<{text: string[]; binary: string[]; versions: Record<string, {ours: string | null; theirs: string | null}>}>;
+  conflictText(dir: string, file: string): Promise<string>;
+  abortMerge(dir: string): Promise<void>;
+  checkout(dir: string, ref: string): Promise<void>;
+  worktreeAdd(repoDir: string, path: string, ref: string): Promise<void>;
+  worktreeRemove(repoDir: string, path: string): Promise<void>;
+  status(dir: string): Promise<{clean: boolean; files: string[]}>;
+  branchExists(dir: string, branch: string): Promise<boolean>;
+  contains(dir: string, branch: string, commit: string): Promise<boolean>;
+  filesBetween(dir: string, from: string, to: string): Promise<string[]>;
+  advanceBranch(repoDir: string, branch: string, commit: string, expected: string): Promise<void>;
 };
 export function createGit(): Git {
   const run = (dir: string, args: string[], diff = false) => new Promise<string>((accept, reject) => {
@@ -66,6 +79,59 @@ export function createGit(): Git {
       if (!base) throw new Error('invalid_base');
       return (await run(dir,['log','--format=%H%x09%s',`${base}..HEAD`])).trim().split('\n').filter(Boolean)
         .map(line=>{const [sha,...subject]=line.split('\t');return {sha,subject:subject.join('\t')};});
+    },
+    async merge(dir,branch,opts) {
+      try {
+        await run(dir,['-c','merge.conflictStyle=diff3','merge','--no-ff','--no-edit',...(opts.message ? ['-m',opts.message] : []),branch]);
+        return {ok:true,commit:(await run(dir,['rev-parse','--verify','HEAD'])).trim()};
+      } catch(error) {
+        const conflicts=(await run(dir,['diff','--name-only','--diff-filter=U','-z'])).split('\0').filter(Boolean);
+        if(!conflicts.length) throw error;
+        return {ok:false,conflicts};
+      }
+    },
+    async conflictKinds(dir) {
+      // ls-files -u: «modo sha etapa\truta»; etapa 2 = rama objetivo (ours), 3 = rama del worktree (theirs)
+      const versions:Record<string,{ours:string|null;theirs:string|null}>={};
+      for(const record of (await run(dir,['ls-files','-u','-z'])).split('\0').filter(Boolean)) {
+        const [meta,path]=record.split('\t'),[,sha,stage]=meta.split(' ');
+        versions[path]??={ours:null,theirs:null};
+        if(stage==='2') versions[path].ours=sha; if(stage==='3') versions[path].theirs=sha;
+      }
+      const text:string[]=[],binary:string[]=[];
+      for(const [path,v] of Object.entries(versions)) {
+        // misma heurística que Git: un NUL en los primeros 8000 bytes de cualquiera de los lados es binario
+        const sides=await Promise.all([v.ours,v.theirs].filter((s):s is string=>!!s).map(sha=>run(dir,['cat-file','blob',sha])));
+        (sides.some(side=>side.slice(0,8000).includes('\0')) || /\.(uasset|umap)$/i.test(path) ? binary : text).push(path);
+      }
+      return {text,binary,versions};
+    },
+    async conflictText(dir,file) {return readFileSync(join(dir,file),'utf8');},
+    async abortMerge(dir) {await run(dir,['merge','--abort']);},
+    async checkout(dir,ref) {await run(dir,['checkout','--detach',ref]);},
+    async worktreeAdd(repoDir,path,ref) {await run(repoDir,['worktree','add','--detach',path,ref]);},
+    // sin --force: si el árbol tiene cambios, Git se niega y el cierre se detiene con el motivo
+    async worktreeRemove(repoDir,path) {await run(repoDir,['worktree','remove',path]);},
+    async status(dir) {
+      const files=(await run(dir,['status','--porcelain','-z','--untracked-files=all'])).split('\0').filter(Boolean)
+        .map(record=>record.slice(3)).filter(path=>path&&!local(path));
+      return {clean:!files.length,files};
+    },
+    async branchExists(dir,branch) {
+      try {await run(dir,['rev-parse','--verify','--quiet',`refs/heads/${branch}`]);return true;} catch {return false;}
+    },
+    async contains(dir,branch,commit) {
+      try {await run(dir,['merge-base','--is-ancestor',commit,`refs/heads/${branch}`]);return true;} catch {return false;}
+    },
+    async filesBetween(dir,from,to) {
+      return (await run(dir,['diff','--name-only','-z',from,to])).split('\0').filter(Boolean);
+    },
+    async advanceBranch(repoDir,branch,commit,expected) {
+      // si la rama está activa en algún checkout (el del usuario), avanzarla allí con --ff-only mantiene su árbol al día
+      const trees=(await run(repoDir,['worktree','list','--porcelain'])).split(/\r?\n\r?\n/);
+      const owner=trees.find(block=>block.split(/\r?\n/).includes(`branch refs/heads/${branch}`));
+      if(owner) await run(owner.split(/\r?\n/)[0].slice('worktree '.length),['merge','--ff-only',commit]);
+      else await run(repoDir,['update-ref',`refs/heads/${branch}`,commit,expected]);
     },
   };
 }

@@ -66,3 +66,12 @@ export function migrateAssets(db: DatabaseSync): void {
       requested_at text not null, completed_at text, detail text not null default '{}')`);
   });
 }
+
+/** Hito 6: atribución por rol y carpeta de archivo de la tarea cerrada. */
+export function migrateClosing(db: DatabaseSync): void {
+  transaction(db, () => {
+    const columns = db.prepare('pragma table_info(tasks)').all();
+    for (const [column, definition] of [['attribution', "text not null default '{}'"], ['archive_path', 'text']])
+      if (!columns.some(row => row.name === column)) db.exec(`alter table tasks add column ${column} ${definition}`);
+  });
+}

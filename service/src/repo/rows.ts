@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
-const json = new Set(['acceptance', 'dependsOn', 'skills', 'evidence', 'options', 'provenance', 'projects', 'formats', 'engineVersions', 'tags', 'scope', 'metadata', 'leases']);
+const json = new Set(['acceptance', 'dependsOn', 'skills', 'evidence', 'options', 'provenance', 'projects', 'formats', 'engineVersions', 'tags', 'scope', 'metadata', 'leases', 'attribution']);
 export function decode<T>(row: any): T {
     return Object.fromEntries(Object.entries(row).map(([key, value]) => {
         const name = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());

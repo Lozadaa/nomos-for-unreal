@@ -27,7 +27,7 @@ const returnOption = {id: 'return', label: 'Devolver al responsable', descriptio
 /** El run implementador cuyo diff se prueba: el indicado o el último terminado que no es revisión ni prueba. */
 export function implementerOf(ctx: WorkerContext, task: Task, runId?: unknown): Run {
   if (typeof runId === 'string') return requireRun(ctx.db, runId);
-  const run = filtered<Run>(ctx.db, 'runs', {taskId: task.id}).filter(r => r.role !== 'revisor' && r.provider !== 'unreal' && r.role !== 'qa'
+  const run = filtered<Run>(ctx.db, 'runs', {taskId: task.id}).filter(r => r.role !== 'revisor' && r.provider !== 'unreal' && r.provider !== 'kratos' && r.role !== 'qa'
     && r.state === 'done').at(-1);
   if (!run) throw new Error('invalid_checks_target');
   return run;
@@ -68,10 +68,13 @@ export function sendCorrection(ctx: WorkerContext, task: Task, implementer: Run,
 
 export function createChecksRun(deps: CheckDeps = {}): Handler {
   return async (command, ctx) => {
-    const payload = command.payload as {taskId?: unknown; runId?: unknown; files?: unknown};
+    const payload = command.payload as {taskId?: unknown; runId?: unknown; files?: unknown; dir?: unknown};
     if (typeof payload.taskId !== 'string') throw new Error('invalid_command_payload');
     const task = requireTask(ctx.db, payload.taskId), implementer = implementerOf(ctx, task, payload.runId);
     const {tree, project} = treeOf(ctx, implementer);
+    // hito 6: el integrador recomprueba sobre su workspace (`dir`), no sobre el worktree del responsable
+    const dir = typeof payload.dir === 'string' ? payload.dir : undefined;
+    const target = dir ? targetProject(ctx, dir) : project;
     const decision = commandDecision(ctx, task, command);
     if (decision?.state === 'open') return {deferred: true, reason: `Esperando decisión: ${decision.reason}`};
     if (decision?.state === 'resolved' && decision.chosenOptionId === waiverOption.id) return {passed: true, advanced: advance(ctx, task.id)};
@@ -91,8 +94,8 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     const run = checkRun(ctx, command, task, implementer);
     let rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     if (!rows.length) rows = ids.map(id => recordTestRun(ctx.db, {taskId: task.id, runId: run.id, checkId: id, result: 'pending'}));
-    const input = {task, run, implementer, project, files, worktree: tree?.path ?? project.dir};
-    const outcome = await withEditor(ctx, project, run, async () => {
+    const input = {task, run, implementer, project: target, files, worktree: dir ?? tree?.path ?? project.dir};
+    const outcome = await withEditor(ctx, target, run, async () => {
       for (const row of rows) {
         const execute = executors[row.checkId as CheckId];
         if (row.result !== 'pending' || !execute) continue;
