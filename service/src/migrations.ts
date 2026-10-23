@@ -46,3 +46,15 @@ export function migrateWorkerProviders(db:DatabaseSync):void {
     for(const auxiliary of auxiliaries) db.exec(auxiliary.sql as string);
   });
 }
+
+/** Hito 4: versión del motor con la que se verificó un pack y cola de descargas asistidas del Launcher. */
+export function migrateAssets(db: DatabaseSync): void {
+  transaction(db, () => {
+    const columns = db.prepare('pragma table_info(catalog_entries)').all();
+    if (!columns.some(row => row.name === 'verified_engine')) db.exec('alter table catalog_entries add column verified_engine text');
+    db.exec(`create table if not exists downloads(
+      id text primary key, created_at text not null, updated_at text not null, entry_id text not null,
+      target_project text, state text not null check(state in ('pending','completed','timeout','cancelled')),
+      requested_at text not null, completed_at text, detail text not null default '{}')`);
+  });
+}

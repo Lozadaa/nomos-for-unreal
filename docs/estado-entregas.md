@@ -12,7 +12,8 @@ Actualizado el 2026-10-23 en `hito9-vistas`, con los hitos 8 y 2 ya en su base. 
 | 2 · Primer worker | En `main` (fusionado el 2026-10-23; aceptación real con Codex) | `docs/aceptacion-hito2.md`, sección «Hito 2» más abajo |
 | 9 · Lenguaje visual | Tareas 3–6 completas en `hito9-vistas`; Tareas 1–2/corrección en la base | `docs/auditoria-9-cierre.md`, `docs/capturas-9/`, `docs/diseno/glifos.md` |
 | 3 | En rama paralela según el brief; no se modifica ni valida aquí | `docs/superpowers/plans/` |
-| 4-7 | Con plan; estado no revisado en este cierre | `docs/superpowers/plans/` |
+| 4 · Catálogo y extracción | Tareas 1-6 en `hito4-catalogo` (sin push ni merge); aceptación real con Unreal 5.8.3 y Meshy | `docs/aceptacion-hito4.md`, `docs/capturas-4/`, sección «Hito 4» más abajo |
+| 5-7 | Con plan; 5b pausado por decisión del usuario | `docs/superpowers/plans/` |
 
 ## Hito 8 (Tareas 4-6): lo que hay y lo que espera
 
@@ -22,7 +23,7 @@ Actualizado el 2026-10-23 en `hito9-vistas`, con los hitos 8 y 2 ya en su base. 
 
 **Disponible**: Pausar/Reanudar usa las rutas del director; los límites editables usan `PUT /budget`. Las decisiones resueltas no se deshacen: una decisión caducada se regenera, como establece el contrato de estados.
 
-**Espera al servicio**: crear comandos (`POST /commands`, «Preparar para Unreal»; «Indexar» sigue deshabilitado), servir miniaturas del catálogo guardadas como rutas locales y listar el historial completo de mensajes. El panel indica el fallo al preparar, conserva «Revisar licencia» y usa pictograma cuando una miniatura no es servible.
+**Espera al servicio**: listar el historial completo de mensajes. (`POST /commands`, «Indexar» y las miniaturas reales del catálogo llegaron con el hito 4.) El panel indica el fallo al preparar, conserva «Revisar licencia» y usa pictograma cuando una miniatura no es servible.
 
 **Pendiente de rendimiento**: frames largos con CPU ×4 y la primera pintura de 500 eventos de Actividad (cifras en la auditoría).
 
@@ -75,3 +76,16 @@ No hubo push, merge, borrado de recursos ni cambios de configuración manuales.
 
 Identidades completas, comandos sanitizados, salidas antes/después, commits,
 listado Orca y límites: [aceptación del hito 2](aceptacion-hito2.md).
+
+## Hito 4 — catálogo, Fab, Meshy
+
+**Hecho** (rama `hito4-catalogo`): indexador de `Content/Fab` y packs del Launcher de cada proyecto, `VaultCache`, caché del plugin, Megascans y `listings_v1.db` (copia de solo lectura); `POST /commands` con lista blanca; editor sin GUI como adaptador (`verifyPack`, `importFile`); nivel 1 (migrar sin sobrescribir, reserva `editor/<proyecto>`, aviso de versión, Decisión «Reemplazar / Conservar»); preparación con `ue-asset-intake` y Decisión «Licencia desconocida»; nivel 2 (Launcher, instrucciones, detector por log y por `VaultCache`, «Ya lo añadí»); Meshy por REST **solo hard surface** (`text|image|remesh`, sin `rig` ni `animate`) con presupuesto, copia propia y reconciliación; panel: Indexar ahora, ⌘K Indexar, Migrar, Descargar, Descargas pendientes, miniaturas reales, Regenerar, eje de horas y recuento «×N» en Actividad; skill con `kratos asset …`, `references/assets.md` y casos 07-08.
+
+**Verificado** en el cierre: `npm test` 358/358 · Vitest 251/251 · build verde · Playwright 59 pasadas, 3 omitidas · skillsmith 98. Aceptación real: migración con verificación sin GUI y aviso «Publicado para 5.4; verificado en 5.8.3», preview de Meshy de 20 créditos con GLB guardado, refine fuera de presupuesto con Decisión y sin job, licencia desconocida con Decisión, detector de nivel 2 sobre el log real.
+
+**Pendiente**: descarga nueva de nivel 2 de punta a punta con clics en el Launcher, worker Claude de arte sobre una tarea de `asset prepare`, pack con C++ o plugins y zip real de la caché del plugin.
+
+```
+node skills/kratos/scripts/kratos.ts asset index|search|migrate|prepare|download|generate --data <juego>/.kratos
+node panel/scripts/capturas-4.ts "<juego>/.kratos"       # capturas → docs/capturas-4/
+```

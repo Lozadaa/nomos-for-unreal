@@ -167,7 +167,7 @@ describe('Catálogo', () => {
   const entry = (over = {}) => ({ id: 'c1', name: 'Free_Tennisball', category: 'model', description: 'Accesorio', source: 'fab', state: 'owned', projects: [], formats: ['glb'], engineVersions: ['5.8'], license: 'Estándar', aiForbidden: 0, tags: [], ...over })
 
   it('«Prohibido para IA» no ofrece preparar y licencia desconocida pide revisarla', async () => {
-    serve(() => [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Explorador', license: null }), entry({ id: 'c3', name: 'Instalado', state: 'imported', projects: ['CrazyPadel'] })])
+    serve((path) => path !== '/catalog' ? [] : [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Explorador', license: null }), entry({ id: 'c3', name: 'Instalado', state: 'imported', projects: ['CrazyPadel'] })])
     inRouter(<Catalogo />)
     await screen.findByText('Bruno')
     const card = (name: string) => screen.getByRole('heading', { name }).closest('li')!
@@ -194,7 +194,7 @@ describe('Catálogo', () => {
   })
 
   it('el filtro «Usables con IA» oculta lo prohibido y sin coincidencias ofrece quitar filtros', async () => {
-    serve(() => [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Ada' })])
+    serve((path) => path === '/catalog' ? [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Ada' })] : [])
     inRouter(<Catalogo />)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Usables con IA' }))

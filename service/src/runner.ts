@@ -47,14 +47,16 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
         try {
           if (!handler) throw new Error('unknown_command_type');
           const result=await handler(active,context);
-          if((active.type==='worker.start'||active.type==='review.start') && result && 'deferred' in result
+          if(result && 'deferred' in result
             && result.deferred===true && 'reason' in result && typeof result.reason==='string')
             defer(db,active.id,result.reason);
           else complete(db,active.id,result || undefined);
         } catch (error) {
           const message=error instanceof Error ? error.message : String(error);
           const retry=!!handler && !active.type.startsWith('worker.') && !active.type.startsWith('review.') && !(error instanceof OrcaError)
-            && !message.startsWith('invalid_') && !message.startsWith('orca:');
+            && !message.startsWith('invalid_') && !message.startsWith('orca:')
+            // decisiones de política (presupuesto, prohibido para IA, Meshy hard surface): reintentar no cambia nada
+            && !['budget_exceeded','asset_ai_forbidden','meshy_kind_not_allowed','meshy_missing_key'].includes(message);
           fail(db,active.id,message,{retry});
         }
       }

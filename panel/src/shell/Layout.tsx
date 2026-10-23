@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { api } from '@/api'
 import { useAction } from '@/feel/useAction'
+import { useCatalogIndexedToast } from '@/hooks/assetCommands'
 import { startLive, useStore } from '@/store'
 import { CommandMenu, type TaskRef } from './CommandMenu'
 import { Header } from './Header'
@@ -25,6 +26,7 @@ export function Layout({ project }: { project?: string }) {
   const all = useStore((s) => s.tasks)
   const tasks: TaskRef[] = all.filter((t) => !t.id.startsWith('tmp-'))
 
+  useCatalogIndexedToast()
   // un único canal de eventos para todas las vistas
   useEffect(() => startLive(), [])
   useEffect(() => {

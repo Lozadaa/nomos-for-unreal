@@ -52,6 +52,24 @@
         "references/brief-revisor.md",
         "evals/06-dos-tareas-un-widget.md"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "Monitor m31: Necesito cinco personajes de fantasía estilizados con esqueleto; catálogo con packs Fab y presupuesto Meshy 100.",
+      "expected_output": "ACK y kratos asset search con varias palabras antes de proponer nada; reply con candidatos (fuente, estado, licencia); después nivel 2, CC0 y Decisión de compra. Nunca Meshy para personajes ni formas orgánicas, nunca --kind rig|animate. Importa con asset prepare.",
+      "files": [
+        "references/assets.md",
+        "evals/07-cinco-personajes.md"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Usa la raqueta de tenis en el juego; Nude_Tennis_Racket_🎾 con license null en el catálogo.",
+      "expected_output": "asset search, asset migrate y asset prepare; el servicio abre «Licencia desconocida» y la tarea queda pendiente; reply con la pregunta y espera elección explícita; no inventa licencia ni importa sin Decisión; entrecomilla el nombre con emoji.",
+      "files": [
+        "references/assets.md",
+        "evals/08-licencia-desconocida.md"
+      ]
     }
   ]
 }

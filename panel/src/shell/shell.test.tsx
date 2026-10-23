@@ -86,11 +86,11 @@ describe('CommandMenu', () => {
     expect(document.activeElement).toBe(before)
     expect(onClose).not.toHaveBeenCalled()
   })
-  it('Pausar y Reanudar llaman a la acción; Indexar sigue deshabilitado', async () => {
+  it('Pausar y Reanudar llaman a la acción; Indexar está habilitado', async () => {
     const toggle = vi.fn()
     mount(undefined, { paused: false, onTogglePause: toggle })
     fireEvent.keyDown(document, { key: 'k', metaKey: true })
-    expect(await screen.findByText('Indexar · Disponible en el hito 4')).toHaveAttribute('aria-disabled', 'true')
+    expect(await screen.findByText('Indexar')).toHaveAttribute('aria-disabled', 'false')
     fireEvent.click(screen.getByText('Pausar'))
     expect(toggle).toHaveBeenCalledTimes(1)
   })

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command'
 import { withViewTransition } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
+import { useIndexCatalog } from '@/hooks/assetCommands'
 import { views } from './Tabs'
 
 export interface TaskRef { id: string; title: string }
@@ -56,6 +57,7 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused
     set(false)
     setTimeout(() => onGuide?.(), 0)
   }, { minPendingMs: 0, restoreFocus: false })
+  const index = useIndexCatalog()
 
   return (
     <CommandDialog open={open} onOpenChange={set} title="Menú de comandos" description="Busca una vista, una tarea o una acción">
@@ -83,7 +85,7 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused
           <CommandItem onSelect={() => go('/?nueva=1')}>Nueva petición</CommandItem>
           <CommandItem disabled={!onLegend || legend.pending} onSelect={() => void legend.fire()}>Leyenda</CommandItem>
           <CommandItem disabled={!onGuide || guide.pending} onSelect={() => void guide.fire()}>Ver guía</CommandItem>
-          <CommandItem disabled>Indexar · Disponible en el hito 4</CommandItem>
+          <CommandItem disabled={index.pending} onSelect={() => { set(false); void index.fire() }}>Indexar</CommandItem>
           <CommandItem disabled={paused === undefined || !onTogglePause} onSelect={() => { set(false); onTogglePause?.() }}>{paused ? 'Reanudar' : 'Pausar'}</CommandItem>
         </CommandGroup>
       </CommandList>

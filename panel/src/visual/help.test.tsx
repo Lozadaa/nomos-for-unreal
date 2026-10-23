@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 
 vi.mock('@/shell/useStatus', () => ({ useStatus: () => null }))
-vi.mock('@/store', () => ({ startLive: () => () => {}, useStore: () => [] }))
+vi.mock('@/store', () => ({ startLive: () => () => {}, useStore: (pick: (s: { tasks: never[]; events: never[] }) => unknown) => pick({ tasks: [], events: [] }) }))
 import { Layout } from '@/shell/Layout'
 
 const key = 'kratos.tour.v1'

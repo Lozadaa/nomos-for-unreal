@@ -30,13 +30,23 @@ export function upsertEntry(db: DatabaseSync, input: Input<CatalogEntry> & Pick<
         return insert<CatalogEntry>(db, 'catalog_entries', { sourceUrl: null, fabUid: null, entitlementUid: null, state: 'owned', projects: [], formats: [], engineVersions: [], license: null, aiForbidden: 0, thumbnailPath: null, localPath: null, tags: [], ...old, ...input, updatedAt: new Date().toISOString() });
     });
 }
-export const listCatalog = (db: DatabaseSync, filter: Filter = {}) => filtered<CatalogEntry>(db, 'catalog_entries', filter);
+/** Clave natural del indexador: primero el listado de Fab, después la ruta en disco. */
+export function findEntry(db: DatabaseSync, source: CatalogEntry['source'], key: { fabUid?: string | null; localPath?: string | null }): CatalogEntry | undefined {
+    for (const [column, value] of [['fab_uid', key.fabUid], ['local_path', key.localPath]] as const) {
+        if (!value) continue;
+        const row = db.prepare(`select * from catalog_entries where source=? and ${column}=? collate nocase order by rowid limit 1`).get(source, value);
+        if (row) return decode<CatalogEntry>(row);
+    }
+    return undefined;
+}
+export const listCatalog =(db: DatabaseSync, filter: Filter = {}) => filtered<CatalogEntry>(db, 'catalog_entries', filter);
 export function searchCatalog(db: DatabaseSync, q: string, filter: Filter = {}): CatalogEntry[] {
     fts(db);
     const words = q.match(/[\p{L}\p{N}_]+/gu) ?? [];
     if (!words.length)
         return [];
-    const query = words.map(w => '"' + w + '"').join(' AND ');
+    // prefijo: «tennis» encuentra Free_Tennisball (FTS5 parte por guion bajo, no dentro de la palabra)
+    const query = words.map(w => '"' + w + '"*').join(' AND ');
     const rows = db.prepare('select c.* from catalog_entries c join catalog_fts f on f.rowid=c.rowid where catalog_fts match ? order by rank').all(query).map(r => decode<CatalogEntry>(r));
     return rows.filter(row => Object.entries(filter).every(([k, v]) => v === undefined || row[k as keyof CatalogEntry] === v));
 }
