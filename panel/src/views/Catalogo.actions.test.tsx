@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 vi.mock('@/api', () => {
@@ -16,6 +16,7 @@ import { ingest, resetStore } from '@/store'
 import { budgets, visibleWords } from '@/visual/text-budget'
 import { CatalogCard, type CatalogEntry } from './Catalogo'
 import { versionWarning } from './CatalogActions'
+import { PendingDownloads } from './PendingDownloads'
 
 const entry = (over: Partial<CatalogEntry> = {}): CatalogEntry => ({
   id: 'cel', name: 'Advanced Cel Shader Lite', category: 'pack', description: '', source: 'fab', state: 'cached', projects: ['KratosFabTest'],
@@ -65,5 +66,26 @@ describe('Catálogo · migrar y preparar', () => {
   it('la miniatura real se pide a /catalog/<id>/thumbnail con el token', () => {
     mount(entry({ thumbnailUrl: '/catalog/cel/thumbnail' }))
     expect(within(card()).getByRole('img', { name: 'Advanced Cel Shader Lite' })).toHaveAttribute('src', '/catalog/cel/thumbnail?token=fixture-token')
+  })
+})
+
+describe('Catálogo · descargas asistidas (nivel 2)', () => {
+  it('en tu biblioteca de Fab y sin disco: Descargar encola asset.request_download', async () => {
+    mount(entry({ state: 'owned', fabUid: 'ff0ac933', projects: [] }))
+    expect(within(card()).queryByRole('button', { name: /^Migrar/ })).toBeNull()
+    fireEvent.click(within(card()).getByRole('button', { name: 'Descargar Advanced Cel Shader Lite desde Fab' }))
+    await waitFor(() => expect(posted()[0]).toMatchObject({ type: 'asset.request_download', payload: { entryId: 'cel' } }))
+    expect(visibleWords(card())).toBeLessThanOrEqual(budgets.catalogCard)
+  })
+
+  it('Descargas pendientes muestra las instrucciones y «Ya lo añadí» adelanta la comprobación', async () => {
+    vi.mocked(api).mockImplementation(async (path: string) => path.startsWith('/downloads?')
+      ? [{ id: 'd1', entryId: 'cel', name: 'Advanced Cel Shader Lite', state: 'pending', instructions: 'Fab › My Library › busca "Advanced Cel Shader Lite"', requestedAt: '' }]
+      : {})
+    render(<TooltipProvider><PendingDownloads /></TooltipProvider>)
+    const section = await screen.findByRole('region', { name: 'Descargas pendientes' })
+    expect(within(section).getByText(/Fab › My Library/)).toBeInTheDocument()
+    fireEvent.click(within(section).getByRole('button', { name: 'Ya lo añadí' }))
+    await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith('/downloads/d1/check', { method: 'POST', body: {} }))
   })
 })

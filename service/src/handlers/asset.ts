@@ -4,6 +4,7 @@ import { indexAll } from '../catalog/indexer.ts';
 import { assetConfig } from '../catalog/paths.ts';
 import { createMigrate, type AssetDeps } from './asset-migrate.ts';
 import { assetPrepare } from './asset-prepare.ts';
+import { createDetect, createRequestDownload, type DownloadDeps } from './asset-download.ts';
 
 const assetIndex: Handler = async (_command, ctx) => {
   const started = Date.now();
@@ -14,6 +15,7 @@ const assetIndex: Handler = async (_command, ctx) => {
 };
 
 /** Trabajo de assets de la bandeja de comandos; nunca se llama de forma síncrona desde una ruta. */
-export function createAssetHandlers(deps: AssetDeps = {}): Record<string, Handler> {
-  return {'asset.index': assetIndex, 'asset.migrate': createMigrate(deps), 'asset.prepare': assetPrepare};
+export function createAssetHandlers(deps: AssetDeps & DownloadDeps = {}): Record<string, Handler> {
+  return {'asset.index': assetIndex, 'asset.migrate': createMigrate(deps), 'asset.prepare': assetPrepare,
+    'asset.request_download': createRequestDownload(deps), 'asset.detect': createDetect(deps)};
 }

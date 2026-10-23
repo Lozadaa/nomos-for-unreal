@@ -17,7 +17,8 @@ import { useResource } from '@/hooks/useResource'
 import { sendCommand, useIndexCatalog } from '@/hooks/assetCommands'
 import { useAuthedSrc } from '@/hooks/artifact'
 import { useStatus } from '@/shell/useStatus'
-import { MigrateButton, StatusIcon, VersionWarning, versionWarning } from './CatalogActions'
+import { DownloadButton, MigrateButton, StatusIcon, VersionWarning, versionWarning } from './CatalogActions'
+import { PendingDownloads } from './PendingDownloads'
 import { cn } from '@/lib/utils'
 import { catalogArea, catalogThumbnailUrl } from '@/lib/catalogVisual'
 import { Glyph } from '@/visual/Glyph'
@@ -29,7 +30,7 @@ export interface CatalogEntry {
   state: 'owned' | 'downloaded' | 'cached' | 'imported'; projects: string[]; formats: string[]; engineVersions: string[]
   license: string | null; aiForbidden: 0 | 1; tags: string[]
   thumbnailPath?: string | null; thumbnail_path?: string | null
-  thumbnailUrl?: string | null; verifiedEngine?: string | null
+  thumbnailUrl?: string | null; verifiedEngine?: string | null; fabUid?: string | null
 }
 
 const sourceLabel: Record<string, string> = {
@@ -76,12 +77,14 @@ export function CatalogCard({ entry, project }: { entry: CatalogEntry; project?:
   const installed = entry.state === 'imported' && (!project || entry.projects.includes(project))
   // nivel 1: un pack Fab en disco (caché del Launcher, del plugin o de otro proyecto) se copia sin volver a descargarlo
   const migratable = !!project && entry.source === 'fab' && entry.state !== 'owned' && !installed
+  // nivel 2: en tu biblioteca de Fab (listings del Launcher) y todavía no en disco
+  const downloadable = entry.source === 'fab' && entry.state === 'owned' && !!entry.fabUid
   const warning = versionWarning(entry.engineVersions, entry.verifiedEngine)
   const source = sourceLabel[entry.source] ?? entry.source
   const forbiddenMessage = 'Prohibido para IA · no se puede usar con agentes'
   const forbiddenLabel = countWords(source) > 1 ? 'No IA' : 'Prohibido para IA'
   const actionLabel = prepare.pending ? 'Preparando…' : accepted ? 'Pendiente' : note ? 'Reintentar' : 'Preparar'
-  const actionWords = forbidden ? countWords(forbiddenLabel) : installed || migratable ? 1 : unknown ? 2 : 1
+  const actionWords = forbidden ? countWords(forbiddenLabel) : installed || migratable || downloadable ? 1 : unknown ? 2 : 1
   const title = truncateWords(entry.name, Math.max(1, budgets.catalogCard - countWords(source) - actionWords - (warning ? 1 : 0)))
   const installedLabel = `Instalado en ${(project && entry.projects.includes(project) ? project : entry.projects[0]) ?? 'el proyecto'}`
   const actionHint = note ?? (accepted ? 'Preparación solicitada. Aparecerá en el proyecto cuando termine.' : `Preparar ${entry.name} para Unreal. Licencia: ${entry.license ?? 'desconocida'}.`)
@@ -110,7 +113,8 @@ export function CatalogCard({ entry, project }: { entry: CatalogEntry; project?:
           <Tooltip><TooltipTrigger render={<span tabIndex={0} title={installedLabel} aria-label={installedLabel} className="inline-flex items-center gap-2 text-xs outline-offset-2" />}>
             <StatusIcon value="done" label="Instalado" tone="success" />Instalado
           </TooltipTrigger><TooltipContent role="tooltip">{installedLabel}</TooltipContent></Tooltip>
-        ) : migratable ? <MigrateButton entryId={entry.id} name={entry.name} project={project!} />
+        ) : downloadable ? <DownloadButton entryId={entry.id} name={entry.name} />
+        : migratable ? <MigrateButton entryId={entry.id} name={entry.name} project={project!} />
         : unknown ? (
           <Sheet><SheetTrigger render={<Button variant="outline" size="sm" aria-label="Revisar licencia" />}>
             <StatusIcon value="decision" label="Licencia desconocida" tone="warning" />Revisar licencia
@@ -156,6 +160,7 @@ export function Catalogo() {
 
   return (
     <div className="flex flex-col gap-4">
+      <PendingDownloads />
       <div className="flex flex-wrap items-center gap-3">
         <ToggleGroup aria-label="Filtrar el catálogo" value={[mode]} variant="outline" size="sm" spacing={0}
           onValueChange={(v) => void animateUpdate(() => setMode(v[0] ?? 'todos'))}>
