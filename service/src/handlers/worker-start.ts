@@ -18,6 +18,7 @@ import { schedulingBlocked } from '../scheduler-admission.ts';
 import { readConfig } from '../config.ts';
 import { launchCommand, readyPattern } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
+import { installSkills } from '../skills-install.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -97,6 +98,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   writeFileSync(join(created.path,'.kratos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
     {projectContext:context || undefined}));
   await git.excludeLocal(created.path);
+  // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
+  installSkills(created.path);
   await orca.terminalSend(created.terminalHandle,launchCommand(run.provider));
   if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,readyPattern(run.provider)))
     throw new Error(`orca: ${run.provider} no estuvo listo antes de 90 s`);

@@ -70,3 +70,12 @@ test('revisor prevalece sobre área UI y SKILLS no interfiere con REVIEW',async 
   assert.deepEqual(f.reviewer().metadata.confirmedSkills,['code-review']);assert.equal(f.reviewer().state,'done');
   assert.deepEqual(listEvents(f.db,0).find(e=>e.type==='worker.skills_missing')?.payload.missing,['superpowers:requesting-code-review']);
 });
+test('worker.start copia las skills de UI al árbol del worker y las excluye del diff',async t=>{
+  const f=fixture(t);
+  await f.start();
+  const tree=f.tree().path;
+  for(const name of ['game-ui-art-director','ue-umg-ui','ue-visual-qa'])
+    assert.match(readFileSync(join(tree,'.claude','skills',name,'SKILL.md'),'utf8'),new RegExp(`name: ${name}`));
+  const {createGit}=await import('../../service/src/adapters/git.ts');
+  assert.deepEqual((await createGit().changedFiles!(tree,f.tree().baseCommit)).filter(p=>p.startsWith('.claude')),[]);
+});

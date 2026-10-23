@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { gameSkills } from '../skills-install.ts';
 export type Git = {
   isRepo(dir: string): Promise<boolean>; currentBranch(dir: string): Promise<string>;
   excludeLocal(dir: string): Promise<void>;
@@ -35,7 +36,8 @@ export function createGit(): Git {
       const common=resolve(dir,(await run(dir,['rev-parse','--git-common-dir'])).trim());
       mkdirSync(join(common,'info'),{recursive:true});
       const file=join(common,'info','exclude'),old=existsSync(file) ? readFileSync(file,'utf8') : '';
-      const patterns=['/.kratos-brief.md','/.kratos-inbox/','/.kratos-review/'];
+      const patterns=['/.kratos-brief.md','/.kratos-inbox/','/.kratos-review/',
+        ...gameSkills.map(name=>`/.claude/skills/${name}/`)];
       writeFileSync(file,old+'\n'+patterns.filter(p=>!old.split(/\r?\n/).includes(p)).join('\n')+'\n');
     },
     async diff(dir,base) {
