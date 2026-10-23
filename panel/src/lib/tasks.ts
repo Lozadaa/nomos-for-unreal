@@ -41,6 +41,7 @@ export interface Task {
   /** Hito 6: quién hizo qué (implemento, reviso, genero, integro, verifico) y carpeta de archivo al cerrar. */
   attribution?: Record<string, { runId: string; provider: string; agentName: string; at: string }[]>
   archivePath?: string | null
+  failure?: { kind: FailureKind; text: string; detail: string | null; at: string }
 }
 
 export interface Decision {
@@ -49,7 +50,8 @@ export interface Decision {
   taskId: string
   reason: string
   evidence: { kind: string; ref: string }[]
-  options: { id: string; label: string; description: string }[]
+  /** Hito 7: miniatura propia (catálogo, Meshy) y la opción recomendada, que lleva el único acento. */
+  options: { id: string; label: string; description: string; thumbnail?: string; recommended?: boolean }[]
   chosenOptionId: string | null
   state: 'open' | 'resolved' | 'stale'
 }
@@ -58,7 +60,7 @@ export interface Run {
   id: string; taskId: string; role: string; provider: string; state: 'running' | 'done' | 'failed' | 'cancelled'
   startedAt: string; finishedAt: string | null; summary: string | null
   /** Estado persistido por el servicio; permite restaurar la espera al recargar. */
-  metadata?: { waiting?: boolean }
+  metadata?: { waiting?: boolean; confirmedSkills?: string[] }
 }
 
 export interface TestRun {
@@ -112,3 +114,25 @@ export function statusText(t: Pick<Task, 'state' | 'blockedReason' | 'decisionId
 
 export const shortId = (id: string) => id.replace(/^tmp-/, '').slice(0, 7)
 export const isTemp = (id: string) => id.startsWith('tmp-')
+
+/** Hito 7: estado de fallo de la orden más reciente de la tarea (lo calcula el servicio en /tasks). */
+export type FailureKind = 'connection' | 'execution' | 'cancel_requested' | 'cancel_confirmed' | 'capability_missing'
+export const failureShort: Record<FailureKind, string> = {
+  connection: 'Sin conexión', execution: 'Ejecución fallida', cancel_requested: 'Cancelación solicitada',
+  cancel_confirmed: 'Cancelación confirmada', capability_missing: 'Falta una capacidad',
+}
+
+/** Motivo de tres palabras como mucho para la fila de Producción: el fallo primero, después la espera. */
+export function rowReason(t: Pick<Task, 'waitReason' | 'failure'> & Partial<Pick<Task, 'blockedReason' | 'decisionId'>>): string | null {
+  if (t.failure) return failureShort[t.failure.kind] ?? null
+  const reason = t.waitReason?.trim()
+  // bloqueada o esperando Decisión: el glifo de estado ya lo dice y el motivo completo está en el detalle
+  if (!reason || t.decisionId || t.blockedReason) return null
+  if (/^Esperando reserva|^Editor de .*: ocupado/.test(reason)) return 'Esperando reserva'
+  if (reason.startsWith('Director en pausa')) return 'Director en pausa'
+  if (reason.startsWith('Depende de')) return 'Depende de…'
+  const head = reason.split(':')[0].trim()
+  if (head !== reason && head.split(/\s+/).length <= 3) return head
+  const words = reason.split(/\s+/)
+  return words.length <= 3 ? reason : `${words.slice(0, 3).join(' ')}…`
+}

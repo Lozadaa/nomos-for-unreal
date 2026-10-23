@@ -24,3 +24,10 @@ test('readConfig valida defaultProvider',t=>{
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"codex"}');assert.equal(readConfig(dir).defaultProvider,'codex');
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"otro"}');assert.throws(()=>readConfig(dir),/invalid_worker_config/);
 });
+
+test('una tarea asignada a un proveedor apagado dice cuál y cómo encenderlo, no «sin proveedor»', () => {
+  assert.deepEqual(chooseProvider('implementacion', {}, idle, undefined, 'codex'),
+    {reason: 'Codex apagado: dale cupo en config.json'});
+  assert.deepEqual(chooseProvider('implementacion', {concurrency: {codex: 0, claude: 0}}, idle),
+    {reason: 'Sin proveedor habilitado'});
+});

@@ -2,7 +2,7 @@ import { memo, type CSSProperties } from 'react'
 import { glyphFor } from '../glyphs'
 import { AgentAvatar, type AgentAvatarState } from './AgentAvatar'
 
-export interface AvatarGroupAgent { id: string; provider: string; name: string; state: AgentAvatarState; ordinal?: number }
+export interface AvatarGroupAgent { id: string; provider: string; name: string; state: AgentAvatarState; ordinal?: number; skills?: readonly string[] }
 
 /** Tres avatares visibles; el cuarto lugar resume los restantes sin perder los totales reales. */
 export const AvatarGroup = memo(function AvatarGroup({ agents, size = 32 }: { agents: readonly AvatarGroupAgent[]; size?: number }) {

@@ -82,7 +82,7 @@ export function Capacidades() {
     const agents = assignAgentNames([...runs]
       .sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
       .map((run) => ({
-        id: run.id, provider: run.provider, role: run.role, area: byTask.get(run.taskId)?.area,
+        id: run.id, provider: run.provider, role: run.role, area: byTask.get(run.taskId)?.area, skills: run.metadata?.confirmedSkills,
         state: (run.state === 'running' ? run.waiting || waiting[run.taskId]?.runId === run.id ? 'waiting' : 'running' : 'idle') as AgentAvatarState,
       })))
     const providers = new Map<string, AvatarGroupAgent[]>()
@@ -107,7 +107,7 @@ export function Capacidades() {
           {groups.list.map(({ provider, agents }) => <li key={provider} className="flex flex-col gap-3 rounded-lg border border-subtle p-4">
             <AvatarGroup agents={agents} size={48} />
             <ul aria-label={`Nombres de ${glyphFor('provider', provider).label}`} className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {agents.map((agent) => <li key={agent.id} title={glyphFor('provider', provider).label}>{agent.name}</li>)}
+              {agents.map((agent) => <li key={agent.id} title={agent.skills?.length ? `${glyphFor('provider', provider).label} · skills confirmadas: ${agent.skills.join(', ')}` : glyphFor('provider', provider).label}>{agent.name}</li>)}
             </ul>
           </li>)}
         </ul>

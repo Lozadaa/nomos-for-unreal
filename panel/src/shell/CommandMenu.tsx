@@ -1,17 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
+import { api } from '@/api'
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command'
 import { withViewTransition } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
 import { useIndexCatalog } from '@/hooks/assetCommands'
 import { views } from './Tabs'
 
-export interface TaskRef { id: string; title: string }
+export interface TaskRef { id: string; title: string; state?: string }
 
-const typing = (el: Element | null): boolean =>
-  el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable)
+/** Escribiendo en un campo (salvo la propia búsqueda de la paleta) Ctrl+K no abre ni cierra nada (Review Focus 5). */
+const typing = (el: EventTarget | null): boolean => el instanceof Element
+  && !!el.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]') && !el.hasAttribute('cmdk-input')
 
-/** ⌘K / Ctrl+K: vistas, tareas por título y acciones. No se abre mientras se escribe en un textarea. */
+/** Acciones de la tarea abierta en el detalle, con el estado en que el servicio las acepta. */
+const taskActions = [
+  { label: 'Lanzar pruebas', path: 'checks', states: ['implementando', 'revisando', 'probando'], done: 'Pruebas en cola' },
+  { label: 'Integrar', path: 'integrate', states: ['revisando', 'integrando'], done: 'Integración en cola' },
+  { label: 'Cerrar', path: 'finalize', states: ['cerrando'], done: 'Cierre en cola' },
+] as const
+
+/** ⌘K / Ctrl+K: vistas, tareas por título y acciones. No se abre mientras se escribe en un campo. */
 export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused, onTogglePause, onLegend, onGuide, opener }: {
   tasks?: TaskRef[]; open?: boolean; onOpenChange?: (open: boolean) => void
   /** `undefined` = sin estado del servicio: la acción queda deshabilitada. */
@@ -58,6 +67,11 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused
     setTimeout(() => onGuide?.(), 0)
   }, { minPendingMs: 0, restoreFocus: false })
   const index = useIndexCatalog()
+  const [params] = useSearchParams()
+  const current = tasks.find((t) => t.id === params.get('tarea'))
+  const chosen = useRef<(typeof taskActions)[number] | null>(null)
+  const runTask = useAction(() => api(`/tasks/${encodeURIComponent(current!.id)}/${chosen.current!.path}`, { method: 'POST', body: {} }),
+    { success: () => ({ title: chosen.current!.done }), restoreFocus: false })
 
   return (
     <CommandDialog open={open} onOpenChange={set} title="Menú de comandos" description="Busca una vista, una tarea o una acción">
@@ -88,6 +102,17 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused
           <CommandItem disabled={index.pending} onSelect={() => { set(false); void index.fire() }}>Indexar</CommandItem>
           <CommandItem disabled={paused === undefined || !onTogglePause} onSelect={() => { set(false); onTogglePause?.() }}>{paused ? 'Reanudar' : 'Pausar'}</CommandItem>
         </CommandGroup>
+        {current && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading={`Tarea abierta: ${current.title}`}>
+              {taskActions.map((action) => (
+                <CommandItem key={action.path} disabled={runTask.pending || !(action.states as readonly string[]).includes(current.state ?? '')}
+                  onSelect={() => { chosen.current = action; set(false); void runTask.fire() }}>{action.label}</CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
       </CommandList>
       </Command>
     </CommandDialog>

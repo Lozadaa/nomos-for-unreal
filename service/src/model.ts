@@ -46,7 +46,7 @@ export type Worktree = Entity & {
 };
 export type Decision = Entity & {
   taskId: string; reason: string; evidence: { kind: string; ref: string }[];
-  options: { id: string; label: string; description: string }[];
+  options: { id: string; label: string; description: string; recommended?: boolean; thumbnail?: string }[];
   chosenOptionId: string | null; resolvedBy: string | null; resolvedAt: string | null;
   contextHash: string; state: 'open' | 'resolved' | 'stale';
 };

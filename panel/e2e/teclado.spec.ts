@@ -65,10 +65,15 @@ test('Decisiones: j/k recorren la bandeja y una opción se elige con Tab y foco 
   }
 })
 
-test('? y Ctrl+K no abren nada mientras se escribe en la descripción; fuera de ella sí, y Esc devuelve el foco', async ({ page }) => {
+test('? y Ctrl+K no abren nada mientras se escribe en el título o la descripción; fuera sí, y Esc devuelve el foco', async ({ page }) => {
   await page.goto(url())
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
-  await page.getByLabel('Título de la petición').click()
+  const title = page.getByLabel('Título de la petición')
+  await title.click()
+  await page.keyboard.type('Barra')
+  await page.keyboard.press('Control+k')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(title).toHaveValue('Barra')
   const description = page.getByLabel('Descripción')
   await description.click()
   await page.keyboard.type('¿qué tal? ')

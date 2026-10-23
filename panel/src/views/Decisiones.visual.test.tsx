@@ -40,7 +40,7 @@ describe('Opciones visuales de decisión', () => {
     expect(visibleWords(card)).toBeLessThanOrEqual(budgets.decisionCard)
     expect(card).toHaveAttribute('data-decision-card')
     const options = within(card).getByRole('group', { name: 'Opciones' })
-    expect(within(options).getAllByRole('img', { name: 'Interfaz' })).toHaveLength(2)
+    expect(within(options).queryAllByRole('img')).toHaveLength(0) // hito 7: tarjetas de texto, sin el pictograma repetido
     expect(within(options).getByRole('button', { name: decision.options[0].label })).toBeInTheDocument()
     expect(within(options).getByRole('button', { name: 'Opción B' })).toHaveTextContent('Opción B')
     expect(within(card).queryByText(decision.options[0].description)).not.toBeInTheDocument()
@@ -53,14 +53,14 @@ describe('Opciones visuales de decisión', () => {
     expect(detail).toHaveTextContent('Source/UI/Inventory.cpp')
   })
 
-  it('las tarjetas del detalle de tarea conservan el área y la acción de elegir', async () => {
+  it('las tarjetas del detalle de tarea son de texto y conservan la acción de elegir', async () => {
     const detail: TaskDetail = { task, decision, runs: [], events: [], artifacts: [], testRuns: [] }
     vi.mocked(api).mockImplementation(async (path: string) => path.startsWith('/tasks/') ? detail : {})
     render(<TaskSheet id={task.id} task={task} onClose={() => {}} />)
     const card = await screen.findByRole('region', { name: 'Decisión pendiente' })
     expect(visibleWords(card)).toBeLessThanOrEqual(budgets.decisionCard)
     expect(card).toHaveAttribute('data-decision-card')
-    expect(within(card).getAllByRole('img', { name: 'Interfaz' })).toHaveLength(2)
+    expect(within(card).queryAllByRole('img')).toHaveLength(0)
     await userEvent.setup().click(within(card).getByRole('button', { name: 'Opción B' }))
     expect(api).toHaveBeenCalledWith('/decisions/d1/resolve', { method: 'POST', body: { optionId: 'b', by: 'director' } })
   })

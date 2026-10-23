@@ -36,7 +36,7 @@ function Preview({ a, name }: { a: Artifact; name: string }) {
   const src = useArtifactSrc(a.id)
   const errors = useErrorLines(a)
   if (meshyExpired(a)) return <MeshyExpired a={a} />
-  if (isModel(a)) return <GlbViewer id={a.id} name={fileName(a)} />
+  if (isModel(a)) return <GlbViewer id={a.id} name={name} />
   if (isImage(a) && src) return <img src={src} alt={name} width={400} height={300} className="size-full object-cover" loading="lazy" />
   return (
     <div className="flex size-full flex-col items-center justify-center gap-3 p-3 text-muted-foreground">
