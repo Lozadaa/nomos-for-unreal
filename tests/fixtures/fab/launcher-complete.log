@@ -1,0 +1,4 @@
+[2026.10.20-12.40.34:238][895]LogDownloadManager: HandleTaskComplete: AppId [fn:4fe75bbc5a674f4f9b356b5c90567da5:Fortnite] AlertCode=[ok] QueueLen=1 IncompleteInstall=0 AutoResume=1
+[2026.10.23-00.45.45:034][204]LogFabViewModel: Manifest downloaded for AppId 89efe5924d3d467c839449ab6ab52e7f:353053051307445ab8926bdb8b44fc76:Advanceddffcefa302e4V2
+[2026.10.23-00.45.47:834][356]FCommunityPortalVaultCacheInstall: found 192 file(s) under source 'C:/ProgramData/Epic/EpicGamesLauncher/VaultCache/Advanceddffcefa302e4V2/data', destination 'C:/Users/richa/Documents/Unreal Projects/KratosFabTest', bMove 0
+[2026.10.23-00.45.48:733][410]LogDownloadManager: HandleTaskComplete: AppId [89efe5924d3d467c839449ab6ab52e7f:353053051307445ab8926bdb8b44fc76:Advanceddffcefa302e4V2] AlertCode=[ok] QueueLen=1 IncompleteInstall=0 AutoResume=1
