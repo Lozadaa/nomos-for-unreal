@@ -13,3 +13,17 @@ export function migrateWorker(db: DatabaseSync): void {
     }
   });
 }
+
+export function migrateLeases(db: DatabaseSync): void {
+  transaction(db, () => {
+    db.exec(`create table if not exists leases(
+      path text primary key collate nocase, run_id text not null,
+      task_id text not null, acquired_at text not null)`);
+    const columns=db.prepare('pragma table_info(tasks)').all();
+    for (const [column,definition] of [
+      ['leases',"text not null default '[]'"],
+      ['review_approved','integer not null default 0'],
+      ['wait_reason','text'],
+    ]) if (!columns.some(row=>row.name===column)) db.exec(`alter table tasks add column ${column} ${definition}`);
+  });
+}

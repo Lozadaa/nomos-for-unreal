@@ -36,7 +36,8 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   }
   json(res, 201, createTask(db, {
     title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance,
-    scope: data.scope === undefined ? [] : normalizedPaths(data.scope)
+    scope: data.scope === undefined ? [] : normalizedPaths(data.scope),
+    leases: data.leases === undefined ? [] : normalizedPaths(data.leases)
   }));
   return true;
 }

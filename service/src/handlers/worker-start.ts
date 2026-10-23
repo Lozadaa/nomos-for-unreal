@@ -11,6 +11,8 @@ import { workerPolicy, decisionGate } from './worker-policy.ts';
 import { OrcaError } from '../adapters/orca.ts';
 import { dispatchGuard, dispatchBlocked, pauseForDecision } from './worker-decisions.ts';
 import { requireGameProject } from '../project-root.ts';
+import { acquire } from '../leases.ts';
+import { workerFailure } from './worker-failure.ts';
 
 export const workerStart: Handler=async (cmd,ctx)=>{
   const {db,git,orca,projectDir}=ctx,payload=cmd.payload as any;
@@ -35,6 +37,11 @@ export const workerStart: Handler=async (cmd,ctx)=>{
   const short=task.id.slice(0,8);
   let run=startRun(db,{taskId:task.id,role:payload.role,provider:'codex',skills:payload.skills,attempt:payload.attempt ?? 1,
     metadata:{phase:'preparing',deadlineAt:new Date(Date.now()+4*3600_000).toISOString(),pollGeneration:0,correctionCount:0}});
+  const reservation=acquire(db,run.id,task.id,requireTask(db,task.id).leases);
+  if(!reservation.ok) {
+    workerFailure(db,{...payload,runId:run.id,conflicts:reservation.conflicts},'lease_conflict');return;
+  }
+  db.prepare('update tasks set wait_reason=null where id=?').run(task.id);
   try {
   const {repoId}=await orca.repoAdd(projectDir);
   const created=await orca.worktreeCreate(repoId,'kratos-'+short,'codex');

@@ -10,6 +10,7 @@ export type Task = Entity & {
   blockedReason: string | null; decisionId: string | null; area: TaskArea;
   assigneeRole: string | null; assigneeProvider: string | null; parentTaskId: string | null;
   dependsOn: string[]; worktreeId: string | null; budgetId: string | null; scope: string[];
+  leases: string[]; reviewApproved: 0 | 1; waitReason: string | null;
 };
 export type RunMetadata = {
   worktreeId?: string; cursor?: string; waiting?: boolean; question?: string;

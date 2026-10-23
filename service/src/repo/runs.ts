@@ -3,6 +3,7 @@ import type { Run } from '../model.ts';
 import { appendEvent } from '../store.ts';
 import { insert, read, transaction, type Input } from './rows.ts';
 import { requireTask } from './tasks.ts';
+import { release } from '../leases.ts';
 export function startRun(db: DatabaseSync, input: Input<Run> & Pick<Run, 'taskId' | 'role' | 'provider'>): Run {
     return transaction(db, () => {
         requireTask(db, input.taskId);
@@ -20,6 +21,7 @@ export function finishRun(db: DatabaseSync, id: string, state: Exclude<Run['stat
             throw new Error('invalid_transition');
         const now = new Date().toISOString();
         db.prepare('update runs set state=?,summary=?,finished_at=?,updated_at=? where id=?').run(state, summary, now, now, id);
+        release(db,id);
         appendEvent(db, 'run.finished', null, { taskId: run.taskId, runId: id, state, summary });
         return read<Run>(db, 'runs', id)!;
     });

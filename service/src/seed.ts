@@ -12,11 +12,11 @@ export function seed(db: DatabaseSync, opts: {force?: boolean, now?: Date} = {})
   return transaction(db, () => {
     if (db.prepare('select 1 from tasks limit 1').get() && !opts.force) throw new Error('not_empty');
     if (opts.force) {
-      for (const table of ['spends','budgets','decisions','artifacts','test_runs','worktrees','runs','tasks','catalog_entries','commands']) {
+      for (const table of ['leases','spends','budgets','decisions','artifacts','test_runs','worktrees','runs','tasks','catalog_entries','commands']) {
         db.exec(`delete from ${table}`);
       }
       // Retain hito 0 envelopes and AUTOINCREMENT high-water mark for SSE consumers.
-      db.exec("delete from events where message_id is null and (type like 'task.%' or type like 'run.%' or type like 'decision.%' or type like 'artifact.%' or type like 'command.%')");
+      db.exec("delete from events where message_id is null and (type like 'task.%' or type like 'run.%' or type like 'decision.%' or type like 'artifact.%' or type like 'command.%' or type like 'lease.%')");
     }
     const put = writer(db,timestamp);
     productionRows(put); catalogRows(put); artifactRows(db,put);
