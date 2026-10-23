@@ -19,7 +19,8 @@ export type CheckDeps = {
 };
 export type CheckInput = {task: Task; run: Run; implementer: Run; project: Project; files: string[]; worktree: string};
 export type Outcome = {
-  result: 'passed' | 'failed' | 'skipped' | 'unavailable'; log: string; summary: string[];
+  /** `running`: la máquina terminó y falta un juicio posterior (QA visual del ciclo UMG). */
+  result: 'passed' | 'failed' | 'skipped' | 'unavailable' | 'running'; log: string; summary: string[];
   map?: string | null; config?: string | null; engine?: string | null; blocking?: string[];
   artifacts?: {kind: Artifact['kind']; path: string; provenance?: Record<string, JsonValue>}[];
 };

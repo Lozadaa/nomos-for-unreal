@@ -10,6 +10,8 @@ import { createHash } from 'node:crypto';
 import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './worker-markers.ts';
 import { finishReview } from './review-finish.ts';
 import { permissionPrompt } from './worker-launch.ts';
+import { enqueue } from '../commands.ts';
+import { uiCycleKey } from './ui-cycle.ts';
 export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
@@ -74,7 +76,10 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       if (marker.kind==='DONE') {
         if(run.role==='revisor') continue;
         finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:''});
-        moveTask(db,run.taskId,'revisando');refreshPendingDecision(db,run.taskId);return;
+        moveTask(db,run.taskId,'revisando');refreshPendingDecision(db,run.taskId);
+        // hito 5: toda pantalla UMG pasa por capturas y QA visual antes de cerrarse
+        if(task.area==='ui') enqueue(db,'ui.cycle',{taskId:run.taskId,runId:run.id},uiCycleKey(run));
+        return;
       }
       if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) {review=marker;break;}continue;}
       waiting(marker.question);

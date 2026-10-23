@@ -27,7 +27,7 @@ export type RunMetadata = {
   commandId?: string; remoteId?: string; kind?: string; stage?: string; idempotencyKey?: string;
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;
   // pruebas (hito 5): run implementador cuyo diff se prueba
-  implementerRunId?: string;
+  implementerRunId?: string; qa?: {testRunId: string};
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;

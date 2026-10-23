@@ -11,6 +11,7 @@ import { appendEvent } from '../store.ts';
 import { withEditor } from '../editor/queue.ts';
 import { targetProject, type Project } from './asset-run.ts';
 import { createEditorMcpHandlers } from './editor-mcp.ts';
+import { createUiCycle, uiCycleKey } from './ui-cycle.ts';
 import { selectChecks, type CheckId } from '../checks/select.ts';
 import { runCheck, type CheckDeps, type Executor } from '../checks/run.ts';
 import { checkGate, retryOption, waiverOption } from '../checks/gate.ts';
@@ -59,7 +60,7 @@ function failureOf(ctx: WorkerContext, row: TestRun): {summary: string; blocking
   const event = ctx.db.prepare(`select payload from events where type='test.failed' and json_extract(payload,'$.testRunId')=?`).get(row.id);
   return event ? JSON.parse(event.payload as string) : {summary: ''};
 }
-function correct(ctx: WorkerContext, task: Task, implementer: Run, row: TestRun, lines: string[], key: string): void {
+export function sendCorrection(ctx: WorkerContext, task: Task, implementer: Run, row: TestRun, lines: string[], key: string): void {
   const text = `La comprobación ${row.checkId} falló. Log completo: ${row.reportPath}\n${lines.slice(0, 30).join('\n')}`;
   enqueue(ctx.db, 'worker.send', {runId: implementer.id, text}, `checks.correction:${key}`);
   if (['probando', 'revisando'].includes(requireTask(ctx.db, task.id).state)) moveTask(ctx.db, task.id, 'implementando', `Falló ${row.checkId}`);
@@ -76,7 +77,7 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     if (decision?.state === 'resolved' && decision.chosenOptionId === waiverOption.id) return {passed: true, advanced: advance(ctx, task.id)};
     if (decision?.state === 'resolved' && decision.chosenOptionId === returnOption.id) {
       const failed = filtered<TestRun>(ctx.db, 'test_runs', {taskId: task.id, result: 'failed'}).at(-1)!;
-      correct(ctx, task, implementer, failed, failureOf(ctx, failed).summary.split('\n'), command.id);
+      sendCorrection(ctx, task, implementer, failed, failureOf(ctx, failed).summary.split('\n'), command.id);
       return {passed: false, returned: true};
     }
     const files = Array.isArray(payload.files) ? payload.files.filter((f): f is string => typeof f === 'string')
@@ -114,7 +115,7 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
           options: [retryOption, returnOption]});
         return {...result, deferred: true, reason: 'Esperando decisión: assets rotos'};
       }
-      correct(ctx, task, implementer, failed, detail.summary.split('\n'), run.id);
+      sendCorrection(ctx, task, implementer, failed, detail.summary.split('\n'), run.id);
       return result;
     }
     if (missing.length) {
@@ -132,9 +133,9 @@ function umgStep(ctx: WorkerContext, task: Task, implementer: Run, row: TestRun,
   const commit = rows.find(r => r.commit)?.commit ?? null;
   const approved = filtered<TestRun>(ctx.db, 'test_runs', {taskId: task.id, checkId: 'umg', result: 'passed'}).filter(r => r.commit === commit).at(-1);
   if (approved) { updateTestRun(ctx.db, row.id, {result: 'passed', commit, reportPath: approved.reportPath, config: approved.config}); return; }
-  enqueue(ctx.db, 'ui.cycle', {taskId: task.id, runId: implementer.id}, `ui.cycle:${task.id}:${implementer.id}:${commit ?? 'sin-commit'}`);
+  enqueue(ctx.db, 'ui.cycle', {taskId: task.id, runId: implementer.id}, uiCycleKey(implementer));
 }
 
 export function createCheckHandlers(deps: CheckDeps = {}): Record<string, Handler> {
-  return {'checks.run': createChecksRun(deps), ...createEditorMcpHandlers()};
+  return {'checks.run': createChecksRun(deps), 'ui.cycle': createUiCycle(deps), ...createEditorMcpHandlers()};
 }
