@@ -16,7 +16,7 @@ import { projectInfo } from "./project-root.ts";
 import { startRunner, type Handler } from './runner.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 import { createAssetHandlers } from './handlers/asset.ts';
-import { createEditorMcpHandlers } from './handlers/editor-mcp.ts';
+import { createCheckHandlers } from './handlers/checks.ts';
 import { recoverMeshy } from './handlers/asset-meshy.ts';
 import { createMeshy } from './adapters/meshy.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
@@ -130,7 +130,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   // jobs de Meshy cobrados cuya respuesta se perdió: se reconcilian antes de que nadie cree otro
   if(!opts.runner?.handlers && process.env.MESHY_API_KEY) void recoverMeshy(db,createMeshy()).catch(error=>
     appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));
-  runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers(),...createEditorMcpHandlers()},
+  runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers(),...createCheckHandlers()},
     {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});
   server.once("close", async () => {
     runner!();await runner!.drained;

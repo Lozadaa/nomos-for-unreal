@@ -30,7 +30,11 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
     if(stale) return;
     db.prepare('update tasks set review_approved=? where id=?').run(marker.approved ? 1 : 0,run.taskId);
     if(marker.approved) {
-      if(task.acceptance.some(s=>s.startsWith('check:'))) moveTask(db,run.taskId,'probando');
+      if(task.acceptance.some(s=>s.startsWith('check:'))) {
+        moveTask(db,run.taskId,'probando');
+        // hito 5: la puerta probando → integrando la abren las comprobaciones del diff
+        enqueue(db,'checks.run',{taskId:run.taskId,runId:implementer!.id},`checks:review:${run.id}`);
+      }
     } else {
       const text='Correcciones de revisión:\n'+marker.findings.map(f=>`${f.file}:${f.line} [${f.severity}] ${f.note}`).join('\n');
       enqueue(db,'worker.send',{runId:implementer!.id,text},`review.correction:${run.id}`);

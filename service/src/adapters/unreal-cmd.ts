@@ -11,7 +11,7 @@ export type VerifyReport = {
   missing_dependencies: {from: string; to: string}[]; external_dependencies: {from: string; to: string}[]; errors: string[];
 };
 export type RunResult = {exitCode: number | null; log: string; reportJson?: Record<string, unknown>};
-export type RenderOpts = {render?: {width: number; height: number}};
+export type RenderOpts = {render?: {width: number; height: number; map?: string}};
 export type UnrealCmd = ReturnType<typeof createUnrealCmd>;
 
 /** Editor sin GUI (`UnrealEditor-Cmd -ExecutePythonScript -NullRHI`); con `render`, ventana a resolución fija para PIE y capturas.
@@ -23,9 +23,13 @@ export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[];
     if (!existsSync(bin)) throw new Error('unreal_missing');
     const dir = mkdtempSync(join(tmpdir(), 'kratos-unreal-'));
     const report = env.KRATOS_REPORT ?? join(dir, 'report.json');
-    const view = run.render ? [`-ResX=${run.render.width}`, `-ResY=${run.render.height}`, '-windowed', '-ForceRes'] : ['-NullRHI'];
-    const args = [...[...(opts.baseArgs ?? []), uproject].map(quote), `-ExecutePythonScript=${quote(script)}`,
-      '-unattended', '-nopause', '-nosplash', ...view, '-stdout', '-FullStdOutLogOutput'];
+    // con render se lanza el juego (`-game <mapa>`) en ventana a resolución fija: la captura es el viewport del juego
+    const view = run.render ? [...(run.render.map ? [run.render.map] : []), '-game', `-ResX=${run.render.width}`, `-ResY=${run.render.height}`,
+      '-windowed', '-ForceRes'] : ['-NullRHI'];
+    // -ExecutePythonScript cierra el editor al volver el script; con render (PIE) el script se lanza con «py» y cierra él mismo
+    const exec = run.render ? `-ExecCmds="py ${script.replaceAll('\\', '/')}"` : `-ExecutePythonScript=${quote(script)}`;
+    const args = [...[...(opts.baseArgs ?? []), uproject].map(quote), ...view, exec,
+      '-unattended', '-nopause', '-nosplash', '-stdout', '-FullStdOutLogOutput'];
     try {
       const {exitCode, log} = await runLogged(bin, args, {timeoutMs, env: {...process.env, PYTHONUTF8: '1', ...env, KRATOS_REPORT: report}});
       let reportJson: Record<string, unknown> | undefined;

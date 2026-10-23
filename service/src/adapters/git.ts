@@ -8,6 +8,7 @@ export type Git = {
   head(dir: string): Promise<string>; renameBranch(dir: string, name: string): Promise<void>;
   diff(dir: string, base: string): Promise<{stat: string; patch: string; fingerprint?:string}>;
   log(dir: string, base: string): Promise<{sha: string; subject: string}[]>;
+  changedFiles?(dir: string, base: string): Promise<string[]>;
 };
 export function createGit(): Git {
   const run = (dir: string, args: string[], diff = false) => new Promise<string>((accept, reject) => {
@@ -52,6 +53,12 @@ export function createGit(): Git {
       }
       patch=patch.split(/(?=^diff --git )/m).filter(block=>!/^Binary files .+ differ$|^GIT binary patch$/m.test(block)).join('');
       return {stat,patch,fingerprint:fingerprint.digest('hex')};
+    },
+    async changedFiles(dir,base) {
+      if (!base) throw new Error('invalid_base');
+      const tracked=(await run(dir,['diff','--name-only','-z',base,...paths])).split('\0');
+      const untracked=(await run(dir,['ls-files','--others','--exclude-standard','-z'])).split('\0');
+      return [...new Set([...tracked,...untracked])].filter(p=>p&&!local(p)).sort();
     },
     async log(dir,base) {
       if (!base) throw new Error('invalid_base');

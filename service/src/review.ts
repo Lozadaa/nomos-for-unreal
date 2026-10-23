@@ -14,7 +14,7 @@ export function reviewGeneration(task:Task,run:Run):string {
 export function reviewTarget(db:DatabaseSync,taskId:string,runId?:string) {
   const task=requireTask(db,taskId);
   const history=filtered<Run>(db,'runs',{taskId});
-  const implementer=runId ? requireRun(db,runId) : history.filter(r=>r.role!=='revisor'&&r.state==='done').at(-1);
+  const implementer=runId ? requireRun(db,runId) : history.filter(r=>r.role!=='revisor'&&r.provider!=='unreal'&&r.state==='done').at(-1);
   if(!implementer || implementer.taskId!==taskId || implementer.role==='revisor' || implementer.state!=='done'
     || !['revisando','probando'].includes(task.state) || task.worktreeId!==implementer.metadata.worktreeId)
     throw new Error('invalid_review_target');

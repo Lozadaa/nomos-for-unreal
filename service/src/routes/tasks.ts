@@ -4,8 +4,22 @@ import { filtered, read } from '../repo/rows.ts';
 import { listEvents } from '../store.ts';
 import { areas, states, choice, text, id, type Context } from './context.ts';
 import { normalizedPaths } from '../handlers/worker-policy.ts';
+import { enqueue } from '../commands.ts';
+import { implementerOf } from '../handlers/checks.ts';
+import type { WorkerContext } from '../runner.ts';
 
 export async function tasks({db, req, res, url}: Context): Promise<boolean> {
+  const checks = /^\/tasks\/([^/]+)\/checks$/.exec(url.pathname);
+  if (req.method === 'POST' && checks) {
+    const task = requireTask(db, id(checks[1])), data = await body(req);
+    if (data.runId !== undefined && !text(data.runId)) throw new Error('invalid_command_payload');
+    const run = implementerOf({db} as WorkerContext, task, data.runId);
+    if (run.taskId !== task.id) throw new Error('invalid_checks_target');
+    const n = db.prepare("select count(*) n from commands where type='checks.run' and json_extract(payload,'$.taskId')=?").get(task.id)!.n;
+    const command = enqueue(db, 'checks.run', {taskId: task.id, runId: run.id}, `checks:${task.id}:${run.id}:${n}`);
+    json(res, 202, {commandId: command.id, state: command.state});
+    return true;
+  }
   const match = /^\/tasks\/([^/]+)$/.exec(url.pathname);
   if (req.method === 'GET' && match) {
     const task = requireTask(db, id(match[1]));
