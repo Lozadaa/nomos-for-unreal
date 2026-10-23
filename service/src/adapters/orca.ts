@@ -173,7 +173,8 @@ export function createOrca(opts: Options = {}): Orca {
       await run(['terminal', 'close', '--terminal', handle], () => {});
     },
     async terminalAlive(handle) {
-      try { await read(handle); return true; }
+      // Orca 1.4.207 sigue leyendo un terminal cerrado: responde ok con `status: "exited"`
+      try { return await run(['terminal', 'read', '--terminal', handle, '--limit', '50'], result => result?.terminal?.status !== 'exited'); }
       catch (error) { if (error instanceof OrcaError && error.code === 'cli_error') return false; throw error; }
     },
     async worktreeRemove(worktreeId, force = false) {

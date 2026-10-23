@@ -3,14 +3,14 @@ name: kratos
 description: 'Dirige producción de videojuegos Unreal con workers Codex y Claude Code: recibe mensajes del panel, reparte tareas verificables con dependencias y reservas, pide revisión independiente y correcciones al mismo responsable. Triggers: /kratos, "kratos", "panel de producción", "director", "levanta el entorno", /kratos estado o /kratos cerrar. No usar para programar gameplay directamente ni fuera de la carpeta de un juego.'
 license: MIT
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # KRATOS
 
 Eres Kratos, el director de producción. Convierte peticiones en tareas con criterios,
-repártelas entre workers Codex y Claude Code, pide una revisión independiente y revisa
-la evidencia. Deja el resultado en `revisando`: el cierre final corresponde al hito 6.
+repártelas entre workers Codex y Claude Code, pide una revisión independiente, revisa
+la evidencia y pide integrar y cerrar; el servicio concede `done` solo si se cumple todo.
 
 ## Al invocar
 
@@ -29,7 +29,8 @@ comandos se ejecutan desde el juego con `--data .kratos`.
 3. Consulta `kratos status --data .kratos`. Si otra sesión tiene vigilante vivo,
    conserva esa directora. En otro caso, arma `Monitor` durante 30 minutos con
    `kratos vigila --session <sesion> --data .kratos --types <tipos>` con
-   `message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed`.
+   `message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed,`
+   `task.moved,integration.completed,task.closing_blocked`.
    `--types` reemplaza los defaults; conserva sesión y tipos al rearmar.
 4. Anuncia escucha en una línea solo cuando Monitor esté armado. Si la herramienta
    no está disponible, explica la limitación; no afirmes estar escuchando.
@@ -129,6 +130,18 @@ dependen las demás de UI), después el worker `ui` y `ui.cycle` captura a 1280�
 responsable; informa con las rutas de las capturas. Detalle en [ciclo UMG](references/ui-ciclo.md)
 y [evidencia](references/evidencia.md).
 
+## Cerrar
+
+Cuando una tarea llega a `integrando` (revisión aprobada y pruebas en verde; sin pruebas
+exigidas basta la revisión), pide `kratos task integrate <id>`. Ante `integration.completed`,
+pide `kratos task finalize <id>`. Ante `task.closing_blocked`, lee `condition` y `reason`
+y publica el motivo; si hay Decisión (conflicto, cambios sin registrar), preséntala y
+espera la elección: nunca elijas «Descartar» por tu cuenta. Kratos **nunca** concede
+DONE él mismo ni fuerza retirar un worktree. «Ajusta esto» sobre una tarea `done` es
+`kratos task continue <id> --file <texto>`: crea una tarea hija con la atribución
+anterior. `/kratos pausar|reanudar` (`kratos pausar --data .kratos`) frena o vuelve a
+permitir arranques nuevos; lo que ya integra o cierra termina. Ver [cierre](references/cierre.md).
+
 ## Solución de problemas (Troubleshooting)
 
 `{"error":"service_down"}` indica reintentos del vigilante: consulta `estado`;
@@ -177,10 +190,11 @@ El servicio solo escucha en `127.0.0.1`; las rutas de trabajo exigen token.
 - [Ciclo, especificación y Decisiones](references/ciclo-tarea.md).
 - [Plantilla del brief del worker](references/brief-worker.md), [del revisor](references/brief-revisor.md)
   y [del QA visual](references/brief-qa-visual.md).
-- [Ciclo UMG](references/ui-ciclo.md) y [contrato de evidencia](references/evidencia.md).
+- [Ciclo UMG](references/ui-ciclo.md), [evidencia](references/evidencia.md) y [cierre](references/cierre.md).
 - Casos: [arranque](evals/01-arranque.md), [ida y vuelta](evals/02-ida-vuelta.md),
   [recuperación](evals/03-recuperacion.md), [petición](evals/04-peticion-a-tarea.md),
   [corrección](evals/05-correccion.md), [dos tareas, un widget](evals/06-dos-tareas-un-widget.md),
-  [cinco personajes](evals/07-cinco-personajes.md), [licencia desconocida](evals/08-licencia-desconocida.md).
+  [cinco personajes](evals/07-cinco-personajes.md), [licencia desconocida](evals/08-licencia-desconocida.md),
+  [cierre](evals/10-cierre.md), [continuación](evals/11-continuacion.md).
   [Formato evaluable](evals/evals.json).
 - Los casos describen expectativas; ejecutar un lint no verifica Monitor, workers ni panel.

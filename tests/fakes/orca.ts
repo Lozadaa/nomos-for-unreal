@@ -61,7 +61,7 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   emit({ closed: true, handle: value('--terminal') });
 } else if (args[0] === 'terminal' && args[1] === 'read') {
   if (value('--limit') !== '50') fail('missing_limit');
-  else if ((state.closed ?? []).includes(value('--terminal'))) fail('terminal_not_found', 'Terminal no encontrado');
+  else if ((state.closed ?? []).includes(value('--terminal'))) emit({ terminal: { handle: value('--terminal'), status: 'exited', tail: [], nextCursor: '0' } });
   else {
     const screen=!args.includes('--cursor') && Array.isArray(state.screen);
     const oldest=Number(state.oldestCursor ?? 0);

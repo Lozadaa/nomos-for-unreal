@@ -27,7 +27,7 @@ describe('Entregas · previews y vacío visual', () => {
       artifact('report', 'report', 'informe.txt'), artifact('video', 'video', 'recorrido.mp4'),
     ])
     const { container } = inRouter()
-    const image = await screen.findByRole('img', { name: 'captura.png' })
+    const image = await screen.findByRole('img', { name: 'Captura' })
     expect(image.getAttribute('src')).toBe('/artifacts/capture/file?token=fixture-token')
     expect(image).toHaveAttribute('loading', 'lazy')
     await waitFor(() => expect(container.querySelector('model-viewer')).not.toBeNull())
@@ -41,7 +41,8 @@ describe('Entregas · previews y vacío visual', () => {
     expect(screen.getByRole('img', { name: 'Vídeo' })).toHaveClass('lucide-film')
     expect(screen.queryByText('TXT')).toBeNull()
     expect(screen.queryByText('MP4')).toBeNull()
-    expect(screen.getAllByText(/MIT/)).toHaveLength(4)
+    expect(screen.queryByText(/MIT|captura\.png|informe\.txt/)).toBeNull()
+    expect(container.querySelector('li[title]')!.getAttribute('title')).toMatch(/MIT/)
   })
 
   it('vacío: un icono de48, una frase y una acción que navega al compositor', async () => {
@@ -56,14 +57,15 @@ describe('Entregas · previews y vacío visual', () => {
     await waitFor(() => expect(router.state.location.search).toBe('?nueva=1'))
   })
 
-  it('agrupa por tarea y etiqueta cada captura con resolución, mapa y run', async () => {
-    const shot = (id: string, taskId: string, resolution: string): Artifact => ({ ...artifact(id, 'screenshot', `C:/d/tests/x/ui-${resolution}.png`), taskId, runId: 'run12345abcdef',
-      provenance: { resolution, map: '/Game/Maps/Nivel1', testRunId: 'x' } } as Artifact)
-    mockApi.mockResolvedValue([shot('a', 't1', '1280x720'), shot('b', 't1', '1920x1080'), artifact('c', 'report', 'informe.txt')].map((a, i) => i === 2 ? { ...a, taskId: 't2' } : a))
-    inRouter()
-    const groups = await screen.findAllByRole('region', { name: /^Tarea / })
-    expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual(['Tarea t2', 'Tarea t1'])
-    expect(screen.getByText('1280×720 · Nivel1 · run run1234')).toBeInTheDocument()
-    expect(screen.getByText('1920×1080 · Nivel1 · run run1234')).toBeInTheDocument()
+  it('por tarea: la más reciente primero y, dentro, las capturas antes que los informes, con su resolución', async () => {
+    const shot = (id: string, taskId: string, resolution: string, createdAt: string): Artifact => ({ ...artifact(id, 'screenshot', `C:/d/tests/x/ui-${resolution}.png`), taskId, createdAt,
+      runId: 'run12345abcdef', provenance: { resolution, map: '/Game/Maps/Nivel1', testRunId: 'x', check: 'umg' } } as Artifact)
+    mockApi.mockResolvedValue([shot('a', 't1', '1280x720', '1'), { ...artifact('r', 'report', 'review-uuid.json'), createdAt: '3' }, shot('b', 't1', '1920x1080', '2'),
+      { ...artifact('c', 'report', 'informe.txt'), taskId: 't2', createdAt: '4' }])
+    const router = createMemoryRouter([{ path: '/', element: <Entregas /> }], { initialEntries: ['/?orden=tarea'] })
+    render(<RouterProvider router={router} />)
+    const groups = await screen.findAllByRole('region')
+    expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual(['t2', 't1'])
+    expect([...groups[1].querySelectorAll('li p')].map((p) => p.textContent)).toEqual(['Captura UMG 1920×1080', 'Captura UMG 1280×720', 'Revisión · informe'])
   })
 })

@@ -22,6 +22,7 @@ for(const checks of [false,true]) test(`Review Focus 3: aprobación ${checks ? '
   const queued=f.db.prepare("select payload from commands where type='checks.run'").all().map(r=>JSON.parse(r.payload as string));
   assert.deepEqual(queued,checks ? [{taskId:f.task.id,runId:f.implementer.id}] : [],'al aprobar con check: se lanzan las comprobaciones');
   const artifact=listArtifacts(f.db,{runId:f.reviewer().id,kind:'report'})[0];assert.ok(artifact);
+  assert.equal((artifact.provenance as any).label,'Revisión · informe');
   assert.deepEqual(JSON.parse(readFileSync(join(f.dataDir,'artifacts',artifact.path),'utf8')).findings,[]);
   assert.equal(listEvents(f.db,0).filter(e=>e.type==='review.finished').length,1);
   assert.equal(listEvents(f.db,0).find(e=>e.type==='review.started')?.payload.same_provider,true);

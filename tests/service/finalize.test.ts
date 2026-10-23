@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { integrateRun } from '../../service/src/handlers/integrate.ts';
 import { createFinalize } from '../../service/src/handlers/finalize.ts';
 import { createTask, getTask } from '../../service/src/repo/tasks.ts';
-import { read } from '../../service/src/repo/rows.ts';
+import { insert, read } from '../../service/src/repo/rows.ts';
+import { finishRun, startRun } from '../../service/src/repo/runs.ts';
 import { listDecisions, resolveDecision } from '../../service/src/repo/decisions.ts';
 import { verifyArchive, type ArchiveWriter } from '../../service/src/archive.ts';
 import type { Worktree } from '../../service/src/model.ts';
@@ -37,18 +38,22 @@ async function closing(f: F, name: string) {
 const finalize = (f: F, taskId: string, deps = {}, id = `fin-${taskId}`) =>
   createFinalize(deps)(f.command('finalize.run', {taskId}, id), f.ctx) as Promise<Record<string, any>>;
 
-test('cierre completo: preserva y verifica, cierra el terminal, retira el worktree sin force y pasa a done', async () => {
+test('cierre completo: preserva y verifica, cierra los terminales, retira los worktrees (también el de revisión) sin force y pasa a done', async () => {
   const f = integrationFixture();
   try {
     const calls = withOrca(f), a = await closing(f, 'vida');
+    const reviewPath = join(f.repo.root, 'vida-review');
+    f.repo.git(f.repo.dir, 'worktree', 'add', '-b', 'kratos/vida-review', reviewPath);
+    const review = insert<Worktree>(f.db, 'worktrees', {taskId: a.task.id, path: reviewPath, branch: 'kratos/vida-review', baseCommit: a.base, state: 'active', closedReason: null});
+    finishRun(f.db, startRun(f.db, {taskId: a.task.id, role: 'revisor', provider: 'claude', sessionRef: 'term_rev', metadata: {worktreeId: review.id}}).id, 'done', 'Aprobado');
     const result = await finalize(f, a.task.id);
     assert.equal(result.closed, true);
     const task = getTask(f.db, a.task.id)!;
     assert.equal(task.state, 'done');
     assert.equal(task.archivePath, join(f.dataDir, 'archive', a.task.id));
     assert.deepEqual(Object.keys(task.attribution).sort(), ['integro', 'verifico']);
-    assert.deepEqual(calls, [['close', 'term_vida'], ['rm', a.tree.id, 'false']]);
-    assert.ok(!f.repo.git(f.repo.dir, 'worktree', 'list').includes('vida'), 'worktree retirado');
+    assert.deepEqual(calls, [['close', 'term_vida'], ['close', 'term_rev'], ['rm', a.tree.id, 'false'], ['rm', review.id, 'false']]);
+    assert.ok(!f.repo.git(f.repo.dir, 'worktree', 'list').includes('vida'), 'worktrees retirados');
     assert.equal(read<Worktree>(f.db, 'worktrees', a.tree.id)!.state, 'closed');
     const manifest = verifyArchive(task.archivePath!)!;
     assert.deepEqual(Object.keys(manifest.files).sort(), ['conversacion.jsonl', 'diff-final.patch', 'eventos.jsonl', 'resumen.md', 'sesiones.json']);

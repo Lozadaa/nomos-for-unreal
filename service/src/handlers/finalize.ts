@@ -69,8 +69,14 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
     };
     try {
       await verify(ctx, task, tree);
+      // todos los worktrees temporales de la tarea: el del responsable y los de revisión («Descartar» los fuerza todos)
+      const trees = filtered<Worktree>(ctx.db, 'worktrees', {taskId: task.id}).filter(t => t.state !== 'closed');
       // cambios sin registrar: se comprueba antes de cerrar terminales, para que el responsable aún pueda commitearlos
-      const status = tree && tree.state !== 'closed' && !discard ? await ctx.git.status(tree.path) : {clean: true, files: []};
+      const status = {clean: true, files: [] as string[]};
+      for (const t of discard ? [] : trees) {
+        const s = await ctx.git.status(t.path);
+        if (!s.clean) { status.clean = false; status.files.push(...s.files); }
+      }
       if (!status.clean) {
         const reason = `Cambios sin registrar: ${status.files.slice(0, 5).join(', ')}${status.files.length > 5 ? '…' : ''}`;
         blocked('worktree', reason, {files: status.files});
@@ -84,8 +90,8 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
         try { await ctx.orca.terminalClose(r.sessionRef!); }
         catch (error) { if (await ctx.orca.terminalAlive(r.sessionRef!)) throw new Blocked('processes', `No se pudo cerrar el terminal ${r.sessionRef}`); }
       }
-      if (tree && tree.state !== 'closed') {
-        try { await ctx.orca.worktreeRemove(tree.id, discard); }
+      for (const t of trees) {
+        try { await ctx.orca.worktreeRemove(t.id, discard); }
         catch (error) {
           if (!busy(error)) throw error;
           const attempts = (run.metadata.busyAttempts ?? 0) + 1;
@@ -93,9 +99,10 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
           if (attempts < 5) { blocked('worktree', 'Archivos en uso', {attempt: attempts}); return {deferred: true, reason: 'Archivos en uso', delayMs: deps.busyDelayMs ?? 30_000}; }
           throw new Blocked('worktree', 'Archivos en uso: cierra lo que los tenga abiertos y reintenta el cierre');
         }
-        if (discard) appendEvent(ctx.db, 'worktree.discarded', null, {taskId: task.id, worktreeId: tree.id, by: decision!.resolvedBy, decisionId: decision!.id});
+        const discarded = discard;
+        if (discarded) appendEvent(ctx.db, 'worktree.discarded', null, {taskId: task.id, worktreeId: t.id, by: decision!.resolvedBy, decisionId: decision!.id});
         ctx.db.prepare("update worktrees set state='closed',closed_reason=?,updated_at=? where id=?")
-          .run(discard ? `Descartado por ${decision!.resolvedBy}` : 'Cerrada', new Date().toISOString(), tree.id);
+          .run(discarded ? `Descartado por ${decision!.resolvedBy}` : 'Cerrada', new Date().toISOString(), t.id);
       }
       task = requireTask(ctx.db, task.id);
       attribute(ctx.db, task.id, 'verifico', run);

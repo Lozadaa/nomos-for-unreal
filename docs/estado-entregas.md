@@ -1,6 +1,6 @@
 # Estado de las entregas
 
-Actualizado el 2026-10-23 en `hito5-unreal` (sobre `main` con los hitos 0-4, 8 y 9). El hito 5 se entrega en esta rama, sin push ni merge. Las cifras de hitos anteriores son evidencia histórica; las del hito 5 están en [su aceptación](aceptacion-hito5.md).
+Actualizado el 2026-10-23 en `hito6-cierre` (sobre `main` con los hitos 0-5, 8 y 9). El hito 6 se entrega en esta rama, sin push ni merge. Las cifras de hitos anteriores son evidencia histórica; las del hito 6 están en [su aceptación](aceptacion-hito6.md).
 
 | Hito | Estado | Evidencia |
 |---|---|---|
@@ -14,7 +14,8 @@ Actualizado el 2026-10-23 en `hito5-unreal` (sobre `main` con los hitos 0-4, 8 y
 | 3 | En rama paralela según el brief; no se modifica ni valida aquí | `docs/superpowers/plans/` |
 | 4 · Catálogo y extracción | Tareas 1-6 en `hito4-catalogo` (sin push ni merge); aceptación real con Unreal 5.8.3 y Meshy | `docs/aceptacion-hito4.md`, `docs/capturas-4/`, sección «Hito 4» más abajo |
 | 5 · Unreal, UI del juego y QA | Tareas 1-6 en `hito5-unreal` (sin push ni merge); aceptación real con Unreal 5.8.3 y workers Claude | `docs/aceptacion-hito5.md`, `docs/capturas-5/`, sección «Hito 5» más abajo |
-| 5b, 6, 7 | Con plan; 5b pausado por decisión del usuario | `docs/superpowers/plans/` |
+| 6 · Integración y cierre | Tareas 1-4 en `hito6-cierre` (sin push ni merge); aceptación real con workers Claude en KratosFabTest | `docs/aceptacion-hito6.md`, `docs/capturas-6/`, sección «Hito 6» más abajo |
+| 5b, 7 | Con plan; 5b pausado por decisión del usuario | `docs/superpowers/plans/` |
 
 ## Hito 8 (Tareas 4-6): lo que hay y lo que espera
 
@@ -103,4 +104,19 @@ node panel/scripts/capturas-4.ts "<juego>/.kratos"       # capturas → docs/cap
 node skills/kratos/scripts/kratos.ts task check <tarea> --data <juego>/.kratos
 node skills/kratos/scripts/kratos.ts skills install --data <juego>/.kratos
 node panel/scripts/capturas-5.ts "<juego>/.kratos" <tarea>      # capturas → docs/capturas-5/
+```
+
+## Hito 6 — integración y cierre
+
+**Hecho** (rama `hito6-cierre`): integrador (`integrate.run`: workspace `.kratos/integration/<proyecto>` en HEAD separada, reserva `integration/<proyecto>`, `merge --no-ff`, recomprobación con `checks.run` si la rama objetivo avanzó, conflicto de texto o binario → `abortMerge` y Decisión con los shas, publicación con `--ff-only` en el checkout del usuario); finalizador (`finalize.run`: commits recuperables, revisión, integración vigente, pruebas, limpieza, archivo verificado con SHA-256, terminales cerrados por Orca y todos los worktrees de la tarea retirados sin `--force`; «Descartar» como única vía al force, registrada; «archivos en uso» reintenta cada 30 s; `ENOSPC` sin archivo parcial); continuación después de DONE (`task.continue`: hija con atribución heredada; terminal vivo → se le habla allí; si no, run nuevo con intento + 1 y el archivo en el brief); atribución por rol; pausa del planificador; CLI `task integrate|finalize|continue`, `pausar|reanudar`; skill «Cerrar» + `references/cierre.md` + evals 10-11; panel: nota y acción en «Cerrando», «Quién hizo qué», pestaña Archivo, «Pedir cambios» en tareas hechas, «Pausado»; Entregas con nombres legibles, filtro por tipo y orden en la URL (corrección del usuario).
+
+**Verificado** en el cierre: `npm test` 426/426 · Vitest 267/267 · build verde · Playwright 61 pasadas, 3 omitidas · skillsmith kratos 98. Aceptación real: dos tareas hasta `done` con workers Claude, continuación con terminal muerto y vivo, conflicto binario → Decisión, recomprobación con la base cambiada y `kratos pausar`.
+
+**Pendiente**: revisar cambios solo binarios (el parche los excluye y el árbol del revisor nace de la rama objetivo); la continuación con terminal vivo no se da tras un cierre del hito 6 (el finalizador cierra los terminales); la Decisión de B en KratosFabTest sigue abierta para el usuario.
+
+```
+node skills/kratos/scripts/kratos.ts task integrate|finalize <tarea> --data <juego>/.kratos
+node skills/kratos/scripts/kratos.ts task continue <tarea> --file ajuste.md --data <juego>/.kratos
+node skills/kratos/scripts/kratos.ts pausar|reanudar --data <juego>/.kratos
+node panel/scripts/capturas-6.ts "<juego>/.kratos" <tareaHecha>    # capturas → docs/capturas-6/
 ```

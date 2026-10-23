@@ -58,6 +58,7 @@ test('terminal vivo: se le habla en su terminal con el texto, sin run nuevo del 
     assert.deepEqual([reused.taskId, reused.sessionRef, reused.attempt, reused.metadata.continuationOf, send.text],
       [result.taskId, 'term_vieja', 2, a.implementer.id, 'Ajusta el color']);
     assert.equal(getTask(f.db, result.taskId)!.worktreeId, a.tree.id);
+    assert.equal(reused.metadata.cursor, a.implementer.metadata.cursor, 'sigue leyendo donde lo dejó el run original');
     tick(f.db, {}, f.ctx);
     assert.equal(commands(f, 'worker.start').length, 0, 'el planificador no arranca otro worker');
   } finally { f.close(); }

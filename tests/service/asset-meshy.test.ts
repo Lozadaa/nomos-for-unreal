@@ -49,6 +49,7 @@ test('preview dentro de presupuesto: job, poll Preview → Guardado, copia propi
     const [model] = listArtifacts(s.db, {kind: 'model'});
     assert.equal(model.previewPath, done.model);
     assert.deepEqual((model.provenance as any).remoteId, 'job-1');
+    assert.match((model.provenance as any).label, /^Modelo Meshy · /, 'Entregas lo nombra sin rutas');
     assert.equal(listArtifacts(s.db, {kind: 'texture'}).length, 1);
     const entry = listCatalog(s.db, {source: 'meshy'})[0];
     assert.equal(entry.license, 'Meshy (según plan)');

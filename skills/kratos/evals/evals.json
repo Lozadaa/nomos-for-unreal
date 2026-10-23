@@ -70,6 +70,24 @@
         "references/assets.md",
         "evals/08-licencia-desconocida.md"
       ]
+    },
+    {
+      "id": 10,
+      "prompt": "Monitor task.moved T → integrando; después integration.completed y task.closing_blocked {condition:\"worktree\"}.",
+      "expected_output": "kratos task integrate T una vez; ante integration.completed, kratos task finalize T; ante closing_blocked publica el motivo y presenta la Decisión Descartar / Commitear al run / Esperar sin elegir. Nunca declara DONE, nunca --force.",
+      "files": [
+        "references/cierre.md",
+        "evals/10-cierre.md"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Monitor m40: «Ajusta el HUD: la barra de vida más gruesa» sobre la tarea T done; luego m41 «para todo un momento».",
+      "expected_output": "ACK y kratos task continue T --file con el texto; reply con la tarea hija y si reutilizó el terminal. Con m41, kratos pausar y reply de una línea; lo que integra o cierra termina.",
+      "files": [
+        "references/cierre.md",
+        "evals/11-continuacion.md"
+      ]
     }
   ]
 }

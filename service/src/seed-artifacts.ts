@@ -28,11 +28,15 @@ export function artifactRows(db: DatabaseSync, put: Writer): void {
     const captures = join(import.meta.dirname,'../../docs/capturas-hito0');
     copyFileSync(join(captures,'intercambio.png'),join(root,files[1]));
     copyFileSync(join(captures,'atendiendo.png'),join(root,files[2]));
-    writeFileSync(join(root,files[3]),'Informe de ejemplo Kratos\nPrueba de recorrido: passed\nPrueba de colisiones: failed\n');
+    writeFileSync(join(root,files[3]),['Building KratosFabTest...',"Vida.cpp(12): error C2065: 'Vida': identificador no declarado",
+      "Vida.cpp(13): error C2143: falta ';' delante de '}'",'Vida.cpp(20): error C1004: fin de archivo inesperado',''].join('\n'));
   }
   files.forEach((path,i) => put('artifacts',`seed-artifact-0${i+1}`,{
     taskId:'seed-task-09',runId:null,kind:['model','screenshot','screenshot','report'][i],path,
-    previewPath:i===0 ? files[1] : null,provenance:{source:'semilla local',synthetic:true},license:'MIT',
+    previewPath:i===0 ? files[1] : null,license:'MIT',
+    // procedencia como la de las comprobaciones reales: Entregas la nombra sin rutas (hito 6)
+    provenance:{source:'semilla local',synthetic:true,...[{label:'Modelo · caja de munición'},{check:'umg',resolution:'1280x720'},
+      {check:'map',resolution:'1280x720'},{check:'cpp'}][i]},
   }));
   ['passed','failed'].forEach((result,i) => put('test_runs',`seed-test-0${i+1}`,{
     taskId:'seed-task-09',runId:null,commit:'0000000000000000000000000000000000000000',

@@ -38,6 +38,7 @@ test('migrar el pack del Launcher al juego: copia, verifica, marca imported y de
     assert.deepEqual(after.projects.sort(), ['Juego', 'KratosFabTest']);
     assert.equal(after.verifiedEngine, '5.8.3');
     const [artifact] = listArtifacts(f.db, {kind: 'report'});
+    assert.equal((artifact.provenance as any).label, 'Verificación de pack · informe');
     const report = JSON.parse(readFileSync(artifact.path, 'utf8'));
     assert.equal(report.warning, 'Publicado para 5.4; verificado en 5.8.3');
     assert.deepEqual(report.engineVersions, ['5.4']);

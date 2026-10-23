@@ -54,7 +54,10 @@ export const taskContinue: Handler = async (command, ctx) => {
     transaction(ctx.db, () => {
       const run = startRun(ctx.db, {taskId: child.id, role: original!.role, provider: original!.provider, sessionRef: original!.sessionRef,
         attempt: original!.attempt + 1, skills: original!.skills,
-        metadata: {worktreeId: tree!.id, continuationOf: original!.id, phase: 'running', pollGeneration: 0, correctionCount: 0}});
+        // el terminal conserva la conversación anterior: se sigue leyendo desde su cursor y con sus marcadores ya vistos
+        metadata: {worktreeId: tree!.id, continuationOf: original!.id, phase: 'running', pollGeneration: 0, correctionCount: 0,
+          cursor: original!.metadata.cursor, lastLines: original!.metadata.lastLines, markerFence: original!.metadata.markerFence,
+          seenDoneMarkers: original!.metadata.seenDoneMarkers, legacyDoneSummaries: original!.metadata.legacyDoneSummaries}});
       ctx.db.prepare('update tasks set worktree_id=?,updated_at=? where id=?').run(tree!.id, new Date().toISOString(), child.id);
       enqueue(ctx.db, 'worker.send', {runId: run.id, text: payload.text}, `continue.send:${child.id}`);
     });

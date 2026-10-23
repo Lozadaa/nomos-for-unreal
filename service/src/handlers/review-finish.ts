@@ -27,7 +27,8 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
     writeFileSync(join(ctx.dataDir,'artifacts',path),JSON.stringify(report,null,2)+'\n');
     finishRun(db,run.id,'done',stale ? 'Revisión desactualizada' : marker.approved ? 'Aprobado' : 'Correcciones requeridas');
     updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:''});
-    addArtifact(db,{taskId:run.taskId,runId:run.id,kind:'report',path,provenance:report});
+    addArtifact(db,{taskId:run.taskId,runId:run.id,kind:'report',path,
+      provenance:{...report,label:run.metadata.qa ? 'QA visual · informe' : 'Revisión · informe'}});
     appendEvent(db,'review.finished',null,{taskId:run.taskId,...report});
     if(stale) return;
     const qa=run.metadata.qa;

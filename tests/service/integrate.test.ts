@@ -80,6 +80,7 @@ test('conflicto binario (.uasset): nada se resuelve; Decisión con los shas de c
     assert.equal((await integrate(f, otra.task.id)).integrated, true);
     const result = await integrate(f, mapa.task.id);
     assert.equal(result.deferred, true);
+    assert.deepEqual(listLeases(f.db), [], 'la Decisión no retiene la reserva de integración');
     const [decision] = listDecisions(f.db, 'open');
     assert.match(decision.reason, /^Conflicto binario al integrar en master: BP_Puerta\.uasset$/);
     const version = decision.evidence.find(e => e.kind === 'version')!.ref;

@@ -8,7 +8,7 @@ import { finishRun } from '../repo/runs.ts';
 import { updateRun } from '../repo/worker.ts';
 import { addArtifact } from '../repo/artifacts.ts';
 import { listDecisions, openDecision } from '../repo/decisions.ts';
-import { acquire, leaseWaitReason } from '../leases.ts';
+import { acquire, leaseWaitReason, release } from '../leases.ts';
 import { enqueue } from '../commands.ts';
 import { appendEvent } from '../store.ts';
 import { checkGate } from '../checks/gate.ts';
@@ -43,6 +43,8 @@ async function conflict(ctx: WorkerContext, command: Command, task: Task, run: R
   const kinds = await ctx.git.conflictKinds(ws.dir);
   const texts = await Promise.all(kinds.text.map(async file => `### ${file}\n${await ctx.git.conflictText(ws.dir, file)}`));
   await ctx.git.abortMerge(ws.dir);
+  // el workspace vuelve limpio: mientras se decide, otras integraciones pueden usarlo
+  release(ctx.db, run.id);
   const path = `integracion-${run.id}.txt`;
   mkdirSync(join(ctx.dataDir, 'artifacts'), {recursive: true});
   const versions = Object.entries(kinds.versions).map(([file, v]) =>
@@ -83,7 +85,7 @@ export const integrateRun: Handler = async (command, ctx) => {
   if (!liveRun(ctx, command) && (task.state !== 'integrando' || task.reviewApproved !== 1)) throw new Error('invalid_transition');
   let {run} = commandRun(ctx, command, {title: `Integrar ${task.title}`, provider: 'kratos', role: 'integrador', taskId: task.id});
   const decision = commandDecision(ctx, task, command);
-  if (decision?.state === 'open') return {deferred: true, reason: `Esperando decisión: ${decision.reason}`};
+  if (decision?.state === 'open') { release(ctx.db, run.id); return {deferred: true, reason: `Esperando decisión: ${decision.reason}`}; }
   if (decision?.state === 'resolved') return afterConflict(ctx, task, run, decision);
   const ws0 = await integrationWorkspace(ctx, false);
   // una integración a la vez por proyecto: la segunda espera y, al entrar, encuentra la base cambiada
