@@ -46,6 +46,8 @@ Lo que falta y motiva v2:
 
 ## 2. Diseño del panel como fase
 
+> **Actualización 2026-10-23.** La dirección visual de esta sección (tema claro, Ant Design, Kanban) queda sustituida por el plan `docs/superpowers/plans/2026-10-23-hito8-interfaz-viva.md`: panel oscuro con la apariencia de Vercel (tokens oficiales `vercel-brand.css`, shadcn/ui, Geist), sin Next.js, sin tablero tipo Jira, y con una capa de «sensación» obligatoria: toda acción responde en la misma pantalla y toda redirección se percibe mediante View Transitions. El inventario de vistas y estados (§2.3), la decisión de no arrastrar y soltar y las puertas de calidad (§2.6) siguen vigentes; los tokens, el tema claro y la elección de Ant Design no.
+
 ### 2.1 Brief (una página, hito 1a)
 
 - Propósito: sala de control de una producción Unreal dirigida por IA. Se mira mucho y se teclea poco.
