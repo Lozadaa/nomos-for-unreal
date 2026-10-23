@@ -13,6 +13,20 @@ export function ensureBudget(db: DatabaseSync, scope: Budget['scope'], scopeId: 
         return old ? read<Budget>(db, 'budgets', old.id as string)! : insert<Budget>(db, 'budgets', { scope, scopeId, meshyCredits: null, elevenlabsCredits: null, tokens: null, buildMinutes: null, ...limits });
     });
 }
+/** Crea el presupuesto si falta y fija los límites recibidos; `null` quita el límite de esa métrica. */
+export function setLimits(db: DatabaseSync, scope: Budget['scope'], scopeId: string, limits: Partial<Limits>): Budget {
+    for (const key of Object.keys(limits))
+        if (!(metrics as readonly string[]).includes(key))
+            throw new Error('invalid_limit');
+    return transaction(db, () => {
+        const budget = ensureBudget(db, scope, scopeId, limits);
+        const keys = Object.keys(limits) as (keyof Limits)[];
+        if (keys.length)
+            db.prepare(`update budgets set ${keys.map(k => k.replace(/[A-Z]/g, c => '_' + c.toLowerCase()) + '=?').join(',')},updated_at=? where id=?`)
+                .run(...keys.map(k => limits[k] ?? null), new Date().toISOString(), budget.id);
+        return read<Budget>(db, 'budgets', budget.id)!;
+    });
+}
 export function budgetSummary(db: DatabaseSync, scope: Budget['scope'], scopeId: string): {
     limits: Limits;
     spent: Record<keyof Limits, number>;

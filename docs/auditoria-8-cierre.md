@@ -127,3 +127,23 @@ Un revisor sin contexto previo leyó el diff completo. Encontró 1 crítico, 7 i
 **Menores no arreglados** (diferidos): M1 error de red de «Preparar» sin «Reintentar» y botón que queda deshabilitado tras éxito; M2 acciones de `estados.md` sin implementar (Indexar ahora, Definir límite, Reenviar, Ver motivo, Ver detalle del hueco; «Comprobado hace X min»); M3 si `/tasks` falla, Producción muestra el vacío en vez de un error; M5 las pestañas del detalle vuelven a pedir con cada evento, sin agrupar; M7 el service worker sin `ready` deja las imágenes sin cargar y una recarga forzada las pide sin token; M8 cada carga repite los eventos desde 0; M9 quedan `shadow-*` heredados en `dropdown-menu.tsx` y `tabs.tsx` (anteriores a este diff). M4 (deshacer pisaba cambios del servidor) quedó resuelto de paso: deshacer restaura solo los campos tocados. M6 (⌘K listaba filas temporales) también.
 
 Cifras de pruebas actualizadas arriba. Tras la revisión: `npm test` 68/68, Vitest 77/77, e2e 37 pasadas / 3 omitidas.
+
+## Integración con el hito 2 (rama `hito8-integracion`, 2026-10-23)
+
+Lo que el cierre dejaba pendiente y ya está resuelto:
+
+| Pendiente | Estado |
+|---|---|
+| Pestañas **Cambios** y **Chat** (hallazgo 6) | hechas contra las rutas reales: `stat`, `patch` con filtro por archivo y aviso de archivos fuera de `task.scope`; salida agrupada por sondeo con hora, pregunta de `worker.waiting` destacada, «Pedir cambios al responsable» (`POST /runs/:id/message`) y «Detener worker» con confirmación en línea (`POST /runs/:id/stop`). La fila de Producción muestra «Esperando respuesta». `store.ts` reduce `worker.waiting|output|message_sent` y `run.finished` |
+| ⌘K **Pausar** (hallazgo 7) | `POST /director/pause` y `/resume`; botón en la franja, acción en ⌘K y aviso «En pausa · Kratos no recibirá mensajes». El estado se refresca al llegar `director.*` |
+| **Límites de presupuesto** (hallazgo 7) | `PUT /budget`; editor en línea por métrica («Definir/Cambiar/Subir límite»). `GET /budget` devuelve además `scope` y `scopeId` |
+| `'wasm-unsafe-eval'` (hallazgo 1) | en la política de seguridad del servicio (commit `d464bed`) |
+| `project.ts` / `project-root.ts` | unificados en `project-root.ts` (commit `19c2bf6`) |
+| **Deshacer decisión** | retirado de `estados.md`: el modelo no lo contempla, una decisión caducada se regenera |
+
+**Distinto de lo planeado:** «Indexar» sigue deshabilitado con «Disponible en el hito 4». «Pedir cambios» del Resumen sigue usando `POST /messages`; el compositor del Chat usa `/runs/:id/message`. La pestaña Cambios depende de que la ejecución tenga worktree con `baseCommit` y `sessionRef`; si no, responde 404 y se ve «Disponible cuando haya workers».
+
+**Sigue dependiendo de otros hitos:** que el planificador del hito 3 respete `director.paused`; «Preparar para Unreal» y listar mensajes (hito 4+).
+
+**Comprobado en esta rama:** `npm test` 217/217, `npm run test:panel` 117/117, `npm run build` verde, e2e Playwright 37 pasadas / 3 omitidas. Las capturas `drawer-*` y `presupuesto-limites-*` se hicieron con un worker de ejemplo montado a mano sobre la semilla, no con un worker real de Codex. El e2e del visor GLB (Chromium) ahora exige cero errores de consola y pasa con `'wasm-unsafe-eval'`; se quitó el filtro que toleraba ese error en el e2e de Entregas. No se ejecutaron `review-animations` ni `/impeccable polish`: solo una revisión visual de las capturas.
+

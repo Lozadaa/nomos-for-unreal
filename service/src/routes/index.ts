@@ -10,6 +10,7 @@ import { artifacts } from './artifacts.ts';
 import { catalog } from './catalog.ts';
 import { capabilities } from './capabilities.ts';
 import { commands } from './commands.ts';
+import { director } from './director.ts';
 import type { Context } from './context.ts';
 
 export function databaseDirectory(db: Context['db']): string | undefined {
@@ -24,7 +25,7 @@ export async function production(context: Context): Promise<boolean> {
     json(context.res, 201, seed(context.db, {force: data.force as boolean | undefined}));
     return true;
   }
-  for (const handler of [tasks, taskWorker, runs, decisions, budget, artifacts, catalog, capabilities, commands]) {
+  for (const handler of [tasks, taskWorker, runs, decisions, budget, artifacts, catalog, capabilities, commands, director]) {
     if (await handler(context)) return true;
   }
   return false;

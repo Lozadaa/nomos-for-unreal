@@ -34,6 +34,8 @@ export interface Task {
   dependsOn: string[]
   worktreeId: string | null
   budgetId: string | null
+  /** Rutas que el worker puede tocar; vacío = sin restricción declarada. */
+  scope?: string[]
 }
 
 export interface Decision {

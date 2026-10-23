@@ -4,7 +4,7 @@ import { relativeTime } from '@/lib/time'
 import type { Status } from '@/api'
 import { DirectorDot, directorState } from './DirectorDot'
 
-export function Header({ project, status, onCommand }: { project: string; status: Status | null; onCommand: () => void }) {
+export function Header({ project, status, onCommand, onTogglePause, pausePending = false }: { project: string; status: Status | null; onCommand: () => void; onTogglePause?: () => void; pausePending?: boolean }) {
   const state = directorState(status)
   const confirmation = status?.lastAckAt ? relativeTime(status.lastAckAt) : 'sin confirmaciones todavía'
   return (
@@ -20,6 +20,10 @@ export function Header({ project, status, onCommand }: { project: string; status
           <TooltipContent>Última confirmación: {confirmation}</TooltipContent>
         </Tooltip>
       </div>
+      {status?.paused && <span className="text-sm text-warning">En pausa · Kratos no recibirá mensajes</span>}
+      {status && onTogglePause && (
+        <Button variant="ghost" size="sm" disabled={pausePending} aria-busy={pausePending} onClick={onTogglePause}>{status.paused ? 'Reanudar' : 'Pausar'}</Button>
+      )}
       <Button variant="outline" size="sm" className="ml-auto gap-2 text-muted-foreground" onClick={onCommand}>
         Buscar
         <kbd className="font-mono text-xs">⌘K</kbd>

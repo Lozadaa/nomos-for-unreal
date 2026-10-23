@@ -10,8 +10,10 @@ const typing = (el: Element | null): boolean =>
   el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable)
 
 /** ⌘K / Ctrl+K: vistas, tareas por título y acciones. No se abre mientras se escribe en un textarea. */
-export function CommandMenu({ tasks = [], open: controlled, onOpenChange }: {
+export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused, onTogglePause }: {
   tasks?: TaskRef[]; open?: boolean; onOpenChange?: (open: boolean) => void
+  /** `undefined` = sin estado del servicio: la acción queda deshabilitada. */
+  paused?: boolean; onTogglePause?: () => void
 }) {
   const [inner, setInner] = useState(false)
   const open = controlled ?? inner
@@ -66,8 +68,8 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange }: {
         <CommandSeparator />
         <CommandGroup heading="Acciones">
           <CommandItem onSelect={() => go('/?nueva=1')}>Nueva petición</CommandItem>
-          <CommandItem disabled>Indexar · llega con el ejecutor de comandos</CommandItem>
-          <CommandItem disabled>Pausar · llega con el ejecutor de comandos</CommandItem>
+          <CommandItem disabled>Indexar · Disponible en el hito 4</CommandItem>
+          <CommandItem disabled={paused === undefined || !onTogglePause} onSelect={() => { set(false); onTogglePause?.() }}>{paused ? 'Reanudar' : 'Pausar'}</CommandItem>
         </CommandGroup>
       </CommandList>
       </Command>

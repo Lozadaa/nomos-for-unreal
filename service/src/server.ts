@@ -12,7 +12,7 @@ import { parseArgs } from "node:util";
 import { acquireLock } from "./lock.ts";
 import { production, databaseDirectory } from "./routes/index.ts";
 import { panelStatic } from "./static.ts";
-import { projectInfo } from "./project.ts";
+import { projectInfo } from "./project-root.ts";
 import { startRunner, type Handler } from './runner.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
@@ -26,7 +26,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
     if (stopping) res.setHeader('Connection','close');
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
-    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'");
+    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'");
     try {
       const url = new URL(req.url || "/", "http://127.0.0.1");
       const path = url.pathname; const parts = path.split("/");
