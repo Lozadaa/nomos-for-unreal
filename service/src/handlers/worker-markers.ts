@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 export type Finding={file:string;line:number;severity:string;note:string};
 export type Marker = {kind:'DONE';summary:string;commits:string[];tests:string} | {kind:'ASK'|'INVALID_REVIEW';question:string}
-  | {kind:'REVIEW';approved:boolean;findings:Finding[]};
+  | {kind:'REVIEW';approved:boolean;findings:Finding[]} | {kind:'SKILLS';skills:string[]};
 export const compactMarkerText=(text:string)=>text.replace(/\s/g,'');
 export function markerId(marker: Extract<Marker,{kind:'DONE'}>): string {
   return createHash('sha256').update(JSON.stringify({summary:compactMarkerText(marker.summary),
@@ -11,6 +11,8 @@ export function markerId(marker: Extract<Marker,{kind:'DONE'}>): string {
 function decode(kind:string,text:string): Marker | undefined {
   try {
     const data=JSON.parse(text);
+    if(kind==='SKILLS' && Array.isArray(data) && data.every(s=>typeof s==='string'&&s.trim()))
+      return {kind:'SKILLS',skills:[...new Set(data)]};
     if(kind==='DONE' && typeof data.summary==='string' && Array.isArray(data.commits)
       && data.commits.every((s:unknown)=>typeof s==='string') && ['passed','failed','none'].includes(data.tests)) {
       return {kind:'DONE',summary:data.summary,commits:data.commits,tests:data.tests};
@@ -37,9 +39,9 @@ export function streamMarkers(lines:string[],buffer:string,fence=''): {found:Mar
     if(fence) {buffer='';continue;}
     if(!/^KRATOS_/.test(line) && buffer) line=buffer+line;
     buffer='';
-    const match=/^KRATOS_(DONE|ASK|REVIEW) (\{.*)$/.exec(line);
+    const match=/^KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
     if(!match) {
-      if(['KRATOS_DONE ','KRATOS_ASK ','KRATOS_REVIEW '].some(prefix=>prefix.startsWith(line)) && line) buffer=line;
+      if(['KRATOS_DONE ','KRATOS_ASK ','KRATOS_REVIEW ','KRATOS_SKILLS '].some(prefix=>prefix.startsWith(line)) && line) buffer=line;
       else if(/^KRATOS_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:line});
       continue;
     }
@@ -63,7 +65,7 @@ export function screenMarkers(lines:string[]): Marker[] {
     const nextFence=fenceLine(lines[i],fence);
     if(nextFence!==undefined) {fence=nextFence;continue;}
     if(fence) continue;
-    const match=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW) (\{.*)$/.exec(lines[i]);
+    const match=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(lines[i]);
     if(!match) {
       if(/^(?:[•●⏺] )?KRATOS_REVIEW\b/.test(lines[i])) found.push({kind:'INVALID_REVIEW',question:lines[i]});
       continue;

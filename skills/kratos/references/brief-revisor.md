@@ -2,7 +2,7 @@
 
 La revisión usa un run, rama, worktree y terminal propios. El implementador conserva su árbol.
 Con dos proveedores habilitados se elige el opuesto; con uno, el evento `review.started` incluye `same_provider: true`.
-OpenCode es un proveedor reconocido, sin adaptador disponible. El lanzamiento Claude se habilita en la tarea siguiente.
+Codex y Claude tienen launcher. OpenCode es un proveedor reconocido, sin adaptador disponible.
 
 ## Encargo de revisión
 
@@ -10,6 +10,11 @@ Inspecciona los criterios de aceptación de `.kratos-brief.md` y el diff adjunto
 El diff incluye los cambios desde la base del implementador, incluidos archivos nuevos de texto.
 No modifiques la implementación, no crees commits y no hagas merge.
 El archivo interno del diff se excluye de Git y de los diffs de artefactos.
+
+El brief enumera `code-review` y `superpowers:requesting-code-review`; el rol revisor
+prevalece sobre el área de implementación. Carga las skills solicitadas antes de empezar
+y declara en la primera línea `KRATOS_SKILLS […]` con la lista JSON realmente cargada.
+Omitir una skill no bloquea la revisión; el servicio informa `worker.skills_missing`.
 
 Termina fuera de bloques de código con una sola línea:
 

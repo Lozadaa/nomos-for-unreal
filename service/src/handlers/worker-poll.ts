@@ -58,7 +58,15 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       if (!previous.waiting || previous.question!==question) appendEvent(db,'worker.waiting',null,
         {runId:run.id,taskId:run.taskId,provider:run.provider,question,lastLines});
     };
+    for(const marker of fresh) if(marker.kind==='SKILLS') {
+      const changed=JSON.stringify(run.metadata.confirmedSkills)!==JSON.stringify(marker.skills);
+      run=updateRun(db,run.id,{confirmedSkills:marker.skills});
+      const missing=run.skills.filter(skill=>!marker.skills.includes(skill));
+      if(changed && missing.length) appendEvent(db,'worker.skills_missing',null,
+        {runId:run.id,taskId:run.taskId,provider:run.provider,required:run.skills,confirmed:marker.skills,missing});
+    }
     for (const marker of fresh) {
+      if(marker.kind==='SKILLS') continue;
       if (marker.kind==='DONE') {
         if(run.role==='revisor') continue;
         finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:''});

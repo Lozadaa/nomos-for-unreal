@@ -32,6 +32,9 @@ Se conservan las exclusiones de prompts, prosa y bloques de código. Son formato
 sintéticas; aquí no se afirma haberlos capturado de una TUI Claude real. El cursor del stream se mantiene
 separado de los snapshots. DONE sigue siendo válido sin `KRATOS_SKILLS`.
 
-El brief Claude enumera `run.skills` solicitadas y pide una primera línea `KRATOS_SKILLS […]` con las
-skills realmente cargadas. T4 no detecta ese marcador ni modifica skills basándose en la salida; T5
-implementará el enrutado y la detección. T6 verificará aceptación con los proveedores reales.
+El brief de todos los workers y revisores enumera `run.skills` (explícitas y requeridas por rol)
+y pide una primera línea `KRATOS_SKILLS […]` con las skills realmente cargadas. El marcador
+persiste la declaración en `metadata.confirmedSkills` y reporta faltantes sin bloquear.
+Sin marcador, la confirmación es desconocida; no se infiere carga ni se impide DONE/REVIEW.
+Contrato de inventario, eventos y HTTP en [skills-workspace.md](skills-workspace.md).
+T6 verificará aceptación con los proveedores reales.

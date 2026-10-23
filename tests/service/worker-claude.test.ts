@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fixture } from './worker-fixture.ts';
 import { listEvents } from '../../service/src/store.ts';
 import { requireTask } from '../../service/src/repo/tasks.ts';
+import { skillsForRole } from '../../service/src/skills.ts';
 
 const start=(f:ReturnType<typeof fixture>,provider='claude')=>f.invoke('worker.start',
   {taskId:f.task.id,provider,role:'implementacion',skills:['tdd','qa']});
@@ -14,7 +15,8 @@ test('Claude arranca con fake+Git, atribuye proveedor y skills esperadas, permis
   const f=fixture(t,{FAKE_ORCA_MODE:'claude'}),create=f.ctx.orca.worktreeCreate,wait=f.ctx.orca.terminalWaitIdle;
   f.ctx.orca.worktreeCreate=async(...args)=>{assert.equal(args[2],'claude');return create(...args);};
   f.ctx.orca.terminalWaitIdle=async(...args)=>{assert.ok(args[2]?.test('bypass permissions'));return wait(...args);};
-  await start(f);const run=f.run();assert.equal(run.provider,'claude');assert.deepEqual(run.skills,['tdd','qa']);
+  await start(f);const run=f.run();assert.equal(run.provider,'claude');
+  assert.deepEqual(run.skills,['tdd','qa',...skillsForRole('implementacion','qa')]);
   const brief=readFileSync(join(f.tree().path,'.kratos-brief.md'),'utf8');
   assert.match(brief,/Carga las skills/);assert.match(brief,/tdd, qa/);assert.match(brief,/primera línea.*KRATOS_SKILLS/);
   assert.deepEqual(f.state().tail.slice(0,2),['claude --model sonnet --dangerously-skip-permissions','bypass permissions on']);
@@ -27,6 +29,8 @@ test('Claude arranca con fake+Git, atribuye proveedor y skills esperadas, permis
   assert.equal(f.state().tail.length,before,'El servicio nunca responde automáticamente al permiso');
   f.output('KRATOS_DONE {"summary":"Implementado","commits":[],"tests":"passed"}');await poll(f);
   assert.equal(f.run().state,'done');assert.equal(requireTask(f.db,f.task.id).state,'revisando');
+  assert.equal(f.run().metadata.confirmedSkills,undefined);
+  assert.equal(listEvents(f.db,0).some(e=>e.type==='worker.skills_missing'),false);
   assert.ok(listEvents(f.db,0).filter(e=>['run.started','worker.output','worker.waiting','run.finished'].includes(e.type))
     .every(e=>e.payload.provider==='claude'));
 });

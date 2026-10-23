@@ -17,6 +17,7 @@ import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
 import { readConfig } from '../config.ts';
 import { launchCommand, readyPattern } from './worker-launch.ts';
+import { skillsForRole } from '../skills.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -54,7 +55,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const changed=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,false,reusable?.id);
   if(changed) return {deferred:true,reason:changed};
   const short=task.id.slice(0,8);
-  let run=reusable ?? startRun(db,{taskId:task.id,role:payload.role,provider:payload.provider,skills:payload.skills,attempt:payload.attempt ?? 1,
+  const skills=[...new Set([...payload.skills,...skillsForRole(payload.role,task.area)])];
+  let run=reusable ?? startRun(db,{taskId:task.id,role:payload.role,provider:payload.provider,skills,attempt:payload.attempt ?? 1,
     metadata:{...(review ? {review:review.snapshot} : {}),startCommandId:cmd.id,phase:'preparing',deadlineAt:new Date(Date.now()+4*3600_000).toISOString(),pollGeneration:0,correctionCount:0}});
   if(reusable) run=updateRun(db,run.id,{waiting:false,question:undefined});
   const reservation=acquire(db,run.id,task.id,review ? [] : requireTask(db,task.id).leases);

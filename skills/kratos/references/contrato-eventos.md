@@ -40,6 +40,7 @@ No hay CORS para orígenes ajenos. CSP impide scripts externos. No se usan frame
 | `director.stopped` | `{session}` | POST admin/stop; sesión null si nunca hubo director |
 | `run.finished` | `{taskId,runId,state,summary}` | Fin de vuelta del run; no cierra tarea |
 | `worker.waiting` | `{taskId,runId,question,lastLines}` | Pregunta o terminal idle actual |
+| `worker.skills_missing` | `{taskId,runId,provider,required,confirmed,missing}` | KRATOS_SKILLS válido con diferencia; no bloquea |
 | `command.failed` | `{commandId,...command}` | Error terminal; payload de command conserva taskId/runId |
 
 SSE: `id: <seq>`, `event: <type>`, `data: <JSON EventRow>` y línea vacía.
@@ -134,3 +135,9 @@ HTTP autenticado: `GET /tasks/:id`, `GET /runs/:id`, `GET /runs/:id/output?since
 `GET /runs/:id/diff`, `GET /commands` (filtrar id en cliente), `POST /decisions`.
 No hay ruta `GET /commands/:id` ni subcomando CLI `run show`.
 El panel nuevo y la aceptación real con Codex/Claude pertenecen a entregas separadas.
+
+`GET /capabilities` autenticado conserva `Capability[]`. `GET /capabilities?details=1`
+devuelve `{capabilities,skills,concurrency}`: inventario local de `dirname(dataDir)` y cupos
+del scheduler. Contrato completo: `docs/skills-workspace.md` del repositorio Kratos.
+`run.skills` enumera lo solicitado; `metadata.confirmedSkills` solo existe tras un marcador
+válido. Ausente significa desconocido; `[]` significa ninguna declarada por el worker.

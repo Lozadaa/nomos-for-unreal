@@ -22,8 +22,11 @@ Claude usa `claude --model sonnet --dangerously-skip-permissions`; el servicio e
 su marcador de readiness antes de entregarle el brief. Sus permisos «Do you want to»,
 «Allow» o «(y/n)» generan `worker.waiting` con la línea original: el director evalúa
 la pregunta y el alcance antes de responder. El servicio no responde automáticamente.
-El brief Claude enumera las skills solicitadas y pide `KRATOS_SKILLS […]` en la primera
-línea; su detección y enrutado automático corresponden a T5, y su ausencia no impide DONE.
+El brief de workers y revisores enumera skills explícitas y requeridas por rol y pide
+`KRATOS_SKILLS […]` con las realmente cargadas. `metadata.confirmedSkills` conserva la
+declaración; `worker.skills_missing` informa diferencias sin bloquear DONE/REVIEW.
+Sin marcador la confirmación es desconocida; `[]` declara ninguna. Inventario del juego
+y concurrencia: `GET /capabilities?details=1` autenticado; la ruta sin query sigue siendo un array.
 
 Recibe y confirma `message.received`, clasifica el mensaje y consulta el registro
 local de su ID antes de crear nada. Si ya existe taskId, inspecciónalo y continúa.
