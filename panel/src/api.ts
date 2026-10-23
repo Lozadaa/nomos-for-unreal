@@ -1,3 +1,5 @@
+import { markSession } from './session'
+
 export interface Status {
   service: boolean
   listener: boolean
@@ -31,6 +33,7 @@ function readToken(): string | null {
 }
 
 export const token = readToken()
+export const markUnauthorized = () => markSession(!!token)
 
 export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const response = await fetch(path, {
@@ -39,6 +42,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   })
   const data = await response.json().catch(() => ({}))
+  if (response.status === 401) markUnauthorized()
   if (!response.ok) throw new ApiError(response.status, (data as { error?: string }).error ?? `http_${response.status}`)
   return data as T
 }

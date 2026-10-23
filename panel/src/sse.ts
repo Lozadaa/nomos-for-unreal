@@ -1,4 +1,4 @@
-import { token } from './api'
+import { markUnauthorized, token } from './api'
 import type { KratosEvent } from '@/lib/tasks'
 
 export interface Live { close: () => void }
@@ -28,6 +28,7 @@ export function connectEvents(onEvent: (e: KratosEvent) => void, onState: (live:
           headers: { Authorization: `Bearer ${token ?? ''}`, ...(lastId ? { 'Last-Event-ID': String(lastId) } : {}) },
           signal: abort.signal,
         })
+        if (res.status === 401) markUnauthorized()
         if (!res.ok || !res.body) throw new Error(`http_${res.status}`)
         onState(true)
         delay = 500

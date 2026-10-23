@@ -14,6 +14,9 @@ describe('DirectorDot', () => {
     expect(directorState(status({ listener: true, director: 's1' }))).toBe('escuchando')
     expect(directorState(status({ listener: true, director: 's1', pending: 2 }))).toBe('atendiendo')
     expect(directorState(status({ listener: false, director: 's1' }))).toBe('vigilanteCaido')
+    // prueba 15: un 401 no es «desconectado»
+    expect(directorState(null, 'sinToken')).toBe('sinToken')
+    expect(directorState(status({ listener: true, director: 's1' }), 'caducada')).toBe('caducada')
   })
 
   it.each([
