@@ -1,10 +1,13 @@
 import type { ComponentType, SVGProps } from 'react'
-import { glyphFor, glyphs, type GlyphKind, type GlyphSpec } from './glyphs'
+import { glyphFor, glyphs, type GlyphKind, type GlyphSpec, type PresentationKind } from './glyphs'
+import { ProviderPill } from './ProviderPill'
 
-export function Glyph({ kind, value, size = 16, tone, showLabel = false }: {
-  kind: GlyphKind; value: string; size?: number; tone?: GlyphSpec['tone']; showLabel?: boolean
+export function Glyph({ kind, value, size = 16, tone, showLabel = false, provider }: {
+  kind: PresentationKind; value: string; size?: number; tone?: GlyphSpec['tone']; showLabel?: boolean; provider?: string
 }) {
-  const spec = glyphFor(kind, value)
+  const spec = glyphFor(kind, value, provider)
+  if (spec.presentation === 'pill') return <ProviderPill label={spec.label} tone={tone ?? spec.tone} size={size} />
+  if (spec.presentation === 'text') return <span className="text-[13px] text-foreground">{spec.label}</span>
   const Icon = spec.Icon as ComponentType<SVGProps<SVGSVGElement> & { size?: number; title?: string }>
   return (
     <span title={spec.label} className="inline-flex shrink-0 items-center gap-2 align-middle" style={{ color: (tone ?? spec.tone) === 'primary' ? 'var(--vbg-color-primary)' : `var(--k-${tone ?? spec.tone})` }}>
@@ -16,7 +19,7 @@ export function Glyph({ kind, value, size = 16, tone, showLabel = false }: {
 
 const kindLabels: Record<GlyphKind, string> = {
   area: 'Áreas', taskState: 'Estados de tarea', directorState: 'Estados del director', provider: 'Proveedores',
-  role: 'Roles', event: 'Eventos', artifact: 'Artefactos', source: 'Fuentes del catálogo',
+  artifact: 'Artefactos',
 }
 
 export function GlyphLegend() {

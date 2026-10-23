@@ -1,17 +1,19 @@
 import { memo } from 'react'
 import { memoSeed } from './seed'
 
-type Values = readonly number[] | readonly (readonly number[])[]
+export type SparklineLane = { label: string; values: readonly number[] }
 const finite = (n: number) => Number.isFinite(n) ? n : 0
 
-/** Hasta siete carriles, escala común y 24 muestras equidistantes por carril. */
-export const Sparkline = memo(function Sparkline({ values }: { values: Values }) {
+/** Datos del consumidor: de uno a siete carriles etiquetados con escala común. */
+export const Sparkline = memo(function Sparkline({ title, lanes }: { title: string; lanes: readonly SparklineLane[] }) {
+  if (typeof title !== 'string' || !title.trim()) throw new Error('Sparkline necesita un título descriptivo')
+  if (!Array.isArray(lanes) || lanes.length < 1 || lanes.length > 7) throw new Error('Sparkline necesita entre 1 y 7 carriles')
+  if (lanes.some((lane) => typeof lane.label !== 'string' || !lane.label.trim())) throw new Error('Cada carril necesita una etiqueta')
+  const values = lanes.map((lane) => lane.values)
   const paths = memoSeed('sparkline', JSON.stringify(values), () => {
-    const lanes: readonly (readonly number[])[] = Array.isArray(values[0]) ? values as readonly (readonly number[])[] : [values as readonly number[]]
-    const visible = lanes.slice(0, 7)
     let lo = 0, hi = 0
-    for (const lane of visible) for (const n of lane) { lo = Math.min(lo, finite(n)); hi = Math.max(hi, finite(n)) }
-    return visible.map((lane, row) => {
+    for (const lane of values) for (const n of lane) { lo = Math.min(lo, finite(n)); hi = Math.max(hi, finite(n)) }
+    return values.map((lane, row) => {
       const count = Math.min(24, lane.length)
       return Array.from({ length: Math.max(1, count) }, (_, i) => {
         const n = finite(lane[count <= 1 ? 0 : Math.round(i * (lane.length - 1) / (count - 1))] ?? 0)
@@ -21,7 +23,15 @@ export const Sparkline = memo(function Sparkline({ values }: { values: Values })
       }).join('')
     })
   })
-  return <svg viewBox={`0 0 168 ${Math.max(18, paths.length * 18)}`} role="img" aria-label="Actividad por hora" fill="none" stroke="var(--vbg-color-info)" strokeWidth="1.5">
-    {paths.map((d, i) => <path key={i} d={d} />)}
-  </svg>
+  return <figure className="min-w-0">
+    <figcaption className="mb-2 text-xs text-muted-foreground">{title}</figcaption>
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,3fr)] gap-3">
+      <ul className="grid items-center text-xs text-muted-foreground" style={{ gridTemplateRows: `repeat(${lanes.length}, 1fr)` }}>
+        {lanes.map((lane, i) => <li key={i} className="truncate" title={lane.label}>{lane.label}</li>)}
+      </ul>
+      <svg viewBox={`0 0 168 ${paths.length * 18}`} role="img" aria-label={title} className="h-full w-full" fill="none" stroke="var(--vbg-color-info)" strokeWidth="1.5">
+        {paths.map((d, i) => <path key={i} d={d} />)}
+      </svg>
+    </div>
+  </figure>
 })

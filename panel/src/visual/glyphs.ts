@@ -1,26 +1,29 @@
 import type { ComponentType } from 'react'
 import {
-  Activity, AudioWaveform, Ban, Box, Boxes, Camera, CheckCircle2, Circle, CircleDashed,
-  CircleDot, Code2, Command, Crown, Diff, DoorClosed, Download, Eye, FileText, Film,
+  Activity, AudioWaveform, Ban, Bot, Box, Camera, CheckCircle2, Circle, CircleDashed,
+  CircleDot, Diff, DoorClosed, Eye, FileText, Film,
   FlaskConical, Gamepad2, GitMerge, Hammer, HelpCircle, Hourglass, Image, LayoutPanelTop,
-  Leaf, Library, MessageCircle, Mountain, Network, Package, PackageCheck, Palette, Play,
-  PlugZap, Radio, Reply, Scan, Search, ShieldCheck, TestTube2, Timer, Users, WifiOff, Wrench,
+  ListChecks, Lock, Mountain, Package, PackageCheck, PersonStanding,
+  PlugZap, Radio, Shapes, TestTube2, WifiOff,
 } from 'lucide-react'
-import { Bone, geometricIcon, providerPaths } from './GeometricIcon'
 
-export type GlyphKind = 'area' | 'taskState' | 'directorState' | 'provider' | 'role' | 'event' | 'artifact' | 'source'
-export type GlyphSpec = {
-  Icon: ComponentType<{ size?: number; className?: string }>
+export type GlyphKind = 'area' | 'taskState' | 'directorState' | 'provider' | 'artifact'
+export type PresentationKind = GlyphKind | 'role' | 'event' | 'source'
+type GlyphBase = {
   tone: 'neutral' | 'info' | 'success' | 'warning' | 'error' | 'primary'
   label: string
 }
-const spec = (Icon: GlyphSpec['Icon'], label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec => ({ Icon, tone, label })
-const provider = (value: keyof typeof providerPaths, label: string) => spec(geometricIcon(providerPaths[value]), label)
+export type GlyphSpec = GlyphBase & (
+  { Icon: ComponentType<{ size?: number; className?: string }>; presentation?: 'icon' } |
+  { Icon: null; presentation: 'pill' | 'text' }
+)
+const spec = (Icon: NonNullable<GlyphSpec['Icon']>, label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec => ({ Icon, tone, label })
+const provider = (label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec => ({ Icon: null, presentation: 'pill', label, tone })
 
 export const glyphs = {
   area: {
     gameplay: spec(Gamepad2, 'Gameplay'), ui: spec(LayoutPanelTop, 'Interfaz'), escenarios: spec(Mountain, 'Escenarios'),
-    assets: spec(Box, 'Assets'), animacion: spec(Bone, 'Animación'), audio: spec(AudioWaveform, 'Audio'),
+    assets: spec(Box, 'Assets'), animacion: spec(PersonStanding, 'Animación'), audio: spec(AudioWaveform, 'Audio'),
     qa: spec(FlaskConical, 'Calidad'), builds: spec(Package, 'Compilaciones'),
   },
   taskState: {
@@ -36,34 +39,54 @@ export const glyphs = {
     desconectado: spec(PlugZap, 'Desconectado', 'error'),
   },
   provider: {
-    codex: provider('codex', 'Codex'), claude: provider('claude', 'Claude Code'), meshy: provider('meshy', 'Meshy'),
-    blender: provider('blender', 'Blender'), unreal: provider('unreal', 'Unreal'), kratos: provider('kratos', 'Kratos'), launcher: provider('launcher', 'Lanzador'),
-  },
-  role: {
-    director: spec(Crown, 'Director'), implementacion: spec(Code2, 'Implementación'), arte: spec(Palette, 'Arte'),
-    revisor: spec(Search, 'Revisor'), qa: spec(ShieldCheck, 'Calidad'), integrador: spec(GitMerge, 'Integrador'), coordinador: spec(Users, 'Coordinador'),
-  },
-  event: {
-    message: spec(MessageCircle, 'Mensaje'), reply: spec(Reply, 'Respuesta'), task: spec(Boxes, 'Tarea'),
-    run: spec(Play, 'Ejecución'), worker: spec(Wrench, 'Agente'), command: spec(Command, 'Orden'),
-    decision: spec(HelpCircle, 'Decisión', 'warning'), lease: spec(Timer, 'Reserva'), review: spec(Eye, 'Revisión'),
-    artifact: spec(Box, 'Entrega'), test: spec(TestTube2, 'Prueba'), integration: spec(GitMerge, 'Integración'),
-    download: spec(Download, 'Descarga'), director: spec(Radio, 'Director'),
+    codex: provider('Codex', 'info'), claude: provider('Claude', 'warning'), meshy: provider('Meshy', 'success'),
+    blender: provider('Blender', 'warning'), unreal: provider('Unreal'), kratos: provider('Kratos', 'primary'), launcher: provider('Launcher', 'info'),
   },
   artifact: {
-    model: spec(Boxes, 'Modelo'), texture: spec(Image, 'Textura'), screenshot: spec(Camera, 'Captura'),
+    model: spec(Shapes, 'Modelo'), texture: spec(Image, 'Textura'), screenshot: spec(Camera, 'Captura'),
     video: spec(Film, 'Vídeo'), build: spec(PackageCheck, 'Compilación'), report: spec(FileText, 'Informe'), diff: spec(Diff, 'Cambios'),
-  },
-  source: {
-    fab: spec(Library, 'Fab'), megascans: spec(Scan, 'Megascans'), polyhaven: spec(Mountain, 'Poly Haven'),
-    ambientcg: spec(Leaf, 'ambientCG'), kenney: spec(Gamepad2, 'Kenney'), quaternius: spec(Box, 'Quaternius'),
-    sketchfab: spec(Network, 'Sketchfab'), freesound: spec(AudioWaveform, 'Freesound'),
-    meshy: provider('meshy', 'Meshy'), blender: provider('blender', 'Blender'),
   },
 } satisfies Record<GlyphKind, Record<string, GlyphSpec>>
 
-export function glyphFor(kind: GlyphKind, value: string): GlyphSpec {
+const roleLabels: Record<string, string> = {
+  director: 'Director', implementacion: 'Implementación', arte: 'Arte', revisor: 'Revisor',
+  qa: 'Calidad', integrador: 'Integrador', coordinador: 'Coordinador',
+}
+const sourceLabels: Record<string, string> = {
+  fab: 'Fab', megascans: 'Megascans', polyhaven: 'Poly Haven', ambientcg: 'ambientCG',
+  kenney: 'Kenney', quaternius: 'Quaternius', sketchfab: 'Sketchfab', freesound: 'Freesound',
+}
+const text = (label: string): GlyphSpec => ({ Icon: null, presentation: 'text', label, tone: 'neutral' })
+const ownLabel = (labels: Record<string, string>, value: string) => Object.hasOwn(labels, value) ? labels[value] : value
+
+/** Los eventos apuntan a entidades existentes; no forman otro catálogo en la leyenda. */
+function eventEntity(value: string, providerValue?: string): GlyphSpec {
+  switch (value.split('.')[0]) {
+    case 'task': return { ...glyphs.taskState.pendiente, label: 'Tarea' }
+    case 'run': return providerValue ? glyphFor('provider', providerValue) : text('Ejecución')
+    case 'worker': return providerValue ? glyphFor('provider', providerValue) : spec(Bot, 'Agente')
+    case 'command': return spec(ListChecks, 'Orden')
+    case 'lease': return spec(Lock, 'Reserva')
+    case 'decision': return { ...glyphs.taskState.decision, label: 'Decisión', tone: 'neutral' }
+    case 'review': return { ...glyphs.taskState.revisando, label: 'Revisión', tone: 'neutral' }
+    case 'test': return { ...glyphs.taskState.probando, label: 'Prueba', tone: 'neutral' }
+    case 'integration': return { ...glyphs.taskState.integrando, label: 'Integración', tone: 'neutral' }
+    case 'artifact': return { ...glyphs.artifact.build, label: 'Entrega' }
+    case 'director': return { ...glyphs.directorState.escuchando, label: 'Director', tone: 'neutral' }
+    case 'message': return text('Mensaje')
+    case 'reply': return text('Respuesta')
+    case 'download': return text('Descarga')
+    default: return text(value)
+  }
+}
+
+export function glyphFor(kind: PresentationKind, value: string, providerValue?: string): GlyphSpec {
+  if (kind === 'event') return eventEntity(value, providerValue)
+  if (kind === 'role') return text(ownLabel(roleLabels, value))
+  if (kind === 'source') {
+    if (value === 'meshy' || value === 'blender') return glyphs.provider[value]
+    return provider(ownLabel(sourceLabels, value))
+  }
   const entries: Record<string, GlyphSpec> = glyphs[kind]
-  const key = kind === 'event' ? value.split('.')[0] : value
-  return Object.hasOwn(entries, key) ? entries[key] : spec(CircleDashed, value)
+  return Object.hasOwn(entries, value) ? entries[value] : kind === 'provider' ? provider(value) : spec(CircleDashed, value)
 }

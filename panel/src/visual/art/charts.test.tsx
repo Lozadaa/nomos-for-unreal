@@ -24,12 +24,39 @@ describe('gráficos procedurales', () => {
     }
   })
 
-  it('Sparkline comparte escala entre siete carriles y tolera series vacías/constantes/no finitas', () => {
-    const { container } = render(<Sparkline values={[[0, 1, 2], [2, 4, 8], [], [3, 3], [NaN, Infinity], [1], [8, 4, 0]]} />)
-    expect(screen.getByRole('img', { name: /Actividad/ })).toBeInTheDocument()
-    expect(container.querySelectorAll('path')).toHaveLength(7)
+  it('Sparkline identifica cada carril visible, comparte escala y tolera series vacías/constantes/no finitas', () => {
+    const labels = ['Tareas', 'Ejecuciones', 'Reservas', 'Pruebas', 'Revisiones', 'Entregas', 'Decisiones']
+    const values = [[0, 1, 2], [2, 4, 8], [], [3, 3], [NaN, Infinity], [1], [8, 4, 0]]
+    const { container } = render(<Sparkline title="Actividad por hora" lanes={values.map((series, i) => ({ label: labels[i], values: series }))} />)
+    expect(screen.getByRole('img', { name: 'Actividad por hora' })).toBeInTheDocument()
+    expect(screen.getByText('Actividad por hora')).toBeVisible()
+    for (const label of labels) expect(screen.getByText(label)).toBeVisible()
+    const paths = container.querySelectorAll('path')
+    expect(paths).toHaveLength(7)
     expect(container.innerHTML).not.toMatch(/NaN|Infinity/)
-    expect(container.querySelectorAll('path')[0].getAttribute('d')).not.toBe(container.querySelectorAll('path')[1].getAttribute('d'))
+    // El valor 2 tiene la misma altura relativa en los dos primeros carriles.
+    const ys = (path: Element) => [...path.getAttribute('d')!.matchAll(/[ML]-?\d+ (-?\d+)/g)].map((match) => Number(match[1]))
+    expect(ys(paths[0])[2]).toBe(ys(paths[1])[0] - 18)
+  })
+
+  it('Sparkline rechaza carriles sin etiqueta y títulos vacíos antes de dibujar', () => {
+    for (const lane of [{ label: '', values: [1, 2] }, { label: '   ', values: [1, 2] }, { values: [1, 2] }]) {
+      expect(() => renderToStaticMarkup(<Sparkline title="Actividad por hora" lanes={[lane as { label: string; values: number[] }]} />)).toThrow(/etiqueta/i)
+    }
+    for (const title of ['', '   ']) {
+      expect(() => renderToStaticMarkup(<Sparkline title={title} lanes={[{ label: 'Tareas', values: [1, 2] }]} />)).toThrow(/título/i)
+    }
+  })
+
+  it('Sparkline admite de uno a siete carriles y limita cada serie a 24 muestras', () => {
+    for (const count of [0, 8]) {
+      expect(() => renderToStaticMarkup(<Sparkline title="Actividad por hora" lanes={Array.from({ length: count }, (_, i) => ({ label: 'Carril ' + i, values: [1] }))} />)).toThrow(/1.*7/)
+    }
+    const { container } = render(<Sparkline title="Tareas por hora" lanes={[{ label: 'Tareas', values: Array.from({ length: 500 }, (_, i) => i) }]} />)
+    const path = container.querySelector('path')!.getAttribute('d')!
+    expect(path.match(/[ML]/g)).toHaveLength(24)
+    expect(path).toMatch(/^M2 /)
+    expect(path).toMatch(/L166 4$/)
   })
 
   it('DiffBars conserva signo y tooltip por archivo, admite el resumen numérico', () => {
@@ -50,10 +77,12 @@ describe('gráficos procedurales', () => {
   })
 
   it('cada gráfico es determinista y ≤ 2 KB incluso con las series de siete carriles', () => {
-    for (const ui of [<Ring value={60} max={100} />, <Sparkline values={Array.from({ length: 7 }, (_, j) => Array.from({ length: 500 }, (_, i) => (i + j) % 13))} />, <DiffBars added={[12, 4, 7]} removed={[3, 0, 8]} files={['a.ts', 'b.ts', 'c.ts']} />]) {
+    for (const ui of [<Ring value={60} max={100} />, <Sparkline title="Actividad por hora" lanes={Array.from({ length: 7 }, (_, j) => ({ label: 'Carril ' + (j + 1), values: Array.from({ length: 500 }, (_, i) => (i + j) % 13) }))} />, <DiffBars added={[12, 4, 7]} removed={[3, 0, 8]} files={['a.ts', 'b.ts', 'c.ts']} />]) {
       const markup = renderToStaticMarkup(ui)
       expect(renderToStaticMarkup(ui)).toBe(markup)
-      expect(new TextEncoder().encode(markup).length).toBeLessThanOrEqual(2048)
+      const svgs = [...markup.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg>/g)]
+      expect(svgs.length).toBeGreaterThan(0)
+      for (const [svg] of svgs) expect(new TextEncoder().encode(svg).length).toBeLessThanOrEqual(2048)
     }
   })
 })

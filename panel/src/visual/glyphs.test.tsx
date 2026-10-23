@@ -9,14 +9,11 @@ const expected = {
   taskState: ['pendiente', 'preparada', 'implementando', 'revisando', 'probando', 'integrando', 'cerrando', 'done', 'bloqueada', 'decision'],
   directorState: ['esperando', 'escuchando', 'atendiendo', 'vigilanteCaido', 'desconectado'],
   provider: ['codex', 'claude', 'meshy', 'blender', 'unreal', 'kratos', 'launcher'],
-  role: ['director', 'implementacion', 'arte', 'revisor', 'qa', 'integrador', 'coordinador'],
-  event: ['message', 'reply', 'task', 'run', 'worker', 'command', 'decision', 'lease', 'review', 'artifact', 'test', 'integration', 'download', 'director'],
   artifact: ['model', 'texture', 'screenshot', 'video', 'build', 'report', 'diff'],
-  source: ['fab', 'megascans', 'polyhaven', 'ambientcg', 'kenney', 'quaternius', 'sketchfab', 'freesound', 'meshy', 'blender'],
 } satisfies Record<GlyphKind, string[]>
 
 describe('registro de glifos', () => {
-  it('cubre exactamente las ocho listas cerradas y nunca usa el desconocido', () => {
+  it('cubre exactamente las cinco listas cerradas y nunca usa el desconocido', () => {
     expect(Object.keys(glyphs)).toEqual(Object.keys(expected))
     for (const [kind, values] of Object.entries(expected)) {
       expect(Object.keys(glyphs[kind as GlyphKind])).toEqual(values)
@@ -33,15 +30,15 @@ describe('registro de glifos', () => {
 
   it('desconocidos, incluso claves del prototipo, conservan su texto y tooltip', () => {
     for (const value of ['nuevo', 'constructor', '__proto__', '']) {
-      expect(glyphFor('provider', value)).toEqual({ Icon: CircleDashed, tone: 'neutral', label: value })
+      expect(glyphFor('area', value)).toEqual({ Icon: CircleDashed, tone: 'neutral', label: value })
     }
-    render(<Glyph kind="provider" value="proveedor nuevo" />)
+    render(<Glyph kind="area" value="proveedor nuevo" />)
     expect(screen.getByRole('img', { name: 'proveedor nuevo' })).toHaveAttribute('title', 'proveedor nuevo')
   })
 
   it('resuelve eventos por prefijo y mantiene desconocidos los prefijos ajenos', () => {
-    expect(glyphFor('event', 'task.created')).toBe(glyphFor('event', 'task'))
-    expect(glyphFor('event', 'taskforce.created').Icon).toBe(CircleDashed)
+    expect(glyphFor('event', 'task.created')).toEqual(glyphFor('event', 'task'))
+    expect(glyphFor('event', 'taskforce.created').presentation).toBe('text')
   })
 
   it('respeta tamaño, tono y etiqueta visible opcional a 13 px', () => {
@@ -57,9 +54,9 @@ describe('registro de glifos', () => {
     expect(container.firstChild).toHaveStyle({ color: 'var(--vbg-color-primary)' })
   })
 
-  it('la leyenda agrupa las 68 entradas sin omitir ninguna', () => {
+  it('la leyenda agrupa las 37 entradas sin omitir ninguna', () => {
     render(<GlyphLegend />)
-    expect(screen.getAllByRole('listitem')).toHaveLength(68)
+    expect(screen.getAllByRole('listitem')).toHaveLength(37)
     for (const [kind, values] of Object.entries(expected)) {
       const group = screen.getByTestId(`legend-${kind}`)
       expect(within(group).getAllByRole('img')).toHaveLength(values.length)
