@@ -5,6 +5,8 @@ import { join } from 'node:path';
 const args = process.argv.slice(2);
 const file = process.env.FAKE_ORCA_STATE!;
 const state = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { repos: [], tail: [] };
+const claude=process.env.FAKE_ORCA_MODE==='claude';
+const ready=()=>claude ? 'bypass permissions on' : '› Ask Codex';
 const value = (flag: string) => args[args.indexOf(flag) + 1];
 const emit = (result: object) => {
   console.log(JSON.stringify({ id: 'fake-request', ok: true, result }));
@@ -70,17 +72,20 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   if (!args.includes('--enter')) fail('missing_enter');
   else {
     const text=value('--text');
-    if (state.realRepo && text === 'codex --yolo --no-daemon' && !existsSync(join(state.treePath,'.kratos-brief.md'))) {
+    const launch=text==='codex --yolo --no-daemon'||text==='claude --model sonnet --dangerously-skip-permissions';
+    if (state.realRepo && launch && !existsSync(join(state.treePath,'.kratos-brief.md'))) {
       fail('missing_brief');
     } else {
     state.tail.push(text);
-    if (state.realRepo && text === 'codex --yolo --no-daemon') state.tail.push('› Ask Codex');
+    if (state.realRepo && launch) state.tail.push(ready());
+    if (claude && text==='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.')
+      state.tail.push('Do you want to allow this command? (y/n)');
     save();
     const accepted = process.env.FAKE_ORCA_SEND_MISSING ? {} : { accepted: process.env.FAKE_ORCA_REJECT !== '1' };
     const requestId = 'fake-send-request';
     emit(process.env.FAKE_ORCA_SEND_LEGACY ? { terminal: { handle: value('--terminal') }, ...accepted } : {
       send: { handle: value('--terminal'), ...accepted, bytesWritten: Buffer.byteLength(text) + 1,
-        prompt: { requestId, stages: ['input_accepted'], provider: 'codex', observation: 'supported',
+        prompt: { requestId, stages: ['input_accepted'], provider: claude ? 'claude' : 'codex', observation: 'supported',
           processIncarnation: 'fake-incarnation', generation: 1, baselineWorkingSequence: 0,
           baselineExplicitWorkingStartedAt: null, baselinePermissionSequence: 0 } },
       mutation: { requestId, replayed: false }, warnings: [],
@@ -90,7 +95,7 @@ if (process.env.FAKE_ORCA_HANG === '1') {
 } else if (args[0] === 'terminal' && args[1] === 'wait') {
   if (value('--for') !== 'tui-idle' || Number(value('--timeout-ms')) > 60000) fail('invalid_wait');
   else {
-    if (process.env.FAKE_ORCA_READY_AFTER_WAIT) { state.tail.push('› Ask Codex'); save(); }
+    if (process.env.FAKE_ORCA_READY_AFTER_WAIT) { state.tail.push(ready()); save(); }
     const satisfied = process.env.FAKE_ORCA_SATISFIED === '1' || state.idle === true;
     if (!satisfied && process.env.FAKE_ORCA_WAIT_TIMEOUT) fail('timeout');
     else {

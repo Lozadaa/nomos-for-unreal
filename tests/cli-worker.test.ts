@@ -9,6 +9,18 @@ import { appendEvent } from '../service/src/store.ts';
 
 const markdown='# Encargo\r\n## Qué\r\nCrear documento.\r\n## Por qué\r\nExplicar juego.\r\n## Criterios de aceptación\r\n1. Existe README.\r\n2. Explica controles.\r\n```md\r\n3. Falso\r\n```\r\n## Alcance\r\n- `Docs/README.md`\r\n- Scripts/\r\n## No tocar\r\n- Content/\r\n';
 
+test('CLI worker.start transporta Claude y OpenCode reconocido, rechaza proveedor inválido',async t=>{
+  const {dataDir,port}=await cliFixture(t);cli(dataDir,'start','--port',String(port),'--no-open');
+  for(const provider of ['claude','opencode']) {
+    const task=await api(dataDir,'/tasks',{title:'Cambio',area:'qa',spec:'Crear',acceptance:['Existe'],scope:['Docs']});
+    await api(dataDir,'/tasks/'+task.id+'/spec',{spec:'Crear',acceptance:['Existe'],area:'qa',scope:['Docs']});
+    const result=cli(dataDir,'worker','start',task.id,'--provider',provider);assert.equal(result.status,0,result.stderr);
+    const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(result.stdout).commandId);
+    assert.equal(command.payload.provider,provider);
+    assert.equal(cli(dataDir,'worker','start',task.id,'--provider','otro').status,1);
+  }
+});
+
 test('CLI spec-file valida antes de crear, prepara y conserva Markdown con contrato español',async t=>{
   const {dataDir,port}=await cliFixture(t);
   assert.equal(cli(dataDir,'start','--port',String(port),'--no-open').status,0);

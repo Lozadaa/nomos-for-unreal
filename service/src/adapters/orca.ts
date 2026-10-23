@@ -24,7 +24,7 @@ export type Orca = {
   repoAdd(path: string): Promise<{ repoId: string }>;
   worktreeCreate(repoId: string, name: string, agent: 'codex' | 'claude'):
     Promise<{ worktreeId: string; path: string; branch: string; terminalHandle: string }>;
-  terminalWaitIdle(handle: string, timeoutMs: number): Promise<boolean>;
+  terminalWaitIdle(handle: string, timeoutMs: number, pattern?: RegExp): Promise<boolean>;
   terminalIsIdle(handle: string): Promise<boolean>;
   terminalSend(handle: string, text: string): Promise<void>;
   terminalRead(handle: string, cursor?: string): Promise<TerminalPage>;
@@ -145,11 +145,12 @@ export function createOrca(opts: Options = {}): Orca {
         if (accepted !== true) throw new OrcaError('cli_error', 'El terminal no aceptó el texto');
       });
     },
-    async terminalWaitIdle(handle, timeoutMs) {
+    async terminalWaitIdle(handle, timeoutMs, pattern=/Ask\s*Codex/i) {
       const deadline = performance.now() + timeoutMs;
       while (performance.now() < deadline) {
         try {
-          if (/Ask\s*Codex/i.test((await read(handle, undefined, deadline - performance.now())).text)) return true;
+          pattern.lastIndex=0;
+          if (pattern.test((await read(handle, undefined, deadline - performance.now())).text)) return true;
           const remaining = deadline - performance.now();
           if (remaining <= 0) return false;
           await run(['terminal', 'wait', '--terminal', handle, '--for', 'tui-idle',

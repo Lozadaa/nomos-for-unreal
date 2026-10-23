@@ -60,7 +60,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
       const provider=values.provider ?? 'codex',role=required(values.role ?? 'implementacion','--role');
       const attempt=integer(values.attempt ?? '1');
       const skills=values.skills===undefined || values.skills==='' ? [] : values.skills.split(',').map(s=>s.trim());
-      if (provider!=='codex' || attempt<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
+      if (!['codex','claude','opencode'].includes(provider) || attempt<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
       result=await call('/tasks/'+id+'/worker',{provider,role,skills,attempt});
     }
     if (action==='send') {

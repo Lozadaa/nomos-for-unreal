@@ -35,7 +35,8 @@ export async function taskWorker({db,req,res,url}: Context): Promise<boolean> {
     json(res,200,prepared);return true;
   }
   const attempt=data.attempt===undefined ? 1 : data.attempt;
-  if (data.provider!=='codex' || !text(data.role) || !strings(data.skills) || !Number.isSafeInteger(attempt) || (attempt as number)<1)
+  if (!['codex','claude','opencode'].includes(data.provider as string) || !text(data.role) || !strings(data.skills)
+    || !Number.isSafeInteger(attempt) || (attempt as number)<1)
     throw new Error('invalid_worker_payload');
   const commandId=transaction(db,()=>{
     const task=requireTask(db,taskId);taskSpec(task);
@@ -43,7 +44,7 @@ export async function taskWorker({db,req,res,url}: Context): Promise<boolean> {
     const previous=db.prepare('select id from commands where idempotency_key=?').get(key);
     if (previous) {resumeWorkerStart(db,previous.id as string);return previous.id;}
     if (task.state!=='preparada') throw new Error('invalid_transition');
-    return enqueue(db,'worker.start',{taskId:task.id,provider:'codex',role:data.role,skills:data.skills,attempt},key).id;
+    return enqueue(db,'worker.start',{taskId:task.id,provider:data.provider,role:data.role,skills:data.skills,attempt},key).id;
   });
   json(res,202,{commandId});return true;
 }

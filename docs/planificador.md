@@ -32,4 +32,4 @@ Después del árbol, la TUI puede quedar iniciada e idle mientras el despacho de
 
 Solo un fallo limpio `lease_conflict`, sin árbol ni incertidumbre, admite avanzar automáticamente al siguiente intento. Un arranque `policyBlocked` completado sigue requiriendo POST explícito al resolver su decisión. Un árbol detenido requiere reconciliación.
 
-Este cambio prepara la selección Claude y de revisores. El lanzamiento Claude permanece postergado y la revisión real corresponde a las tareas siguientes; estas pruebas no acreditan aceptación con proveedores reales.
+Codex y Claude disponen de launcher y pueden ejecutar implementación o revisión independiente. OpenCode sigue reconocido sin adaptador. La selección, los permisos Claude y la revisión cruzada se verifican con fake Orca y Git real; la aceptación con proveedores reales corresponde a T6.

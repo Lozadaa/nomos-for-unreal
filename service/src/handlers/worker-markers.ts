@@ -63,15 +63,15 @@ export function screenMarkers(lines:string[]): Marker[] {
     const nextFence=fenceLine(lines[i],fence);
     if(nextFence!==undefined) {fence=nextFence;continue;}
     if(fence) continue;
-    const match=/^(?:• )?KRATOS_(DONE|ASK|REVIEW) (\{.*)$/.exec(lines[i]);
+    const match=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW) (\{.*)$/.exec(lines[i]);
     if(!match) {
-      if(/^(?:• )?KRATOS_REVIEW\b/.test(lines[i])) found.push({kind:'INVALID_REVIEW',question:lines[i]});
+      if(/^(?:[•●⏺] )?KRATOS_REVIEW\b/.test(lines[i])) found.push({kind:'INVALID_REVIEW',question:lines[i]});
       continue;
     }
     const original=lines[i];
     let text=match[2],marker=decode(match[1],text);
     while(!marker && i+1<lines.length && /^ {2,}\S/.test(lines[i+1]) && !/^\s*(`{3,}|~{3,})/.test(lines[i+1])) {
-      text+=' '+lines[++i].trimStart();
+      text+=' '+lines[++i].trimStart().replace(/^⎿ /,'');
       if(text.length>65536) break;
       marker=decode(match[1],text);
     }

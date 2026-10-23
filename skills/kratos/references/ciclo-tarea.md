@@ -2,7 +2,8 @@
 
 `kratos` abrevia `node "<base>/scripts/kratos.ts"`. Ejecuta desde el juego;
 `--data .kratos` es el valor por defecto. La sesión directora decide y revisa;
-el worker Codex implementa. Los roles de QA/integración y Claude quedan para hitos posteriores.
+los workers Codex y Claude implementan o revisan en sesiones independientes. La aceptación
+con proveedores reales corresponde a T6; la integración final sigue en hitos posteriores.
 
 ## Petición → especificación → worker
 
@@ -16,6 +17,13 @@ Kratos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
 Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode todavía
 no tiene adaptador: puede declararse, pero no debe seleccionarse ni lanzarse;
 una espera «sin adaptador» no autoriza a inventar otro comando ni recursos.
+CLI y HTTP aceptan los tres proveedores y conservan la clave por tarea e intento.
+Claude usa `claude --model sonnet --dangerously-skip-permissions`; el servicio espera
+su marcador de readiness antes de entregarle el brief. Sus permisos «Do you want to»,
+«Allow» o «(y/n)» generan `worker.waiting` con la línea original: el director evalúa
+la pregunta y el alcance antes de responder. El servicio no responde automáticamente.
+El brief Claude enumera las skills solicitadas y pide `KRATOS_SKILLS […]` en la primera
+línea; su detección y enrutado automático corresponden a T5, y su ausencia no impide DONE.
 
 Recibe y confirma `message.received`, clasifica el mensaje y consulta el registro
 local de su ID antes de crear nada. Si ya existe taskId, inspecciónalo y continúa.

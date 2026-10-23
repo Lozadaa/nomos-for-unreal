@@ -22,7 +22,7 @@ test('spec prepara atómicamente y worker start deduplica incluso después de ca
     const prepared=await f.request(url+'/spec',spec);assert.equal(prepared.status,200);
     assert.deepEqual((await prepared.json()).scope,['Docs/Readme.md','Scripts']);
     assert.equal(requireTask(f.db,task.id).state,'preparada');
-    for(const patch of [{provider:'claude'},{attempt:0},{attempt:1.5},{skills:['']},{role:''}])
+    for(const patch of [{provider:'desconocido'},{attempt:0},{attempt:1.5},{skills:['']},{role:''}])
       assert.equal((await f.request(url+'/worker',{provider:'codex',role:'implementacion',skills:[],...patch})).status,400);
     const payload={provider:'codex',role:'implementacion',skills:['tdd'],attempt:2};
     const first=await f.request(url+'/worker',payload);assert.equal(first.status,202);const command=await first.json();

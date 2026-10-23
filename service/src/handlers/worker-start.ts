@@ -16,6 +16,7 @@ import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
 import { readConfig } from '../config.ts';
+import { launchCommand, readyPattern } from './worker-launch.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -43,7 +44,6 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   }
   const waiting=schedulingBlocked(ctx,task,payload.provider,cmd.id,false,reusable?.id);
   if(waiting) return {deferred:true,reason:waiting};
-  if(payload.provider==='claude') return {deferred:true,reason:'Lanzamiento Claude pendiente de habilitar'};
   await requireGameProject(projectDir);
   if (!await workerPolicy(ctx,task,review ? `review:${review.snapshot.generation}` : `start:${payload.attempt ?? 1}`,true)) {
     return {policyBlocked:true,decisionId:requireTask(db,task.id).decisionId};
@@ -54,7 +54,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const changed=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,false,reusable?.id);
   if(changed) return {deferred:true,reason:changed};
   const short=task.id.slice(0,8);
-  let run=reusable ?? startRun(db,{taskId:task.id,role:payload.role,provider:'codex',skills:payload.skills,attempt:payload.attempt ?? 1,
+  let run=reusable ?? startRun(db,{taskId:task.id,role:payload.role,provider:payload.provider,skills:payload.skills,attempt:payload.attempt ?? 1,
     metadata:{...(review ? {review:review.snapshot} : {}),startCommandId:cmd.id,phase:'preparing',deadlineAt:new Date(Date.now()+4*3600_000).toISOString(),pollGeneration:0,correctionCount:0}});
   if(reusable) run=updateRun(db,run.id,{waiting:false,question:undefined});
   const reservation=acquire(db,run.id,task.id,review ? [] : requireTask(db,task.id).leases);
@@ -76,7 +76,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     workerFailure(db,{...payload,runId:run.id,conflicts:currentReservation.conflicts},'lease_conflict');return;
   }
   const suffix=review ? '-review-'+run.id.slice(0,8) : '';
-  const created=await orca.worktreeCreate(repoId,'kratos-'+short+suffix,'codex');
+  const created=await orca.worktreeCreate(repoId,'kratos-'+short+suffix,payload.provider);
   transaction(db,()=>{
     run=updateRun(db,run.id,{worktreeId:created.worktreeId},{sessionRef:created.terminalHandle});
     insert<Worktree>(db,'worktrees',{id:created.worktreeId,taskId:task.id,path:created.path,branch:created.branch,
@@ -92,8 +92,9 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   writeFileSync(join(created.path,'.kratos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
     {projectContext:existsSync(contextFile) ? readFileSync(contextFile,'utf8') : undefined}));
   await git.excludeLocal(created.path);
-  await orca.terminalSend(created.terminalHandle,'codex --yolo --no-daemon');
-  if (!await orca.terminalWaitIdle(created.terminalHandle,90_000)) throw new Error('orca: Codex no estuvo listo antes de 90 s');
+  await orca.terminalSend(created.terminalHandle,launchCommand(run.provider));
+  if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,readyPattern(run.provider)))
+    throw new Error(`orca: ${run.provider} no estuvo listo antes de 90 s`);
   const pauseDispatch=()=>{
     if(dispatchBlocked(db,guard)) {queuePoll(db,run);return pauseForDecision(db,task.id,run.id);}
     const reason=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,!review,run.id);

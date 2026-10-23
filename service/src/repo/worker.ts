@@ -8,7 +8,7 @@ export function requireRun(db: DatabaseSync, id: string): Run {
   const run=read<Run>(db,'runs',id);if (!run) throw new Error('unknown_run');return run;
 }
 export function updateRun(db: DatabaseSync,id: string,metadata: Partial<RunMetadata>, fields: {
-  state?: Run['state']; sessionRef?: string; finishedAt?: string | null; summary?: string | null;
+  state?: Run['state']; provider?: Run['provider']; sessionRef?: string; finishedAt?: string | null; summary?: string | null;
 } = {}): Run {
   const run=requireRun(db,id),next={...run.metadata,...metadata};
   db.prepare('update runs set metadata=?,updated_at=? where id=?').run(JSON.stringify(next),new Date().toISOString(),id);

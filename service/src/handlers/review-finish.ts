@@ -20,7 +20,7 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
     const task=requireTask(db,run.taskId),implementer=snapshot ? requireRun(db,snapshot.implementerRunId) : undefined;
     const stale=!current || !implementer || implementer.state!=='done'
       || reviewGeneration(task,implementer)!==snapshot!.inputGeneration || !!task.decisionId || !!task.blockedReason;
-    const report={...marker,runId:run.id,...snapshot,stale};
+    const report={...marker,runId:run.id,provider:run.provider,...snapshot,stale};
     const path=`review-${run.id}.json`;mkdirSync(join(ctx.dataDir,'artifacts'),{recursive:true});
     writeFileSync(join(ctx.dataDir,'artifacts',path),JSON.stringify(report,null,2)+'\n');
     finishRun(db,run.id,'done',stale ? 'Revisión desactualizada' : marker.approved ? 'Aprobado' : 'Correcciones requeridas');

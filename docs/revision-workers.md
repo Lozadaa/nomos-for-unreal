@@ -27,10 +27,13 @@ Repetir una generación devuelve el comando existente; una generación nueva ter
 sin otro revisor activo y con eventos durables de la generación anterior. Las decisiones requieren continuación explícita.
 Un cambio directo de contenido o HEAD permite otra revisión y borra la aprobación anterior al solicitarla.
 Si cambia el proveedor elegible por configuración, la intención actualiza su proveedor conservando su turno FIFO.
+Una preparación local del mismo comando, sin sesión, árbol ni efectos inciertos, conserva su run e intento
+y actualiza también el proveedor del run antes de lanzar; así su atribución coincide con el adaptador elegido.
 `review.start` se recupera como mutación incierta; `review.poll` como lectura recuperable.
 Un fallo del revisor no termina ni libera las reservas del implementador.
 
-En esta etapa el lifecycle ejecutable usa configuración con solo Codex habilitado, por ejemplo
-`{"concurrency":{"codex":2,"claude":0,"opencode":0}}` en `.kratos/config.json`.
-Con Codex y Claude habilitados, el revisor opuesto queda pendiente hasta habilitar el launcher Claude.
+Codex y Claude tienen launcher; con ambos habilitados, un implementador Codex recibe un revisor Claude
+y viceversa. Con uno habilitado, la revisión usa un run nuevo del mismo proveedor y `same_provider: true`.
+El arranque, permisos y revisión cruzada se verifican con fake Orca y Git real; la aceptación con TUIs reales
+corresponde a T6. Contratos de lanzamiento y espera en [workers-proveedores.md](workers-proveedores.md).
 OpenCode se reconoce y persiste como proveedor válido; aún no dispone de adaptador.

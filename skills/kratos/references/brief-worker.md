@@ -2,6 +2,8 @@
 
 Proveedor: {{provider}}. Rol: {{role}}. Skills: {{skills}}.
 
+{{providerInstructions}}
+
 ## Especificación
 
 {{spec}}

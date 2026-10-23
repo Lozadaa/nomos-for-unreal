@@ -8,6 +8,8 @@ import { chooseProvider } from '../scheduler-provider.ts';
 import { reviewTarget, reviewSnapshot, reviewCurrent } from '../review.ts';
 import { startWorker } from './worker-start.ts';
 import { appendEvent } from '../store.ts';
+import { updateRun } from '../repo/worker.ts';
+import { workerSkillsBrief } from '../brief.ts';
 
 export const reviewStart:Handler=async(cmd,ctx)=>{
   const payload=cmd.payload as any;
@@ -27,16 +29,18 @@ export const reviewStart:Handler=async(cmd,ctx)=>{
     const previousProvider=payload.provider;payload.provider=choice.provider;
     ctx.db.prepare('update commands set payload=?,updated_at=? where id=?')
       .run(JSON.stringify(payload),new Date().toISOString(),cmd.id);
-    appendEvent(ctx.db,'review.provider_changed',null,{commandId:cmd.id,taskId:task.id,previousProvider,provider:choice.provider});
+    appendEvent(ctx.db,'review.provider_changed',null,{commandId:cmd.id,taskId:task.id,previousProvider,provider:choice.provider,
+      ...(previous ? {runId:previous.id} : {})});
   }
+  if(previous && previous.provider!==choice.provider) updateRun(ctx.db,previous.id,{}, {provider:choice.provider});
   if(task.decisionId) return {policyBlocked:true,decisionId:task.decisionId};
-  if(choice.provider==='claude') return {deferred:true,reason:'Lanzamiento Claude pendiente de habilitar'};
   return startWorker({...cmd,payload:{...payload,provider:choice.provider,role:'revisor',skills:[],attempt:1}},ctx,{
     snapshot,valid:()=>reviewCurrent(ctx,task.id,snapshot),
     brief:(path,run)=>{
       mkdirSync(join(path,'.kratos-review'),{recursive:true});writeFileSync(join(path,'.kratos-review','diff.patch'),patch);
-      appendEvent(ctx.db,'review.started',null,{taskId:task.id,runId:run.id,...snapshot,same_provider:choice.sameProvider});
+      appendEvent(ctx.db,'review.started',null,{taskId:task.id,runId:run.id,provider:run.provider,...snapshot,same_provider:choice.sameProvider});
       return `# Revisión independiente\n\nSolo inspección: no modificar la implementación, crear commits ni hacer merge.\n\n`
+        +workerSkillsBrief(run)
         +`## Encargo\n${task.spec}\n\n## Criterios de aceptación\n${task.acceptance.map(s=>'- '+s).join('\n')}\n\n`
         +`Inspecciona .kratos-review/diff.patch (cambios desde la base) y el contexto de este árbol.\n`
         +`Implementación: ${snapshot.commit}. Generación: ${snapshot.generation}.\n`

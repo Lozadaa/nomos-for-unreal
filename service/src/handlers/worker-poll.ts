@@ -9,6 +9,7 @@ import { refreshPendingDecision } from '../repo/decisions.ts';
 import { createHash } from 'node:crypto';
 import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './worker-markers.ts';
 import { finishReview } from './review-finish.ts';
+import { permissionPrompt } from './worker-launch.ts';
 export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
@@ -47,15 +48,15 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       ...(snapshot ? {screenFingerprint:fingerprint} : {}),
       ...(lines.length ? {lastOutputAt:new Date().toISOString(),waiting:false,question:undefined,
         phase:previous.phase==='preparing' ? 'preparing' : 'running'} : {})});
-    if (lines.length) appendEvent(db,'worker.output',null,{runId:run.id,taskId:run.taskId,lines,
+    if (lines.length) appendEvent(db,'worker.output',null,{runId:run.id,taskId:run.taskId,provider:run.provider,lines,
       source:snapshot ? 'screen' : stream.source ?? 'stream',snapshot,...(snapshot ? {historyComplete:false} : {}),
       ...(page.limited!==undefined ? {limited:page.limited} : {}),...(page.truncated!==undefined ? {truncated:page.truncated} : {})});
     if (stream.oldestCursor) appendEvent(db,'worker.output_gap',null,
-      {runId:run.id,taskId:run.taskId,requestedCursor:previous.cursor ?? '0',oldestCursor:stream.oldestCursor});
+      {runId:run.id,taskId:run.taskId,provider:run.provider,requestedCursor:previous.cursor ?? '0',oldestCursor:stream.oldestCursor});
     const waiting=(question:string)=>{
       run=updateRun(db,run.id,{waiting:true,question,phase:run.metadata.phase==='preparing' ? 'preparing' : 'waiting'});
       if (!previous.waiting || previous.question!==question) appendEvent(db,'worker.waiting',null,
-        {runId:run.id,taskId:run.taskId,question,lastLines});
+        {runId:run.id,taskId:run.taskId,provider:run.provider,question,lastLines});
     };
     for (const marker of fresh) {
       if (marker.kind==='DONE') {
@@ -66,7 +67,9 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) {review=marker;break;}continue;}
       waiting(marker.question);
     }
-    if (idle) waiting('Codex espera instrucciones');
+    const permission=permissionPrompt(run.provider,lines);
+    if(permission) waiting(permission);
+    if (idle) waiting(`${run.provider} espera instrucciones`);
     queuePoll(db,run);
     const current=requireTask(db,run.taskId);
     if(current.decisionId || current.blockedReason) pauseForDecision(db,run.taskId,run.id);

@@ -57,14 +57,15 @@ export const workerSend: Handler=async (cmd,ctx)=>{
       correctionCount:count+(correction?1:0),pollGeneration:(run.metadata.pollGeneration ?? 0)+1},
       {state:'running',finishedAt:null,summary:null});
     moveTask(db,run.taskId,reviewer ? 'revisando' : 'implementando');queuePoll(db,run);
-    appendEvent(db,'worker.message_sent',null,{taskId:run.taskId,runId:run.id,path:relative,commandId:cmd.id,correctionCount:run.metadata.correctionCount});
+    appendEvent(db,'worker.message_sent',null,{taskId:run.taskId,runId:run.id,provider:run.provider,
+      path:relative,commandId:cmd.id,correctionCount:run.metadata.correctionCount});
     if(dispatchBlocked(db,guard)) pauseForDecision(db,task.id,run.id);
   });
 };
 export const workerStop: Handler=async (cmd,ctx)=>{
   const run=requireRun(ctx.db,(cmd.payload as any).runId);
   transaction(ctx.db,()=>{
-    if(run.state==='running') finishRun(ctx.db,run.id,'cancelled','Seguimiento detenido; no se confirma terminación del proceso Codex');
+    if(run.state==='running') finishRun(ctx.db,run.id,'cancelled',`Seguimiento detenido; no se confirma terminación del proceso ${run.provider}`);
     release(ctx.db,run.id);
     updateRun(ctx.db,run.id,{waiting:false,phase:'finished',pollGeneration:(run.metadata.pollGeneration ?? 0)+1});
     const task=requireTask(ctx.db,run.taskId);

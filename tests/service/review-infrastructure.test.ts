@@ -36,14 +36,13 @@ test('recovery falla arranque review incierto sin tocar implementador y repone r
   assert.equal(f.reviewer().state,'failed');assert.equal(f.current().state,'done');
   assert.equal(f.db.prepare('select state from commands where id=?').get(poll.id)!.state,'pending');
 });
-test('dos proveedores posterga Claude sin Orca; OpenCode nunca lanza',async t=>{
+test('dos proveedores habilitados conservan OpenCode indisponible sin efectos Orca',async t=>{
   const f=await reviewFixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":2,"claude":1,"opencode":4}}');
   const before=f.state().creates;
-  const result=await f.startReview();assert.deepEqual(result,{deferred:true,reason:'Lanzamiento Claude pendiente de habilitar'});
-  assert.equal(f.state().creates,before);assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
   const unsupported=await f.invoke('review.start',{taskId:f.task.id,implementerRunId:f.implementer.id,provider:'opencode'});
   assert.deepEqual(unsupported,{deferred:true,reason:'OpenCode sin adaptador disponible'});
   assert.equal(f.state().creates,before);
+  assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
 });
 
 test('recalcula proveedor de intención con configuración vigente sin perder FIFO',async t=>{
