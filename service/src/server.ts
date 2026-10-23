@@ -18,10 +18,10 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'");
-    const url = new URL(req.url || "/", "http://127.0.0.1");
-    const path = url.pathname; const parts = path.split("/");
-    const method = req.method;
     try {
+      const url = new URL(req.url || "/", "http://127.0.0.1");
+      const path = url.pathname; const parts = path.split("/");
+      const method = req.method;
       const origin = req.headers.origin;
       if (origin && origin !== `http://127.0.0.1:${(server.address() as { port: number }).port}`) {
         return json(res, 403, { error: "forbidden_origin" });
@@ -67,8 +67,9 @@ export function createServer(db: DatabaseSync, token: string, webDir: string): h
       }
       json(res, 404, { error: "not_found" });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "internal_error";
-      const code = message === "body_too_large" ? 413 : message === "invalid_json" ? 400
+      const message = (error as NodeJS.ErrnoException).code === "ERR_INVALID_URL" ? "invalid_url"
+        : error instanceof Error ? error.message : "internal_error";
+      const code = message === "body_too_large" ? 413 : ["invalid_json", "invalid_url"].includes(message) ? 400
         : message.startsWith("unknown_") ? 404 : 500;
       if (!res.headersSent) json(res, code, { error: code === 500 ? "internal_error" : message });
     }

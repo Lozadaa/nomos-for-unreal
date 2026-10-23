@@ -4,7 +4,7 @@ import { serviceInfo, request } from "./client.ts";
 import type { ServiceInfo } from "./service-info.ts";
 import type { EventRow, Status } from "./store.ts";
 
-async function readPending(info: ServiceInfo, since: number): Promise<number> {
+async function readPending(info: ServiceInfo, since: number, advance: (seq: number) => void): Promise<number> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 800);
   let cursor = since;
@@ -27,6 +27,7 @@ async function readPending(info: ServiceInfo, since: number): Promise<number> {
           if (event.type === "message.received") console.log(JSON.stringify({ seq: event.seq,
             messageId: event.messageId, text: event.payload.text, origin: event.payload.origin }));
           cursor = event.seq;
+          advance(cursor);
         }
       }
     } finally { await reader.cancel().catch(() => {}); }
@@ -48,7 +49,7 @@ export async function watch(dataDir: string, session: string): Promise<void> {
         await request(info, "/director/heartbeat", { session, started: startedToken !== info.token });
         startedToken = info.token;
         const state: Status = await request(info, "/status");
-        cursor = await readPending(info, Math.max(cursor ?? 0, state.lastAckSeq));
+        cursor = await readPending(info, Math.max(cursor ?? 0, state.lastAckSeq), seq => { cursor = seq; });
       } catch { console.log(JSON.stringify({ error: "service_down" })); }
       await sleep(Math.max(0, 2000 - (Date.now() - began)));
     }

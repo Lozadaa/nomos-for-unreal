@@ -5,6 +5,13 @@ import { join } from "node:path";
 import { createServer } from "node:net";
 import type { TestContext } from "node:test";
 import { readServiceInfo, isAlive } from "../service/src/service-info.ts";
+import type { ChildProcess } from "node:child_process";
+
+const childrenByDir = new Map<string, Set<ChildProcess>>();
+async function stopChild(child: ChildProcess) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise(resolve => child.once("exit", resolve)); child.kill(); await exited;
+}
 
 export const cliPath = join(import.meta.dirname, "../service/src/cli.ts");
 export function cli(dataDir: string, ...args: string[]) {
@@ -19,7 +26,10 @@ export async function freePort(): Promise<number> {
 }
 export async function cliFixture(t: TestContext) {
   const dataDir = mkdtempSync(join(tmpdir(), "kratos-cli-"));
+  childrenByDir.set(dataDir, new Set());
   t.after(async () => {
+    for (const child of childrenByDir.get(dataDir) || []) await stopChild(child);
+    childrenByDir.delete(dataDir);
     const info = readServiceInfo(dataDir);
     if (info && await isAlive(info)) cli(dataDir, "stop");
     rmSync(dataDir, { recursive: true, force: true });
@@ -37,11 +47,8 @@ export async function api(dataDir: string, path: string, body?: unknown) {
 export function watcher(t: TestContext, dataDir: string, session = "t1") {
   const child = spawn(process.execPath, [cliPath, "vigila", "--session", session, "--data", dataDir], {
     windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
-  t.after(async () => {
-    if (child.exitCode === null && child.signalCode === null) {
-      const exited = new Promise(resolve => child.once("exit", resolve)); child.kill(); await exited;
-    }
-  });
+  childrenByDir.get(dataDir)?.add(child);
+  t.after(() => stopChild(child));
   return child;
 }
 export async function until(check: () => Promise<boolean>, timeout = 6000) {

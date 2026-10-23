@@ -92,13 +92,22 @@ navegador ni a un resultado de Skillsmith.
 
 ## Resultado ejecutado · 2026-10-22
 
-- `npm test`: 21 pruebas aprobadas, 0 fallos (antes de la revisión final).
+- `npm test`: **25 pruebas aprobadas, 0 fallos** tras la revisión final.
+- Tres regresiones reproducidas primero en rojo y después en verde: request-target
+  inválido devuelve 400 sin caer; corte abrupto de SSE conserva el cursor impreso;
+  reserva exclusiva de vigilante liberada por el SO al morir el proceso.
+- El lock usa una transacción exclusiva en archivos auxiliares SQLite dentro de
+  .kratos. Evita recuperar/borrar locks por PID y la carrera entre dos candidatos.
+  La reserva de escritura `BEGIN IMMEDIATE` permite las lecturas transitorias de
+  apertura; una regresión adicional cubre esa contención. Veinte ejecuciones
+  consecutivas de los tres casos de contención terminaron en verde.
 - CLI real: start, status y stop ejecutados en `.kratos/prueba-cli`.
 - Skill validada por `quick_validate.py`; Skillsmith 1.2.0: **96/100**, sin errores
   ni advertencias bloqueantes. Las cuatro sugerencias restantes piden convenciones
   en inglés o renombrar `kratos`; se conserva el nombre y el idioma del contrato.
 - Junction creado y destino comprobado; envoltorio ejecutado desde esa junction.
-- `node tests/browser-qa.ts .kratos/prueba-web-final`: aprobado, Chrome 1366×900.
+- `node tests/browser-qa.ts .kratos/prueba-web-revision`: aprobado tras las
+  correcciones finales, Chrome 1366×900.
   Sin token no llama API; Ctrl+Enter, SSE, ack/reply, emoji/texto seguro, recarga
   sin tarjetas duplicadas, caída de vigilante y desconexión del servicio comprobados.
 - Capturas: [intercambio](capturas-hito0/intercambio.png),

@@ -11,5 +11,5 @@ skillsmith  skills/kratos · 1 skills · profile claude-code-plugin
      fix: Add an Additional Resources section linking to the supporting files.
   - [S09] multi-step procedure has no troubleshooting section
      fix: Add a Troubleshooting or Common Issues section covering the likely failure modes.
-     tokens: metadata 112 · body 1150 · references 1456 · scripts 1 files
+     tokens: metadata 112 · body 1150 · references 1472 · scripts 1 files
 

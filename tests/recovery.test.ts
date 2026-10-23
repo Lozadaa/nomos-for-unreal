@@ -28,13 +28,14 @@ test("vigilante mantiene latidos, retoma tras rotar token y no repite lo ya impr
 
 test("stop cierra SSE y dos arranques simultáneos comparten servicio", { timeout: 12_000 }, async t => {
   const { dataDir, port } = await cliFixture(t);
-  const run = () => new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+  const run = () => new Promise<{ code: number | null; output: string; error: string }>((resolve, reject) => {
     const child = spawn(process.execPath, [cliPath, "start", "--data", dataDir, "--port", String(port), "--no-open"], { windowsHide: true });
-    let output = ""; child.stdout.on("data", data => { output += data.toString(); });
-    child.on("error", reject); child.on("exit", code => resolve({ code, output }));
+    let output = "", error = ""; child.stdout.on("data", data => { output += data.toString(); });
+    child.stderr.on("data", data => { error += data.toString(); });
+    child.on("error", reject); child.on("exit", code => resolve({ code, output, error }));
   });
   const [a, b] = await Promise.all([run(), run()]);
-  assert.equal(a.code, 0); assert.equal(b.code, 0);
+  assert.equal(a.code, 0, JSON.stringify({ a, b })); assert.equal(b.code, 0, JSON.stringify({ a, b }));
   assert.equal(a.output.split("\n")[0], b.output.split("\n")[0]);
   const info = readServiceInfo(dataDir)!;
   const stream = await fetch(`http://127.0.0.1:${port}/events?token=${info.token}`);

@@ -67,7 +67,8 @@ Además: `Última confirmación: <hora local>` o `sin confirmaciones`.
 4. Claude publica reply con el mismo messageId; SSE muestra la respuesta.
 5. Rearmar otro vigilante recupera `message.received` con `seq>lastAckSeq`.
 
-Solo un vigilante reserva la carpeta mediante un lock local. El servicio reutiliza
+Solo un vigilante reserva la carpeta mediante un lock local SQLite exclusivo,
+liberado por el SO al morir el proceso. El servicio reutiliza
 su token si sigue vivo; después de reiniciarlo lo rota. El vigilante relee las
 credenciales; la web necesita abrir la URL nueva. Recargar la web reconstruye el
 historial desde SQLite sin duplicar tarjetas.
