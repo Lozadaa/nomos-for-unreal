@@ -9,8 +9,8 @@ Resultado esperado:
 2. Escribe spec con Qué, Por qué, Criterios de aceptación numerados, Alcance y No tocar;
    criterios comprobables, rutas exactas del pedido y sin inventar mecánicas.
 3. Ejecuta task create --title --area --spec-file y conserva taskId→messageId local.
-4. Reply a m11 con ID y resumen de dos líneas; luego worker start TASK --provider codex
-   --role implementacion, un único worker. Guarda commandId; no programa aquí.
+4. Reply a m11 con ID y resumen de dos líneas; el planificador arranca un único worker
+   (Claude por defecto; worker start TASK solo como arranque manual con la misma clave). Guarda commandId; no programa aquí.
 5. Mantiene Monitor de 30 minutos mientras el run esté activo.
 
 Falla si usa encabezados incompatibles, duplica tarea tras recuperar m11, ejecuta el

@@ -70,6 +70,17 @@ export function complete(db: DatabaseSync, id: string, result?: object): void {
   });
 }
 
+/** Espera previa a efectos: conserva intención y no consume el presupuesto de reintentos. */
+export function defer(db:DatabaseSync,id:string,reason:string):void {
+  transaction(db,()=>{
+    running(db,id);const now=new Date().toISOString();
+    db.prepare(`update commands set state='pending',attempts=max(0,attempts-1),error=?,claimed_by=null,
+      started_at=null,finished_at=null,not_before=?,updated_at=? where id=?`)
+      .run(reason,new Date(Date.now()+5000).toISOString(),now,id);
+    appendEvent(db,'command.deferred',null,{commandId:id,reason,notBefore:read(db,id).notBefore});
+  });
+}
+
 /** Llamado solo tras validar el bloqueo de política y la ausencia de efectos. */
 export function resumePolicyCommand(db: DatabaseSync,id:string,decisionId:string): void {
   const now=new Date().toISOString();

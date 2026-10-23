@@ -8,6 +8,8 @@ import { pauseForDecision } from './worker-decisions.ts';
 import { refreshPendingDecision } from '../repo/decisions.ts';
 import { createHash } from 'node:crypto';
 import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './worker-markers.ts';
+import { finishReview } from './review-finish.ts';
+import { permissionPrompt } from './worker-launch.ts';
 export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
@@ -34,37 +36,55 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   const parsed=streamMarkers(snapshot ? [] : lines,stream.oldestCursor ? '' : run.metadata.markerBuffer ?? '',run.metadata.markerFence ?? '');
   const observed=snapshot ? changed ? screenMarkers(screenLines) : [] : parsed.found;
   const seen=run.metadata.seenDoneMarkers ?? [],legacy=run.metadata.legacyDoneSummaries ?? [];
-  const fresh=observed.filter(marker=>marker.kind!=='DONE' || !seen.includes(markerId(marker)) && !legacy.includes(compactMarkerText(marker.summary)));
+  // Una pregunta en pantalla sigue visible tras contestarla: en snapshots solo cuenta la primera vez.
+  const seenAsk=run.metadata.seenAskMarkers ?? [],asks=observed.flatMap(m=>m.kind==='ASK' ? [compactMarkerText(m.question)] : []);
+  const fresh=observed.filter(marker=>marker.kind==='ASK' ? !snapshot || !seenAsk.includes(compactMarkerText(marker.question))
+    : marker.kind!=='DONE' || !seen.includes(markerId(marker)) && !legacy.includes(compactMarkerText(marker.summary)));
   const seenDoneMarkers=[...new Set([...seen,...observed.flatMap(marker=>marker.kind==='DONE' ? [markerId(marker)] : [])])].slice(-32);
   const idlePolls=lines.length ? 0 : (run.metadata.idlePolls ?? 0)+1;
   const idle=!lines.length && idlePolls>=2 && !run.metadata.waiting && !blockedNow() ? await orca.terminalIsIdle(run.sessionRef!) : false;
+  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined;
   transaction(db,()=>{
     const previous=run.metadata,lastLines=snapshot ? screenLines.slice(-20) : [...(previous.lastLines ?? []),...lines].slice(-20);
     const cursor=stream.source==='screen' ? previous.cursor ?? '0' : stream.cursor;
     run=updateRun(db,run.id,{cursor,lastLines,idlePolls,markerBuffer:parsed.buffer,markerFence:parsed.fence,seenDoneMarkers,
+      ...(snapshot && asks.length ? {seenAskMarkers:[...new Set([...seenAsk,...asks])].slice(-32)} : {}),
       ...(snapshot ? {screenFingerprint:fingerprint} : {}),
       ...(lines.length ? {lastOutputAt:new Date().toISOString(),waiting:false,question:undefined,
         phase:previous.phase==='preparing' ? 'preparing' : 'running'} : {})});
-    if (lines.length) appendEvent(db,'worker.output',null,{runId:run.id,taskId:run.taskId,lines,
+    if (lines.length) appendEvent(db,'worker.output',null,{runId:run.id,taskId:run.taskId,provider:run.provider,lines,
       source:snapshot ? 'screen' : stream.source ?? 'stream',snapshot,...(snapshot ? {historyComplete:false} : {}),
       ...(page.limited!==undefined ? {limited:page.limited} : {}),...(page.truncated!==undefined ? {truncated:page.truncated} : {})});
     if (stream.oldestCursor) appendEvent(db,'worker.output_gap',null,
-      {runId:run.id,taskId:run.taskId,requestedCursor:previous.cursor ?? '0',oldestCursor:stream.oldestCursor});
+      {runId:run.id,taskId:run.taskId,provider:run.provider,requestedCursor:previous.cursor ?? '0',oldestCursor:stream.oldestCursor});
     const waiting=(question:string)=>{
       run=updateRun(db,run.id,{waiting:true,question,phase:run.metadata.phase==='preparing' ? 'preparing' : 'waiting'});
       if (!previous.waiting || previous.question!==question) appendEvent(db,'worker.waiting',null,
-        {runId:run.id,taskId:run.taskId,question,lastLines});
+        {runId:run.id,taskId:run.taskId,provider:run.provider,question,lastLines});
     };
+    for(const marker of fresh) if(marker.kind==='SKILLS') {
+      const changed=JSON.stringify(run.metadata.confirmedSkills)!==JSON.stringify(marker.skills);
+      run=updateRun(db,run.id,{confirmedSkills:marker.skills});
+      const missing=run.skills.filter(skill=>!marker.skills.includes(skill));
+      if(changed && missing.length) appendEvent(db,'worker.skills_missing',null,
+        {runId:run.id,taskId:run.taskId,provider:run.provider,required:run.skills,confirmed:marker.skills,missing});
+    }
     for (const marker of fresh) {
+      if(marker.kind==='SKILLS') continue;
       if (marker.kind==='DONE') {
+        if(run.role==='revisor') continue;
         finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:''});
         moveTask(db,run.taskId,'revisando');refreshPendingDecision(db,run.taskId);return;
       }
+      if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) {review=marker;break;}continue;}
       waiting(marker.question);
     }
-    if (idle) waiting('Codex espera instrucciones');
+    const permission=permissionPrompt(run.provider,lines);
+    if(permission) waiting(permission);
+    if (idle) waiting(`${run.provider} espera instrucciones`);
     queuePoll(db,run);
     const current=requireTask(db,run.taskId);
     if(current.decisionId || current.blockedReason) pauseForDecision(db,run.taskId,run.id);
   });
+  if(review) await finishReview(ctx,run,review);
 };

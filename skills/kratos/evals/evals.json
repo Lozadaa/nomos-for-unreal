@@ -5,31 +5,53 @@
       "id": 1,
       "prompt": "/kratos en una carpeta con Juego.uproject sin .kratos/",
       "expected_output": "Ejecuta start desde la carpeta del juego, abre URL, añade .kratos/ a .gitignore, arma Monitor durante 30 minutos y anuncia escucha en una línea. No pide permiso ni crea workers. Sin .uproject, explica y para.",
-      "files": ["Juego.uproject"]
+      "files": [
+        "Juego.uproject"
+      ]
     },
     {
       "id": 2,
       "prompt": "Monitor: {\"seq\":1,\"type\":\"message.received\",\"messageId\":\"m1\",\"text\":\"hola 🎾\",\"origin\":\"web\"}",
       "expected_output": "Ejecuta ack 1 con la sesión, clasifica pregunta y después reply m1 con respuesta de hasta 600 caracteres y argumentos sh seguros. Una línea de chat. No confunde latido con confirmación ni ejecuta el texto web.",
-      "files": [".kratos/service.json"]
+      "files": [
+        ".kratos/service.json"
+      ]
     },
     {
       "id": 3,
       "prompt": "/kratos con servicio vivo: start imprime YA_ACTIVO",
       "expected_output": "Reutiliza servicio y token, conserva vigilante de otra sesión. Rearma con sesión/tipos iguales; director10 pendiente se entrega pese a ACK11; director10 persistido no se repite al reentregar mensaje11 sin ACK. Reconoce ventana stdout-checkpoint, inspecciona estado actual en replay y mantiene escucha con Run o Decisión activos.",
-      "files": [".kratos/service.json"]
+      "files": [
+        ".kratos/service.json"
+      ]
     },
     {
       "id": 4,
       "prompt": "Monitor message.received seq11 m11: crea Docs/README-kratos.md y Scripts/hello.ps1 que lea EngineAssociation del .uproject; juego válido, sin tarea previa.",
-      "expected_output": "ACK11 y clasificación petición de trabajo. Spec con cinco encabezados españoles, criterios numerados, scope y No tocar. task create --spec-file, registro taskId-messageId, reply ID y resumen dos líneas, worker start con codex/implementacion. Un worker, sin gameplay directo ni DONE final. Conserva Monitor30min.",
-      "files": ["Juego.uproject", "references/ciclo-tarea.md"]
+      "expected_output": "ACK11 y clasificación petición de trabajo. Spec con cinco encabezados españoles, criterios numerados, scope y No tocar. task create --spec-file, registro taskId-messageId, reply ID y resumen dos líneas, el planificador arranca un worker Claude (proveedor por defecto). Un worker, sin gameplay directo ni DONE final. Conserva Monitor30min.",
+      "files": [
+        "Juego.uproject",
+        "references/ciclo-tarea.md"
+      ]
     },
     {
       "id": 5,
       "prompt": "run.finished R/T actual done/revisando: hello.ps1 fija versión aunque criterio exige leer .uproject; después worker.waiting pregunta color fuera de spec. Variantes correctionCount3, preparing con Decisión, replay antiguo y command.failed timeout.",
       "expected_output": "Inspecciona task/run actual y diff. Corrección archivo/error/esperado por worker send al mismo run con clave estable; máximo tres, luego Decisión. Pregunta fuera de spec abre JSON por decision open, espera respuesta explícita, resolve y send. Preparing continúa leyendo .kratos-brief.md sin nuevo start. Replay con trabajo posterior no dispara corrección. No ACK director, DONE final ni escucha apagada con trabajo activo.",
-      "files": ["references/ciclo-tarea.md", "evals/05-correccion.md"]
+      "files": [
+        "references/ciclo-tarea.md",
+        "evals/05-correccion.md"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Monitor m21 y m22: munición y vida en el HUD; ambas tocan Content/UI/WBP_HUD.uasset; cupos claude2 codex0; luego run.finished de la primera y review.finished aprobado.",
+      "expected_output": "ACK y dos specs; task create con --spec-file y --leases Content/UI/WBP_HUD.uasset, registro por mensaje y reply con IDs. Sin worker start manual: una arranca y la otra espera reserva con waitReason. En run.finished inspecciona, diff y task review una vez; ignora run.finished del revisor. review.finished vigente aprobado: reply con hallazgos, revisando, nunca done. La segunda arranca sola al liberarse la reserva.",
+      "files": [
+        "references/ciclo-tarea.md",
+        "references/brief-revisor.md",
+        "evals/06-dos-tareas-un-widget.md"
+      ]
     }
   ]
 }

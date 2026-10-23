@@ -5,7 +5,7 @@ import { appendEvent } from '../store.ts';
 import { insert, read, filtered, transaction, type Input } from './rows.ts';
 import { requireTask } from './tasks.ts';
 function hash(db: DatabaseSync, taskId: string): string {
-    const row = db.prepare("select coalesce(max(seq),0) seq from events where json_extract(payload,'$.taskId')=?").get(taskId)!;
+    const row = db.prepare("select coalesce(max(seq),0) seq from events where type!='task.waiting' and json_extract(payload,'$.taskId')=?").get(taskId)!;
     return createHash('sha256').update(taskId + ':' + row.seq).digest('hex');
 }
 function openedContext(db: DatabaseSync, id: string): {

@@ -2,7 +2,7 @@ type Entity = { id: string; createdAt: string; updatedAt: string };
 export type TaskState = 'pendiente' | 'preparada' | 'implementando' | 'revisando'
   | 'probando' | 'integrando' | 'cerrando' | 'done';
 export type TaskArea = 'gameplay' | 'ui' | 'escenarios' | 'assets' | 'animacion' | 'audio' | 'qa' | 'builds';
-export type Provider = 'codex' | 'claude' | 'meshy' | 'blender' | 'unreal' | 'kratos';
+export type Provider = 'codex' | 'claude' | 'opencode' | 'meshy' | 'blender' | 'unreal' | 'kratos';
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 export type Task = Entity & {
@@ -10,6 +10,7 @@ export type Task = Entity & {
   blockedReason: string | null; decisionId: string | null; area: TaskArea;
   assigneeRole: string | null; assigneeProvider: string | null; parentTaskId: string | null;
   dependsOn: string[]; worktreeId: string | null; budgetId: string | null; scope: string[];
+  leases: string[]; reviewApproved: 0 | 1; waitReason: string | null;
 };
 export type RunMetadata = {
   worktreeId?: string; cursor?: string; waiting?: boolean; question?: string;
@@ -17,7 +18,11 @@ export type RunMetadata = {
   lastOutputAt?: string; correctionCount?: number; pollGeneration?: number;
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
   uncertain?: boolean;
+  startCommandId?: string;
+  review?: import('./review.ts').ReviewSnapshot;
+  implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
+  confirmedSkills?: string[]; seenAskMarkers?: string[];
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;

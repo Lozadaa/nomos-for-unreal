@@ -2,9 +2,31 @@
 
 `kratos` abrevia `node "<base>/scripts/kratos.ts"`. Ejecuta desde el juego;
 `--data .kratos` es el valor por defecto. La sesión directora decide y revisa;
-el worker Codex implementa. Los roles de QA/integración y Claude quedan para hitos posteriores.
+los workers Codex y Claude implementan o revisan en sesiones independientes. La aceptación
+con proveedores reales corresponde a T6; la integración final sigue en hitos posteriores.
 
 ## Petición → especificación → worker
+
+El planificador despacha tareas preparadas cada cinco segundos. `task create` con
+`--leases A,B`, `--depends BASE`, `--role` y `--provider` declara reservas,
+dependencias y asignación mientras la tarea sigue pendiente y solo después aplica
+`--spec-file`; valida las dependencias antes de crear. Por HTTP el orden equivale a
+`POST /tasks` (con `leases`, `assigneeRole`, `assigneeProvider`), después
+`POST /tasks/TASK/depends` con `{ "dependsOn": ["BASE"] }` y por último `/spec`. Consulta `docs/planificador.md` del repositorio
+Kratos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
+Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode todavía
+no tiene adaptador: puede declararse, pero no debe seleccionarse ni lanzarse;
+una espera «sin adaptador» no autoriza a inventar otro comando ni recursos.
+CLI y HTTP aceptan los tres proveedores y conservan la clave por tarea e intento.
+Claude usa `claude --model sonnet --dangerously-skip-permissions`; el servicio espera
+su marcador de readiness antes de entregarle el brief. Sus permisos «Do you want to»,
+«Allow» o «(y/n)» generan `worker.waiting` con la línea original: el director evalúa
+la pregunta y el alcance antes de responder. El servicio no responde automáticamente.
+El brief de workers y revisores enumera skills explícitas y requeridas por rol y pide
+`KRATOS_SKILLS […]` con las realmente cargadas. `metadata.confirmedSkills` conserva la
+declaración; `worker.skills_missing` informa diferencias sin bloquear DONE/REVIEW.
+Sin marcador la confirmación es desconocida; `[]` declara ninguna. Inventario del juego
+y concurrencia: `GET /capabilities?details=1` autenticado; la ruta sin query sigue siendo un array.
 
 Recibe y confirma `message.received`, clasifica el mensaje y consulta el registro
 local de su ID antes de crear nada. Si ya existe taskId, inspecciónalo y continúa.
@@ -39,7 +61,7 @@ del repositorio Kratos, no del juego. Si falta una decisión creativa, pregunta 
 
 ```sh
 kratos task create --title 'Documentar el juego' --area qa --spec-file .kratos/specs/documentacion.md
-kratos worker start TASK --provider codex --role implementacion
+kratos worker start TASK --role implementacion
 ```
 
 Entre ambos comandos, guarda `{taskId,messageId,specFile}` en

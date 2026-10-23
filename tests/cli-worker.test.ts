@@ -9,6 +9,18 @@ import { appendEvent } from '../service/src/store.ts';
 
 const markdown='# Encargo\r\n## Qué\r\nCrear documento.\r\n## Por qué\r\nExplicar juego.\r\n## Criterios de aceptación\r\n1. Existe README.\r\n2. Explica controles.\r\n```md\r\n3. Falso\r\n```\r\n## Alcance\r\n- `Docs/README.md`\r\n- Scripts/\r\n## No tocar\r\n- Content/\r\n';
 
+test('CLI worker.start transporta Claude y OpenCode reconocido, rechaza proveedor inválido',async t=>{
+  const {dataDir,port}=await cliFixture(t);cli(dataDir,'start','--port',String(port),'--no-open');
+  for(const provider of ['claude','opencode']) {
+    const task=await api(dataDir,'/tasks',{title:'Cambio',area:'qa',spec:'Crear',acceptance:['Existe'],scope:['Docs']});
+    await api(dataDir,'/tasks/'+task.id+'/spec',{spec:'Crear',acceptance:['Existe'],area:'qa',scope:['Docs']});
+    const result=cli(dataDir,'worker','start',task.id,'--provider',provider);assert.equal(result.status,0,result.stderr);
+    const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(result.stdout).commandId);
+    assert.equal(command.payload.provider,provider);
+    assert.equal(cli(dataDir,'worker','start',task.id,'--provider','otro').status,1);
+  }
+});
+
 test('CLI spec-file valida antes de crear, prepara y conserva Markdown con contrato español',async t=>{
   const {dataDir,port}=await cliFixture(t);
   assert.equal(cli(dataDir,'start','--port',String(port),'--no-open').status,0);
@@ -39,7 +51,7 @@ test('CLI workers/runs y decisiones transportan texto literal y exponen comandos
   const started=cli(dataDir,'worker','start',task.id,'--skills','tdd,qa','--attempt','3');assert.equal(started.status,0,started.stderr);
   const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(started.stdout).commandId);
   assert.equal(command.idempotencyKey,'worker.start:'+task.id+':3');
-  assert.deepEqual(command.payload,{taskId:task.id,provider:'codex',role:'implementacion',skills:['tdd','qa'],attempt:3});
+  assert.deepEqual(command.payload,{taskId:task.id,provider:'claude',role:'implementacion',skills:['tdd','qa'],attempt:3});
   const db=openDb(join(dataDir,'kratos.db'));const run=startRun(db,{taskId:task.id,provider:'codex',role:'implementacion'});
   const event=appendEvent(db,'worker.output',null,{taskId:task.id,runId:run.id,lines:['hola']});db.close();
   const text='Corrige "texto"\n$(literal) 🎾',file=join(dataDir,'send.md');writeFileSync(file,text);
@@ -58,4 +70,20 @@ test('CLI workers/runs y decisiones transportan texto literal y exponen comandos
   const decision=JSON.parse(opened.stdout);assert.equal(JSON.parse(cli(dataDir,'decision','list','--state','open').stdout)[0].id,decision.id);
   const resolved=cli(dataDir,'decision','resolve',decision.id,'--option','answer','--by','kratos');assert.equal(resolved.status,0,resolved.stderr);
   assert.equal(JSON.parse(resolved.stdout).state,'resolved');
+});
+
+test('CLI task create declara reservas, dependencias y asignación antes de preparar',async t=>{
+  const {dataDir,port}=await cliFixture(t);cli(dataDir,'start','--port',String(port),'--no-open');
+  const file=join(dataDir,'spec.md');writeFileSync(file,markdown);
+  const first=JSON.parse(cli(dataDir,'task','create','--title','HUD','--area','ui').stdout);
+  const created=cli(dataDir,'task','create','--title','Vida','--area','ui','--spec-file',file,
+    '--leases','Content/UI/WBP_HUD.uasset, Content/UI/T_Icon.uasset','--depends',first.id,'--role','ui','--provider','claude');
+  assert.equal(created.status,0,created.stderr);const task=JSON.parse(created.stdout);
+  assert.equal(task.state,'preparada');assert.deepEqual(task.leases,['Content/UI/WBP_HUD.uasset','Content/UI/T_Icon.uasset']);
+  assert.deepEqual(task.dependsOn,[first.id]);assert.equal(task.assigneeRole,'ui');assert.equal(task.assigneeProvider,'claude');
+  const types=(await api(dataDir,'/tasks/'+task.id)).events.map((e:any)=>e.type);
+  assert.deepEqual(types.slice(0,3),['task.created','task.dependencies.changed','task.moved']);
+  assert.notEqual(cli(dataDir,'task','create','--title','X','--area','ui','--depends','no-existe').status,0);
+  assert.notEqual(cli(dataDir,'task','create','--title','X','--area','ui','--provider','otro').status,0);
+  assert.equal((await api(dataDir,'/tasks')).length,2,'Sin tareas huérfanas');
 });

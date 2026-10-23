@@ -26,7 +26,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
   const flags: Record<string,string[]>={
-    'task.create':['title','area','spec-file'],'task.spec':['spec-file'],'task.show':[],
+    'task.create':['title','area','spec-file','leases','depends','role','provider'],'task.spec':['spec-file'],'task.show':[],'task.review':[],
     'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key'],'worker.stop':[],
     'run.diff':[],'run.output':['since'],'decision.open':['file'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
@@ -40,6 +40,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   let result: unknown;
   if (group==='task') {
     if (action==='show') result=await call('/tasks/'+id);
+    else if(action==='review') result=await call('/tasks/'+id+'/review',{});
     else {
       const parsed=values['spec-file']===undefined ? undefined : parseTaskSpec(readFileSync(values['spec-file'],'utf8'));
       if (action==='spec') {
@@ -49,17 +50,21 @@ export async function directorCli(argv: string[]): Promise<boolean> {
       } else {
         const title=required(values.title,'--title'),area=required(values.area,'--area');
         if (!(areas as readonly string[]).includes(area)) throw new Error('Uso: área inválida');
-        const task=await call('/tasks',{title,area,...(parsed ?? {spec:'',acceptance:[]})});
+        const list=(value?:string)=>value===undefined ? undefined : value.split(',').map(s=>s.trim()).filter(Boolean);
+        for(const dep of list(values.depends) ?? []) await call('/tasks/'+encodeURIComponent(dep));
+        const task=await call('/tasks',{title,area,...(parsed ?? {spec:'',acceptance:[]}),leases:list(values.leases),
+          assigneeRole:values.role,assigneeProvider:values.provider});
+        if(values.depends!==undefined) await call('/tasks/'+encodeURIComponent(task.id)+'/depends',{dependsOn:list(values.depends)});
         result=parsed ? await call('/tasks/'+encodeURIComponent(task.id)+'/spec',{...parsed,area}) : task;
       }
     }
   }
   if (group==='worker') {
     if (action==='start') {
-      const provider=values.provider ?? 'codex',role=required(values.role ?? 'implementacion','--role');
+      const provider=values.provider ?? 'claude',role=required(values.role ?? 'implementacion','--role');
       const attempt=integer(values.attempt ?? '1');
       const skills=values.skills===undefined || values.skills==='' ? [] : values.skills.split(',').map(s=>s.trim());
-      if (provider!=='codex' || attempt<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
+      if (!['codex','claude','opencode'].includes(provider) || attempt<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
       result=await call('/tasks/'+id+'/worker',{provider,role,skills,attempt});
     }
     if (action==='send') {

@@ -3,6 +3,7 @@ import { body, json } from '../http.ts';
 import { seed } from '../seed.ts';
 import { tasks } from './tasks.ts';
 import { taskWorker } from './task-worker.ts';
+import { taskReview } from './task-review.ts';
 import { runs } from './runs.ts';
 import { decisions } from './decisions.ts';
 import { budget } from './budget.ts';
@@ -11,6 +12,8 @@ import { catalog } from './catalog.ts';
 import { capabilities } from './capabilities.ts';
 import { commands } from './commands.ts';
 import { director } from './director.ts';
+import { leases } from './leases.ts';
+import { taskDepends } from './task-depends.ts';
 import type { Context } from './context.ts';
 
 export function databaseDirectory(db: Context['db']): string | undefined {
@@ -25,7 +28,7 @@ export async function production(context: Context): Promise<boolean> {
     json(context.res, 201, seed(context.db, {force: data.force as boolean | undefined}));
     return true;
   }
-  for (const handler of [tasks, taskWorker, runs, decisions, budget, artifacts, catalog, capabilities, commands, director]) {
+  for (const handler of [tasks, taskDepends, taskWorker, taskReview, runs, decisions, budget, artifacts, catalog, capabilities, commands, leases, director]) {
     if (await handler(context)) return true;
   }
   return false;
