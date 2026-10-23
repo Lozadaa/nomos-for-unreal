@@ -1,12 +1,11 @@
 import type { ComponentType } from 'react'
 import {
-  Activity, AudioWaveform, Ban, Box, Boxes, Camera, CheckCircle2, Circle, CircleDashed,
-  CircleDot, Code2, Command, Crown, Diff, DoorClosed, Download, Eye, FileText, Film,
+  Activity, AudioWaveform, Ban, Bot, Box, Boxes, Camera, CheckCircle2, Circle, CircleDashed,
+  CircleDot, Code2, Crown, Diff, DoorClosed, Download, Eye, FileText, Film,
   FlaskConical, Gamepad2, GitMerge, Hammer, HelpCircle, Hourglass, Image, LayoutPanelTop,
-  MessageCircle, Mountain, Package, PackageCheck, Palette, Play,
-  PlugZap, Radio, Reply, Search, ShieldCheck, TestTube2, Timer, Users, WifiOff, Wrench,
+  ListChecks, Lock, MessageCircle, Mountain, Package, PackageCheck, Palette, PersonStanding, Play,
+  PlugZap, Radio, Reply, Search, Shapes, ShieldCheck, TestTube2, Users, WifiOff,
 } from 'lucide-react'
-import { Bone } from './GeometricIcon'
 
 export type GlyphKind = 'area' | 'taskState' | 'directorState' | 'provider' | 'role' | 'event' | 'artifact' | 'source'
 type GlyphBase = {
@@ -23,7 +22,7 @@ const provider = (label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec
 export const glyphs = {
   area: {
     gameplay: spec(Gamepad2, 'Gameplay'), ui: spec(LayoutPanelTop, 'Interfaz'), escenarios: spec(Mountain, 'Escenarios'),
-    assets: spec(Box, 'Assets'), animacion: spec(Bone, 'Animación'), audio: spec(AudioWaveform, 'Audio'),
+    assets: spec(Box, 'Assets'), animacion: spec(PersonStanding, 'Animación'), audio: spec(AudioWaveform, 'Audio'),
     qa: spec(FlaskConical, 'Calidad'), builds: spec(Package, 'Compilaciones'),
   },
   taskState: {
@@ -48,13 +47,13 @@ export const glyphs = {
   },
   event: {
     message: spec(MessageCircle, 'Mensaje'), reply: spec(Reply, 'Respuesta'), task: spec(Boxes, 'Tarea'),
-    run: spec(Play, 'Ejecución'), worker: spec(Wrench, 'Agente'), command: spec(Command, 'Orden'),
-    decision: spec(HelpCircle, 'Decisión', 'warning'), lease: spec(Timer, 'Reserva'), review: spec(Eye, 'Revisión'),
-    artifact: spec(Box, 'Entrega'), test: spec(TestTube2, 'Prueba'), integration: spec(GitMerge, 'Integración'),
+    run: spec(Play, 'Ejecución'), worker: spec(Bot, 'Agente'), command: spec(ListChecks, 'Orden'),
+    decision: spec(HelpCircle, 'Decisión', 'warning'), lease: spec(Lock, 'Reserva'), review: spec(Eye, 'Revisión'),
+    artifact: spec(PackageCheck, 'Entrega'), test: spec(TestTube2, 'Prueba'), integration: spec(GitMerge, 'Integración'),
     download: spec(Download, 'Descarga'), director: spec(Radio, 'Director'),
   },
   artifact: {
-    model: spec(Boxes, 'Modelo'), texture: spec(Image, 'Textura'), screenshot: spec(Camera, 'Captura'),
+    model: spec(Shapes, 'Modelo'), texture: spec(Image, 'Textura'), screenshot: spec(Camera, 'Captura'),
     video: spec(Film, 'Vídeo'), build: spec(PackageCheck, 'Compilación'), report: spec(FileText, 'Informe'), diff: spec(Diff, 'Cambios'),
   },
   source: {
