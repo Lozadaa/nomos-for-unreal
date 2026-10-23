@@ -29,6 +29,10 @@ export type Orca = {
   terminalSend(handle: string, text: string): Promise<void>;
   terminalRead(handle: string, cursor?: string): Promise<TerminalPage>;
   worktreeRemove(worktreeId: string, force?: boolean): Promise<void>;
+  /** Cierra el terminal y el árbol de procesos de su shell (hito 6). */
+  terminalClose(handle: string): Promise<void>;
+  /** Vivo si Orca aún puede leerlo; un terminal desconocido o cerrado está muerto. */
+  terminalAlive(handle: string): Promise<boolean>;
 };
 function required(value: unknown): string {
   if (typeof value !== 'string' || !value) throw new OrcaError('cli_error', 'Respuesta Orca incompleta');
@@ -164,6 +168,13 @@ export function createOrca(opts: Options = {}): Orca {
         await delay(Math.min(50, Math.max(0, deadline - performance.now())));
       }
       return false;
+    },
+    async terminalClose(handle) {
+      await run(['terminal', 'close', '--terminal', handle], () => {});
+    },
+    async terminalAlive(handle) {
+      try { await read(handle); return true; }
+      catch (error) { if (error instanceof OrcaError && error.code === 'cli_error') return false; throw error; }
     },
     async worktreeRemove(worktreeId, force = false) {
       await run(['worktree', 'rm', '--worktree', `id:${worktreeId}`, ...(force ? ['--force'] : [])], () => {});

@@ -47,14 +47,21 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   }
 } else if (args[0] === 'worktree' && args[1] === 'rm') {
   if (value('--worktree') !== 'id:repo-1::C:/Juego trabajador') fail('invalid_selector');
+  else if ((state.rmBusy ?? 0) > 0 && !args.includes('--force')) {
+    state.rmBusy--; save(); fail('worktree_remove_failed', 'EBUSY: resource busy or locked, rmdir');
+  }
   else emit({ removed: true, forced: args.includes('--force') });
 } else if (args[0] === 'terminal' && args[1] === 'list') {
   if (value('--worktree') !== `id:repo-1::${state.treePath ?? 'C:/Juego trabajador'}`) fail('invalid_selector');
   else emit({ terminals: state.terminals ?? [{ handle: 'term_fake',
     worktreeId: `repo-1::${state.treePath ?? 'C:/Juego trabajador'}`,
     connected: true, writable: true, orphaned: false }], truncated: state.terminalsTruncated ?? false });
+} else if (args[0] === 'terminal' && args[1] === 'close') {
+  state.closed = [...(state.closed ?? []), value('--terminal')]; save();
+  emit({ closed: true, handle: value('--terminal') });
 } else if (args[0] === 'terminal' && args[1] === 'read') {
   if (value('--limit') !== '50') fail('missing_limit');
+  else if ((state.closed ?? []).includes(value('--terminal'))) fail('terminal_not_found', 'Terminal no encontrado');
   else {
     const screen=!args.includes('--cursor') && Array.isArray(state.screen);
     const oldest=Number(state.oldestCursor ?? 0);

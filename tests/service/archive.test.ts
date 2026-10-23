@@ -1,0 +1,36 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createTask } from '../../service/src/repo/tasks.ts';
+import { addArtifact } from '../../service/src/repo/artifacts.ts';
+import { preserveTask, verifyArchive } from '../../service/src/archive.ts';
+import type { WorkerContext } from '../../service/src/runner.ts';
+import { fixture, requestJson } from '../helpers.ts';
+
+test('archivo: informes copiados, manifest verificado y servido sin salir de la carpeta', async t => {
+  const {server, db} = await fixture(t);
+  const dataDir = mkdtempSync(join(tmpdir(), 'kratos-archive-'));
+  t.after(() => rmSync(dataDir, {recursive: true, force: true}));
+  mkdirSync(join(dataDir, 'artifacts'));
+  writeFileSync(join(dataDir, 'artifacts', 'review-1.json'), '{"approved":true}\n');
+  writeFileSync(join(dataDir, 'secreto.txt'), 'no');
+  const task = createTask(db, {title: 'Caja', area: 'assets', state: 'cerrando'});
+  addArtifact(db, {taskId: task.id, kind: 'report', path: 'review-1.json'});
+  const {dir, manifest} = await preserveTask({db, dataDir} as unknown as WorkerContext, task);
+  assert.ok(Object.keys(manifest.files).some(name => /^informes\/[0-9a-f]{8}-review-1\.json$/.test(name)));
+  assert.ok(verifyArchive(dir));
+  writeFileSync(join(dir, 'resumen.md'), 'alterado');
+  assert.equal(verifyArchive(dir), null, 'un archivo alterado no verifica');
+  rmSync(dir, {recursive: true});
+  await preserveTask({db, dataDir} as unknown as WorkerContext, task);
+  db.prepare('update tasks set archive_path=? where id=?').run(dir, task.id);
+  const list = await (await requestJson(server, 'GET', `/tasks/${task.id}/archive`)).json();
+  assert.ok(list.files.some((f: {name: string}) => f.name === 'resumen.md'));
+  const resumen = await requestJson(server, 'GET', `/tasks/${task.id}/archive/resumen.md`);
+  assert.equal(resumen.status, 200);
+  assert.match(await resumen.text(), /^# Caja/);
+  assert.equal((await requestJson(server, 'GET', `/tasks/${task.id}/archive/..%5Csecreto.txt`)).status, 400);
+  assert.equal((await requestJson(server, 'GET', `/tasks/${createTask(db, {title: 'x', area: 'qa'}).id}/archive`)).status, 404);
+});

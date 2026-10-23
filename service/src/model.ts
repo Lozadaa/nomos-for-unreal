@@ -33,7 +33,7 @@ export type RunMetadata = {
   implementerRunId?: string; qa?: {testRunId: string};
   // integración (hito 6): merge hecho en el workspace y pendiente de publicar
   integration?: {base: string; commit: string; files: string[]; checked?: boolean};
-  continuationOf?: string;
+  continuationOf?: string; busyAttempts?: number;
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;

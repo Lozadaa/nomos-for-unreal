@@ -49,7 +49,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
           const result=await handler(active,context);
           if(result && 'deferred' in result
             && result.deferred===true && 'reason' in result && typeof result.reason==='string')
-            defer(db,active.id,result.reason);
+            defer(db,active.id,result.reason,'delayMs' in result && typeof result.delayMs==='number' ? result.delayMs : undefined);
           else complete(db,active.id,result || undefined);
         } catch (error) {
           const message=error instanceof Error ? error.message : String(error);

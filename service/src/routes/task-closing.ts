@@ -1,10 +1,12 @@
 import { body, json } from '../http.ts';
-import { requireTask } from '../repo/tasks.ts';
+import { moveTask, requireTask } from '../repo/tasks.ts';
 import { enqueue } from '../commands.ts';
 import { implementerOf } from '../handlers/checks.ts';
 import type { WorkerContext } from '../runner.ts';
 import type { Task } from '../model.ts';
 import { id, type Context } from './context.ts';
+import { archiveDir, verifyArchive } from '../archive.ts';
+import { file } from './artifacts.ts';
 
 type Db = Context['db'];
 /** Orden viva de ese tipo para la tarea, o una nueva con clave numerada (reintegrar tras resolver un conflicto). */
@@ -20,16 +22,41 @@ function queue(db: Db, type: string, task: Task, payload: object, key: string): 
 /** Validadores compartidos con `POST /commands`. */
 export function integratePayload(db: Db, taskId: unknown): Task {
   if (typeof taskId !== 'string' || !taskId.trim()) throw new Error('invalid_command_payload');
-  const task = requireTask(db, taskId);
+  let task = requireTask(db, taskId);
+  // revisión aprobada sin pruebas exigidas: nada la llevaría a integrando (las comprobaciones solo avanzan desde probando)
+  if (task.state === 'revisando' && task.reviewApproved === 1 && !task.acceptance.some(a => a.startsWith('check:')))
+    task = moveTask(db, task.id, 'integrando', 'Revisión aprobada; sin pruebas exigidas');
   if (task.state !== 'integrando' || task.reviewApproved !== 1) throw new Error('invalid_transition');
   return task;
 }
+export function finalizePayload(db: Db, taskId: unknown): Task {
+  if (typeof taskId !== 'string' || !taskId.trim()) throw new Error('invalid_command_payload');
+  const task = requireTask(db, taskId);
+  if (task.state !== 'cerrando') throw new Error('invalid_transition');
+  return task;
+}
 
-export async function taskClosing({db, req, res, url}: Context): Promise<boolean> {
-  const match = /^\/tasks\/([^/]+)\/(integrate)$/.exec(url.pathname);
+export async function taskClosing({db, req, res, url, dataDir}: Context): Promise<boolean> {
+  const archive = /^\/tasks\/([^/]+)\/archive(?:\/(.+))?$/.exec(url.pathname);
+  if (req.method === 'GET' && archive) {
+    const task = requireTask(db, id(archive[1]));
+    const dir = task.archivePath ?? (dataDir ? archiveDir({dataDir}, task.id) : undefined);
+    if (archive[2] !== undefined) { await file(res, dir, id(archive[2])); return true; }
+    const manifest = dir ? verifyArchive(dir) : null;
+    if (!manifest) throw new Error('unknown_archive');
+    json(res, 200, {taskId: task.id, createdAt: manifest.createdAt,
+      files: Object.entries(manifest.files).map(([name, entry]) => ({name, ...entry}))});
+    return true;
+  }
+  const match = /^\/tasks\/([^/]+)\/(integrate|finalize)$/.exec(url.pathname);
   if (req.method !== 'POST' || !match) return false;
   const taskId = id(match[1]);
   await body(req).catch(() => ({}));
+  if (match[2] === 'finalize') {
+    const task = finalizePayload(db, taskId);
+    json(res, 202, queue(db, 'finalize.run', task, {taskId: task.id}, `finalize:${task.id}`));
+    return true;
+  }
   const task = integratePayload(db, taskId);
   const run = implementerOf({db} as WorkerContext, task);
   json(res, 202, queue(db, 'integrate.run', task, {taskId: task.id, runId: run.id}, `integrate:${task.id}:${run.id}`));

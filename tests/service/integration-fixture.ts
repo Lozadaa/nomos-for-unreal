@@ -8,6 +8,7 @@ import { createGit } from '../../service/src/adapters/git.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { finishRun, startRun } from '../../service/src/repo/runs.ts';
 import { insert } from '../../service/src/repo/rows.ts';
+import { recordTestRun } from '../../service/src/repo/artifacts.ts';
 import { listEvents } from '../../service/src/store.ts';
 import type { WorkerContext } from '../../service/src/runner.ts';
 import type { Command, Task, Worktree } from '../../service/src/model.ts';
@@ -57,6 +58,7 @@ export function integrationFixture(files: Record<string, string | Buffer> = {'So
     db.prepare('update tasks set worktree_id=?, review_approved=1 where id=?').run(tree.id, task.id);
     let implementer = startRun(db, {taskId: task.id, role: 'implementacion', provider: 'claude', sessionRef: `term_${name}`, metadata: {worktreeId: tree.id}});
     implementer = finishRun(db, implementer.id, 'done', 'Hecho');
+    recordTestRun(db, {taskId: task.id, runId: implementer.id, checkId: 'cpp', result: 'passed'});
     return {task, tree, implementer, ...t};
   };
   const events = (type: string) => listEvents(db, 0).filter(e => e.type === type).map(e => e.payload as Record<string, any>);

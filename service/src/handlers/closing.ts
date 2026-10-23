@@ -1,7 +1,8 @@
 import type { Handler } from '../runner.ts';
 import { integrateRun } from './integrate.ts';
+import { createFinalize, type FinalizeDeps } from './finalize.ts';
 
 /** Integración y cierre (hito 6): órdenes sin modelo que trabajan sobre la tarea existente. */
-export function createClosingHandlers(): Record<string, Handler> {
-  return {'integrate.run': integrateRun};
+export function createClosingHandlers(deps: FinalizeDeps = {}): Record<string, Handler> {
+  return {'integrate.run': integrateRun, 'finalize.run': createFinalize(deps)};
 }

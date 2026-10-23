@@ -71,12 +71,12 @@ export function complete(db: DatabaseSync, id: string, result?: object): void {
 }
 
 /** Espera previa a efectos: conserva intención y no consume el presupuesto de reintentos. */
-export function defer(db:DatabaseSync,id:string,reason:string):void {
+export function defer(db:DatabaseSync,id:string,reason:string,delayMs=5000):void {
   transaction(db,()=>{
     running(db,id);const now=new Date().toISOString();
     db.prepare(`update commands set state='pending',attempts=max(0,attempts-1),error=?,claimed_by=null,
       started_at=null,finished_at=null,not_before=?,updated_at=? where id=?`)
-      .run(reason,new Date(Date.now()+5000).toISOString(),now,id);
+      .run(reason,new Date(Date.now()+delayMs).toISOString(),now,id);
     appendEvent(db,'command.deferred',null,{commandId:id,reason,notBefore:read(db,id).notBefore});
   });
 }
