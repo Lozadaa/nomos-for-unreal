@@ -39,7 +39,9 @@ describe('Actividad visual', () => {
     const lane = screen.getByRole('group', { name: 'Kratos' })
     const first = within(lane).getAllByRole('button', { pressed: false })[1]
     expect(within(lane).getAllByRole('button', { pressed: false })).toHaveLength(500)
-    expect(lane.querySelectorAll('[data-dense-marker]')).toHaveLength(500)
+    // un racimo compacto se ve como un recuento, no como 500 puntos
+    expect(lane.querySelectorAll('[data-dense-marker]')).toHaveLength(0)
+    expect([...lane.querySelectorAll('[data-cluster-count]')].map((n) => n.textContent)).toEqual(['×500'])
     const chart = screen.getByRole('region', { name: 'Actividad por hora' })
     expect(chart).toHaveTextContent('500 eventos')
     expect(within(chart).getByText('500 eventos')).toHaveAttribute('title', expect.stringContaining('puede faltar actividad anterior'))
@@ -61,5 +63,16 @@ describe('Actividad visual', () => {
     expect(points.map((point) => point.getAttribute('data-track'))).toEqual(['0', '1', '2'])
     expect(lane.querySelectorAll('[data-dense-marker]')).toHaveLength(0)
     expect(screen.getByRole('region', { name: 'Actividad por hora' })).toHaveTextContent('3 eventos')
+  })
+
+  it('dibuja un eje de horas con una marca por hora y etiqueta cada tres horas', () => {
+    act(() => {
+      ingest(event('task.activity', {}, new Date(2026, 9, 23, 10, 5).toISOString()))
+      ingest(event('task.activity', {}, new Date(2026, 9, 23, 17, 25).toISOString()))
+    })
+    mount()
+    const axisRow = document.querySelector('[data-hour-axis]')!
+    expect(axisRow.querySelectorAll('[data-hour-tick]')).toHaveLength(8) // 10:00 a 17:00
+    expect([...axisRow.querySelectorAll('[data-hour-tick] > span')].map((n) => n.textContent)).toEqual(['12:00', '15:00'])
   })
 })

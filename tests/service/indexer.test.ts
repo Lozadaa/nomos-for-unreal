@@ -86,3 +86,12 @@ test('asset.index por la bandeja emite catalog.indexed con el resumen', async ()
     assert.equal(db.prepare('select state from commands').get()!.state, 'done');
   } finally { stop(); await stop.drained; db.close(); f.close(); }
 });
+
+test('la búsqueda usa prefijos: «tennis» encuentra Free_Tennisball y la raqueta', () => {
+  const f = fabFixture(), db = openDb(':memory:');
+  try {
+    indexAll(db, assetConfig(f.dataDir));
+    const names = searchCatalog(db, 'tennis').map(e => e.name);
+    assert.ok(names.includes('Free_Tennisball') && names.includes('Nude_Tennis_Racket_🎾'), names.join());
+  } finally { db.close(); f.close(); }
+});

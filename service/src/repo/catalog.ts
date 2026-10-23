@@ -45,7 +45,8 @@ export function searchCatalog(db: DatabaseSync, q: string, filter: Filter = {}):
     const words = q.match(/[\p{L}\p{N}_]+/gu) ?? [];
     if (!words.length)
         return [];
-    const query = words.map(w => '"' + w + '"').join(' AND ');
+    // prefijo: «tennis» encuentra Free_Tennisball (FTS5 parte por guion bajo, no dentro de la palabra)
+    const query = words.map(w => '"' + w + '"*').join(' AND ');
     const rows = db.prepare('select c.* from catalog_entries c join catalog_fts f on f.rowid=c.rowid where catalog_fts match ? order by rank').all(query).map(r => decode<CatalogEntry>(r));
     return rows.filter(row => Object.entries(filter).every(([k, v]) => v === undefined || row[k as keyof CatalogEntry] === v));
 }

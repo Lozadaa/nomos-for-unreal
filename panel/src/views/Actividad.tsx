@@ -5,7 +5,7 @@ import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useFresh } from '@/hooks/fresh'
 import { useParam } from '@/hooks/useParam'
 import { useRuns } from '@/hooks/useRuns'
-import { eventPresentation, eventText, hourlyActivity, laneOf, lanes, placeEvents } from '@/lib/events'
+import { clusters, eventPresentation, eventText, hourlyActivity, hourTicks, laneOf, lanes, placeEvents } from '@/lib/events'
 import type { KratosEvent } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
@@ -47,10 +47,14 @@ export function Actividad() {
     for (const event of visible) grouped.get(laneOf(event, providers))!.push(event)
     return lanes.map((lane) => {
       const items = grouped.get(lane)!
-      const placements = placeEvents(items.map((event) => ((Date.parse(event.createdAt) - min) / (max - min)) * 100))
-      return { lane, items, placements, tall: placements.some((item) => item.track > 0) }
+      const positions = items.map((event) => ((Date.parse(event.createdAt) - min) / (max - min)) * 100)
+      const placements = placeEvents(positions)
+      const groups = clusters(positions, placements)
+      const inCluster = new Set(groups.flatMap((g) => g.members))
+      return { lane, items, placements, groups, inCluster, tall: placements.some((item) => item.track > 0) }
     })
   }, [visible, providers, min, max])
+  const ticks = useMemo(() => hourTicks(min, max), [min, max])
   const hourly = useMemo(() => hourlyActivity(visible, providers), [visible, providers])
   const detail = visible.find((e) => e.seq === selected)
 
@@ -81,7 +85,7 @@ export function Actividad() {
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)_240px] items-start gap-4">
         <section aria-label="Actividad por carriles" className="min-w-0 rounded-lg border border-subtle">
-          {byLane.map(({ lane, items, placements, tall }) => (
+          {byLane.map(({ lane, items, placements, groups, inCluster, tall }) => (
             <div key={lane} role="group" aria-label={lane} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-subtle last:border-b-0">
               <h2 className="flex items-center px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">{lane}</h2>
               <div className={cn('relative mx-4 [container-type:inline-size]', tall ? 'h-16' : 'h-11')}>
@@ -91,11 +95,27 @@ export function Actividad() {
                 ))}
                 {items.map((e, index) => {
                   const glyph = eventPresentation(e, providers)
-                  return <Dot key={e.seq} e={e} kind={glyph.kind} value={glyph.value} track={placements[index].track} compact={placements[index].compact} p={num(e.createdAt)} text={label(e)} selected={selected === e.seq} isFresh={fresh(e.seq)} onSelect={setSelected} />
+                  return <Dot key={e.seq} e={e} kind={glyph.kind} value={glyph.value} track={placements[index].track} compact={placements[index].compact} clustered={inCluster.has(index)} p={num(e.createdAt)} text={label(e)} selected={selected === e.seq} isFresh={fresh(e.seq)} onSelect={setSelected} />
                 })}
+                {groups.map((g) => (
+                  <span key={g.members[0]} data-cluster-count aria-hidden style={{ left: `${g.p}%` }}
+                    className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-card px-1 font-mono text-[11px] text-muted-foreground">×{g.count}</span>
+                ))}
               </div>
             </div>
           ))}
+          {ticks.length > 0 && (
+            <div aria-hidden data-hour-axis className="grid grid-cols-[140px_minmax(0,1fr)] border-t border-subtle">
+              <span />
+              <div className="relative mx-4 h-6">
+                {ticks.map((t) => (
+                  <span key={t.time} data-hour-tick className="absolute top-0 h-1.5 border-l border-subtle" style={{ left: pct(t.time) }}>
+                    {t.label && <span className="absolute top-1.5 -translate-x-1/2 font-mono text-[11px] text-muted-foreground">{t.label}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
         <section aria-label="Actividad por hora" className="flex flex-col gap-3 rounded-lg border border-subtle p-3">
           <h2 className="text-xs font-medium">Actividad por hora</h2>
@@ -121,7 +141,7 @@ export function Actividad() {
 }
 
 /** Un evento del carril. Memoizado: un evento nuevo no vuelve a pintar los 500 anteriores salvo que el eje los desplace. */
-const Dot = memo(function Dot({ e, kind, value, track, compact, p, text, selected, isFresh, onSelect }: { e: KratosEvent; kind: PresentationKind; value: string; track: number; compact: boolean; p: number; text: string; selected: boolean; isFresh: boolean; onSelect: (seq: number) => void }) {
+const Dot = memo(function Dot({ e, kind, value, track, compact, clustered, p, text, selected, isFresh, onSelect }: { e: KratosEvent; kind: PresentationKind; value: string; track: number; compact: boolean; clustered: boolean; p: number; text: string; selected: boolean; isFresh: boolean; onSelect: (seq: number) => void }) {
   return (
     <button
       type="button"
@@ -132,7 +152,7 @@ const Dot = memo(function Dot({ e, kind, value, track, compact, p, text, selecte
       style={{ '--p': p, '--anchor': p > 92 ? '100%' : p < 8 ? '0%' : '50%', top: `${[50, 17, 83][track]}%` } as React.CSSProperties}
       className={cn('group absolute left-0 flex h-5 min-w-5 items-center justify-center transition-transform duration-(--k-dur-reorder) ease-k outline-offset-2 hover:z-20 focus-visible:z-20 [transform:translate(calc(var(--p)*1cqw_-_var(--anchor)),-50%)]', selected && 'z-20', isFresh && 'animate-in fade-in motion-reduce:animate-none')}
     >
-      {compact && <span data-dense-marker aria-hidden className="size-1.5 rounded-full bg-neutral group-hover:hidden group-focus-visible:hidden group-aria-pressed:hidden" />}
+      {compact && !clustered && <span data-dense-marker aria-hidden className="size-1.5 rounded-full bg-neutral group-hover:hidden group-focus-visible:hidden group-aria-pressed:hidden" />}
       <span className={cn('items-center justify-center transition-transform duration-(--k-dur-micro) group-hover:scale-125 group-aria-pressed:ring-2 group-aria-pressed:ring-foreground/40', compact ? 'hidden group-hover:inline-flex group-focus-visible:inline-flex group-aria-pressed:inline-flex' : 'inline-flex')}><Glyph kind={kind} value={value} size={14} /></span>
       <span role="tooltip" className="pointer-events-none absolute bottom-full z-10 mb-1 hidden w-max max-w-72 rounded-md border border-subtle bg-popover px-2 py-1 text-xs text-popover-foreground group-hover:block group-focus-visible:block">{text}</span>
     </button>

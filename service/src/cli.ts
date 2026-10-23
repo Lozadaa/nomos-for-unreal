@@ -9,6 +9,7 @@ import { watch } from "./watcher.ts";
 import { openDb } from "./db.ts";
 import { seed } from "./seed.ts";
 import { directorCli } from './cli-director.ts';
+import { assetCli } from './cli-asset.ts';
 
 function openBrowser(url: string) {
   const [command, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
@@ -18,7 +19,7 @@ function openBrowser(url: string) {
 }
 
 async function main() {
-  if (await directorCli(process.argv.slice(2))) return;
+  if (await directorCli(process.argv.slice(2)) || await assetCli(process.argv.slice(2))) return;
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     data: { type: "string", default: ".kratos" }, port: { type: "string", default: "8780" },
     force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false } } });

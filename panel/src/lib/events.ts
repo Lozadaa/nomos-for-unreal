@@ -61,6 +61,29 @@ export function placeEvents(positions: readonly number[]): { track: number; comp
   return placed
 }
 
+/** Racimos de puntos compactos (cada 4 % del carril): un recuento «×N» sustituye a la fila de puntos. */
+export function clusters(positions: readonly number[], placed: readonly { compact: boolean }[]): { p: number; count: number; members: number[] }[] {
+  const groups = new Map<number, number[]>()
+  positions.forEach((position, index) => {
+    if (!placed[index]?.compact) return
+    const key = Math.floor(Math.max(0, Math.min(100, position)) / 4)
+    groups.set(key, [...(groups.get(key) ?? []), index])
+  })
+  return [...groups.values()].filter((members) => members.length > 1)
+    .map((members) => ({ p: members.reduce((sum, i) => sum + positions[i], 0) / members.length, count: members.length, members }))
+}
+
+/** Marcas del eje de horas entre `min` y `max`, con etiqueta cada tres horas. */
+export function hourTicks(min: number, max: number): { time: number; label: string | null }[] {
+  const ticks: { time: number; label: string | null }[] = []
+  const first = new Date(min); first.setMinutes(0, 0, 0)
+  for (let t = first.getTime() < min ? first.getTime() + 3_600_000 : first.getTime(); t <= max && ticks.length < 200; t += 3_600_000) {
+    const hour = new Date(t).getHours()
+    ticks.push({ time: t, label: hour % 3 === 0 ? `${String(hour).padStart(2, '0')}:00` : null })
+  }
+  return ticks
+}
+
 /** Últimas 24 horas de la ventana recibida, ancladas al último evento válido; los ceros no garantizan cobertura. */
 export function hourlyActivity(events: readonly KratosEvent[], providers?: Providers): { start: number; end: number; lanes: { label: Lane; values: number[] }[] } {
   let latest = -Infinity

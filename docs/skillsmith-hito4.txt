@@ -1,0 +1,11 @@
+skillsmith  skills/kratos · 1 skills · profile claude-code-plugin
+
+  kratos    ██████████  98  excellent  2 findings
+
+▍kratos (98)
+  - [S01] name "kratos" does not start with a gerund verb
+     fix: Consider a verb-first gerund, e.g. processing-pdfs rather than pdf-processor.
+  - [S03] broad description has no negative trigger
+     fix: Add a negative trigger, e.g. "Do not use for …".
+     tokens: metadata 123 · body 2986 · references 9654 · scripts 1 files
+

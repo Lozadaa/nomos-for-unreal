@@ -107,6 +107,15 @@ proveedor válido sin adaptador: no lo elijas para trabajo real.
 El revisor es otro run (otro proveedor si hay dos) con brief de revisión y skills de
 `revisor`. Aprobado no es `done`. Detalle en [brief del revisor](references/brief-revisor.md).
 
+## Assets
+
+Ante cualquier asset, busca antes de generar: `kratos asset search`, después tu Fab no
+descargado (`asset download`), CC0, compra con Decisión y, al final, Meshy dentro de presupuesto.
+Meshy solo para piezas hard surface (`text`, `image`, `remesh`); nunca personajes,
+formas orgánicas, `rig` ni `animate`. Migra con `asset migrate`, importa con
+`asset prepare`; licencia desconocida y presupuesto agotado abren Decisión.
+Detalle, niveles y guion del Launcher en [assets](references/assets.md).
+
 ## Solución de problemas (Troubleshooting)
 
 `{"error":"service_down"}` indica reintentos del vigilante: consulta `estado`;
@@ -151,10 +160,12 @@ El servicio solo escucha en `127.0.0.1`; las rutas de trabajo exigen token.
 ## Recursos adicionales (Additional Resources)
 
 - [Contrato de eventos y recuperación](references/contrato-eventos.md).
+- [Assets: política, niveles de Fab y Meshy](references/assets.md).
 - [Ciclo, especificación y Decisiones](references/ciclo-tarea.md).
 - [Plantilla del brief del worker](references/brief-worker.md) y [del revisor](references/brief-revisor.md).
 - Casos: [arranque](evals/01-arranque.md), [ida y vuelta](evals/02-ida-vuelta.md),
   [recuperación](evals/03-recuperacion.md), [petición](evals/04-peticion-a-tarea.md),
-  [corrección](evals/05-correccion.md), [dos tareas, un widget](evals/06-dos-tareas-un-widget.md).
+  [corrección](evals/05-correccion.md), [dos tareas, un widget](evals/06-dos-tareas-un-widget.md),
+  [cinco personajes](evals/07-cinco-personajes.md), [licencia desconocida](evals/08-licencia-desconocida.md).
   [Formato evaluable](evals/evals.json).
 - Los casos describen expectativas; ejecutar un lint no verifica Monitor, workers ni panel.
