@@ -12,8 +12,10 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { toasts } from '@/feel/toasts'
 import { durations } from '@/feel/motion'
 import type { Task, Tone } from '@/lib/tasks'
+import { GlyphLegend } from '@/visual/Glyph'
 
 const sections = [
+  ['glifos', 'Glifos'],
   ['colores', 'Colores'], ['tipografia', 'Tipografía'], ['estado', 'Puntos de estado'], ['botones', 'Botones y campos'],
   ['filas', 'Filas de producción'], ['etapas', 'Etapa de la tarea'], ['movimiento', 'Movimiento'], ['cifras', 'Cifras'],
   ['vacios', 'Vacíos y esqueletos'], ['avisos', 'Avisos'],
@@ -71,6 +73,10 @@ export function Estilo() {
       </nav>
 
       <div className="flex min-w-0 flex-col gap-12 pb-24">
+        <Section id="glifos" title="Glifos">
+          <GlyphLegend />
+        </Section>
+
         <Section id="colores" title="Colores">
           <ul className="grid grid-cols-5 gap-3">
             {swatches.map(([name, cls]) => (
