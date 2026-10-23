@@ -93,7 +93,7 @@ describe('Chat: burbuja optimista', () => {
 describe('Actividad: carriles estables', () => {
   const task = (id: string, title: string) => ({ id, title, createdAt: '', updatedAt: '', spec: '', acceptance: [], state: 'pendiente', blockedReason: null, decisionId: null, area: 'gameplay', assigneeRole: null, assigneeProvider: null, parentTaskId: null, dependsOn: [], worktreeId: null, budgetId: null })
 
-  it('500 eventos: los carriles usan content-visibility y cada evento es un punto con etiqueta', async () => {
+  it('500 eventos: cada evento es un punto con etiqueta y los carriles no recortan', async () => {
     serve((path) => (path === '/tasks' ? [task('t1', 'Definir salto'), task('t2', 'Diseñar HUD')] : []))
     const sources = ['Kratos', 'Codex', 'Claude Code', 'Meshy']
     act(() => { for (let i = 0; i < 500; i++) ingest(event('task.activity', { payload: { source: sources[i % 4], taskId: i % 2 ? 't1' : 't2' } })) })
@@ -101,7 +101,8 @@ describe('Actividad: carriles estables', () => {
     inRouter(<Actividad />)
     const elapsed = performance.now() - start
     expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(500)
-    for (const lane of screen.getAllByRole('group')) expect(lane.className).toContain('[content-visibility:auto]')
+    // sin content-visibility en los carriles: contiene el pintado y recortaba las etiquetas; el coste lo limita el memo de cada punto y el eje estable
+    for (const lane of screen.getAllByRole('group')) expect(lane.className).not.toContain('content-visibility')
     expect(elapsed).toBeLessThan(2000)
   })
 
@@ -215,7 +216,9 @@ describe('Decisiones: elegir resalta al instante', () => {
     const user = userEvent.setup()
     expect(await screen.findByText('Tienes 2 decisiones pendientes')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Opción B' }))
-    expect(screen.getByRole('button', { name: 'Opción B' })).toHaveAttribute('aria-pressed', 'true')
+    // la decisión elegida se queda a la vista, ya resuelta, y desaparece de «pendientes» antes de que responda el servidor
+    expect(await screen.findByText(/Elegiste Opción B/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Pregunta d1' })).toBeInTheDocument()
     expect(await screen.findByText('Tienes 1 decisión pendiente')).toBeInTheDocument()
     await act(async () => { post.resolve({}) })
   })

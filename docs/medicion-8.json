@@ -1,12 +1,12 @@
 {
-  "fecha": "2026-10-23T12:23:40.718Z",
+  "fecha": "2026-10-23T12:35:51.431Z",
   "navegador": "Google Chrome (headless), 1366×768",
   "sinReducir": {
     "abrir y cerrar el detalle": {
       "n": 16,
       "median": 24,
       "p75": 32,
-      "max": 32,
+      "max": 48,
       "longFrames": 0,
       "worstFrame": 0,
       "repeticionesConFrameLargo": []
@@ -14,17 +14,17 @@
     "cambiar de vista": {
       "n": 8,
       "median": 0,
-      "p75": 16,
-      "max": 16,
+      "p75": 0,
+      "max": 0,
       "longFrames": 0,
       "worstFrame": 0,
       "repeticionesConFrameLargo": []
     },
     "filtrar por etapa": {
       "n": 8,
-      "median": 24,
-      "p75": 24,
-      "max": 24,
+      "median": 16,
+      "p75": 32,
+      "max": 32,
       "longFrames": 0,
       "worstFrame": 0,
       "repeticionesConFrameLargo": []
@@ -42,7 +42,7 @@
       "n": 5,
       "median": 0,
       "p75": 0,
-      "max": 24,
+      "max": 16,
       "longFrames": 0,
       "worstFrame": 0,
       "repeticionesConFrameLargo": []
@@ -52,10 +52,10 @@
     "abrir y cerrar el detalle": {
       "n": 16,
       "median": 104,
-      "p75": 112,
-      "max": 128,
+      "p75": 120,
+      "max": 144,
       "longFrames": 16,
-      "worstFrame": 105.59999999403954,
+      "worstFrame": 109.30000001192093,
       "repeticionesConFrameLargo": [
         0,
         1,
@@ -79,35 +79,40 @@
       "n": 8,
       "median": 16,
       "p75": 16,
-      "max": 32,
-      "longFrames": 7,
-      "worstFrame": 108.59999999403954,
+      "max": 24,
+      "longFrames": 5,
+      "worstFrame": 85.2000000178814,
       "repeticionesConFrameLargo": [
         0,
         1,
         2,
-        3,
-        4,
         5,
-        7
+        6
       ]
     },
     "filtrar por etapa": {
       "n": 8,
-      "median": 48,
-      "p75": 48,
+      "median": 56,
+      "p75": 56,
       "max": 56,
-      "longFrames": 0,
-      "worstFrame": 0,
-      "repeticionesConFrameLargo": []
+      "longFrames": 6,
+      "worstFrame": 57.5,
+      "repeticionesConFrameLargo": [
+        0,
+        1,
+        4,
+        5,
+        6,
+        7
+      ]
     },
     "enviar una petición": {
       "n": 8,
-      "median": 80,
-      "p75": 80,
-      "max": 80,
-      "longFrames": 22,
-      "worstFrame": 200.19999998807907,
+      "median": 64,
+      "p75": 72,
+      "max": 96,
+      "longFrames": 43,
+      "worstFrame": 141.19999998807907,
       "repeticionesConFrameLargo": [
         0,
         1,
@@ -123,20 +128,20 @@
       "n": 5,
       "median": 24,
       "p75": 24,
-      "max": 40,
+      "max": 48,
       "longFrames": 0,
       "worstFrame": 0,
       "repeticionesConFrameLargo": []
     }
   },
   "bundle": {
-    "index-CCIQEYgM.css": {
-      "bytes": 81136,
-      "gzip": 13858
+    "index-0h4VzqyA.js": {
+      "bytes": 662041,
+      "gzip": 204863
     },
-    "index-CfgGdZ9-.js": {
-      "bytes": 661385,
-      "gzip": 204510
+    "index-C2wExEIv.css": {
+      "bytes": 81010,
+      "gzip": 13825
     },
     "model-viewer--YzF5rWt.js": {
       "bytes": 1025295,

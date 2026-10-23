@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import { api } from './api'
 import { connectEvents, type Live } from './sse'
 import { animateUpdate } from '@/feel/transitions'
-import type { KratosEvent, Task } from '@/lib/tasks'
+import { isTemp, type KratosEvent, type Task } from '@/lib/tasks'
 
 export interface Snapshot {
   tasks: Task[]
@@ -32,19 +32,31 @@ export const getSnapshot = () => snap
 export const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l) } }
 export const useStore = <T>(pick: (s: Snapshot) => T): T => useSyncExternalStore(subscribe, () => pick(snap))
 
-/** Aplica un cambio de la lista; si cambia la estructura (altas, bajas, etapas) lo anima con View Transitions. */
-function commitTasks(tasks: Task[]) {
-  const apply = () => set({ tasks, loaded: true })
-  if (!snap.loaded || sameOrder(snap.tasks, tasks)) apply()
-  else void animateUpdate(() => flushSync(apply))
+/**
+ * Toda mutación de la lista pasa por una cola en serie y se evalúa en el momento de aplicarse, no en el de pedirse:
+ * con View Transitions el callback llega un frame después (o tras otra transición) y una lista calculada antes pisaría
+ * lo ocurrido entretanto (p. ej. la respuesta del POST que confirma una fila optimista).
+ */
+let queue: Promise<void> = Promise.resolve()
+let epoch = 0
+function mutate(change: (tasks: Task[]) => Task[]): Promise<void> {
+  const mine = epoch
+  const run = async () => {
+    if (mine !== epoch) return
+    const apply = () => { if (mine === epoch) set({ tasks: change(snap.tasks), loaded: true }) }
+    const structural = snap.loaded && !sameOrder(snap.tasks, change(snap.tasks))
+    if (structural) await animateUpdate(() => flushSync(apply))
+    else apply()
+  }
+  queue = queue.then(run, run)
+  return queue
 }
 
 /** Pide la lista al servidor conservando las filas optimistas aún sin confirmar. */
 export async function refresh(): Promise<void> {
   try {
     const fresh = await api<Task[]>('/tasks')
-    const optimistic = snap.tasks.filter((t) => t.id.startsWith('tmp-'))
-    commitTasks([...optimistic, ...fresh])
+    await mutate((current) => [...current.filter((t) => isTemp(t.id)), ...fresh])
   } catch {
     set({ loaded: true })
   }
@@ -83,28 +95,34 @@ export function startLive(): () => void {
 
 /** Añade una fila optimista y devuelve cómo quitarla. */
 export function addOptimistic(task: Task): () => void {
-  commitOptimistic([task, ...snap.tasks])
-  return () => commitOptimistic(snap.tasks.filter((t) => t.id !== task.id))
+  void mutate((tasks) => [task, ...tasks])
+  return () => void mutate((tasks) => tasks.filter((t) => t.id !== task.id))
 }
-const commitOptimistic = (tasks: Task[]) => void animateUpdate(() => flushSync(() => set({ tasks })))
 
 /** Sustituye la fila optimista por la real; si el evento ya la había traído, solo quita la temporal. */
 export function confirmOptimistic(tmpId: string, real: Task): void {
-  const without = snap.tasks.filter((t) => t.id !== tmpId && t.id !== real.id)
-  const index = snap.tasks.findIndex((t) => t.id === tmpId)
-  const next = [...without]
-  next.splice(index < 0 ? 0 : Math.min(index, next.length), 0, real)
-  set({ tasks: next })
+  void mutate((tasks) => {
+    const index = tasks.findIndex((t) => t.id === tmpId)
+    const rest = tasks.filter((t) => t.id !== tmpId && t.id !== real.id)
+    rest.splice(index < 0 ? 0 : Math.min(index, rest.length), 0, real)
+    return rest
+  })
 }
 
-/** Cambia una tarea en sitio (acciones optimistas del detalle) y devuelve cómo deshacerlo. */
+/** Cambia campos de una tarea en sitio (acciones optimistas del detalle); deshacer restaura solo esos campos. */
 export function patchTask(id: string, patch: Partial<Task>): () => void {
-  const before = snap.tasks.find((t) => t.id === id)
-  set({ tasks: snap.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) })
-  return () => { if (before) set({ tasks: snap.tasks.map((t) => (t.id === id ? before : t)) }) }
+  const before = getSnapshot().tasks.find((t) => t.id === id)
+  void mutate((tasks) => tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+  return () => {
+    if (!before) return
+    const keys = Object.keys(patch) as (keyof Task)[]
+    void mutate((tasks) => tasks.map((t) => (t.id === id ? { ...t, ...Object.fromEntries(keys.map((k) => [k, before[k]])) } : t)))
+  }
 }
 
 export function resetStore(): void {
+  epoch++
+  queue = Promise.resolve()
   connection?.close(); connection = null; clearTimeout(timer)
   snap = { tasks: [], events: [], loaded: false, live: false, gaps: [], version: 0 }
   downSince = null

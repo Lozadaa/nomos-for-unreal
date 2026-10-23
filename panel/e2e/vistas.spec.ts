@@ -54,3 +54,12 @@ test('Chat: el mensaje enviado aparece al instante, pasa a «Recibido» y la res
   await call(page, `/messages/${messageId}/reply`, { text: 'Entendido, lo preparo' })
   await expect(page.getByText('Entendido, lo preparo')).toBeVisible()
 })
+
+test('el botón que lanzó una acción recupera el foco al terminar (Capacidades · Comprobar ahora)', async ({ page }) => {
+  await page.goto(url().replace('/#', '/capacidades#'))
+  const button = page.getByRole('button', { name: 'Comprobar ahora' }).first()
+  await button.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('button', { name: 'Comprobando…' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Comprobar ahora' }).first()).toBeFocused({ timeout: 3000 })
+})

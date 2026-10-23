@@ -45,8 +45,7 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
           dependsOn: [], worktreeId: null, budgetId: null,
         })
         setDraft(empty)
-        setOpen(false)
-        return () => { undo(); setDraft(sent.current); setOpen(true) }
+        return () => { undo(); setDraft(sent.current) }
       },
       success: (task) => (isVisible(task) ? undefined : { title: 'Petición enviada', description: 'Está fuera de los filtros activos.', action: { label: 'Ver', onClick: () => onHidden(task) } }),
       error: (e) => ({ title: 'No se pudo enviar la petición', description: humanError(e), action: { label: 'Reintentar', onClick: () => void send.fire() } }),

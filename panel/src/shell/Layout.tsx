@@ -11,7 +11,8 @@ import { useStatus } from './useStatus'
 export function Layout({ project }: { project?: string }) {
   const status = useStatus()
   const [open, setOpen] = useState(false)
-  const tasks: TaskRef[] = useStore((s) => s.tasks)
+  const all = useStore((s) => s.tasks)
+  const tasks: TaskRef[] = all.filter((t) => !t.id.startsWith('tmp-'))
 
   // un único canal de eventos para todas las vistas
   useEffect(() => startLive(), [])

@@ -32,6 +32,9 @@ export async function withViewTransition(update: () => void | Promise<void>): Pr
 /** Retrasa `fn` hasta que termine la transición en curso, para no animar dos veces ni saltar. */
 export async function queueWhileTransitioning(fn: () => void | Promise<void>): Promise<void> {
   if (current) await current.finished.catch(() => undefined)
+  // transición iniciada por el router (pestañas con <Link viewTransition>): también se espera, o un evento la cortaría
+  const router = (document as unknown as { activeViewTransition?: Transition | null }).activeViewTransition
+  if (router && router !== current) await router.finished.catch(() => undefined)
   await fn()
 }
 

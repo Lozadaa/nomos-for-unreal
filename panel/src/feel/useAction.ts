@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { humanError } from '@/lib/errors'
 import { toasts, type ToastSpec } from './toasts'
@@ -44,7 +45,8 @@ export function useAction<T>(run: () => Promise<T>, opts: ActionOptions<T> = {})
     const rest = (opts.minPendingMs ?? 300) - (Date.now() - started)
     if (rest > 0) await sleep(rest)
     busy.current = false
-    if (mounted.current) setPending(false)
+    // el control debe estar ya habilitado en el DOM cuando se le devuelve el foco
+    if (mounted.current) flushSync(() => setPending(false))
     if (ok) {
       const spec = opts.success?.(result as T)
       if (spec) toasts.success(spec)

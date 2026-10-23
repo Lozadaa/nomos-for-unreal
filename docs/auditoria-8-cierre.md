@@ -9,10 +9,10 @@ Lo que sigue distingue lo **ejecutado y observado** de lo que **no se pudo compr
 | Puerta | Resultado | Cómo se ejecutó |
 |---|---|---|
 | `npm test` (node:test, servicio) | **68/68** (66 previos + 2 de `/status` con proyecto) | `npm test`, repetido 4 veces durante la sesión: siempre 68/68 |
-| `npm run test:panel` (Vitest) | **69/69** en 10 archivos | incluye una prueba por comportamiento de sensación de cada vista |
+| `npm run test:panel` (Vitest) | **77/77** en 11 archivos | incluye una prueba por comportamiento de sensación de cada vista |
 | `npm run build` | verde (`tsc -b` + Vite) | JS inicial **204,5 KB gzip** (límite del plan: 250 KB); CSS 13,9 KB gzip |
-| e2e Playwright (`panel/e2e`) | **Chromium y Firefox: 35 pasadas, 3 omitidas con motivo** | requiere `npm run build` antes; arranca su propio servicio sembrado |
-| Pruebas escritas después del código | Las de Tarea 4 y 5 se escribieron **tras** los componentes, no RED primero. Se verificó con mutaciones (quitar `key` del tick, quitar `content-visibility`, no filtrar el temporal, no marcar `data-blocked`): cada una hizo fallar su prueba. La carrera SSE/POST del Chat sí se hizo RED→GREEN |
+| e2e Playwright (`panel/e2e`) | **Chromium y Firefox: 37 pasadas, 3 omitidas con motivo** | requiere `npm run build` antes; arranca su propio servicio sembrado |
+| Pruebas escritas después del código | Las de Tarea 4 y 5 se escribieron **tras** los componentes, no RED primero. Se verificó con mutaciones (quitar `key` del tick, quitar `content-visibility`, no filtrar el temporal, no marcar `data-blocked`): cada una hizo fallar su prueba (la de `content-visibility` solo miraba la clase CSS y se sustituyó, ver la revisión final). La carrera SSE/POST del Chat y todos los arreglos de la revisión final sí se hicieron RED→GREEN |
 
 Omitidas: prueba de movimiento reducido en Firefox (usa `KeyframeEffect.pseudoElement`, solo verificado en Chromium), GLB en Firefox (WebGL del visor, solo Chromium) y el rendimiento de 500 eventos en Firefox (`long-animation-frame` es de Chromium).
 
@@ -22,19 +22,19 @@ Omitidas: prueba de movimiento reducido en Firefox (usa `KeyframeEffect.pseudoEl
 
 | Acción | Sin limitar CPU: mediana / p75 / máx | CPU ×4 (estrés): mediana / p75 / máx |
 |---|---|---|
-| Abrir y cerrar el detalle (16) | 24 / 32 / 32 ms | 104 / 112 / 128 ms |
-| Cambiar de vista (8) | 0 / 16 / 16 ms | 16 / 16 / 32 ms |
-| Filtrar por etapa (8) | 24 / 24 / 24 ms | 48 / 48 / 56 ms |
-| Enviar una petición (8, POST real) | 24 / 32 / 32 ms | 80 / 80 / 80 ms |
-| Elegir una decisión (5, semilla restaurada entre pruebas) | 0 / 0 / 24 ms | 24 / 24 / 40 ms |
+| Abrir y cerrar el detalle (16) | 24 / 32 / 48 ms | 104 / 120 / 144 ms |
+| Cambiar de vista (8) | 0 / 0 / 0 ms | 16 / 16 / 24 ms |
+| Filtrar por etapa (8) | 16 / 32 / 32 ms | 56 / 56 / 56 ms |
+| Enviar una petición (8, POST real) | 24 / 32 / 32 ms | 64 / 72 / 96 ms |
+| Elegir una decisión (5, semilla restaurada entre pruebas) | 0 / 0 / 16 ms | 24 / 24 / 48 ms |
 
-Objetivo del plan: INP < 200 ms. **Cumplido en las cinco acciones, incluso con la CPU ×4 más lenta** (peor caso 128 ms).
+Objetivo del plan: INP < 200 ms. **Cumplido en las cinco acciones, incluso con la CPU ×4 más lenta** (peor caso 144 ms).
 
 **Frames largos (`long-animation-frame` > 50 ms) durante las transiciones** (Chromium):
 
 - Sin limitar CPU: **0 en todas las acciones** en la medición final. En una medición anterior, previa a las correcciones de la Tarea 6, hubo **1 frame de 53 ms** al abrir un detalle en frío: es intermitente y no se repitió en las dos corridas siguientes; se anota por honestidad, no se ha aislado su causa.
-- **Con CPU ×4: el criterio del plan NO se cumple.** Abrir y cerrar el detalle: 16 de 16 repeticiones con un frame > 50 ms (peor 106 ms); cambiar de vista: 7 de 8 (peor 109 ms); enviar una petición: 8 de 8 (hasta 200 ms); filtrar y decidir: 0. El criterio estaba pensado como «sin entradas > 50 ms durante una transición» sin decir con qué CPU; en un portátil normal se cumple, en un equipo cuatro veces más lento no. Queda en pendientes.
-- **Actividad con 500 eventos** (`panel/e2e/rendimiento.spec.ts`): un evento nuevo producía un frame de **51 ms**; tras memoizar los puntos y mover la animación a `transform` ya **no produce ninguno**. La primera pintura de los 500 puntos sigue costando **55-66 ms** (un frame largo): pendiente.
+- **Con CPU ×4: el criterio del plan NO se cumple.** Frames > 50 ms durante las transiciones: abrir y cerrar el detalle en 16 de 16 repeticiones (peor 109 ms); cambiar de vista 5 frames (peor 85 ms); filtrar 6 (peor 58 ms); enviar una petición 43 frames (peor 141 ms); decidir 0. El criterio del plan no dice con qué CPU; en un portátil normal se cumple, en un equipo cuatro veces más lento no. Queda en pendientes.
+- **Actividad con 500 eventos** (`panel/e2e/rendimiento.spec.ts`, 480 eventos creados por la API): un evento nuevo producía un frame de **51 ms**; tras memoizar los puntos, mover la animación a `transform` y fijar el inicio del eje en múltiplos de diez minutos, **no produce ninguno** (dos corridas). La primera pintura de los ~500 puntos sigue costando **59-66 ms** (uno o dos frames largos): pendiente.
 
 **Bundle**: `index` 661 KB sin comprimir / 204,5 KB gzip. El visor 3D (`model-viewer`, 1 MB / 288 KB gzip) es un fragmento aparte que solo se pide al ver un modelo.
 
@@ -70,10 +70,10 @@ Rechazado a propósito (`find-animation-opportunities`): animar el cambio de pes
 | `touch-action: manipulation` ausente | arreglado en `body` |
 | Imágenes sin `width`/`height` | arreglado |
 | Dos `<h1>` en `/estilo` | arreglado |
-| Filtros fuera de la URL | arreglado para etapa, modo, origen y tarea; la **búsqueda por texto** sigue local a propósito (un input controlado por el router pierde caracteres) |
+| Filtros fuera de la URL | arreglado para etapa, modo, origen y tarea (y abrir/cerrar un detalle ya no los borra); la **búsqueda por texto** sigue local a propósito (un input controlado por el router pierde caracteres) |
 | `<meta name="theme-color">` | se crea en `main.tsx` desde el token (sin colores a mano) |
 | «Title Case en títulos y botones» | **no aplicado a propósito**: el copy es español con mayúscula solo inicial (`docs/diseno/estados.md`) |
-| Listas > 50 sin virtualizar | no virtualizado: Actividad usa `content-visibility: auto` por carril (medido arriba); el resto de listas tiene ≤ 30 elementos |
+| Listas > 50 sin virtualizar | no virtualizado: Actividad limita el coste con un `memo` por punto y un eje estable (medido arriba; se probó `content-visibility` por carril y se quitó porque recortaba las etiquetas y no limitaba nada: los 7 carriles siempre están en pantalla); el resto de listas tiene ≤ 30 elementos |
 
 **`ux-heuristics`** (Nielsen + diagnóstico rápido). Puntuación: **8/10**.
 
@@ -108,3 +108,22 @@ Para llegar a 10/10 falta el deshacer de decisiones y decidir qué hacer con «E
 - Deshacer decisión, límites de presupuesto, preparar asset: ver el punto 7 de arriba.
 - `'wasm-unsafe-eval'` en la política de seguridad del servicio.
 - No se ha ejecutado una revisión de seguridad ni una prueba con lector de pantalla real; la accesibilidad se verificó con roles y nombres accesibles en Testing Library y con los e2e, no con tecnología de apoyo.
+
+## Revisión final (agente independiente, modelo más capaz)
+
+Un revisor sin contexto previo leyó el diff completo. Encontró 1 crítico, 7 importantes y 9 menores. **Críticos e importantes: arreglados, cada uno con una prueba que falló antes** (`panel/src/views/revision.test.tsx`; el del foco con un e2e en navegador real):
+
+| Hallazgo | Arreglo |
+|---|---|
+| **C1** Fila «enviando» fantasma: con View Transitions el callback llega un frame después y la lista calculada antes pisaba la respuesta del POST | `store.ts`: cola en serie y cada mutación se evalúa al aplicarse |
+| I1 Decisiones saltaba a otra decisión al elegir y marcaba su opción | la vista se queda en la decisión elegida; la opción elegida va ligada a su decisión |
+| I2 `useResource` miraba solo el último evento del bloque | busca el último evento que encaje |
+| I2b El foco no volvía al botón tras una acción (seguía deshabilitado en el DOM). **No reproducible en jsdom**; reproducido en Chromium y Firefox con e2e | `flushSync` antes de devolver el foco; el Composer ya no inerta el botón que enviaba |
+| I3 Abrir/cerrar un detalle borraba `?etapa=` | solo se toca `?tarea` |
+| I4 `content-visibility` recortaba las etiquetas de Actividad y no limitaba nada; el eje se movía al descartar el evento más antiguo | quitado; el inicio del eje sube de diez en diez minutos |
+| I5 «Revisar licencia» enviaba la orden de preparar el asset | ahora solo despliega la nota de licencia |
+| I6 Las transiciones de pestañas (router) y del ⌘K podían cortarse por un evento | `animateUpdate` espera a `document.activeViewTransition`; el ⌘K pasa por `withViewTransition` |
+
+**Menores no arreglados** (diferidos): M1 error de red de «Preparar» sin «Reintentar» y botón que queda deshabilitado tras éxito; M2 acciones de `estados.md` sin implementar (Indexar ahora, Definir límite, Reenviar, Ver motivo, Ver detalle del hueco; «Comprobado hace X min»); M3 si `/tasks` falla, Producción muestra el vacío en vez de un error; M5 las pestañas del detalle vuelven a pedir con cada evento, sin agrupar; M7 el service worker sin `ready` deja las imágenes sin cargar y una recarga forzada las pide sin token; M8 cada carga repite los eventos desde 0; M9 quedan `shadow-*` heredados en `dropdown-menu.tsx` y `tabs.tsx` (anteriores a este diff). M4 (deshacer pisaba cambios del servidor) quedó resuelto de paso: deshacer restaura solo los campos tocados. M6 (⌘K listaba filas temporales) también.
+
+Cifras de pruebas actualizadas arriba. Tras la revisión: `npm test` 68/68, Vitest 77/77, e2e 37 pasadas / 3 omitidas.

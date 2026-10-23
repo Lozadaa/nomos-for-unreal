@@ -30,6 +30,7 @@ type Mode = 'todos' | 'usables' | 'instalados'
 function Card({ entry }: { entry: CatalogEntry }) {
   const [note, setNote] = useState<string | null>(null)
   const [preparing, setPreparing] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
   const prepare = useAction(
     () => api('/commands', { method: 'POST', body: { type: 'catalog.prepare', payload: { entryId: entry.id }, idempotencyKey: `prepare:${entry.id}` } }),
     {
@@ -64,11 +65,14 @@ function Card({ entry }: { entry: CatalogEntry }) {
         ) : (
           <p className="truncate text-xs text-muted-foreground" title={entry.license ?? ''}>{entry.license}</p>
         )}
-        {!forbidden && !installed && (
+        {!forbidden && !installed && (unknown ? (
+          <Button variant="outline" size="sm" aria-expanded={reviewing} onClick={() => setReviewing((v) => !v)}>Revisar licencia</Button>
+        ) : (
           <Button variant="outline" size="sm" disabled={prepare.pending || preparing} aria-busy={prepare.pending} onClick={() => void prepare.fire()}>
-            {prepare.pending ? 'Preparando…' : unknown ? 'Revisar licencia' : 'Preparar para Unreal'}
+            {prepare.pending ? 'Preparando…' : 'Preparar para Unreal'}
           </Button>
-        )}
+        ))}
+        {reviewing && unknown && <p role="status" className="text-xs text-muted-foreground">La licencia no está declarada. Búscala en el origen ({sourceLabel[entry.source] ?? entry.source}) antes de usar este asset con agentes.</p>}
         {note && <p role="status" className="text-xs text-muted-foreground">{note}</p>}
       </div>
     </li>

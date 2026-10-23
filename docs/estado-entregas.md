@@ -14,7 +14,7 @@ Actualizado el 2026-10-23 desde la rama `hito8-vistas`. «Verificado» significa
 
 ## Hito 8 (Tareas 4-6): lo que hay y lo que espera
 
-**Hecho y verificado**: Producción como lista viva con detalle compartido y compositor; Chat, Actividad, Entregas, Catálogo, Decisiones, Presupuesto, Capacidades y Estilo; `GET /status` con `project`. `npm test` 68/68 · Vitest 69/69 · build verde (204,5 KB gzip de JS inicial) · Playwright en Chromium y Firefox 35 pasadas, 3 omitidas con motivo. INP < 200 ms en las cinco acciones principales, también con CPU ×4.
+**Hecho y verificado**: Producción como lista viva con detalle compartido y compositor; Chat, Actividad, Entregas, Catálogo, Decisiones, Presupuesto, Capacidades y Estilo; `GET /status` con `project`. `npm test` 68/68 · Vitest 77/77 · build verde (204,9 KB gzip de JS inicial) · Playwright en Chromium y Firefox 37 pasadas, 3 omitidas con motivo · revisión final independiente hecha (1 crítico y 7 importantes arreglados; menores diferidos en la auditoría). INP < 200 ms en las cinco acciones principales, también con CPU ×4.
 
 **Espera a rutas del hito 2** (el panel ya está programado contra el contrato del plan y lo dice con «Disponible cuando haya workers» ante 404): pestañas **Cambios** y **Chat** del detalle (`GET /runs/:id/diff`, `GET /runs/:id/output?since=`, `POST /runs/:id/message`).
 

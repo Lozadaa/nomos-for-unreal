@@ -13,8 +13,9 @@ const clock = (iso: number | string) => new Date(iso).toLocaleTimeString('es', {
 const TEN_MIN = 10 * 60_000
 
 /** Eje estable: el final sube de diez en diez minutos, así una entrada nueva no mueve el resto de golpe. */
-function axis(times: number[]): [number, number] {
-  const min = Math.min(...times)
+export function axis(times: number[]): [number, number] {
+  // el inicio también sube de diez en diez minutos hacia abajo: descartar el evento más antiguo no desplaza los demás
+  const min = Math.floor(Math.min(...times) / TEN_MIN) * TEN_MIN
   const max = Math.ceil((Math.max(...times) + 1) / TEN_MIN) * TEN_MIN
   return [min, Math.max(max, min + TEN_MIN)]
 }
@@ -62,9 +63,9 @@ export function Actividad() {
       {visible.length === 0 ? (
         <div className="rounded-lg border border-subtle"><EmptyState title="Ningún evento coincide con el filtro" action={{ label: 'Quitar filtro', onClick: () => filter('') }} /></div>
       ) : (
-        <section aria-label="Actividad por carriles" className="overflow-hidden rounded-lg border border-subtle">
+        <section aria-label="Actividad por carriles" className="rounded-lg border border-subtle">
           {byLane.map(({ lane, items }) => (
-            <div key={lane} role="group" aria-label={lane} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-subtle last:border-b-0 [contain-intrinsic-size:auto_44px] [content-visibility:auto]">
+            <div key={lane} role="group" aria-label={lane} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-subtle last:border-b-0">
               <h2 className="flex items-center px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">{lane}</h2>
               <div className="relative mx-4 h-11 [container-type:inline-size]">
                 {gaps.map((g) => (

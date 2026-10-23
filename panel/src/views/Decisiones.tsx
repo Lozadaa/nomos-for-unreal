@@ -24,11 +24,12 @@ export function Decisiones() {
   const slow = useAfter(loading)
   const [selected, setSelected] = useState<string | null>(null)
   const chosen = useRef('')
-  const [justChosen, setJustChosen] = useState<string | null>(null)
+  const [chosenNow, setChosenNow] = useState<{ decisionId: string; optionId: string } | null>(null)
 
   const list = useMemo(() => [...(data ?? [])].sort((a, b) => Number(b.state === 'open') - Number(a.state === 'open') || a.createdAt.localeCompare(b.createdAt)), [data])
   const open = list.filter((d) => d.state === 'open')
   const current = list.find((d) => d.id === selected) ?? open[0] ?? list[0]
+  const justChosen = chosenNow && chosenNow.decisionId === current?.id ? chosenNow.optionId : null
   const task = tasks.find((t) => t.id === current?.taskId)
 
   // j / k recorren la bandeja; sin animación (se usan decenas de veces al día)
@@ -51,14 +52,15 @@ export function Decisiones() {
         const decision = current!
         const undoList = mutate((all) => all.map((d) => (d.id === decision.id ? { ...d, state: 'resolved', chosenOptionId: chosen.current } : d)))
         const undoTask = task ? patchTask(task.id, { decisionId: null, blockedReason: task.blockedReason === decision.reason ? null : task.blockedReason }) : () => {}
-        setJustChosen(chosen.current)
-        return () => { undoList(); undoTask(); setJustChosen(null) }
+        setSelected(decision.id) // la vista se queda en esta decisión aunque deje de estar «pendiente»
+        setChosenNow({ decisionId: decision.id, optionId: chosen.current })
+        return () => { undoList(); undoTask(); setChosenNow(null) }
       },
-      reload: () => { setJustChosen(null); reload() },
+      reload: () => { setChosenNow(null); reload() },
     },
   )
   const choose = (optionId: string) => { chosen.current = optionId; void resolve.fire() }
-  const select = (id: string) => { setSelected(id); setJustChosen(null) }
+  const select = (id: string) => setSelected(id)
 
   if (loading) return slow ? <div role="status" aria-label="Cargando las decisiones" className="flex flex-col gap-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
   if (!list.length) {

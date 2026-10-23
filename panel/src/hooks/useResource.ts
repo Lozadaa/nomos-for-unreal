@@ -18,8 +18,8 @@ export function useResource<T>(path: string, refreshOn?: RegExp): Resource<T> {
   const [error, setError] = useState<string | null>(null)
   const [reloads, setReloads] = useState(0)
   const trigger = useStore((s) => {
-    const last = s.events[s.events.length - 1]
-    return refreshOn && last && refreshOn.test(last.type) ? last.seq : 0
+    // el servicio entrega los eventos en bloques: vale el último que interesa, no solo el último del bloque
+    return refreshOn ? (s.events.findLast((e) => refreshOn.test(e.type))?.seq ?? 0) : 0
   })
 
   useEffect(() => {

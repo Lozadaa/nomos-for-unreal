@@ -45,10 +45,17 @@ export function Produccion() {
 
   const go = (to: string) => withViewTransition(() => navigate(to, { flushSync: true }))
   const rowOf = (id: string | null) => document.querySelector<HTMLElement>(`[data-task-id="${CSS.escape(id ?? '')}"]`)
-  const open = (task: Task, from: HTMLElement) => { opener.current = from; void go(`/?tarea=${encodeURIComponent(task.id)}`) }
+  // abrir y cerrar el detalle solo tocan ?tarea: el resto de parámetros (etapa, nueva…) se conserva
+  const withTask = (id: string | null) => {
+    const next = new URLSearchParams(params)
+    if (id) next.set('tarea', id); else next.delete('tarea')
+    const query = next.toString()
+    return query ? `/?${query}` : '/'
+  }
+  const open = (task: Task, from: HTMLElement) => { opener.current = from; void go(withTask(task.id)) }
   const close = async () => {
     const id = openId
-    await go('/')
+    await go(withTask(null))
     // el diálogo se desmonta dentro de la transición: el foco vuelve a la fila que lo abrió
     const from = opener.current?.isConnected ? opener.current : rowOf(id)
     from?.focus()
