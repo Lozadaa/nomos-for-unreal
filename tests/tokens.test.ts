@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { contrast, buildCss } from "../design/build-tokens.ts";
+import { contrast, buildCss, mix } from "../design/build-tokens.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const tokens = JSON.parse(readFileSync(join(root, "design/tokens.json"), "utf8"));
@@ -66,6 +66,23 @@ test("contraste AA de los textos de apoyo y del hover del botón", () => {
   assert.ok(contrast(color.textSecondary, color.bgLayout) >= 4.5);
   assert.ok(contrast(color.text, color.bgSubtle) >= 4.5);
   assert.ok(contrast(color.primary, color.bgContainer) >= 4.5, "enlaces y foco en azul");
+});
+
+test("el texto sobre los fondos suaves de estado y de los controles sigue siendo AA", () => {
+  // --k-state-soft = 12 % del color del estado sobre bgContainer; el texto de las etiquetas usa color.text
+  for (const k of ["primary", "success", "warning", "error", "info", "purple", "neutral"]) {
+    const soft = mix(color[k], color.bgContainer, 0.12);
+    assert.ok(contrast(color.text, soft) >= 4.5, `text sobre el fondo suave de ${k}`);
+    assert.ok(contrast(color.textSecondary, soft) >= 4.5, `textSecondary sobre el fondo suave de ${k}`);
+  }
+  // elemento de navegación activo: azul sobre 10 % de azul
+  assert.ok(contrast(color.primary, mix(color.primary, color.bgContainer, 0.10)) >= 4.5);
+  // tarjeta bloqueada: 5 % de error
+  assert.ok(contrast(color.textSecondary, mix(color.error, color.bgContainer, 0.05)) >= 4.5);
+  // iconos de estado (3:1) sobre su propio fondo suave
+  for (const k of ["success", "warning", "error", "info", "purple", "neutral"]) {
+    assert.ok(contrast(color[k], mix(color[k], color.bgContainer, 0.12)) >= 3, `icono ${k} sobre su fondo suave`);
+  }
 });
 
 function htmlFiles(dir: string): string[] {

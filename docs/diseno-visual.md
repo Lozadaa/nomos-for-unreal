@@ -36,7 +36,11 @@ El tablero de producción manda: ocho columnas, tarjetas compactas de 56 px con 
 
 **Franja del director.** Arriba de la zona principal, 64 px de alto, siempre visible y nunca tapada por el panel de detalle (el panel empieza justo debajo). Lleva, de izquierda a derecha: icono y texto del estado, contadores de atención (bloqueadas, decisiones, cierres fallidos), última recepción confirmada y Pausar/Reanudar. El estado se distingue por icono y texto además del color.
 
-**Anchos.** Barra lateral 248 px (64 plegada). Panel de detalle 720 px. A 1366 con barra lateral queda libre la franja del director y unos 398 px de tablero junto al panel: se ven dos columnas. Columnas del tablero de 176 px como mínimo; el tablero se desplaza en horizontal dentro de su región (con la región enfocable por teclado) y nunca la página entera.
+**Anchos.** Barra lateral 248 px (64 plegada). Panel de detalle 720 px. A 1366 con barra lateral el panel se superpone al tablero: quedan libres la franja del director y unos 398 px de tablero, dos columnas legibles. A partir de 1600 px el panel reserva su ancho (la zona principal se estrecha en vez de quedar tapada), de modo que a 1920 se ven cinco columnas y el catálogo entero junto al panel. Columnas del tablero de 176 px como mínimo; el tablero se desplaza en horizontal dentro de su región (enfocable por teclado) y nunca la página entera.
+
+**Atención.** Lo que necesita al usuario (bloqueadas, decisiones, cierres fallidos) sale en la franja como enlaces que saltan a la tarjeta; la tarjeta marcada muestra el estado y cuánto lleva así («Bloqueada · 9 min») y la causa al pasar el cursor y en el panel. Una decisión elegida avisa de lo que pasa y ofrece Deshacer.
+
+**IDs y rutas.** Ejecución, espacio de trabajo y habilidades cargadas (datos técnicos, en JetBrains Mono) van plegados bajo «Detalles técnicos» en el panel; no aparecen en primer plano.
 
 **Densidades.** Control de 32 px y radio de 8. Tarjeta de 56 px. Fila de tabla de 36 px. Carril de actividad de 24 px. Paso de espaciado de 4/8 px (`--k-space-*`).
 
@@ -62,4 +66,5 @@ El tablero de producción manda: ocho columnas, tarjetas compactas de 56 px con 
 - Se añade `design/componentes.css` (botones, campos, etiquetas, tarjetas, tabla, panel de detalle) compartido por las maquetas y `/estilo`, para que la galería enseñe exactamente lo que usan las pantallas. Solo usa `var(--k-*)`.
 - Las maquetas llevan un segundo panel, «Nueva petición», que se abre con `#nueva-peticion` (y `#cerrar` oculta el panel), solo con CSS. Sirve para comprobar la regla del formulario en 1366×768, porque con el panel de detalle abierto el formulario no cabe bajo el tablero.
 - La prueba de «sin valores a mano» revisa también los `.css` (menos `tokens.css`) y comprueba tamaños de letra y radios, no solo colores y sombras.
+- Tras la crítica de diseño (ver `docs/diseno/auditoria-1a.md`), la maqueta A pasa a: tarjetas como enlaces con `id`, chips de atención como enlaces, detalles técnicos plegados, opciones de decisión sin primaria falsa, texto plano en lo habitual del catálogo (etiqueta solo en excepciones). B y C se regeneran con los mismos datos.
 - Capturas extra por maqueta: `-sin-panel` (tablero y catálogo completos) y `-peticion` (formulario).

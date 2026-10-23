@@ -61,6 +61,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-kanban" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="10" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></symbol><symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol><symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></symbol><symbol id="i-library" viewBox="0 0 24 24"><rect x="4" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><path d="M16 6l3.5-1 2 14-3.5 1z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></symbol><symbol id="i-coins" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h4a1.5 1.5 0 0 1 0 3h-3"/></symbol><symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol><symbol id="i-swatch" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16M10 10v10"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol><symbol id="i-waves" viewBox="0 0 24 24"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h-2"/></symbol><symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.1"/></symbol><symbol id="i-plugoff" viewBox="0 0 24 24"><path d="M9 3v4M15 3v4M6 7h12v3a6 6 0 0 1-12 0zM12 16v5"/><path d="M3 3l18 18"/></symbol><symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l3 3 5-6"/></symbol><symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol><symbol id="i-xcircle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.5a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.9-1.1 1.8M12 17v.1"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol><symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol><symbol id="i-dash" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke-dasharray="3.2 3.2"/></symbol><symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol><symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L5 19a1.5 1.5 0 0 0 1.4 2h11.2A1.5 1.5 0 0 0 19 19l-5-10V3"/></symbol><symbol id="i-merge" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 8v8M8 6c6 0 8 2 8 6"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol></svg>
+<a class="skip" href="#contenido">Saltar al contenido</a>
 <i id="cerrar" hidden></i><i id="nueva-peticion" hidden></i>
 
 <aside class="sidebar" aria-label="Barra lateral">
@@ -81,22 +82,23 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
 </aside>
 <main>
   
-<header class="director k-director-atendiendo" role="status" aria-label="Estado de Kratos">
+<header class="director k-director-atendiendo" aria-label="Estado de Kratos">
   <h1>Producción</h1><span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-gear"/></svg></span>
   <div class="director-main">
-    <p class="director-title ell">Kratos atendiendo 3 mensajes</p>
+    <p class="director-title ell" role="status">Kratos atendiendo 3 mensajes</p>
     <p class="director-sub ell">Ahora: Habilidad Meteorito · recepción confirmada hace 4 s</p>
   </div>
   <div class="director-meta">
     <ul class="attn" aria-label="Necesita tu atención">
-      <li class="chip tone-error" title="1 tarea bloqueada"><svg class="ico " aria-hidden="true"><use href="#i-ban"/></svg><span>1 bloqueada</span></li>
-      <li class="chip tone-warning" title="1 decisión pendiente"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg><span>1 decisión</span></li>
-      <li class="chip tone-warning" title="1 cierre con fallo"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg><span>1 cierre fallido</span></li>
+      <li><a class="chip tone-error" href="#t-meteorito" title="Ir a la tarea bloqueada"><svg class="ico " aria-hidden="true"><use href="#i-ban"/></svg><span>1 bloqueada</span></a></li>
+      <li><a class="chip tone-warning" href="#t-fab" title="Ir a la decisión pendiente"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg><span>1 decisión</span></a></li>
+      <li><a class="chip tone-warning" href="#t-raqueta" title="Ir al cierre fallido"><svg class="ico " aria-hidden="true"><use href="#i-alert"/></svg><span>1 cierre fallido</span></a></li>
     </ul>
+    <span class="ell">Última recepción confirmada <b>hace 4&nbsp;s</b></span>
     <button class="btn" type="button"><svg class="ico " aria-hidden="true"><use href="#i-pause"/></svg>Pausar</button>
   </div>
 </header>
-  <div class="content">
+  <div class="content" id="contenido">
     <section class="panel timeline" aria-labelledby="h-act">
       <div class="panel-head"><h2 id="h-act">Actividad de la última hora</h2><span class="muted">14:00 a 15:00</span></div>
       <div role="table" aria-label="Carriles de actividad">
@@ -114,7 +116,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
       <div class="toolbar" style="margin-bottom:var(--k-space-1)"><h2>Tablero</h2><span class="muted">12 tareas</span><a class="btn btn-sm btn-primary" href="#nueva-peticion"><svg class="ico " aria-hidden="true"><use href="#i-plus"/></svg>Nueva petición</a></div>
       <div class="board" role="region" aria-label="Tablero de producción" tabindex="0">
       <section class="lane" aria-label="Pendiente">
-        <h3 class="col-head">Pendiente <span class="n">2</span></h3>
+        <h2 class="col-head">Pendiente <span class="n">2</span></h2>
         <div class="stack">
         <article class="tcard k-state-pendiente" aria-label="Menú de opciones · Pendiente" tabindex="0" title="Menú de opciones">
           <svg class="ico st" aria-hidden="true"><use href="#i-dash"/></svg><span class="t">Menú de opciones</span>
@@ -125,26 +127,26 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
         </div>
       </section>
       <section class="lane" aria-label="Preparada">
-        <h3 class="col-head">Preparada <span class="n">1</span></h3>
+        <h2 class="col-head">Preparada <span class="n">1</span></h2>
         <div class="stack">
-        <article class="tcard k-state-decision is-open" aria-label="Importar pack Fab a cuarentena · Espera decisión · Espera decisión" tabindex="0" title="Importar pack Fab a cuarentena · Espera decisión">
+        <article class="tcard k-state-decision is-open" aria-label="Importar pack Fab a cuarentena · Espera decisión · Espera decisión · 3 min" tabindex="0" title="Importar pack Fab a cuarentena · Espera decisión · 3 min">
           <svg class="ico st" aria-hidden="true"><use href="#i-help"/></svg><span class="t">Importar pack Fab a cuarentena</span>
         </article>
         </div>
       </section>
       <section class="lane" aria-label="Implementando">
-        <h3 class="col-head">Implementando <span class="n">2</span></h3>
+        <h2 class="col-head">Implementando <span class="n">2</span></h2>
         <div class="stack">
         <article class="tcard k-state-implementando" aria-label="HUD de vida y maná · Implementando" tabindex="0" title="HUD de vida y maná">
           <svg class="ico st" aria-hidden="true"><use href="#i-gear"/></svg><span class="t">HUD de vida y maná</span>
         </article>
-        <article class="tcard k-state-bloqueada" aria-label="Habilidad Meteorito · Bloqueada · Bloqueada" tabindex="0" title="Habilidad Meteorito · Bloqueada">
+        <article class="tcard k-state-bloqueada" aria-label="Habilidad Meteorito · Bloqueada · Bloqueada · 9 min" tabindex="0" title="Habilidad Meteorito · Bloqueada · 9 min">
           <svg class="ico st" aria-hidden="true"><use href="#i-ban"/></svg><span class="t">Habilidad Meteorito</span>
         </article>
         </div>
       </section>
       <section class="lane" aria-label="Revisando">
-        <h3 class="col-head">Revisando <span class="n">1</span></h3>
+        <h2 class="col-head">Revisando <span class="n">1</span></h2>
         <div class="stack">
         <article class="tcard k-state-revisando" aria-label="Cámara en tercera persona · Revisando" tabindex="0" title="Cámara en tercera persona">
           <svg class="ico st" aria-hidden="true"><use href="#i-eye"/></svg><span class="t">Cámara en tercera persona</span>
@@ -152,7 +154,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
         </div>
       </section>
       <section class="lane" aria-label="Probando">
-        <h3 class="col-head">Probando <span class="n">1</span></h3>
+        <h2 class="col-head">Probando <span class="n">1</span></h2>
         <div class="stack">
         <article class="tcard k-state-probando" aria-label="Enemigo patrulla · Probando" tabindex="0" title="Enemigo patrulla">
           <svg class="ico st" aria-hidden="true"><use href="#i-flask"/></svg><span class="t">Enemigo patrulla</span>
@@ -160,7 +162,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
         </div>
       </section>
       <section class="lane" aria-label="Integrando">
-        <h3 class="col-head">Integrando <span class="n">1</span></h3>
+        <h2 class="col-head">Integrando <span class="n">1</span></h2>
         <div class="stack">
         <article class="tcard k-state-integrando" aria-label="Skybox_Fantasy en el nivel · Integrando" tabindex="0" title="Skybox_Fantasy en el nivel">
           <svg class="ico st" aria-hidden="true"><use href="#i-merge"/></svg><span class="t">Skybox_Fantasy en el nivel</span>
@@ -168,15 +170,15 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
         </div>
       </section>
       <section class="lane" aria-label="Cerrando">
-        <h3 class="col-head">Cerrando <span class="n">1</span></h3>
+        <h2 class="col-head">Cerrando <span class="n">1</span></h2>
         <div class="stack">
-        <article class="tcard k-state-cerrando" aria-label="Raqueta Nude_Tennis_Racket_🎾 · Cerrando · No se pudo cerrar" tabindex="0" title="Raqueta Nude_Tennis_Racket_🎾 · No se pudo cerrar">
+        <article class="tcard k-state-cerrando" aria-label="Raqueta Nude_Tennis_Racket_🎾 · Cerrando · No se pudo cerrar · 12 min" tabindex="0" title="Raqueta Nude_Tennis_Racket_🎾 · No se pudo cerrar · 12 min">
           <svg class="ico st" aria-hidden="true"><use href="#i-alert"/></svg><span class="t">Raqueta Nude_Tennis_Racket_🎾</span>
         </article>
         </div>
       </section>
       <section class="lane" aria-label="Hecha">
-        <h3 class="col-head">Hecha <span class="n">3</span></h3>
+        <h2 class="col-head">Hecha <span class="n">3</span></h2>
         <div class="stack">
         <article class="tcard k-state-done" aria-label="Pelota Free_Tennisball · Hecha" tabindex="0" title="Pelota Free_Tennisball">
           <svg class="ico st" aria-hidden="true"><use href="#i-check"/></svg><span class="t">Pelota Free_Tennisball</span>
@@ -195,7 +197,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
 <section class="panel catalogo" aria-labelledby="h-cat">
   <div class="panel-head">
     <h2 id="h-cat">Catálogo</h2><span class="muted">6 de 30 assets</span>
-    <div class="search" style="margin-left:auto;width:240px"><input class="input" placeholder="Buscar assets" aria-label="Buscar assets" /><svg class="ico " aria-hidden="true"><use href="#i-search"/></svg></div>
+    <div class="search" style="margin-left:auto;width:240px"><input class="input" name="buscar" type="search" autocomplete="off" placeholder="Buscar assets…" aria-label="Buscar assets" /><svg class="ico " aria-hidden="true"><use href="#i-search"/></svg></div>
     <button class="btn btn-sm" type="button">Indexar ahora</button>
   </div>
   <div class="tbl-wrap" >
@@ -206,21 +208,21 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
         <tr>
           <td><div class="cell-name"><span class="thumb" aria-hidden="true">A</span><span class="ell" title="Advanced Cel Shader Lite">Advanced Cel Shader Lite</span></div></td>
           <td class="ell muted">Fab</td>
-          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
-          <td><span class="chip tone-info"><svg class="ico " aria-hidden="true"><use href="#i-circle"/></svg>Disponible</span></td>
+          <td><span class="muted">Estándar</span></td>
+          <td><span class="muted">Disponible</span></td>
           <td style="text-align:right"><button class="btn btn-sm" type="button">Preparar para Unreal</button></td>
         </tr>
         <tr>
           <td><div class="cell-name"><span class="thumb" aria-hidden="true">F</span><span class="ell" title="Free_Tennisball">Free_Tennisball</span></div></td>
           <td class="ell muted">Fab</td>
-          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
+          <td><span class="muted">Estándar</span></td>
           <td><span class="chip tone-success"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Instalado en CrazyPadel</span></td>
           <td style="text-align:right"><button class="btn btn-sm btn-ghost" type="button">Ver en el proyecto</button></td>
         </tr>
         <tr>
           <td><div class="cell-name"><span class="thumb" aria-hidden="true">N</span><span class="ell" title="Nude_Tennis_Racket_🎾">Nude_Tennis_Racket_🎾</span></div></td>
           <td class="ell muted">Fab</td>
-          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
+          <td><span class="muted">Estándar</span></td>
           <td><span class="chip tone-success"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Instalado en CrazyPadel</span></td>
           <td style="text-align:right"><button class="btn btn-sm btn-ghost" type="button">Ver en el proyecto</button></td>
         </tr>
@@ -228,14 +230,14 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
           <td><div class="cell-name"><span class="thumb" aria-hidden="true">S</span><span class="ell" title="Skybox_Fantasy">Skybox_Fantasy</span></div></td>
           <td class="ell muted">Fab</td>
           <td><span class="chip tone-warning"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>Licencia desconocida</span></td>
-          <td><span class="chip tone-info"><svg class="ico " aria-hidden="true"><use href="#i-circle"/></svg>Disponible</span></td>
+          <td><span class="muted">Disponible</span></td>
           <td style="text-align:right"><button class="btn btn-sm" type="button">Revisar licencia</button></td>
         </tr>
         <tr>
           <td><div class="cell-name"><span class="thumb" aria-hidden="true">P</span><span class="ell" title="Phone">Phone</span></div></td>
           <td class="ell muted">Fab · unknowncall</td>
-          <td><span class="chip tone-neutral"><svg class="ico " aria-hidden="true"><use href="#i-check"/></svg>Estándar</span></td>
-          <td><span class="chip tone-info"><svg class="ico " aria-hidden="true"><use href="#i-circle"/></svg>Disponible</span></td>
+          <td><span class="muted">Estándar</span></td>
+          <td><span class="muted">Disponible</span></td>
           <td style="text-align:right"><button class="btn btn-sm" type="button">Preparar para Unreal</button></td>
         </tr>
         <tr class="is-forbidden">
@@ -257,38 +259,41 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
     <div style="min-width:0;flex:1">
       <p class="chip k-state-decision"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>Espera decisión</p>
       <h2 class="ell" style="margin-top:var(--k-space-1)">Importar pack Fab a cuarentena</h2>
-      <p class="mono subtle ell">r-0142 · ws/fab-cuarentena</p>
     </div>
     <a class="btn btn-ghost btn-sm" href="#cerrar" title="Cerrar el detalle"><span class="sr">Cerrar el detalle</span><svg class="ico " aria-hidden="true"><use href="#i-close"/></svg></a>
   </div>
   <div class="tabs" role="tablist" aria-label="Secciones de la tarea">
-    <button class="tab" role="tab" aria-selected="true">Resumen</button>
-    <button class="tab" role="tab" aria-selected="false">Chat</button>
-    <button class="tab" role="tab" aria-selected="false">Cambios</button>
-    <button class="tab" role="tab" aria-selected="false">Pruebas</button>
-    <button class="tab" role="tab" aria-selected="false">Assets</button>
-    <button class="tab" role="tab" aria-selected="false">Línea de tiempo</button>
+    <button class="tab" role="tab" id="t-resumen" aria-controls="p-resumen" aria-selected="true">Resumen</button>
+    <button class="tab" role="tab" id="t-chat" aria-selected="false">Chat</button>
+    <button class="tab" role="tab" id="t-cambios" aria-selected="false">Cambios</button>
+    <button class="tab" role="tab" id="t-pruebas" aria-selected="false">Pruebas</button>
+    <button class="tab" role="tab" id="t-assets" aria-selected="false">Assets</button>
+    <button class="tab" role="tab" id="t-linea" aria-selected="false">Línea de tiempo</button>
   </div>
-  <div class="drawer-body">
+  <div class="drawer-body" role="tabpanel" id="p-resumen" aria-labelledby="t-resumen" tabindex="0">
     <section class="callout tone-warning" aria-label="Decisión pendiente"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>
       <div style="display:grid;gap:var(--k-space-2);flex:1;min-width:0">
         <p><b>Kratos necesita tu decisión.</b> ¿Qué shader usamos para el pack?</p>
-        <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Advanced Cel Shader Lite</b><span class="muted">Ya está en tu biblioteca de Fab.</span></div><button class="btn btn-primary btn-sm" type="button">Elegir</button></div>
+        <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Advanced Cel Shader Lite</b><span class="muted">Ya está en tu biblioteca de Fab.</span></div><button class="btn btn-sm" type="button">Elegir</button></div>
         <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Material propio</b><span class="muted">Tarda unas 2 horas más.</span></div><button class="btn btn-sm" type="button">Elegir</button></div>
+        <p class="help" style="height:auto">Se registra tu elección y Codex continúa. Podrás deshacerla unos segundos.</p>
       </div>
     </section>
     <dl class="kv">
       <dt>Responsable</dt><dd>Codex</dd>
       <dt>Depende de</dt><dd>Nada</dd>
-      <dt>Habilidades</dt><dd><span class="chip">ue-project-context</span> <span class="chip">asset-optimization</span> <span class="chip">fab-import</span></dd>
       <dt>Pruebas</dt><dd class="num">0 de 2 · se ejecutan al elegir</dd>
       <dt>Última actividad</dt><dd>hace 3 min</dd>
     </dl>
+    <details class="tech">
+      <summary>Detalles técnicos</summary>
+      <dl class="kv"><dt>Ejecución</dt><dd class="mono">r-0142</dd><dt>Espacio de trabajo</dt><dd class="mono">ws/fab-cuarentena</dd><dt>Habilidades</dt><dd><span class="chip mono">ue-project-context</span> <span class="chip mono">asset-optimization</span> <span class="chip mono">fab-import</span></dd></dl>
+    </details>
     <section>
       <h3 style="font-size:var(--k-size-sm);margin-bottom:var(--k-space-1)">Qué pasó hasta ahora</h3>
       <ol class="kv" style="grid-template-columns:max-content 1fr">
         <li style="display:contents"><span class="mono subtle">14:02</span><span>Kratos creó la tarea desde tu petición.</span></li>
-        <li style="display:contents"><span class="mono subtle">14:05</span><span>Codex indexó el pack (89,9 MB) en cuarentena.</span></li>
+        <li style="display:contents"><span class="mono subtle">14:05</span><span>Codex indexó el pack (89,9&nbsp;MB) en cuarentena.</span></li>
         <li style="display:contents"><span class="mono subtle">14:11</span><span>Codex pidió una decisión sobre el shader.</span></li>
       </ol>
     </section>
@@ -304,27 +309,27 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
     </div>
     <a class="btn btn-ghost btn-sm" href="#cerrar" title="Cerrar"><span class="sr">Cerrar</span><svg class="ico " aria-hidden="true"><use href="#i-close"/></svg></a>
   </div>
-  <form class="drawer-body" onsubmit="return false" novalidate>
+  <form class="drawer-body" onsubmit="return false" novalidate autocomplete="off">
     <div class="field">
       <label for="p-texto">¿Qué quieres construir?</label>
-      <textarea class="textarea" id="p-texto" rows="3" placeholder="Por ejemplo: una habilidad de meteorito con área de daño"></textarea>
+      <textarea class="textarea" id="p-texto" rows="3" name="peticion" autocomplete="off" placeholder="Por ejemplo: una habilidad de meteorito con área de daño…"></textarea>
       <p class="help">Una frase basta. Kratos pregunta si falta algo.</p>
     </div>
     <div class="grid2">
       <div class="field">
         <label for="p-resp">Responsable</label>
-        <div class="select-wrap"><select class="input" id="p-resp"><option>Que Kratos decida</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div>
+        <div class="select-wrap"><select class="input" id="p-resp" name="responsable" autocomplete="off"><option>Que Kratos decida</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div>
         <p class="help">Quien hará los cambios.</p>
       </div>
       <div class="field">
         <label for="p-prio">Urgencia</label>
-        <div class="select-wrap"><select class="input" id="p-prio"><option>Normal</option><option>Primero</option><option>Cuando haya hueco</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div>
+        <div class="select-wrap"><select class="input" id="p-prio" name="urgencia" autocomplete="off"><option>Normal</option><option>Primero</option><option>Cuando haya hueco</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div>
         <p class="help">Cambia el orden de la cola.</p>
       </div>
     </div>
     <div class="field">
       <label for="p-asset">Asset de partida (opcional)</label>
-      <div class="search"><input class="input" id="p-asset" placeholder="Busca en el catálogo" /><svg class="ico " aria-hidden="true"><use href="#i-search"/></svg></div>
+      <div class="search"><input class="input" id="p-asset" name="asset" type="search" autocomplete="off" placeholder="Busca en el catálogo…" /><svg class="ico " aria-hidden="true"><use href="#i-search"/></svg></div>
       <p class="help">Kratos busca aquí antes de generar uno nuevo.</p>
     </div>
   </form>

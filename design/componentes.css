@@ -195,3 +195,14 @@ select.input { appearance: none; padding-right: var(--k-space-5); }
 .tcard { box-shadow: var(--k-shadow-1); }
 .tcard:hover, .tcard.is-hover, .tcard.is-active { box-shadow: var(--k-shadow-2); }
 .tcard.is-focus { outline: 2px solid var(--k-color-primary); outline-offset: 2px; }
+
+/* Accesibilidad y preferencias del sistema */
+html { color-scheme: light; }
+h1, h2, h3 { text-wrap: balance; }
+.btn, .tab, .nav a, .tcard, .opt { touch-action: manipulation; }
+.btn:active { background: color-mix(in srgb, var(--k-color-primary) 14%, var(--k-color-bg-container)); }
+.btn-primary:active { background: var(--k-color-primary-hover); }
+.drawer-body { overscroll-behavior: contain; }
+.skip { position: absolute; left: var(--k-space-2); top: var(--k-space-2); transform: translateY(-200%); background: var(--k-color-bg-container); padding: var(--k-space-1) var(--k-space-2); border-radius: var(--k-radius-md); box-shadow: var(--k-shadow-2); z-index: 10; font-weight: 500; }
+.skip:focus { transform: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }

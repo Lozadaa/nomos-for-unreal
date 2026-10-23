@@ -26,11 +26,11 @@ Ocho columnas: Pendiente, Preparada, Implementando, Revisando, Probando, Integra
 | Tablero vacío | Las 8 columnas vacías y, en el centro, mensaje con icono | `Escribe la primera petición a Kratos` · apoyo: `Kratos la convierte en tareas y las reparte.` | Botón `Nueva petición` |
 | Columna vacía (primera) | Texto discreto en la columna | `Nada pendiente` | Enlace `Nueva petición` |
 | Columna vacía (resto) | Texto discreto en la columna | `Aquí aparecen las tareas cuando Kratos las mueve` | Enlace `Ver actividad` |
-| Tarjeta normal | Título, responsable, barra de pruebas, última actividad | `Habilidad Meteorito` · `Codex · pruebas 4/6 · hace 2 min` | Abrir (panel de detalle) |
+| Tarjeta normal | Título, responsable y pruebas; la antigüedad, al pasar el cursor | `Habilidad Meteorito` · `Codex · 4/6 pruebas` | Abrir (panel de detalle) |
 | Nombre largo o con emoji | Una línea con elipsis; nombre completo al pasar el cursor | `Nude_Tennis_Racket_🎾…` | Abrir (panel de detalle) |
-| Bloqueada | Borde e icono rojos, línea de motivo | `Bloqueada` · motivo: `Falta el pack de texturas.` | `Ver bloqueo` |
-| Espera decisión | Icono ámbar, línea de pregunta | `Espera decisión` · `Elige entre dos candidatos.` | `Decidir` |
-| Cerrando con fallo | Icono ámbar en la columna Cerrando, motivo visible | `No se pudo cerrar` · motivo: `Quedó un espacio de trabajo sin retirar.` | `Reintentar cierre` |
+| Bloqueada | Borde e icono rojos, línea de motivo | `Bloqueada · 9 min` · motivo (al pasar el cursor y en el panel): `Falta el pack de texturas.` | `Ver bloqueo` |
+| Espera decisión | Icono ámbar, línea de pregunta | `Espera decisión · 3 min` · pregunta en el panel: `Elige entre dos candidatos.` | `Decidir` |
+| Cerrando con fallo | Icono ámbar en la columna Cerrando, motivo visible | `No se pudo cerrar · 12 min` · motivo (al pasar el cursor y en el panel): `Quedó un espacio de trabajo sin retirar.` | `Reintentar cierre` |
 
 ## Actividad (carriles)
 
@@ -89,6 +89,7 @@ Bloqueos con evidencia y opciones; se cierran con una elección registrada.
 | Vacía | Lista vacía | `No tienes decisiones pendientes` · apoyo: `Cuando Kratos necesite tu criterio, aparecerá aquí.` | Botón `Ver producción` |
 | N pendientes | Lista, con el número junto al menú lateral | `Tienes 2 decisiones pendientes` | Elegir una opción |
 | Con dos opciones | Pregunta, evidencia y dos botones | `¿Qué shader usamos para el pack?` · `Advanced Cel Shader Lite` / `Material propio` | Un botón con el nombre de cada opción |
+| Elegida | Aviso breve que no roba el foco, con la consecuencia dicha | `Elegiste Advanced Cel Shader Lite. Codex continúa.` · apoyo bajo las opciones: `Se registra tu elección y Codex continúa. Podrás deshacerla unos segundos.` | `Deshacer` |
 | Caducada | Decisión atenuada, aviso | `Esta decisión caducó porque cambió el contexto. Kratos la prepara de nuevo.` | `Ver la nueva` |
 
 ## Presupuesto

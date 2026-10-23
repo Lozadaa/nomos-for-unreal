@@ -52,6 +52,13 @@ export function contrast(hexA: string, hexB: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/** Mezcla `ratio` de hexA con el resto de hexB en sRGB, como `color-mix(in srgb, A ratio%, B)`. */
+export function mix(hexA: string, hexB: string, ratio: number): string {
+  const a = hexA.replace("#", ""), b = hexB.replace("#", "");
+  const ch = (i: number) => Math.round(parseInt(a.slice(i, i + 2), 16) * ratio + parseInt(b.slice(i, i + 2), 16) * (1 - ratio));
+  return "#" + [0, 2, 4].map((i) => ch(i).toString(16).padStart(2, "0")).join("");
+}
+
 if (import.meta.main) {
   writeFileSync(cssPath, buildCss(JSON.parse(readFileSync(jsonPath, "utf8"))));
 }
