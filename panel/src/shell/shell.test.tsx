@@ -50,8 +50,8 @@ describe('Tabs', () => {
 })
 
 describe('CommandMenu', () => {
-  const mount = (children?: React.ReactNode) => {
-    const router = createMemoryRouter([{ path: '*', element: <><CommandMenu tasks={[{ id: 'abc1234', title: 'Habilidad Meteorito' }]} />{children}</> }])
+  const mount = (children?: React.ReactNode, props: React.ComponentProps<typeof CommandMenu> = {}) => {
+    const router = createMemoryRouter([{ path: '*', element: <><CommandMenu tasks={[{ id: 'abc1234', title: 'Habilidad Meteorito' }]} {...props} />{children}</> }])
     render(<RouterProvider router={router} />)
   }
   it('⌘K abre el menú con vistas, tareas y acciones', async () => {
@@ -85,5 +85,13 @@ describe('CommandMenu', () => {
     await vi.waitFor(() => expect(screen.queryByPlaceholderText(/Busca/)).not.toBeInTheDocument())
     expect(document.activeElement).toBe(before)
     expect(onClose).not.toHaveBeenCalled()
+  })
+  it('Pausar y Reanudar llaman a la acción; Indexar sigue deshabilitado', async () => {
+    const toggle = vi.fn()
+    mount(undefined, { paused: false, onTogglePause: toggle })
+    fireEvent.keyDown(document, { key: 'k', metaKey: true })
+    expect(await screen.findByText('Indexar · Disponible en el hito 4')).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(screen.getByText('Pausar'))
+    expect(toggle).toHaveBeenCalledTimes(1)
   })
 })

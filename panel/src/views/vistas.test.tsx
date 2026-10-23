@@ -279,6 +279,24 @@ describe('Presupuesto: cifras con tick', () => {
   })
 })
 
+describe('Presupuesto: fijar límites', () => {
+  it('«Definir límite» envía PUT /budget con solo esa métrica', async () => {
+    serve((path) => (path === '/budget' ? {
+      scope: 'workspace', scopeId: 'w1',
+      limits: { meshyCredits: null, elevenlabsCredits: null, tokens: null, buildMinutes: null },
+      spent: { meshyCredits: 0, elevenlabsCredits: 0, tokens: 0, buildMinutes: 0 },
+      remaining: { meshyCredits: null, elevenlabsCredits: null, tokens: null, buildMinutes: null },
+    } : {}))
+    render(<Presupuesto />)
+    const meshy = await screen.findByRole('region', { name: 'Meshy' })
+    const user = userEvent.setup()
+    await user.click(within(meshy).getByRole('button', { name: 'Definir límite' }))
+    await user.type(within(meshy).getByLabelText('Límite de Meshy'), '400')
+    await user.click(within(meshy).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/budget', { method: 'PUT', body: { scope: 'workspace', scopeId: 'w1', limits: { meshyCredits: 400 } } }))
+  })
+})
+
 describe('Capacidades', () => {
   const caps = [
     { id: 'git', label: 'Git', state: 'detectado', detail: 'Ejecutable de Git detectado' },

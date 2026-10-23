@@ -33,6 +33,6 @@ export async function budget(context: Context): Promise<boolean> {
     if (rows.length !== 1) throw new Error('invalid_scope_id');
     scopeId = rows[0].scope_id as string;
   }
-  json(res, 200, budgetSummary(db, scope, scopeId));
+  json(res, 200, {...budgetSummary(db, scope, scopeId), scope, scopeId});
   return true;
 }

@@ -1,13 +1,18 @@
+import { useState } from 'react'
+import { api } from '@/api'
 import { EmptyState } from '@/components/EmptyState'
 import { humanError } from '@/lib/errors'
 import { Tick } from '@/components/Tick'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { useResource } from '@/hooks/useResource'
 import { cn } from '@/lib/utils'
 
 type Metric = 'meshyCredits' | 'elevenlabsCredits' | 'tokens' | 'buildMinutes'
-interface Summary { limits: Record<Metric, number | null>; spent: Record<Metric, number>; remaining: Record<Metric, number | null> }
+interface Summary { scope: 'workspace' | 'task'; scopeId: string; limits: Record<Metric, number | null>; spent: Record<Metric, number>; remaining: Record<Metric, number | null> }
 
 const metrics: { key: Metric; name: string; unit: string }[] = [
   { key: 'meshyCredits', name: 'Meshy', unit: 'créditos' },
@@ -18,8 +23,27 @@ const metrics: { key: Metric; name: string; unit: string }[] = [
 
 const fmt = (n: number) => new Intl.NumberFormat('es').format(n)
 
+/** Editor en línea del límite de una métrica: PUT /budget con solo esa métrica. */
+function LimitEditor({ name, limit, exhausted, save }: { name: string; limit: number | null; exhausted: boolean; save: (value: number) => Promise<unknown> }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState('')
+  const parsed = Number(value)
+  const valid = value.trim() !== '' && Number.isFinite(parsed) && parsed >= 0
+  const action = useAction(() => save(parsed), { success: () => ({ title: `Límite de ${name} guardado` }) })
+  const label = limit === null ? 'Definir límite' : exhausted ? 'Subir límite' : 'Cambiar límite'
+  if (!editing) return <Button variant="outline" size="sm" className="self-start" onClick={() => { setValue(limit === null ? '' : String(limit)); setEditing(true) }}>{label}</Button>
+  return (
+    <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (valid) void action.fire().then(() => setEditing(false)) }}>
+      <Input type="number" inputMode="numeric" min={0} step="any" autoFocus aria-label={`Límite de ${name}`} name="limite" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} className="w-32" />
+      <Button type="submit" size="sm" disabled={!valid || action.pending} aria-busy={action.pending}>{action.pending ? 'Guardando…' : 'Guardar'}</Button>
+      <Button type="button" variant="ghost" size="sm" disabled={action.pending} onClick={() => setEditing(false)}>Cancelar</Button>
+      {action.error && <span role="alert" className="text-xs text-error">No se guardó.</span>}
+    </form>
+  )
+}
+
 /** Una métrica del presupuesto: cifra grande en mono que hace tick al cambiar y barra fina de progreso. */
-export function Meter({ name, unit, spent, limit }: { name: string; unit: string; spent: number; limit: number | null }) {
+export function Meter({ name, unit, spent, limit, save }: { name: string; unit: string; spent: number; limit: number | null; save?: (value: number) => Promise<unknown> }) {
   const exhausted = limit !== null && spent >= limit
   const ratio = limit ? Math.min(1, spent / limit) : 0
   return (
@@ -33,6 +57,7 @@ export function Meter({ name, unit, spent, limit }: { name: string; unit: string
         <div className="flex flex-col gap-1">
           <p className="text-sm">Sin límite definido</p>
           <p className="text-xs text-muted-foreground">Kratos no se detendrá por gasto.</p>
+          {save && <LimitEditor name={name} limit={limit} exhausted={false} save={save} />}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -41,6 +66,7 @@ export function Meter({ name, unit, spent, limit }: { name: string; unit: string
           </div>
           <p className="text-sm">{exhausted ? `${name} · límite agotado` : `${name} · ${fmt(spent)} de ${fmt(limit)} ${unit}`}</p>
           {exhausted && <p className="text-xs text-muted-foreground">Kratos te pedirá una decisión antes de seguir.</p>}
+          {save && <LimitEditor name={name} limit={limit} exhausted={exhausted} save={save} />}
         </div>
       )}
     </section>
@@ -48,7 +74,7 @@ export function Meter({ name, unit, spent, limit }: { name: string; unit: string
 }
 
 export function Presupuesto() {
-  const { data, loading, error } = useResource<Summary>('/budget', /^(run|task|decision|artifact)\./)
+  const { data, loading, error, reload } = useResource<Summary>('/budget', /^(run|task|decision|artifact|budget)\./)
   const slow = useAfter(loading)
   if (loading) return slow ? <div role="status" aria-label="Cargando el presupuesto" className="grid grid-cols-2 gap-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-40" />)}</div> : null
   if (!data) {
@@ -58,7 +84,7 @@ export function Presupuesto() {
   }
   return (
     <div className="grid grid-cols-2 gap-4">
-      {metrics.map((m) => <Meter key={m.key} name={m.name} unit={m.unit} spent={data.spent[m.key]} limit={data.limits[m.key]} />)}
+      {metrics.map((m) => <Meter key={m.key} name={m.name} unit={m.unit} spent={data.spent[m.key]} limit={data.limits[m.key]} save={(n) => api('/budget', { method: 'PUT', body: { scope: data.scope, scopeId: data.scopeId, limits: { [m.key]: n } } }).then(reload)} />)}
     </div>
   )
 }
