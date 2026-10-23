@@ -1,13 +1,14 @@
 import type { ComponentType } from 'react'
 import {
-  Activity, AudioWaveform, Ban, Bot, Box, Boxes, Camera, CheckCircle2, Circle, CircleDashed,
-  CircleDot, Code2, Crown, Diff, DoorClosed, Download, Eye, FileText, Film,
+  Activity, AudioWaveform, Ban, Bot, Box, Camera, CheckCircle2, Circle, CircleDashed,
+  CircleDot, Diff, DoorClosed, Eye, FileText, Film,
   FlaskConical, Gamepad2, GitMerge, Hammer, HelpCircle, Hourglass, Image, LayoutPanelTop,
-  ListChecks, Lock, MessageCircle, Mountain, Package, PackageCheck, Palette, PersonStanding, Play,
-  PlugZap, Radio, Reply, Search, Shapes, ShieldCheck, TestTube2, Users, WifiOff,
+  ListChecks, Lock, Mountain, Package, PackageCheck, PersonStanding,
+  PlugZap, Radio, Shapes, TestTube2, WifiOff,
 } from 'lucide-react'
 
-export type GlyphKind = 'area' | 'taskState' | 'directorState' | 'provider' | 'role' | 'event' | 'artifact' | 'source'
+export type GlyphKind = 'area' | 'taskState' | 'directorState' | 'provider' | 'artifact'
+export type PresentationKind = GlyphKind | 'role' | 'event' | 'source'
 type GlyphBase = {
   tone: 'neutral' | 'info' | 'success' | 'warning' | 'error' | 'primary'
   label: string
@@ -41,31 +42,51 @@ export const glyphs = {
     codex: provider('Codex', 'info'), claude: provider('Claude', 'warning'), meshy: provider('Meshy', 'success'),
     blender: provider('Blender', 'warning'), unreal: provider('Unreal'), kratos: provider('Kratos', 'primary'), launcher: provider('Launcher', 'info'),
   },
-  role: {
-    director: spec(Crown, 'Director'), implementacion: spec(Code2, 'Implementación'), arte: spec(Palette, 'Arte'),
-    revisor: spec(Search, 'Revisor'), qa: spec(ShieldCheck, 'Calidad'), integrador: spec(GitMerge, 'Integrador'), coordinador: spec(Users, 'Coordinador'),
-  },
-  event: {
-    message: spec(MessageCircle, 'Mensaje'), reply: spec(Reply, 'Respuesta'), task: spec(Boxes, 'Tarea'),
-    run: spec(Play, 'Ejecución'), worker: spec(Bot, 'Agente'), command: spec(ListChecks, 'Orden'),
-    decision: spec(HelpCircle, 'Decisión', 'warning'), lease: spec(Lock, 'Reserva'), review: spec(Eye, 'Revisión'),
-    artifact: spec(PackageCheck, 'Entrega'), test: spec(TestTube2, 'Prueba'), integration: spec(GitMerge, 'Integración'),
-    download: spec(Download, 'Descarga'), director: spec(Radio, 'Director'),
-  },
   artifact: {
     model: spec(Shapes, 'Modelo'), texture: spec(Image, 'Textura'), screenshot: spec(Camera, 'Captura'),
     video: spec(Film, 'Vídeo'), build: spec(PackageCheck, 'Compilación'), report: spec(FileText, 'Informe'), diff: spec(Diff, 'Cambios'),
   },
-  source: {
-    fab: provider('Fab'), megascans: provider('Megascans'), polyhaven: provider('Poly Haven'),
-    ambientcg: provider('ambientCG'), kenney: provider('Kenney'), quaternius: provider('Quaternius'),
-    sketchfab: provider('Sketchfab'), freesound: provider('Freesound'),
-    meshy: provider('Meshy', 'success'), blender: provider('Blender', 'warning'),
-  },
 } satisfies Record<GlyphKind, Record<string, GlyphSpec>>
 
-export function glyphFor(kind: GlyphKind, value: string): GlyphSpec {
+const roleLabels: Record<string, string> = {
+  director: 'Director', implementacion: 'Implementación', arte: 'Arte', revisor: 'Revisor',
+  qa: 'Calidad', integrador: 'Integrador', coordinador: 'Coordinador',
+}
+const sourceLabels: Record<string, string> = {
+  fab: 'Fab', megascans: 'Megascans', polyhaven: 'Poly Haven', ambientcg: 'ambientCG',
+  kenney: 'Kenney', quaternius: 'Quaternius', sketchfab: 'Sketchfab', freesound: 'Freesound',
+}
+const text = (label: string): GlyphSpec => ({ Icon: null, presentation: 'text', label, tone: 'neutral' })
+const ownLabel = (labels: Record<string, string>, value: string) => Object.hasOwn(labels, value) ? labels[value] : value
+
+/** Los eventos apuntan a entidades existentes; no forman otro catálogo en la leyenda. */
+function eventEntity(value: string, providerValue?: string): GlyphSpec {
+  switch (value.split('.')[0]) {
+    case 'task': return { ...glyphs.taskState.pendiente, label: 'Tarea' }
+    case 'run': return providerValue ? glyphFor('provider', providerValue) : text('Ejecución')
+    case 'worker': return providerValue ? glyphFor('provider', providerValue) : spec(Bot, 'Agente')
+    case 'command': return spec(ListChecks, 'Orden')
+    case 'lease': return spec(Lock, 'Reserva')
+    case 'decision': return glyphs.taskState.decision
+    case 'review': return glyphs.taskState.revisando
+    case 'test': return glyphs.taskState.probando
+    case 'integration': return glyphs.taskState.integrando
+    case 'artifact': return { ...glyphs.artifact.build, label: 'Entrega' }
+    case 'director': return glyphs.directorState.escuchando
+    case 'message': return text('Mensaje')
+    case 'reply': return text('Respuesta')
+    case 'download': return text('Descarga')
+    default: return text(value)
+  }
+}
+
+export function glyphFor(kind: PresentationKind, value: string, providerValue?: string): GlyphSpec {
+  if (kind === 'event') return eventEntity(value, providerValue)
+  if (kind === 'role') return text(ownLabel(roleLabels, value))
+  if (kind === 'source') {
+    if (value === 'meshy' || value === 'blender') return glyphs.provider[value]
+    return provider(ownLabel(sourceLabels, value))
+  }
   const entries: Record<string, GlyphSpec> = glyphs[kind]
-  const key = kind === 'event' ? value.split('.')[0] : value
-  return Object.hasOwn(entries, key) ? entries[key] : kind === 'provider' ? provider(value) : spec(CircleDashed, value)
+  return Object.hasOwn(entries, value) ? entries[value] : kind === 'provider' ? provider(value) : spec(CircleDashed, value)
 }

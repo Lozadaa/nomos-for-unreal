@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { glyphs } from './glyphs'
+import { glyphFor, glyphs } from './glyphs'
 
 /** Compara formas renderizadas: también descubre dos componentes con el mismo dibujo. */
 function shape(spec: (typeof glyphs.area)[keyof typeof glyphs.area]) {
@@ -24,7 +24,9 @@ describe('iconos distinguibles en cinco segundos', () => {
 
   it('las fuentes del catálogo no se confunden con áreas o artefactos', () => {
     const concepts = new Set([glyphs.area, glyphs.artifact].flatMap((group) => Object.values(group).map(shape)))
-    for (const entry of Object.values(glyphs.source)) {
+    for (const value of ['fab', 'megascans', 'polyhaven', 'ambientcg', 'kenney', 'quaternius', 'sketchfab', 'freesound', 'meshy', 'blender']) {
+      const entry = glyphFor('source', value)
+      expect(entry.presentation).toBe('pill')
       if (entry.Icon) expect(concepts.has(shape(entry)), entry.label).toBe(false)
     }
   })
