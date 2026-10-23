@@ -4,10 +4,11 @@ import { ArtGallery } from './ArtGallery'
 
 it('expone todas las semillas de producción y permite filtrar/mover en el mapa de muestra', () => {
   render(<ArtGallery />)
-  const avatars = screen.getByLabelText('Avatares de las doce tareas de ejemplo')
-  expect(avatars.querySelectorAll('figure')).toHaveLength(12)
-  for (let i = 1; i <= 12; i++) expect(within(avatars).getByTitle(`seed-task-${String(i).padStart(2, '0')}`)).toBeInTheDocument()
-  expect(screen.getByLabelText('Avatares de las ejecuciones y semillas próximas').querySelectorAll('[role="img"]')).toHaveLength(5)
+  const avatars = screen.getByLabelText('Agentes de las ejecuciones de ejemplo')
+  expect(avatars.querySelectorAll('figure')).toHaveLength(0)
+  expect(within(avatars).getAllByRole('img')).toHaveLength(3)
+  expect(screen.queryByLabelText('Avatares de las doce tareas de ejemplo')).toBeNull()
+  expect(screen.getByLabelText('Estados del avatar').querySelectorAll('[data-state]')).toHaveLength(3)
   expect(screen.getByLabelText('Estados vacíos por vista').querySelectorAll('figure')).toHaveLength(8)
   fireEvent.click(screen.getByRole('button', { name: 'Implementando: 2' }))
   expect(screen.getByText('05 · 06')).toBeInTheDocument()

@@ -14,7 +14,7 @@ export const areaLabel: Record<Area, string> = {
 }
 
 export const providerLabel: Record<string, string> = {
-  codex: 'Codex', claude: 'Claude Code', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', kratos: 'Kratos',
+  codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', kratos: 'Kratos', launcher: 'Launcher',
 }
 
 export interface Task {
@@ -52,6 +52,8 @@ export interface Decision {
 export interface Run {
   id: string; taskId: string; role: string; provider: string; state: 'running' | 'done' | 'failed' | 'cancelled'
   startedAt: string; finishedAt: string | null; summary: string | null
+  /** Estado persistido por el servicio; permite restaurar la espera al recargar. */
+  metadata?: { waiting?: boolean }
 }
 
 export interface TestRun {

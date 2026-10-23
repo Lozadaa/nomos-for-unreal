@@ -8,7 +8,7 @@ const expected = {
   area: ['gameplay', 'ui', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'],
   taskState: ['pendiente', 'preparada', 'implementando', 'revisando', 'probando', 'integrando', 'cerrando', 'done', 'bloqueada', 'decision'],
   directorState: ['esperando', 'escuchando', 'atendiendo', 'vigilanteCaido', 'desconectado'],
-  provider: ['codex', 'claude', 'meshy', 'blender', 'unreal', 'kratos', 'launcher'],
+  provider: ['codex', 'claude', 'opencode', 'meshy', 'blender', 'unreal', 'kratos', 'launcher'],
   artifact: ['model', 'texture', 'screenshot', 'video', 'build', 'report', 'diff'],
 } satisfies Record<GlyphKind, string[]>
 
@@ -54,9 +54,9 @@ describe('registro de glifos', () => {
     expect(container.firstChild).toHaveStyle({ color: 'var(--vbg-color-primary)' })
   })
 
-  it('la leyenda agrupa las 37 entradas sin omitir ninguna', () => {
+  it('la leyenda agrupa las 38 entradas sin omitir ninguna', () => {
     render(<GlyphLegend />)
-    expect(screen.getAllByRole('listitem')).toHaveLength(37)
+    expect(screen.getAllByRole('listitem')).toHaveLength(38)
     for (const [kind, values] of Object.entries(expected)) {
       const group = screen.getByTestId(`legend-${kind}`)
       expect(within(group).getAllByRole('img')).toHaveLength(values.length)

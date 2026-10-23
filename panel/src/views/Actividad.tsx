@@ -1,16 +1,21 @@
 import { memo, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { EmptyState } from '@/components/EmptyState'
+import { EmptyState } from '@/visual/art/EmptyState'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useFresh } from '@/hooks/fresh'
 import { useParam } from '@/hooks/useParam'
-import { eventText, laneOf, lanes } from '@/lib/events'
+import { useRuns } from '@/hooks/useRuns'
+import { eventPresentation, eventText, hourlyActivity, laneOf, lanes, placeEvents } from '@/lib/events'
 import type { KratosEvent } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
+import { Glyph } from '@/visual/Glyph'
+import type { PresentationKind } from '@/visual/glyphs'
+import { Sparkline } from '@/visual/art/Sparkline'
 
 const clock = (iso: number | string) => new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
 const TEN_MIN = 10 * 60_000
+const rangeTime = (time: number) => new Date(time).toLocaleString('es', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 /** Eje estable: el final sube de diez en diez minutos, así una entrada nueva no mueve el resto de golpe. */
 export function axis(times: number[]): [number, number] {
@@ -24,6 +29,8 @@ export function Actividad() {
   const events = useStore((s) => s.events)
   const tasks = useStore((s) => s.tasks)
   const gaps = useStore((s) => s.gaps)
+  const runs = useRuns()
+  const providers = useMemo(() => new Map(runs.map((run) => [run.id, run.provider])), [runs])
   const [taskId, setTaskId] = useParam('tarea')
   const fresh = useFresh(events.map((e) => e.seq))
   const [selected, setSelected] = useState<number | null>(null)
@@ -35,16 +42,25 @@ export function Actividad() {
   const [min, max] = useMemo(() => axis(visible.length ? visible.map((e) => Date.parse(e.createdAt)) : [Date.now()]), [visible])
   const num = (t: number | string) => (((typeof t === 'string' ? Date.parse(t) : t) - min) / (max - min)) * 100
   const pct = (t: number | string) => `${num(t)}%`
-  const byLane = useMemo(() => lanes.map((lane) => ({ lane, items: visible.filter((e) => laneOf(e) === lane) })), [visible])
+  const byLane = useMemo(() => {
+    const grouped = new Map(lanes.map((lane) => [lane, [] as KratosEvent[]]))
+    for (const event of visible) grouped.get(laneOf(event, providers))!.push(event)
+    return lanes.map((lane) => {
+      const items = grouped.get(lane)!
+      const placements = placeEvents(items.map((event) => ((Date.parse(event.createdAt) - min) / (max - min)) * 100))
+      return { lane, items, placements, tall: placements.some((item) => item.track > 0) }
+    })
+  }, [visible, providers, min, max])
+  const hourly = useMemo(() => hourlyActivity(visible, providers), [visible, providers])
   const detail = visible.find((e) => e.seq === selected)
 
-  const label = (e: KratosEvent) => `${eventText(e)}${titleOf(e.payload.taskId) ? ` · ${titleOf(e.payload.taskId)}` : ''}`
+  const label = (e: KratosEvent) => `${eventText(e, providers)}${titleOf(e.payload.taskId) ? ` · ${titleOf(e.payload.taskId)}` : ''}`
   const cause = detail ? events.find((e) => e.id === detail.payload.correlation) : undefined
   const effects = detail ? events.filter((e) => e.payload.correlation === detail.id) : []
   const filter = (id: string) => void animateUpdate(() => { setSelected(null); return setTaskId(id) })
 
   if (events.length === 0) {
-    return <EmptyState title="Aún no hay actividad" hint="Aparecerá cuando Kratos empiece a trabajar." action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
+    return <EmptyState view="actividad" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
 
   return (
@@ -61,30 +77,41 @@ export function Actividad() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-lg border border-subtle"><EmptyState title="Ningún evento coincide con el filtro" action={{ label: 'Quitar filtro', onClick: () => filter('') }} /></div>
+        <div className="rounded-lg border border-subtle"><EmptyState view="actividad" message="Ningún evento coincide con el filtro" action={{ label: 'Quitar filtro', onClick: () => filter('') }} /></div>
       ) : (
-        <section aria-label="Actividad por carriles" className="rounded-lg border border-subtle">
-          {byLane.map(({ lane, items }) => (
+        <div className="grid grid-cols-[minmax(0,1fr)_240px] items-start gap-4">
+        <section aria-label="Actividad por carriles" className="min-w-0 rounded-lg border border-subtle">
+          {byLane.map(({ lane, items, placements, tall }) => (
             <div key={lane} role="group" aria-label={lane} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-subtle last:border-b-0">
               <h2 className="flex items-center px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">{lane}</h2>
-              <div className="relative mx-4 h-11 [container-type:inline-size]">
+              <div className={cn('relative mx-4 [container-type:inline-size]', tall ? 'h-16' : 'h-11')}>
                 {gaps.map((g) => (
                   <span key={g.from} aria-hidden title={`Sin datos de ${clock(g.from)} a ${clock(g.to)} · servicio desconectado`}
                     className="absolute inset-y-1 border-x border-dashed border-subtle bg-card" style={{ left: pct(g.from), width: `calc(${pct(g.to)} - ${pct(g.from)})` }} />
                 ))}
-                {items.map((e) => (
-                  <Dot key={e.seq} e={e} p={num(e.createdAt)} text={label(e)} selected={selected === e.seq} isFresh={fresh(e.seq)} onSelect={setSelected} />
-                ))}
+                {items.map((e, index) => {
+                  const glyph = eventPresentation(e, providers)
+                  return <Dot key={e.seq} e={e} kind={glyph.kind} value={glyph.value} track={placements[index].track} compact={placements[index].compact} p={num(e.createdAt)} text={label(e)} selected={selected === e.seq} isFresh={fresh(e.seq)} onSelect={setSelected} />
+                })}
               </div>
             </div>
           ))}
         </section>
+        <section aria-label="Actividad por hora" className="flex flex-col gap-3 rounded-lg border border-subtle p-3">
+          <h2 className="text-xs font-medium">Actividad por hora</h2>
+          <p className="text-xs text-muted-foreground">24 h · {rangeTime(hourly.start)} – {rangeTime(hourly.end)}</p>
+          <div className="grid gap-3 [&_figure>div]:grid-cols-[96px_minmax(0,1fr)]">
+            {hourly.lanes.map((lane) => <Sparkline key={lane.label} title={`Actividad por hora: ${lane.label}`} lanes={[lane]} hideTitle />)}
+          </div>
+          <p className="text-xs text-muted-foreground" title={`${events.length >= 500 ? 'Ventana de 500 eventos recibidos; puede faltar actividad anterior.' : 'Solo eventos recibidos; los ceros no garantizan cobertura.'}${gaps.length > 0 ? ' Hay intervalos sin datos por desconexión.' : ''}`}>{visible.length} eventos{gaps.length > 0 ? ` · ${gaps.length} huecos` : ''}</p>
+        </section>
+        </div>
       )}
 
       {detail && (
         <section aria-label="Evento seleccionado" className="flex flex-col gap-2 rounded-lg border border-subtle bg-card p-4 text-sm">
           <h3 className="font-medium">{label(detail)}</h3>
-          <p className="text-muted-foreground">{clock(detail.createdAt)} · {laneOf(detail)}</p>
+          <p className="text-muted-foreground">{clock(detail.createdAt)} · {laneOf(detail, providers)}</p>
           <p><span className="text-muted-foreground">Causa: </span>{cause ? label(cause) : 'sin causa registrada'}</p>
           <p><span className="text-muted-foreground">Efecto: </span>{effects.length ? effects.map(label).join(' · ') : 'sin efectos todavía'}</p>
         </section>
@@ -94,21 +121,20 @@ export function Actividad() {
 }
 
 /** Un evento del carril. Memoizado: un evento nuevo no vuelve a pintar los 500 anteriores salvo que el eje los desplace. */
-const Dot = memo(function Dot({ e, p, text, selected, isFresh, onSelect }: { e: KratosEvent; p: number; text: string; selected: boolean; isFresh: boolean; onSelect: (seq: number) => void }) {
+const Dot = memo(function Dot({ e, kind, value, track, compact, p, text, selected, isFresh, onSelect }: { e: KratosEvent; kind: PresentationKind; value: string; track: number; compact: boolean; p: number; text: string; selected: boolean; isFresh: boolean; onSelect: (seq: number) => void }) {
   return (
     <button
       type="button"
       aria-label={text}
       aria-pressed={selected}
+      data-track={track}
       onClick={() => onSelect(e.seq)}
-      style={{ '--p': p } as React.CSSProperties}
-      className={cn('group absolute top-1/2 left-0 flex size-5 items-center justify-center transition-transform duration-(--k-dur-reorder) ease-k outline-offset-2 [transform:translate(calc(var(--p)*1cqw_-_50%),-50%)]', isFresh && 'animate-in fade-in motion-reduce:animate-none')}
+      style={{ '--p': p, '--anchor': p > 92 ? '100%' : p < 8 ? '0%' : '50%', top: `${[50, 17, 83][track]}%` } as React.CSSProperties}
+      className={cn('group absolute left-0 flex h-5 min-w-5 items-center justify-center transition-transform duration-(--k-dur-reorder) ease-k outline-offset-2 hover:z-20 focus-visible:z-20 [transform:translate(calc(var(--p)*1cqw_-_var(--anchor)),-50%)]', selected && 'z-20', isFresh && 'animate-in fade-in motion-reduce:animate-none')}
     >
-      <span className={cn('size-2 rounded-full transition-transform duration-(--k-dur-micro)', laneTone(e), 'group-hover:scale-150 group-aria-pressed:scale-150 group-aria-pressed:ring-2 group-aria-pressed:ring-foreground/40')} />
+      {compact && <span data-dense-marker aria-hidden className="size-1.5 rounded-full bg-neutral group-hover:hidden group-focus-visible:hidden group-aria-pressed:hidden" />}
+      <span className={cn('items-center justify-center transition-transform duration-(--k-dur-micro) group-hover:scale-125 group-aria-pressed:ring-2 group-aria-pressed:ring-foreground/40', compact ? 'hidden group-hover:inline-flex group-focus-visible:inline-flex group-aria-pressed:inline-flex' : 'inline-flex')}><Glyph kind={kind} value={value} size={14} /></span>
       <span role="tooltip" className="pointer-events-none absolute bottom-full z-10 mb-1 hidden w-max max-w-72 rounded-md border border-subtle bg-popover px-2 py-1 text-xs text-popover-foreground group-hover:block group-focus-visible:block">{text}</span>
     </button>
   )
 })
-
-const laneTone = (e: KratosEvent) =>
-  e.type.includes('blocked') ? 'bg-error' : e.type.startsWith('decision') ? 'bg-warning' : e.type === 'run.finished' || e.type === 'artifact.created' ? 'bg-success' : e.type.startsWith('run') ? 'bg-info' : 'bg-neutral'

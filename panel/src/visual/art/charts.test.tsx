@@ -1,11 +1,13 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { flushSync } from 'react-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Ring } from './Ring'
 import { Sparkline } from './Sparkline'
 import { DiffBars } from './DiffBars'
 import { ProductionMap, type MapTask } from './ProductionMap'
 import { stages } from '@/lib/tasks'
+import { animateUpdate } from '@/feel/transitions'
 
 const tasks = (n: number): MapTask[] => Array.from({ length: n }, (_, i) => ({
   id: `seed-task-${String(i + 1).padStart(2, '0')}`, state: stages[i % 8],
@@ -140,6 +142,50 @@ describe('mapa de producción', () => {
     await act(async () => rerender(<ProductionMap tasks={first} />))
     expect(transition).toHaveBeenCalledOnce()
     expect(screen.getByRole('button', { name: 'Pendiente: 1' })).toBeInTheDocument()
+  })
+
+  it('el mapa y la lista comparten una captura al actualizar juntos una etapa', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    const captures: { update: () => void | Promise<void>; finish: () => void }[] = []
+    const transition = vi.fn((update: () => void | Promise<void>) => {
+      let finish!: () => void
+      const finished = new Promise<void>((resolve) => { finish = resolve })
+      captures.push({ update, finish })
+      // Como en el navegador, el callback se ejecuta después de que el llamador
+      // haya registrado la transición activa; la captura se controla desde el test.
+      return { finished }
+    })
+    Object.assign(document, { startViewTransition: transition })
+    const first = tasks(1)
+    const scene = (rows: MapTask[]) => <>
+      <output data-testid="list-stage">{rows[0].state}</output>
+      <ProductionMap tasks={rows} />
+    </>
+    const { rerender } = render(scene(first))
+    let mutation!: Promise<void>
+    await act(async () => {
+      mutation = animateUpdate(() => flushSync(() => rerender(scene([{ ...first[0], state: 'done' }]))))
+    })
+    expect(captures).toHaveLength(1)
+
+    let listDuringCapture: string | null = null
+    let mapDuringCapture = false
+    await act(async () => {
+      await captures[0].update()
+      listDuringCapture = screen.getByTestId('list-stage').textContent
+      mapDuringCapture = Boolean(screen.queryByRole('button', { name: 'Hecha: 1' }))
+    })
+    await act(async () => { captures[0].finish(); await mutation })
+    // Resolver también una captura adicional defectuosa evita dejar promesas
+    // activas cuando el RED demuestre que antes se abrían dos transiciones.
+    for (let i = 1; i < captures.length; i++) {
+      await act(async () => { await captures[i].update(); captures[i].finish() })
+    }
+
+    expect(transition).toHaveBeenCalledOnce()
+    expect(listDuringCapture).toBe('done')
+    expect(mapDuringCapture).toBe(true)
+    expect(screen.getByRole('button', { name: 'Hecha: 1' })).toBeInTheDocument()
   })
 
   it('markup determinista y ≤ 2 KB con 0, 12 y 200 tareas', () => {

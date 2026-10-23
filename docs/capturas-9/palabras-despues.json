@@ -1,0 +1,108 @@
+{
+  "method": "Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden/opacity:0, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.",
+  "seed": "Servicio real seed, conversación POST /messages + reply y Git temporal con diff real. Vacíos: respuestas API interceptadas solo en el navegador; no borran datos. Sin fixtures de miniaturas.",
+  "measuredAt": "2026-10-23T16:43:43.776Z",
+  "revision": "7c68c8840ad0c17b52153b3aa72c1cc0fbf40891",
+  "views": {
+    "produccion": {
+      "1366": {
+        "full": 118,
+        "firstRow": 7,
+        "empty": 25
+      },
+      "1920": {
+        "full": 118,
+        "firstRow": 7,
+        "empty": 25
+      }
+    },
+    "chat": {
+      "1366": {
+        "full": 48,
+        "empty": 11
+      },
+      "1920": {
+        "full": 48,
+        "empty": 11
+      }
+    },
+    "actividad": {
+      "1366": {
+        "full": 45,
+        "empty": 6
+      },
+      "1920": {
+        "full": 45,
+        "empty": 6
+      }
+    },
+    "presupuesto": {
+      "1366": {
+        "full": 58,
+        "empty": 5
+      },
+      "1920": {
+        "full": 58,
+        "empty": 5
+      }
+    },
+    "capacidades": {
+      "1366": {
+        "full": 75,
+        "empty": 6
+      },
+      "1920": {
+        "full": 75,
+        "empty": 6
+      }
+    },
+    "entregas": {
+      "1366": {
+        "full": 24,
+        "empty": 6
+      },
+      "1920": {
+        "full": 24,
+        "empty": 6
+      }
+    },
+    "catalogo": {
+      "1366": {
+        "full": 151,
+        "empty": 9
+      },
+      "1920": {
+        "full": 151,
+        "empty": 9
+      }
+    },
+    "decisiones": {
+      "1366": {
+        "full": 31,
+        "empty": 6
+      },
+      "1920": {
+        "full": 31,
+        "empty": 6
+      }
+    }
+  },
+  "workingTree": [
+    "M panel/scripts/capturas-9.ts",
+    " M panel/src/components/Composer.tsx",
+    " M panel/src/feel/transitions.ts",
+    " M panel/src/shell/CommandMenu.tsx",
+    " M panel/src/shell/Header.tsx",
+    " M panel/src/shell/Layout.tsx",
+    " M panel/src/views/Produccion.tsx",
+    " M panel/src/views/map-budget.visual.test.tsx",
+    " M panel/src/visual/Glyph.tsx",
+    " M panel/src/visual/art/ProductionMap.tsx",
+    " M panel/src/visual/art/art.css",
+    " M panel/src/visual/art/charts.test.tsx",
+    "?? panel/src/visual/LegendSheet.tsx",
+    "?? panel/src/visual/Tour.tsx",
+    "?? panel/src/visual/help.css",
+    "?? panel/src/visual/help.test.tsx"
+  ]
+}

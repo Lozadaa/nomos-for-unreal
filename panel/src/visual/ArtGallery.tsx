@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { areaLabel, areas, type Stage } from '@/lib/tasks'
 import { Glyph } from './Glyph'
 import { AgentAvatar } from './art/AgentAvatar'
+import { AvatarGroup } from './art/AvatarGroup'
+import { agentName } from './art/agentName'
 import { AreaPictogram } from './art/AreaPictogram'
 import { EmptyState } from './art/EmptyState'
 import { ProductionMap } from './art/ProductionMap'
@@ -15,16 +17,16 @@ export function ArtGallery() {
   const [stage, setStage] = useState<Stage | null>(null)
   const [advanced, setAdvanced] = useState(false)
   const tasks = productionExample.map((task, i) => advanced && i === 4 ? { ...task, state: 'revisando' as const } : task)
+  const agents = productionRuns.map((run, i) => ({ ...run, name: agentName(['implementacion', 'revisor', 'arte'][i], ['animacion', 'qa', 'audio'][i]), state: 'running' as const }))
   return <div className="flex flex-col gap-5">
-    <div className="grid grid-cols-4 gap-2 xl:grid-cols-6" aria-label="Avatares de las doce tareas de ejemplo">
-      {productionExample.map((task, i) => <figure key={task.id} className="flex flex-col items-center gap-1" title={task.id}>
-        <AgentAvatar id={task.id} provider={task.provider} size={32} />
-        <figcaption className="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, '0')}</figcaption>
-      </figure>)}
+    <div aria-label="Agentes de las ejecuciones de ejemplo">
+      <AvatarGroup agents={agents} size={32} />
     </div>
-    <div className="flex flex-wrap items-center gap-4" aria-label="Avatares de las ejecuciones y semillas próximas">
-      {productionRuns.map((run) => <figure key={run.id} className="flex items-center gap-2"><AgentAvatar {...run} /><figcaption className="font-mono text-xs text-muted-foreground">{run.id}</figcaption></figure>)}
-      <AgentAvatar id="codex-1" provider="codex" /><AgentAvatar id="codex-2" provider="codex" />
+    <div className="flex flex-wrap items-center gap-8" aria-label="Estados del avatar">
+      {([{ provider: 'codex', name: 'UI Worker', state: 'running', label: 'En curso' }, { provider: 'claude', name: 'UI Master', state: 'waiting', label: 'Espera respuesta' }, { provider: 'opencode', name: 'UI Worker', state: 'idle', label: 'Libre' }] as const).map((agent) => <div key={agent.state} className="flex items-center gap-3">
+        <AgentAvatar {...agent} size={32} />
+        <span className="flex flex-col text-xs"><span>{agent.name}</span><span className="text-muted-foreground">{agent.label}</span></span>
+      </div>)}
     </div>
     <div className="grid grid-cols-8 gap-3" aria-label="Pictogramas de áreas">
       {areas.map((area) => <figure key={area} className="flex flex-col items-center gap-1"><AreaPictogram area={area} /><figcaption className="text-xs text-muted-foreground">{areaLabel[area]}</figcaption></figure>)}

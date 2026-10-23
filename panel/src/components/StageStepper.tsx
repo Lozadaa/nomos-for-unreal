@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { stageLabel, stages, statusOf, type Task } from '@/lib/tasks'
+import { Glyph } from '@/visual/Glyph'
 
 /** Etapa horizontal de la tarea. Si está bloqueada o espera una decisión, la etapa se conserva y se marca. */
 export function StageStepper({ task }: { task: Pick<Task, 'state' | 'blockedReason' | 'decisionId'> }) {
@@ -19,14 +20,11 @@ export function StageStepper({ task }: { task: Pick<Task, 'state' | 'blockedReas
             aria-current={here ? 'step' : undefined}
             className="relative flex flex-auto flex-col items-start gap-2 pr-2 text-xs last:flex-none last:pr-0"
           >
-            <span aria-hidden className={cn('absolute top-[3px] left-0 h-px w-full', i <= current ? 'bg-foreground/60' : 'bg-border')} />
-            <span
-              aria-hidden
-              className={cn('relative size-2 rounded-full transition-colors duration-(--k-dur-standard)',
-                marked ? (status === 'decision' ? 'bg-warning' : 'bg-error') : i < current ? 'bg-foreground/60' : here ? 'bg-foreground' : 'bg-border',
-                here && 'ring-4 ring-foreground/15')}
-            />
-            <span className={cn('whitespace-nowrap', here ? 'text-foreground' : 'text-muted-foreground')}>
+            <span aria-hidden className={cn('absolute top-3 left-0 h-px w-full', i <= current ? 'bg-foreground/60' : 'bg-border')} />
+            <span className={cn('relative inline-flex size-6 items-center justify-center rounded-md bg-popover', here && 'ring-2 ring-foreground/15', marked && (status === 'decision' ? 'ring-warning' : 'ring-error'))}>
+              <Glyph kind="taskState" value={stage} size={18} />
+            </span>
+            <span className={cn('whitespace-nowrap', here ? 'text-foreground' : 'sr-only')}>
               {stageLabel[stage]}
               {marked && <span className="sr-only">{status === 'decision' ? ' (espera decisión)' : ' (bloqueada)'}</span>}
             </span>

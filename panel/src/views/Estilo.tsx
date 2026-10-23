@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { EmptyState } from '@/components/EmptyState'
+import { EmptyState } from '@/visual/art/EmptyState'
 import { Meter } from './Presupuesto'
 import { RowsSkeleton, SheetSkeleton } from '@/components/Skeletons'
 import { StageStepper } from '@/components/StageStepper'
@@ -163,7 +163,7 @@ export function Estilo() {
         </Section>
 
         <Section id="vacios" title="Vacíos y esqueletos">
-          <div className="rounded-lg border border-subtle"><EmptyState title="Aún no hay entregas" hint="Los modelos y capturas aparecerán aquí." action={{ label: 'Nueva petición', onClick: () => undefined }} /></div>
+          <div className="rounded-lg border border-subtle"><EmptyState view="entregas" /></div>
           <div className="overflow-hidden rounded-lg border border-subtle"><RowsSkeleton rows={3} /></div>
           <div className="rounded-lg border border-subtle"><SheetSkeleton /></div>
         </Section>

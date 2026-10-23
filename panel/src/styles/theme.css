@@ -162,3 +162,40 @@ html[data-vt] [data-slot='sheet-overlay'][data-ending-style] { opacity: 1; trans
 @keyframes k-tick { from { opacity: 0; transform: translateY(40%); } }
 .k-tick { animation: k-tick 300ms var(--k-ease); }
 @media (prefers-reduced-motion: reduce) { .k-tick { animation: k-fade-in 80ms linear; } }
+
+/* Agentes: el implementador define el monograma; la forma del anillo indica su estado. */
+:root {
+  --k-avatar-size: 24px;
+  --k-avatar-radius: 50%;
+  --k-avatar-ordinal: 14px;
+  --k-avatar-overlap: -8px;
+}
+.k-agent-avatar {
+  position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: var(--agent-size, var(--k-avatar-size)); height: var(--agent-size, var(--k-avatar-size));
+  border-radius: var(--k-avatar-radius); border: 1px solid var(--vbg-border-subtle);
+  color: var(--agent-color, var(--vbg-text-secondary));
+  background: color-mix(in oklch, var(--agent-color, var(--vbg-text-secondary)) 16%, var(--vbg-surface-primary));
+  font-family: var(--k-font-mono); font-size: calc(var(--agent-size, var(--k-avatar-size)) * .38); font-weight: 500;
+}
+.k-agent-avatar[data-state='running']::before, .k-agent-avatar[data-state='waiting']::before {
+  content: ''; position: absolute; inset: -3px; border: 2px solid var(--agent-color, var(--vbg-text-secondary)); border-radius: inherit;
+}
+.k-agent-avatar[data-state='waiting']::before { border-style: dashed; }
+.k-agent-ordinal {
+  position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center;
+  width: var(--k-avatar-ordinal); height: var(--k-avatar-ordinal); border-radius: var(--k-avatar-radius);
+  background: var(--vbg-text-primary); color: var(--vbg-surface-primary); font: 10px var(--k-font-mono);
+}
+.k-avatar-group { display: flex; align-items: center; gap: var(--vbg-space-4); }
+.k-avatar-stack { display: flex; align-items: center; padding: 3px; }
+.k-avatar-stack > * + * { margin-left: var(--k-avatar-overlap); }
+.k-avatar-overflow {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: var(--agent-size, var(--k-avatar-size)); height: var(--agent-size, var(--k-avatar-size));
+  border: 1px solid var(--vbg-border-strong); border-radius: var(--k-avatar-radius);
+  background: var(--vbg-surface-secondary); color: var(--vbg-text-primary); font: 11px var(--k-font-mono);
+}
+.k-avatar-summary { display: flex; flex-wrap: wrap; gap: var(--vbg-space-3); color: var(--vbg-text-secondary); font-size: 12px; }
+.k-map text[aria-pressed='true'] { fill: var(--vbg-focus); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .k-agent-avatar::before { animation: none; } }

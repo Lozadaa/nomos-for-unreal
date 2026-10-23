@@ -3,11 +3,15 @@ import { humanError } from '@/lib/errors'
 import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useFresh } from '@/hooks/fresh'
 import { useAction } from '@/feel/useAction'
 import { relativeTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
+import { AgentAvatar } from '@/visual/art/AgentAvatar'
+import { CheckCircle2 } from 'lucide-react'
+import { EmptyState } from '@/visual/art/EmptyState'
 
 interface Message { id: string; text: string; at: string; acked: boolean; reply: { text: string; at: string } | null }
 interface Outbox { key: string; text: string; sentAt: number; messageId?: string }
@@ -33,8 +37,20 @@ const receivedCopy = 'Recibido · Kratos lo atenderá en breve'
 function Bubble({ text, status, at, from, fresh }: { text: string; status?: string; at?: string; from: 'tu' | 'kratos'; fresh: boolean }) {
   return (
     <li className={cn('flex flex-col gap-1', fresh && 'animate-in duration-(--k-dur-standard) fade-in motion-reduce:animate-none', from === 'tu' ? 'items-end' : 'items-start')}>
+      <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+        {from === 'kratos' ? <><AgentAvatar id="kratos" provider="kratos" name="Kratos" size={32} /><span>Kratos</span></> : <span>Tú</span>}
+        {at && <time dateTime={at} title={relativeTime(at)}>{relativeTime(at).replace(/^hace /, '')}</time>}
+      </span>
       <p className={cn('max-w-[70%] rounded-lg border px-3 py-2 text-sm whitespace-pre-wrap', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')}>{text}</p>
-      <span className="text-xs text-muted-foreground">{from === 'kratos' ? 'Kratos' : status}{at ? ` · ${relativeTime(at)}` : ''}</span>
+      {status === receivedCopy ? (
+        <Tooltip>
+          <TooltipTrigger render={<span tabIndex={0} className="inline-flex text-success" />}>
+            <CheckCircle2 size={14} role="img" aria-label="Recibido por Kratos" aria-hidden={undefined} />
+            <span className="sr-only">{receivedCopy}</span>
+          </TooltipTrigger>
+          <TooltipContent role="tooltip">{receivedCopy}</TooltipContent>
+        </Tooltip>
+      ) : status && <span className="text-xs text-muted-foreground">{status}</span>}
     </li>
   )
 }
@@ -45,6 +61,7 @@ export function Chat() {
   const [text, setText] = useState('')
   const draft = useRef<Outbox>({ key: '', text: '', sentAt: 0 })
   const end = useRef<HTMLLIElement>(null)
+  const field = useRef<HTMLTextAreaElement>(null)
 
   const send = useAction(
     async () => {
@@ -84,9 +101,8 @@ export function Chat() {
     <div className="flex h-[calc(100dvh-var(--k-header)-var(--k-tabs)-3rem)] min-h-96 flex-col">
       <ul aria-label="Conversación con Kratos" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
         {count === 0 && (
-          <li className="m-auto flex flex-col items-center gap-2 text-center">
-            <h2 className="text-base font-medium">Cuéntale a Kratos qué quieres construir</h2>
-            <p className="text-sm text-muted-foreground">Kratos lo convierte en tareas y las reparte.</p>
+          <li className="m-auto">
+            <EmptyState view="chat" action={{ label: 'Escribir mensaje', onClick: () => field.current?.focus() }} />
           </li>
         )}
         {conversation.map((m) => (
@@ -104,6 +120,7 @@ export function Chat() {
         className="flex flex-col gap-2 border-t border-subtle pt-4"
       >
         <Textarea
+          ref={field}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit() } }}

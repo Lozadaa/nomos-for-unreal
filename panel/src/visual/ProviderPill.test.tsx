@@ -17,11 +17,12 @@ it('identifica proveedores con texto único y punto de token sin geometría', ()
   }
 })
 
-it('identifica instancias por sufijo o valor explícito y documenta fallback 1', () => {
-  for (const [id, instance, label] of [['codex-2', undefined, 'Codex 2'], ['opaque-id', 7, 'Codex 7'], ['opaque-id', undefined, 'Codex 1']] as const) {
+it('el avatar conserva llamadas antiguas sin inventar números de agente', () => {
+  for (const [id, instance] of [['codex-2', undefined], ['opaque-id', 7], ['opaque-id', undefined]] as const) {
     const { container, unmount } = render(<AgentAvatar id={id} provider="codex" instance={instance} size={32} />)
-    expect(screen.getByRole('img', { name: label })).toHaveTextContent(label)
-    expect(screen.getByRole('img')).toHaveStyle({ minHeight: '32px', width: 'auto' })
+    expect(screen.getByRole('img', { name: 'Codex' })).toHaveTextContent('Cx')
+    expect(screen.getByRole('img').style.getPropertyValue('--agent-size')).toBe('32px')
+    expect(container.querySelector('.k-agent-ordinal')).toBeNull()
     expect(container.querySelector('svg')).toBeNull()
     unmount()
   }

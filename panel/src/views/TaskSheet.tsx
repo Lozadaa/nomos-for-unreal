@@ -7,20 +7,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { SheetSkeleton } from '@/components/Skeletons'
 import { StageStepper } from '@/components/StageStepper'
+import { DecisionDetails, DecisionOptions, decisionText } from '@/components/DecisionOptions'
 import { StatusDot } from '@/components/StatusDot'
 import { nameFor } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { relativeTime } from '@/lib/time'
-import { areaLabel, providerLabel, shortId, statusOf, statusText, toneOf, type Decision, type Task, type TaskDetail } from '@/lib/tasks'
+import { areaLabel, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Decision, type Task, type TaskDetail } from '@/lib/tasks'
 import { patchTask, useStore } from '@/store'
+import { Glyph } from '@/visual/Glyph'
+import { glyphFor } from '@/visual/glyphs'
+import { AgentAvatar } from '@/visual/art/AgentAvatar'
+import { agentName, assignAgentNames } from '@/visual/art/agentName'
 import { ArtifactsTab, ChangesTab, TestsTab, TimelineTab, WorkerChatTab } from './TaskTabs'
 import { XIcon } from 'lucide-react'
 
-export function TaskSheet({ id, task: fromStore, onClose }: { id: string; task?: Task; onClose: () => void | Promise<void> }) {
+export interface AgentIdentity { name: string; ordinal?: number }
+
+export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
+  id: string; task?: Task; agentsByRunId?: ReadonlyMap<string, AgentIdentity>; onClose: () => void | Promise<void>
+}) {
   const [detail, setDetail] = useState<TaskDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const version = useStore((s) => s.version)
+  const waiting = useStore((s) => s.waiting[id])
   const [reloads, setReloads] = useState(0)
   const first = useRef(true)
 
@@ -40,6 +50,15 @@ export function TaskSheet({ id, task: fromStore, onClose }: { id: string; task?:
 
   const task = fromStore ?? detail?.task
   const slow = useAfter(!detail && !failed)
+  const orderedRuns = [...(detail?.runs ?? [])].sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
+  const runAgents = new Map(assignAgentNames(orderedRuns.map((run) => ({ ...run, area: task?.area })))
+    .map((agent) => [agent.id, agentsByRunId?.get(agent.id) ?? { name: agent.name, ordinal: agent.ordinal }]))
+  const assignee = orderedRuns.findLast((run) => run.state === 'running') ?? orderedRuns.at(-1)
+  const assigneeProvider = assignee?.provider ?? task?.assigneeProvider
+  const assigneeRole = assignee?.role ?? task?.assigneeRole
+  const assigneeAgent = assignee && runAgents.get(assignee.id)
+  const assigneeName = assigneeAgent?.name ?? (task ? agentName(assigneeRole, task.area) : '')
+  const assigneeState = assignee?.state !== 'running' ? 'idle' : waiting?.runId === assignee.id || assignee.metadata?.waiting ? 'waiting' : 'running'
 
   return (
     <Sheet open onOpenChange={(open) => { if (!open) void onClose() }}>
@@ -63,9 +82,10 @@ export function TaskSheet({ id, task: fromStore, onClose }: { id: string; task?:
           </div>
           {task && (
             <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="inline-flex items-center gap-2"><StatusDot tone={toneOf(task)} />{statusText(task)}</span>
-              <span>{areaLabel[task.area]}</span>
-              {task.assigneeProvider && <span>{[task.assigneeRole, providerLabel[task.assigneeProvider] ?? task.assigneeProvider].filter(Boolean).join(' · ')}</span>}
+              <span className="inline-flex items-center gap-2">Área: <Glyph kind="area" value={task.area} />{areaLabel[task.area]}</span>
+              <span className="inline-flex items-center gap-2">Estado: <Glyph kind="taskState" value={statusOf(task) === 'normal' ? task.state : statusOf(task)} tone={toneOf(task)} /><StatusDot tone={toneOf(task)} />{statusText(task)}</span>
+              {assigneeProvider && <span className="inline-flex items-center gap-2"><AgentAvatar id={assignee?.id ?? task.id} provider={assigneeProvider} name={assigneeName} ordinal={assigneeAgent?.ordinal} state={assigneeState} size={32} /><span>{assigneeName}</span><span>{providerLabel[assigneeProvider] ?? glyphFor('provider', assigneeProvider).label}</span>{assigneeRole && <Glyph kind="role" value={assigneeRole} />}</span>}
+              <span>Etapa: {stageLabel[task.state]}</span>
               <span>Actualizada {relativeTime(task.updatedAt)}</span>
             </SheetDescription>
           )}
@@ -90,7 +110,7 @@ export function TaskSheet({ id, task: fromStore, onClose }: { id: string; task?:
               ))}
             </TabsList>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <TabsContent value="resumen" className="p-6"><Summary detail={detail} task={task ?? detail.task} onStale={() => setReloads((n) => n + 1)} /></TabsContent>
+              <TabsContent value="resumen" className="p-6"><Summary detail={detail} task={task ?? detail.task} agentsByRunId={runAgents} onStale={() => setReloads((n) => n + 1)} /></TabsContent>
               <TabsContent value="chat" className="p-6"><WorkerChatTab detail={detail} /></TabsContent>
               <TabsContent value="cambios" className="p-6"><ChangesTab detail={detail} /></TabsContent>
               <TabsContent value="pruebas" className="p-6"><TestsTab detail={detail} /></TabsContent>
@@ -106,7 +126,10 @@ export function TaskSheet({ id, task: fromStore, onClose }: { id: string; task?:
 
 const label = 'text-xs font-medium tracking-wider text-muted-foreground uppercase'
 
-function Summary({ detail, task, onStale }: { detail: TaskDetail; task: Task; onStale: () => void }) {
+function Summary({ detail, task, agentsByRunId, onStale }: {
+  detail: TaskDetail; task: Task; agentsByRunId: ReadonlyMap<string, AgentIdentity>; onStale: () => void
+}) {
+  const waiting = useStore((s) => s.waiting[task.id])
   return (
     <div className="flex flex-col gap-6">
       {detail.decision?.state === 'open' && <DecisionCard decision={detail.decision} task={task} onStale={onStale} />}
@@ -132,7 +155,9 @@ function Summary({ detail, task, onStale }: { detail: TaskDetail; task: Task; on
             {detail.runs.map((r) => (
               <li key={r.id} className="flex items-baseline gap-3">
                 <StatusDot tone={r.state === 'running' ? 'info' : r.state === 'done' ? 'success' : r.state === 'failed' ? 'error' : 'neutral'} />
-                <span>{providerLabel[r.provider] ?? r.provider} · {r.role}</span>
+                <AgentAvatar id={r.id} provider={r.provider} name={agentsByRunId.get(r.id)?.name} ordinal={agentsByRunId.get(r.id)?.ordinal} state={r.state !== 'running' ? 'idle' : waiting?.runId === r.id || r.metadata?.waiting ? 'waiting' : 'running'} size={32} />
+                <span>{agentsByRunId.get(r.id)?.name}</span>
+                <Glyph kind="role" value={r.role} />
                 <span className="text-muted-foreground">{r.summary ?? ''}</span>
               </li>
             ))}
@@ -157,19 +182,12 @@ function DecisionCard({ decision, task, onStale }: { decision: Decision; task: T
   )
   const choose = (id: string) => { option.current = id; setChosen(id); void action.fire() }
   return (
-    <section aria-label="Decisión pendiente" className="flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4">
-      <h3 className="text-base font-medium">{decision.reason}</h3>
-      {decision.evidence.length > 0 && (
-        <ul className="text-xs text-muted-foreground">{decision.evidence.map((e) => <li key={e.ref}><span className="font-mono">{e.kind}</span> · {e.ref}</li>)}</ul>
-      )}
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Opciones">
-        {decision.options.map((o) => (
-          <div key={o.id} className="flex flex-col items-start gap-1">
-            <Button variant={chosen === o.id ? 'default' : 'outline'} aria-pressed={chosen === o.id} disabled={action.pending} onClick={() => choose(o.id)}>{o.label}</Button>
-            {o.description && <span className="max-w-48 text-xs text-muted-foreground">{o.description}</span>}
-          </div>
-        ))}
+    <section aria-label="Decisión pendiente" data-decision-card className="flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <h3 aria-label={decision.reason} title={decision.reason} className="text-base font-medium">{decisionText(decision).reason}</h3>
+        <DecisionDetails decision={decision} taskTitle={task.title} />
       </div>
+      <DecisionOptions decision={decision} area={task.area} selected={chosen} disabled={action.pending} onChoose={choose} />
       {action.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
       {action.error && !action.pending && <p className="text-xs text-error" role="alert">No se registró la elección. {humanError(action.error)}</p>}
     </section>

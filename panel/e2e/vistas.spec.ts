@@ -1,6 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const url = () => process.env.KRATOS_URL!
+
+// Estos casos verifican vistas y acciones; la guía tiene sus propios E2E.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+})
 const token = () => new URLSearchParams(new URL(url()).hash.slice(1)).get('token')!
 const origin = () => new URL(url()).origin
 const call = (page: Page, path: string, data?: unknown) =>

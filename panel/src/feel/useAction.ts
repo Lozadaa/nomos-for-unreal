@@ -13,6 +13,8 @@ export interface ActionOptions<T> {
   /** Recarga la decisión cuando el servidor responde 409 (decisión caducada). */
   reload?: () => void
   minPendingMs?: number
+  /** Las acciones de navegación o de abrir un campo conservan el foco de su destino. */
+  restoreFocus?: boolean
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
@@ -32,6 +34,7 @@ export function useAction<T>(run: () => Promise<T>, opts: ActionOptions<T> = {})
     const { run, opts } = latest.current
     const focused = document.activeElement as HTMLElement | null
     const restoreFocus = () => {
+      if (opts.restoreFocus === false) return
       if (focused?.isConnected && document.activeElement !== focused) focused.focus()
     }
     const started = Date.now()

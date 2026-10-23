@@ -39,7 +39,7 @@ export const glyphs = {
     desconectado: spec(PlugZap, 'Desconectado', 'error'),
   },
   provider: {
-    codex: provider('Codex', 'info'), claude: provider('Claude', 'warning'), meshy: provider('Meshy', 'success'),
+    codex: provider('Codex', 'info'), claude: provider('Claude', 'warning'), opencode: provider('OpenCode', 'success'), meshy: provider('Meshy', 'success'),
     blender: provider('Blender', 'warning'), unreal: provider('Unreal'), kratos: provider('Kratos', 'primary'), launcher: provider('Launcher', 'info'),
   },
   artifact: {

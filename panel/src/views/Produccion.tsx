@@ -2,21 +2,36 @@ import { useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Composer } from '@/components/Composer'
 import { RowsSkeleton } from '@/components/Skeletons'
 import { TaskRow } from '@/components/TaskRow'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useAfter, useNow } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
+import { useRuns } from '@/hooks/useRuns'
 import { stageLabel, stages, type Stage, type Task } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
+import { assignAgentNames } from '@/visual/art/agentName'
+import { ProductionMap } from '@/visual/art/ProductionMap'
+import { EmptyState } from '@/visual/art/EmptyState'
 
 type Filter = 'todas' | Stage
 
 export function Produccion() {
   const tasks = useStore((s) => s.tasks)
+  const runs = useRuns()
+  const byTask = useMemo(() => {
+    const map = new Map<string, (typeof runs)[number]>()
+    for (const run of [...runs].sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))) {
+      if (map.get(run.taskId)?.state !== 'running' || run.state === 'running') map.set(run.taskId, run)
+    }
+    return map
+  }, [runs])
+  const agentsByRunId = useMemo(() => new Map(assignAgentNames([...runs]
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
+    .map((run) => ({ ...run, area: tasks.find((t) => t.id === run.taskId)?.area, state: run.state === 'running' ? run.waiting ? 'waiting' : 'running' : 'idle' })))
+    .map((agent) => [agent.id, { name: agent.name, ordinal: agent.ordinal }])), [runs, tasks])
   const loaded = useStore((s) => s.loaded)
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -36,12 +51,6 @@ export function Produccion() {
   const groups = useMemo(() => stages
     .map((stage) => ({ stage, rows: tasks.filter((t) => t.state === stage && matches(t)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) }))
     .filter((g) => g.rows.length), [tasks, filter, q]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const counts = useMemo(() => {
-    const c = new Map<Stage, number>()
-    for (const t of tasks) c.set(t.state, (c.get(t.state) ?? 0) + 1)
-    return c
-  }, [tasks])
 
   const go = (to: string) => withViewTransition(() => navigate(to, { flushSync: true }))
   const rowOf = (id: string | null) => document.querySelector<HTMLElement>(`[data-task-id="${CSS.escape(id ?? '')}"]`)
@@ -69,22 +78,17 @@ export function Produccion() {
     <div className="flex flex-col gap-6">
       <Composer autoFocus={params.get('nueva') === '1'} isVisible={matches} onHidden={clearFilters} />
 
+      {loaded && <figure data-tour="mapa" data-tour-anchor="map" className="rounded-lg border border-subtle px-4 pb-3">
+        <ProductionMap tasks={tasks} selected={filter === 'todas' ? undefined : filter}
+          onSelect={(stage) => void animateUpdate(() => setFilter(filter === stage ? 'todas' : stage))}
+          onKeyboardSelect={(stage) => void withViewTransition(() => setFilter(filter === stage ? 'todas' : stage), { animate: false })} />
+        <figcaption className="grid grid-cols-8 text-center text-xs text-muted-foreground">
+          {stages.map((stage) => <span key={stage} className={filter === stage ? 'font-medium text-foreground' : undefined}>{stageLabel[stage]}</span>)}
+        </figcaption>
+      </figure>}
+
       <div className="flex flex-wrap items-center gap-3">
-        <ToggleGroup
-          aria-label="Filtrar por etapa"
-          value={[filter]}
-          onValueChange={(v) => void animateUpdate(() => setFilter(v[0] ?? 'todas'))}
-          variant="outline"
-          size="sm"
-          spacing={0}
-        >
-          <ToggleGroupItem value="todas">Todas</ToggleGroupItem>
-          {stages.map((s) => (
-            <ToggleGroupItem key={s} value={s}>
-              {stageLabel[s]}{counts.get(s) ? <span className="ml-1.5 font-mono text-xs text-muted-foreground">{counts.get(s)}</span> : null}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <Button variant="outline" size="sm" aria-pressed={filter === 'todas'} onClick={() => void animateUpdate(() => setFilter('todas'))}>Todas</Button>
         <Input
           type="search"
           value={query}
@@ -98,26 +102,21 @@ export function Produccion() {
       <section aria-label="Producción" className="overflow-hidden rounded-lg border border-subtle">
         {!loaded ? (showSkeleton ? <RowsSkeleton /> : <div className="h-48" />)
           : groups.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-              <h2 className="text-base font-medium">{filtering ? 'Ninguna tarea coincide con el filtro' : 'Escribe la primera petición a Kratos'}</h2>
-              <p className="text-sm text-muted-foreground">{filtering ? 'Prueba con otra etapa o con otra búsqueda.' : 'Kratos la convierte en tareas y las reparte.'}</p>
-              {filtering
-                ? <Button variant="outline" size="sm" onClick={clearFilters}>Quitar filtro</Button>
-                : <Button size="sm" onClick={() => document.querySelector<HTMLInputElement>('input[aria-label="Título de la petición"]')?.focus()}>Nueva petición</Button>}
-            </div>
+            <EmptyState view="produccion" message={filtering ? 'Ninguna tarea coincide con el filtro' : undefined}
+              action={filtering ? { label: 'Quitar filtro', onClick: clearFilters } : { label: 'Nueva petición', onClick: () => document.querySelector<HTMLInputElement>('input[aria-label="Título de la petición"]')?.focus() }} />
           ) : groups.map(({ stage, rows }) => (
             <div key={stage} role="group" aria-labelledby={`etapa-${stage}`}>
               <h2 id={`etapa-${stage}`} className="flex h-8 items-center gap-2 border-b border-subtle bg-card px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">
                 {stageLabel[stage]}<span className="font-mono">{rows.length}</span>
               </h2>
               <ul>
-                {rows.map((t) => <li key={t.id}><TaskRow task={t} now={now} open={t.id === openId} onOpen={open} /></li>)}
+                {rows.map((t) => <li key={t.id}><TaskRow task={t} run={byTask.get(t.id)} agent={agentsByRunId.get(byTask.get(t.id)?.id ?? '')} now={now} open={t.id === openId} onOpen={open} /></li>)}
               </ul>
             </div>
           ))}
       </section>
 
-      {openId && <TaskSheet id={openId} task={openTask} onClose={close} />}
+      {openId && <TaskSheet id={openId} task={openTask} agentsByRunId={agentsByRunId} onClose={close} />}
     </div>
   )
 }

@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 const url = () => process.env.KRATOS_URL!
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+})
 const token = () => new URLSearchParams(new URL(url()).hash.slice(1)).get('token')!
 
 // Review Focus 5: 500 eventos en Actividad no bloquean el hilo principal más de lo razonable, y un evento nuevo no provoca un frame largo.

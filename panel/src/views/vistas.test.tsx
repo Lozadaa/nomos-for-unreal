@@ -113,9 +113,9 @@ describe('Actividad: carriles estables', () => {
     act(() => { ingest(event('task.activity', { payload: { source: 'Codex', taskId: 't1' } })); ingest(event('task.activity', { payload: { source: 'Kratos', taskId: 't2' } })) })
     inRouter(<Actividad />)
     expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2)
-    fireEvent.change(screen.getByLabelText('Tarea'), { target: { value: 't1' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Tarea' }), { target: { value: 't1' } })
     await waitFor(() => expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(1))
-    fireEvent.change(screen.getByLabelText('Tarea'), { target: { value: '' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Tarea' }), { target: { value: '' } })
     await waitFor(() => expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2))
   })
 
@@ -170,12 +170,12 @@ describe('Catálogo', () => {
     serve(() => [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Explorador', license: null }), entry({ id: 'c3', name: 'Instalado', state: 'imported', projects: ['CrazyPadel'] })])
     inRouter(<Catalogo />)
     await screen.findByText('Bruno')
-    const card = (name: string) => screen.getByText(name).closest('li')!
+    const card = (name: string) => screen.getByRole('heading', { name }).closest('li')!
     expect(within(card('Bruno')).getByText(/Prohibido para IA/)).toBeInTheDocument()
     expect(within(card('Bruno')).queryByRole('button')).toBeNull()
-    expect(within(card('Explorador')).getByText('Licencia desconocida')).toBeInTheDocument()
+    expect(within(card('Explorador')).getByRole('img', { name: 'Licencia desconocida' })).toBeInTheDocument()
     expect(within(card('Explorador')).getByRole('button', { name: 'Revisar licencia' })).toBeInTheDocument()
-    expect(within(card('Instalado')).getByText('Instalado en CrazyPadel')).toBeInTheDocument()
+    expect(within(card('Instalado')).getByLabelText('Instalado en CrazyPadel')).toBeInTheDocument()
   })
 
   it('«Preparar para Unreal» muestra pendiente ≥ 300 ms y, si el servicio aún no acepta la orden, lo dice en la tarjeta', async () => {

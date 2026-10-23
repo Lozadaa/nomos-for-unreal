@@ -10,7 +10,7 @@ vi.mock('@/api', () => ({
   api: vi.fn(),
 }))
 import { api } from '@/api'
-import { refresh, resetStore } from '@/store'
+import { ingest, refresh, resetStore } from '@/store'
 import { Produccion } from './Produccion'
 
 const mockApi = vi.mocked(api)
@@ -43,6 +43,21 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Producción: lista viva', () => {
+  it('los agentes vivos comparten nombres cortos y ordinal solo si coinciden, con estado real', async () => {
+    server = [task(1, { area: 'ui', assigneeProvider: 'codex' }), task(2, { area: 'ui', assigneeProvider: 'opencode' })]
+    mockApi.mockImplementation((async (path: string) => path === '/tasks' ? [...server] : {
+      run: { id: path.endsWith('r1') ? 'r1' : 'r2', taskId: server[path.endsWith('r1') ? 0 : 1].id, role: 'implementacion', provider: path.endsWith('r1') ? 'codex' : 'opencode', state: 'running', startedAt: '', finishedAt: null, summary: null },
+      latestStatus: { waiting: path.endsWith('r2') },
+    }) as typeof api)
+    for (let i = 1; i <= 2; i++) ingest({ seq: i, id: `e${i}`, type: 'task.activity', messageId: null, payload: { runId: `r${i}` }, createdAt: '' })
+    await mount()
+    const first = await screen.findByRole('img', { name: 'UI Worker · Codex' })
+    const second = await screen.findByRole('img', { name: 'UI Worker 2 · OpenCode' })
+    expect(first).toHaveAttribute('data-state', 'running')
+    expect(second).toHaveAttribute('data-state', 'waiting')
+    expect(first.querySelector('.k-agent-ordinal')).toHaveTextContent('1')
+    expect(second.querySelector('.k-agent-ordinal')).toHaveTextContent('2')
+  })
   it('agrupa por etapa con cabeceras y una fila por tarea', async () => {
     await mount()
     expect(screen.getByRole('group', { name: /Pendiente/ })).toBeInTheDocument()

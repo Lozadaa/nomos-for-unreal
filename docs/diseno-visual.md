@@ -6,7 +6,7 @@ Esta dirección **sustituye** a la «A · Sala de control densa» del hito 1a (t
 
 1. **Oscura y plana.** Superficies `surface-primary` (negro) y `surface-secondary`; separación con bordes de alfa blanco (`border-subtle|default|strong`). **Sin sombras**: la elevación es borde más fondo. Radio de 8 px (6 px en controles pequeños).
 2. **Geist.** Geist Sans para todo; Geist Mono para ids, rutas, comandos y cifras. Autoalojadas (`@fontsource-variable`).
-3. **El estado se dice con un punto y con texto.** `success`, `warning`, `error`, `info`, `neutral`. Nunca un chip relleno, nunca solo color. Azul solo para foco, enlaces y la acción primaria.
+3. **El estado se dice con forma y color.** `success`, `warning`, `error`, `info`, `neutral`. El glifo tiene nombre accesible y tooltip; el detalle conserva el texto. Nunca solo color. Azul para foco, enlaces, acción primaria y datos de actividad.
 4. **Producción es una lista viva**, no un tablero: filas de 48 px agrupadas por etapa; el detalle abre en un panel lateral de 720 px con un stepper horizontal de la etapa. Sin arrastrar y soltar.
 5. **Sin modales para pedir cosas.** El compositor de peticiones se expande en el sitio.
 6. **Copy en español**, de `docs/diseno/estados.md`, con errores que dicen qué pasó y qué hacer (`panel/src/lib/errors.ts` traduce los códigos del servicio).
@@ -48,9 +48,25 @@ Curva única `cubic-bezier(.2,.8,.2,1)` (`--k-ease`); duraciones `micro 120 · e
 
 ## Vistas
 
-Producción (lista + detalle + compositor), Actividad (siete carriles con ejes estables y etiqueta al pasar o enfocar), Entregas (rejilla con visor GLB `<model-viewer>`), Catálogo (rejilla con filtros segmentados; «Prohibido para IA» como texto, licencia desconocida con punto ámbar), Chat (burbuja optimista «Enviado» → «Recibido»), Decisiones (bandeja `j`/`k`, opción elegida resaltada al instante), Presupuesto (cifras grandes con tick, barras de 2 px), Capacidades, y **Estilo**, la guía de todo lo anterior en todos sus estados con un conmutador «Peor caso» (datos extremos reales: nombre largo con emoji, una letra, texto CJK, proveedor desconocido, motivo de 240 caracteres).
+Producción (mapa + lista + detalle + compositor), Actividad (siete carriles y actividad por hora etiquetada), Entregas (rejilla con visor GLB `<model-viewer>`), Catálogo (miniatura o pictograma, fuente en pastilla y filtros; «Prohibido para IA» visible, licencia desconocida con acción «Revisar licencia»), Chat (emisor identificado y recepción con marca), Decisiones (bandeja `j`/`k`, tarjetas de opción y evidencia en «Detalle»), Presupuesto (cifras con tick, anillos y límites editables), Capacidades (grupos de agentes y estado), y **Estilo**, la guía con el conmutador «Peor caso».
 
 Capturas de cada vista a ambas resoluciones: `docs/capturas-8/`.
+
+## Lenguaje visual
+
+Integración del hito 9 en `hito9-vistas`: [tabla de glifos, nombres y ubicaciones](diseno/glifos.md) y [auditoría con evidencia](auditoria-9-cierre.md). Las dos correcciones del brief mandan sobre las ilustraciones y avatares del plan original.
+
+- El registro `panel/src/visual/glyphs.ts` tiene 38 entradas: 8 áreas, 10 estados de tarea, 5 del director, 8 proveedores en pastilla y 7 artefactos. Son 30 iconos únicos y 8 pastillas; OpenCode es el único proveedor añadido. Roles y eventos sin símbolo claro usan texto corto; las fuentes usan pastilla. Los glifos tienen `role="img"` y nombre accesible; desconocidos conservan su etiqueta.
+- Un agente usa monograma circular del implementador, nombre `{Área} {Rol}` y anillo de estado. Ejemplos: UI Worker, UI Master; tabla completa en la guía. Solo los duplicados vivos llevan ordinal. Grupo apilado desde Capacidades y Estilo; el proveedor sin agente conserva `ProviderPill`.
+- Arte únicamente en código, con tokens. `AreaPictogram` amplía el icono de área. Cada vacío usa un icono de 48 px, exactamente una frase y una acción funcional. No hay cabeceras decorativas ni series de datos inventadas.
+- Producción muestra mapa de ocho etapas y cantidades reales: hasta doce tareas dibuja puntos; después solo contadores. Pulsar o activar un nodo con teclado filtra. Las filas reservan el texto para título, id, nombre y antigüedad. Etapa, proveedor y estado completo siguen en tooltip y Sheet.
+- `Sparkline` usa eventos recibidos por hora y carriles con nombre visible. `Ring` muestra porcentaje solo cuando existe límite o progreso real; `DiffBars` usa el stat real del diff. Los presupuestos conservan «Definir límite» y `PUT /budget`.
+- Catálogo usa la miniatura servible del mismo origen o el pictograma de categoría. Entregas usa visor 3D sin giro automático, imagen para captura y FileText para informe. Las opciones de decisión mantienen su etiqueta completa y descripción accesibles aunque abrevien el texto superficial.
+- `visibleWords` cuenta tokens Unicode del DOM renderizado, también fuera del viewport. Ignora atributos, ayudas ocultas, tooltips cerrados y valores de campos; en select cerrado cuenta solo la opción seleccionada. Presupuestos: fila de Producción ≤7 sin título/id, tarjeta de Catálogo ≤5, tarjeta de Decisión ≤20, franja del director ≤4 más hora, cabecera ≤4. Son límites de componentes, no un límite total de palabras por vista.
+- La guía inicial tiene tres pasos anclados al director, compositor y mapa; Esc o «Cerrar guía» la descarta. Se recuerda en `kratos.tour.v1` al presentarse. «Ver guía» en la paleta permite repetirla. El primer paso conserva la ruta del enlace directo; «Siguiente» lleva a Producción si hace falta. `?` abre la leyenda en un Sheet y Esc devuelve el foco; no intercepta campos de texto, select, contenido editable ni diálogos abiertos.
+- Navegación por `withViewTransition`, acciones por `useAction`, sin bucles decorativos. Con movimiento reducido, el mapa y los anillos quedan estáticos; el resto conserva las reglas del hito 8.
+
+Evidencia actual a 1366×768 y 1920×1080 en `docs/capturas-9/`. La prueba humana de comprensión en cinco segundos sigue pendiente.
 
 ## Qué queda descartado
 

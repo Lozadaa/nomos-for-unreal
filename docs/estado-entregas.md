@@ -1,6 +1,6 @@
 # Estado de las entregas
 
-Actualizado el 2026-10-23 en `main` tras fusionar los hitos 8 y 2. «Verificado» significa que se ejecutó en esta sesión; lo demás se da por el estado del repositorio y no se volvió a comprobar.
+Actualizado el 2026-10-23 en `hito9-vistas`, con los hitos 8 y 2 ya en su base. El hito 9 se entrega en esta rama, sin push ni merge. Las cifras de hitos anteriores son evidencia histórica; las verificaciones nuevas se detallan en [el cierre del hito 9](auditoria-9-cierre.md).
 
 | Hito | Estado | Evidencia |
 |---|---|---|
@@ -10,19 +10,23 @@ Actualizado el 2026-10-23 en `main` tras fusionar los hitos 8 y 2. «Verificado�
 | 8 · Interfaz viva, Tareas 1-3 | En `main` | base visual, capa de sensación, shell |
 | 8 · Interfaz viva, Tareas 4-6 | En `main` | `docs/auditoria-8-cierre.md`, `docs/medicion-8.json`, `docs/capturas-8/` |
 | 2 · Primer worker | En `main` (fusionado el 2026-10-23; aceptación real con Codex) | `docs/aceptacion-hito2.md`, sección «Hito 2» más abajo |
-| 3-7 | Con plan, sin empezar | `docs/superpowers/plans/` |
+| 9 · Lenguaje visual | Tareas 3–6 completas en `hito9-vistas`; Tareas 1–2/corrección en la base | `docs/auditoria-9-cierre.md`, `docs/capturas-9/`, `docs/diseno/glifos.md` |
+| 3 | En rama paralela según el brief; no se modifica ni valida aquí | `docs/superpowers/plans/` |
+| 4-7 | Con plan; estado no revisado en este cierre | `docs/superpowers/plans/` |
 
 ## Hito 8 (Tareas 4-6): lo que hay y lo que espera
 
-**Hecho y verificado**: Producción como lista viva con detalle compartido y compositor; Chat, Actividad, Entregas, Catálogo, Decisiones, Presupuesto, Capacidades y Estilo; `GET /status` con `project`. `npm test` 68/68 · Vitest 77/77 · build verde (204,9 KB gzip de JS inicial) · Playwright en Chromium y Firefox 37 pasadas, 3 omitidas con motivo · revisión final independiente hecha (1 crítico y 7 importantes arreglados; menores diferidos en la auditoría). INP < 200 ms en las cinco acciones principales, también con CPU ×4.
+**Hecho; verificación histórica al cerrar el hito 8**: Producción como lista viva con detalle compartido y compositor; Chat, Actividad, Entregas, Catálogo, Decisiones, Presupuesto, Capacidades y Estilo; `GET /status` con `project`. `npm test` 68/68 · Vitest 77/77 · build verde (204,9 KB gzip de JS inicial) · Playwright en Chromium y Firefox 37 pasadas, 3 omitidas con motivo · revisión final independiente hecha (1 crítico y 7 importantes arreglados; menores diferidos en la auditoría). INP < 200 ms en las cinco acciones principales, también con CPU ×4. Estas mediciones de INP no se repitieron para el hito 9.
 
-**Espera a rutas del hito 2** (el panel ya está programado contra el contrato del plan y lo dice con «Disponible cuando haya workers» ante 404): pestañas **Cambios** y **Chat** del detalle (`GET /runs/:id/diff`, `GET /runs/:id/output?since=`, `POST /runs/:id/message`).
+**Integrado sobre la base del hito 2**: pestañas **Cambios** y **Chat** del detalle (`GET /runs/:id/diff`, `GET /runs/:id/output?since=`, `POST /runs/:id/message`). En el hito 9 se capturan salida, espera y diff de un repositorio temporal real; no se repite el worker Codex de la aceptación histórica.
 
-**Espera a rutas que no están en ningún plan cerrado**: crear comandos (`POST /commands`: «Preparar para Unreal», ⌘K «Indexar» y «Pausar»), fijar límites de presupuesto, deshacer una decisión, listar mensajes.
+**Disponible**: Pausar/Reanudar usa las rutas del director; los límites editables usan `PUT /budget`. Las decisiones resueltas no se deshacen: una decisión caducada se regenera, como establece el contrato de estados.
+
+**Espera al servicio**: crear comandos (`POST /commands`, «Preparar para Unreal»; «Indexar» sigue deshabilitado), servir miniaturas del catálogo guardadas como rutas locales y listar el historial completo de mensajes. El panel indica el fallo al preparar, conserva «Revisar licencia» y usa pictograma cuando una miniatura no es servible.
 
 **Pendiente de rendimiento**: frames largos con CPU ×4 y la primera pintura de 500 eventos de Actividad (cifras en la auditoría).
 
-**Pendiente del servicio (Codex)**: `'wasm-unsafe-eval'` en la política de seguridad para el visor 3D.
+**Visor 3D**: la prueba E2E de Chromium carga el GLB y la imagen reales con la política de seguridad actual. Su caso de Firefox conserva la exclusión histórica; no se afirma comprobación del visor en ese navegador.
 
 ## Cómo repetirlo
 
