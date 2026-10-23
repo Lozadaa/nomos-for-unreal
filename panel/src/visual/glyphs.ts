@@ -67,12 +67,12 @@ function eventEntity(value: string, providerValue?: string): GlyphSpec {
     case 'worker': return providerValue ? glyphFor('provider', providerValue) : spec(Bot, 'Agente')
     case 'command': return spec(ListChecks, 'Orden')
     case 'lease': return spec(Lock, 'Reserva')
-    case 'decision': return glyphs.taskState.decision
-    case 'review': return glyphs.taskState.revisando
-    case 'test': return glyphs.taskState.probando
-    case 'integration': return glyphs.taskState.integrando
+    case 'decision': return { ...glyphs.taskState.decision, label: 'Decisión', tone: 'neutral' }
+    case 'review': return { ...glyphs.taskState.revisando, label: 'Revisión', tone: 'neutral' }
+    case 'test': return { ...glyphs.taskState.probando, label: 'Prueba', tone: 'neutral' }
+    case 'integration': return { ...glyphs.taskState.integrando, label: 'Integración', tone: 'neutral' }
     case 'artifact': return { ...glyphs.artifact.build, label: 'Entrega' }
-    case 'director': return glyphs.directorState.escuchando
+    case 'director': return { ...glyphs.directorState.escuchando, label: 'Director', tone: 'neutral' }
     case 'message': return text('Mensaje')
     case 'reply': return text('Respuesta')
     case 'download': return text('Descarga')

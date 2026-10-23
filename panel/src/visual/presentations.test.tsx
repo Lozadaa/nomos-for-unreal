@@ -27,3 +27,9 @@ it('los eventos reutilizan su entidad y las ejecuciones identifican al proveedor
   expect(screen.getByRole('img', { name: 'Claude' })).toHaveTextContent('Claude')
   expect(screen.getByText('Mensaje')).toBeVisible()
 })
+
+it('un evento resuelto o detenido no anuncia un estado activo que no conoce', () => {
+  expect(glyphFor('event', 'decision.resolved')).toMatchObject({ label: 'Decisión', tone: 'neutral' })
+  expect(glyphFor('event', 'director.stopped')).toMatchObject({ label: 'Director', tone: 'neutral' })
+  expect(glyphFor('event', 'review.completed')).toMatchObject({ label: 'Revisión', tone: 'neutral' })
+})
