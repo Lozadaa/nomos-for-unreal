@@ -12,7 +12,7 @@ import { parseArgs } from "node:util";
 import { acquireLock } from "./lock.ts";
 import { production, databaseDirectory } from "./routes/index.ts";
 import { panelStatic } from "./static.ts";
-import { projectInfo } from "./project.ts";
+import { projectInfo } from "./project-root.ts";
 import { startRunner, type Handler } from './runner.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
