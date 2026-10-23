@@ -1,0 +1,139 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Tokens de Vercel (vercel-brand.css, tema oscuro) copiados como valores: ver design/vendor/LICENSE-NOTE.md */
+:root {
+  color-scheme: dark;
+  --vbg-surface-primary: oklch(0 0 0);
+  --vbg-surface-secondary: oklch(0.027 0 0);
+  --vbg-text-primary: oklch(0.946 0 0);
+  --vbg-text-secondary: oklch(0.706 0 0);
+  --vbg-border-subtle: oklch(1 0 0 / 0.13);
+  --vbg-border-default: oklch(1 0 0 / 0.14);
+  --vbg-border-strong: oklch(1 0 0 / 0.54);
+  --vbg-color-info: oklch(57.61% 0.2321 258.23);
+  --vbg-color-primary: oklch(53.18% 0.2399 256.99);
+  --vbg-color-success: oklch(73.1% 0.2158 148.29);
+  --vbg-color-warning: oklch(77.21% 0.1991 64.28);
+  --vbg-color-error: oklch(62.56% 0.2234 23.03);
+  --vbg-focus: oklch(71.7% 0.1648 250.794);
+  --vbg-gray-100: oklch(0.218 0 0);
+  --vbg-gray-200: oklch(0.239 0 0);
+  --vbg-space-1: 4px;
+  --vbg-space-2: 8px;
+  --vbg-space-3: 12px;
+  --vbg-space-4: 16px;
+  --vbg-space-5: 20px;
+  --vbg-space-6: 24px;
+  --vbg-space-8: 32px;
+  --vbg-space-10: 40px;
+  --vbg-space-12: 48px;
+  --vbg-space-16: 64px;
+  --vbg-radius-small: 6px;
+  --vbg-radius: 8px;
+
+  /* shadcn ← vbg */
+  --background: var(--vbg-surface-primary);
+  --foreground: var(--vbg-text-primary);
+  --card: var(--vbg-surface-secondary);
+  --card-foreground: var(--vbg-text-primary);
+  --popover: var(--vbg-surface-secondary);
+  --popover-foreground: var(--vbg-text-primary);
+  --primary: var(--vbg-color-primary);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--vbg-gray-100);
+  --secondary-foreground: var(--vbg-text-primary);
+  --muted: var(--vbg-gray-100);
+  --muted-foreground: var(--vbg-text-secondary);
+  --accent: var(--vbg-gray-100);
+  --accent-foreground: var(--vbg-text-primary);
+  --destructive: var(--vbg-color-error);
+  --border: var(--vbg-border-default);
+  --input: var(--vbg-border-strong);
+  --ring: var(--vbg-focus);
+  --radius: var(--vbg-radius);
+
+  /* estado y tipografía propios */
+  --k-success: var(--vbg-color-success);
+  --k-warning: var(--vbg-color-warning);
+  --k-error: var(--vbg-color-error);
+  --k-info: var(--vbg-color-info);
+  --k-neutral: var(--vbg-text-secondary);
+  --k-font-sans: "Geist Variable", system-ui, sans-serif;
+  --k-font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --k-header: 56px;
+  --k-tabs: 40px;
+  --k-content: 1400px;
+  --k-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --k-dur-micro: 120ms;
+  --k-dur-standard: 180ms;
+  --k-dur-panel: 220ms;
+  --k-dur-reorder: 260ms;
+}
+
+@theme inline {
+  --font-sans: var(--k-font-sans);
+  --font-heading: var(--k-font-sans);
+  --font-mono: var(--k-font-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--k-success);
+  --color-warning: var(--k-warning);
+  --color-error: var(--k-error);
+  --color-info: var(--k-info);
+  --color-neutral: var(--k-neutral);
+  --color-subtle: var(--vbg-border-subtle);
+  --color-strong: var(--vbg-border-strong);
+  --radius-sm: var(--vbg-radius-small);
+  --radius-md: var(--vbg-radius-small);
+  --radius-lg: var(--vbg-radius);
+  --radius-xl: var(--vbg-radius);
+  --radius-2xl: var(--vbg-radius);
+  --radius-3xl: var(--vbg-radius);
+  --radius-4xl: var(--vbg-radius);
+  --spacing-6: var(--vbg-space-6);
+  --ease-k: var(--k-ease);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+}
+
+/* Transiciones de vista: crossfade de 180 ms; con movimiento reducido, fundidos de 80 ms */
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: var(--k-dur-standard); animation-timing-function: var(--k-ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 80ms; }
+  ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 80ms; }
+}
+
+/* Respaldo sin View Transitions (Firefox hoy): fundido CSS equivalente */
+@keyframes k-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.fallback-fade { animation: k-fade-in var(--k-dur-standard) var(--k-ease); }
+@media (prefers-reduced-motion: reduce) { .fallback-fade { animation-duration: 80ms; } }
+
+/* Punto del director latiendo suave (2 s) */
+@keyframes k-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.k-pulse { animation: k-pulse 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .k-pulse { animation: none; } }

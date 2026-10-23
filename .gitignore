@@ -4,3 +4,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 .claude/skills/*/node_modules/
+
+# panel
+panel/node_modules/
+panel/dist/
+.superpowers/

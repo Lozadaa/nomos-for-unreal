@@ -36,27 +36,38 @@ export function buildCss(tokens: any): string {
   ].join("\n");
 }
 
-function channel(hex: string, start: number): number {
-  const c = parseInt(hex.slice(start, start + 2), 16) / 255;
-  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+/** Canales sRGB lineales (0-1) de un color #RRGGBB u `oklch(L C H [/ A])` (L como número o porcentaje). */
+function linearRgb(color: string): [number, number, number] {
+  const m = color.match(/^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)/i);
+  if (m) {
+    const L = Number(m[1]) / (m[2] ? 100 : 1), C = Number(m[3]), h = (Number(m[4]) * Math.PI) / 180;
+    const a = C * Math.cos(h), b = C * Math.sin(h);
+    const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const mm = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    return [
+      clamp(4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * s),
+      clamp(-1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * s),
+      clamp(-0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * s),
+    ];
+  }
+  const h = color.replace("#", "");
+  return [0, 2, 4].map((i) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
 }
 
-function luminance(hex: string): number {
-  const h = hex.replace("#", "");
-  return 0.2126 * channel(h, 0) + 0.7152 * channel(h, 2) + 0.0722 * channel(h, 4);
+function luminance(color: string): number {
+  const [r, g, b] = linearRgb(color);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** Relación de contraste WCAG 2.x entre dos colores #RRGGBB. */
-export function contrast(hexA: string, hexB: string): number {
-  const [hi, lo] = [luminance(hexA), luminance(hexB)].sort((a, b) => b - a);
+/** Relación de contraste WCAG 2.x entre dos colores (#RRGGBB u oklch sin transparencia). */
+export function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
-}
-
-/** Mezcla `ratio` de hexA con el resto de hexB en sRGB, como `color-mix(in srgb, A ratio%, B)`. */
-export function mix(hexA: string, hexB: string, ratio: number): string {
-  const a = hexA.replace("#", ""), b = hexB.replace("#", "");
-  const ch = (i: number) => Math.round(parseInt(a.slice(i, i + 2), 16) * ratio + parseInt(b.slice(i, i + 2), 16) * (1 - ratio));
-  return "#" + [0, 2, 4].map((i) => ch(i).toString(16).padStart(2, "0")).join("");
 }
 
 if (import.meta.main) {

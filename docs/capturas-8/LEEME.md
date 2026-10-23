@@ -1,0 +1,1 @@
+Capturas hechas con Google Chrome 155.0.8059.85 (headless=new, --window-size 1366x768 y 1920x1080) contra node service/src/cli.ts start --data .kratos, con latidos de director simulados por POST /director/heartbeat (sesión demo) para mostrar el punto verde.

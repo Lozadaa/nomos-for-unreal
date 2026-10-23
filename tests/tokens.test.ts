@@ -4,89 +4,86 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { contrast, buildCss, mix } from "../design/build-tokens.ts";
+import { contrast, buildCss } from "../design/build-tokens.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const tokens = JSON.parse(readFileSync(join(root, "design/tokens.json"), "utf8"));
 const { color } = tokens;
 
-test("tokens.json tiene todas las claves y 10 estados de tarea y 5 del director", () => {
+test("tokens.json v2 tiene todas las claves, 10 estados de tarea y 5 del director", () => {
   const expected = {
     color: ["primary", "primaryHover", "primaryText", "bgLayout", "bgContainer", "bgSubtle", "text", "textSecondary",
-      "textTertiary", "border", "success", "warning", "error", "info", "neutral", "purple"],
+      "textTertiary", "border", "borderDefault", "borderStrong", "focus", "success", "warning", "error", "info", "neutral", "purple"],
     font: ["sans", "mono"],
     size: ["xs", "sm", "md", "lg", "xl", "xxl"],
     radius: ["sm", "md", "lg"],
-    shadow: ["1", "2"],
-    layout: ["sidebar", "sidebarCollapsed", "header", "drawer", "control"],
+    layout: ["header", "drawer", "control", "tabs", "content"],
   };
   for (const [group, keys] of Object.entries(expected)) {
     for (const key of keys) assert.ok(key in tokens[group], `falta ${group}.${key}`);
   }
-  assert.deepEqual(tokens.space, [4, 8, 12, 16, 24, 32, 48]);
+  assert.deepEqual(tokens.shadow, {}, "Vercel no usa sombras");
+  assert.equal(tokens.font.sans, "Geist Variable");
+  assert.equal(tokens.font.mono, "Geist Mono Variable");
+  assert.equal(tokens.radius.sm, 6);
+  assert.equal(tokens.radius.md, 8);
+  assert.deepEqual(tokens.space, [4, 8, 12, 16, 20, 24, 32, 40, 48, 64]);
   assert.equal(Object.keys(tokens.taskState).length, 10);
   assert.equal(Object.keys(tokens.directorState).length, 5);
-  for (const target of [...Object.values(tokens.taskState), ...Object.values(tokens.directorState)]) {
+  const permitidos = ["success", "warning", "error", "info", "neutral", "primary"];
+  for (const target of [...Object.values(tokens.taskState), ...Object.values(tokens.directorState)] as string[]) {
     assert.ok(target in color, `el estado apunta a un color inexistente: ${target}`);
+    assert.ok(permitidos.includes(target), `estado fuera de la paleta de puntos: ${target}`);
   }
 });
 
-test("tokens.css generado coincide con el JSON", () => {
-  // primero el archivo versionado tal como está: si tokens.json cambió y nadie regeneró el CSS, esto falla
+test("tokens.css generado coincide con el JSON y lleva los valores oklch de Vercel", () => {
   const css = readFileSync(join(root, "design/tokens.css"), "utf8");
   assert.equal(css, buildCss(tokens), "design/tokens.css está desfasado: ejecuta `node design/build-tokens.ts`");
-  // y el script de generación escribe lo mismo
   execFileSync(process.execPath, [join(root, "design/build-tokens.ts")]);
   assert.equal(readFileSync(join(root, "design/tokens.css"), "utf8"), css);
   for (const line of [
-    `--k-color-primary: ${color.primary};`,
-    "--k-color-primary-hover: ",
+    "--k-color-bg-layout: oklch(0 0 0);",
+    "--k-color-bg-subtle: oklch(0.027 0 0);",
+    "--k-color-text: oklch(0.946 0 0);",
+    "--k-color-text-secondary: oklch(0.706 0 0);",
+    "--k-color-border: oklch(1 0 0 / 0.13);",
+    "--k-color-border-strong: oklch(1 0 0 / 0.54);",
+    "--k-color-focus: oklch(71.7% 0.1648 250.794);",
+    "--k-color-info: oklch(57.61% 0.2321 258.23);",
+    "--k-color-success: oklch(73.1% 0.2158 148.29);",
+    "--k-color-warning: oklch(77.21% 0.1991 64.28);",
+    "--k-color-error: oklch(62.56% 0.2234 23.03);",
+    "--k-font-sans: Geist Variable;",
     "--k-size-md: 14px;",
+    "--k-radius-sm: 6px;",
     "--k-radius-md: 8px;",
-    `--k-shadow-1: ${tokens.shadow["1"]};`,
-    "--k-space-3: 16px;",
-    "--k-layout-sidebar: 248px;",
-    "--k-layout-drawer: 720px;",
+    "--k-space-9: 64px;",
+    "--k-layout-header: 56px;",
     ".k-state-pendiente { --k-state: var(--k-color-neutral);",
     ".k-director-escuchando { --k-state: var(--k-color-success);",
     ".k-director-vigilante-caido { --k-state: var(--k-color-warning);",
   ]) assert.ok(css.includes(line), `tokens.css no contiene: ${line}`);
+  assert.ok(!css.includes("--k-shadow"), "no hay sombras");
 });
 
-test("contraste AA", () => {
-  assert.ok(contrast(color.text, color.bgContainer) >= 4.5);
-  assert.ok(contrast(color.textSecondary, color.bgContainer) >= 4.5);
-  assert.ok(contrast(color.primaryText, color.primary) >= 4.5);
-  for (const k of ["success", "warning", "error", "info", "purple", "neutral"]) {
-    assert.ok(contrast(color[k], color.bgContainer) >= 3, `${k} < 3:1 sobre bgContainer`);
+test("contraste AA en oscuro", () => {
+  assert.ok(contrast(color.text, color.bgLayout) >= 4.5, "text sobre surface-primary");
+  assert.ok(contrast(color.textSecondary, color.bgLayout) >= 4.5, "textSecondary sobre surface-primary");
+  assert.ok(contrast(color.text, color.bgSubtle) >= 4.5, "text sobre surface-secondary");
+  assert.ok(contrast(color.textSecondary, color.bgSubtle) >= 4.5, "textSecondary sobre surface-secondary");
+  assert.ok(contrast(color.textTertiary, color.bgSubtle) >= 4.5, "textTertiary sobre surface-secondary");
+  assert.ok(contrast(color.primaryText, color.primary) >= 4.5, "texto de la acción primaria");
+  assert.ok(contrast(color.focus, color.bgLayout) >= 4.5, "foco y enlaces");
+  for (const k of ["success", "warning", "error", "info", "neutral"]) {
+    assert.ok(contrast(color[k], color.bgLayout) >= 3, `${k} < 3:1 sobre surface-primary`);
   }
 });
 
-test("contraste AA de los textos de apoyo y del hover del botón", () => {
-  assert.ok(contrast(color.primaryText, color.primaryHover) >= 4.5);
-  assert.ok(contrast(color.textTertiary, color.bgContainer) >= 4.5);
-  assert.ok(contrast(color.textTertiary, color.bgLayout) >= 4.5, "textTertiary sobre el gris de fondo");
-  assert.ok(contrast(color.textSecondary, color.bgLayout) >= 4.5);
-  assert.ok(contrast(color.text, color.bgSubtle) >= 4.5);
-  assert.ok(contrast(color.textTertiary, color.bgSubtle) >= 4.5, "textTertiary sobre el gris suave");
-  assert.ok(contrast(color.primary, color.bgContainer) >= 4.5, "enlaces y foco en azul");
-});
-
-test("el texto sobre los fondos suaves de estado y de los controles sigue siendo AA", () => {
-  // --k-state-soft = 12 % del color del estado sobre bgContainer; el texto de las etiquetas usa color.text
-  for (const k of ["primary", "success", "warning", "error", "info", "purple", "neutral"]) {
-    const soft = mix(color[k], color.bgContainer, 0.12);
-    assert.ok(contrast(color.text, soft) >= 4.5, `text sobre el fondo suave de ${k}`);
-    assert.ok(contrast(color.textSecondary, soft) >= 4.5, `textSecondary sobre el fondo suave de ${k}`);
-  }
-  // elemento de navegación activo: azul sobre 10 % de azul
-  assert.ok(contrast(color.primary, mix(color.primary, color.bgContainer, 0.10)) >= 4.5);
-  // tarjeta bloqueada: 5 % de error
-  assert.ok(contrast(color.textSecondary, mix(color.error, color.bgContainer, 0.05)) >= 4.5);
-  // iconos de estado (3:1) sobre su propio fondo suave
-  for (const k of ["success", "warning", "error", "info", "purple", "neutral"]) {
-    assert.ok(contrast(color[k], mix(color[k], color.bgContainer, 0.12)) >= 3, `icono ${k} sobre su fondo suave`);
-  }
+test("contrast acepta hex y oklch", () => {
+  assert.ok(Math.abs(contrast("#000000", "#FFFFFF") - 21) < 0.01);
+  assert.ok(Math.abs(contrast("oklch(0 0 0)", "oklch(1 0 0)") - 21) < 0.05);
+  assert.ok(Math.abs(contrast("oklch(0.5 0 0)", "oklch(0 0 0)") - contrast("#636363", "#000000")) < 0.1);
 });
 
 function htmlFiles(dir: string): string[] {
