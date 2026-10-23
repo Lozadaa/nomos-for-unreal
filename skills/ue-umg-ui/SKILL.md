@@ -23,7 +23,7 @@ la revisa. Termina con `KRATOS_DONE` cuando el código compila y el widget apare
 
 | Vía | Cuándo | Comprobado en UE 5.8.3 |
 |---|---|---|
-| C++: `UUserWidget` que construye su árbol en código | Worker sin GUI, proyecto con `Source/` o que puede tenerlo | Vía prevista; se comprueba en la aceptación del hito 5 |
+| C++: `UUserWidget` que construye su árbol en código | Worker sin GUI, proyecto con `Source/` o que puede tenerlo | Sí (aceptación del hito 5): compila con `Build.bat`, se ve con `-game` a 1280×720 y 1920×1080 y pasó el QA visual |
 | C++ base con `meta=(BindWidget)` + `WBP_` hijo | Un humano diseña el WBP en el editor | Compila; el diseño lo hace el humano |
 | Python del editor | Crear o compilar un `WBP_` vacío | Crea y compila, **no** puede añadir widgets: `WidgetBlueprint.widget_tree` no está expuesto |
 | MCP del editor (AllToolsets) | Solo si Kratos lo activa (`editorMcp.enabled`) | Experimental; apagado por defecto |
@@ -62,6 +62,7 @@ límites conocidos. No declares aprobada la UI: eso lo decide el run de QA visua
 
 - `LNK2019` con widgets: falta `UMG` en `Build.cs`.
 - La captura sale sin UI: el widget no está en el viewport al arrancar o el GameMode no es el tuyo.
+  Un menú que empieza oculto (`Collapsed`) también cuenta como «sin UI»: Kratos captura lo que se ve al arrancar.
 - Python no añade widgets a un `WBP_`: es una limitación del motor, usa la vía C++.
 
 ## Recursos

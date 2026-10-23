@@ -29,7 +29,7 @@ comandos se ejecutan desde el juego con `--data .kratos`.
 3. Consulta `kratos status --data .kratos`. Si otra sesión tiene vigilante vivo,
    conserva esa directora. En otro caso, arma `Monitor` durante 30 minutos con
    `kratos vigila --session <sesion> --data .kratos --types <tipos>` con
-   `message.received,run.finished,worker.waiting,command.failed,review.finished`.
+   `message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed`.
    `--types` reemplaza los defaults; conserva sesión y tipos al rearmar.
 4. Anuncia escucha en una línea solo cuando Monitor esté armado. Si la herramienta
    no está disponible, explica la limitación; no afirmes estar escuchando.
@@ -118,6 +118,17 @@ formas orgánicas, `rig` ni `animate`. Migra con `asset migrate`, importa con
 `asset prepare`; licencia desconocida y presupuesto agotado abren Decisión.
 Detalle, niveles y guion del Launcher en [assets](references/assets.md).
 
+## Pruebas y UI
+
+El diff decide las comprobaciones (cpp, blueprint, asset, map, umg, build); el servicio
+las lanza al aprobar la revisión y `kratos task check <id>` las relanza. Ninguna tarea pasa
+de `probando` a `integrando` sin todas en `passed`; una no disponible abre Decisión.
+Toda pantalla UMG: primero `game-ui-art-director` (docs/ui-direction.md, tarea de la que
+dependen las demás de UI), después el worker `ui` y `ui.cycle` captura a 1280×720 y
+1920×1080 y pide QA visual a Claude. No reenvíes fallos: el servicio ya avisó al
+responsable; informa con las rutas de las capturas. Detalle en [ciclo UMG](references/ui-ciclo.md)
+y [evidencia](references/evidencia.md).
+
 ## Solución de problemas (Troubleshooting)
 
 `{"error":"service_down"}` indica reintentos del vigilante: consulta `estado`;
@@ -164,7 +175,9 @@ El servicio solo escucha en `127.0.0.1`; las rutas de trabajo exigen token.
 - [Contrato de eventos y recuperación](references/contrato-eventos.md).
 - [Assets: política, niveles de Fab y Meshy](references/assets.md).
 - [Ciclo, especificación y Decisiones](references/ciclo-tarea.md).
-- [Plantilla del brief del worker](references/brief-worker.md) y [del revisor](references/brief-revisor.md).
+- [Plantilla del brief del worker](references/brief-worker.md), [del revisor](references/brief-revisor.md)
+  y [del QA visual](references/brief-qa-visual.md).
+- [Ciclo UMG](references/ui-ciclo.md) y [contrato de evidencia](references/evidencia.md).
 - Casos: [arranque](evals/01-arranque.md), [ida y vuelta](evals/02-ida-vuelta.md),
   [recuperación](evals/03-recuperacion.md), [petición](evals/04-peticion-a-tarea.md),
   [corrección](evals/05-correccion.md), [dos tareas, un widget](evals/06-dos-tareas-un-widget.md),
