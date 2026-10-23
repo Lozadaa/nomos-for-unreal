@@ -14,10 +14,12 @@ export interface Snapshot {
   gaps: { from: string; to: string }[]
   /** Sube con cada evento del servicio; las vistas de detalle lo usan para volver a pedir sus datos. */
   version: number
+  /** Tareas cuyo worker espera respuesta, con la pregunta; se reduce de `worker.*` y `run.finished`. */
+  waiting: Record<string, { runId: string; question: string }>
 }
 
 const MAX_EVENTS = 500
-let snap: Snapshot = { tasks: [], events: [], loaded: false, live: false, gaps: [], version: 0 }
+let snap: Snapshot = { tasks: [], events: [], loaded: false, live: false, gaps: [], version: 0, waiting: {} }
 let downSince: string | null = null
 let everLive = false
 const listeners = new Set<() => void>()
@@ -67,9 +69,20 @@ const schedule = () => {
   timer = setTimeout(() => void refresh(), 80) // agrupa las ráfagas (repetición inicial incluida) en una sola petición
 }
 
+/** Mantiene `waiting`: la pregunta del worker la abre y cualquier señal de que siguió (salida, mensaje, fin) la cierra. */
+function reduceWaiting(waiting: Snapshot['waiting'], e: KratosEvent): Snapshot['waiting'] {
+  const taskId = String(e.payload.taskId ?? '')
+  if (!taskId) return waiting
+  if (e.type === 'worker.waiting') return { ...waiting, [taskId]: { runId: String(e.payload.runId), question: String(e.payload.question ?? '') } }
+  if (!(taskId in waiting) || !/^(worker\.(output|message_sent)|run\.finished)$/.test(e.type)) return waiting
+  const { [taskId]: _, ...rest } = waiting
+  return rest
+}
+
 /** Recibe un evento del servicio: lo guarda (hasta 500) y, si toca a las tareas, programa una lectura agrupada. */
 export function ingest(e: KratosEvent): void {
-  set({ events: [...snap.events.filter((x) => x.seq !== e.seq), e].slice(-MAX_EVENTS), version: snap.version + 1 })
+  const fresh = !snap.events.some((x) => x.seq === e.seq)
+  set({ events: [...snap.events.filter((x) => x.seq !== e.seq), e].slice(-MAX_EVENTS), version: snap.version + 1, ...(fresh ? { waiting: reduceWaiting(snap.waiting, e) } : {}) })
   if (/^(task|decision|run)\./.test(e.type)) schedule()
 }
 
@@ -124,7 +137,7 @@ export function resetStore(): void {
   epoch++
   queue = Promise.resolve()
   connection?.close(); connection = null; clearTimeout(timer)
-  snap = { tasks: [], events: [], loaded: false, live: false, gaps: [], version: 0 }
+  snap = { tasks: [], events: [], loaded: false, live: false, gaps: [], version: 0, waiting: {} }
   downSince = null
   everLive = false
   emit()

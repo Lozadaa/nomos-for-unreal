@@ -3,12 +3,14 @@ import { StatusDot } from './StatusDot'
 import { nameFor } from '@/feel/transitions'
 import { relativeTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/store'
 import { isTemp, providerLabel, shortId, statusOf, statusText, toneOf, type Task } from '@/lib/tasks'
 
 export const rowColumns = 'grid grid-cols-[8px_minmax(0,1fr)_minmax(0,200px)_150px_88px] items-center gap-x-4'
 
 function TaskRowView({ task, now, open, onOpen }: { task: Task; now: number; open: boolean; onOpen: (task: Task, from: HTMLElement) => void }) {
   const temp = isTemp(task.id)
+  const waiting = useStore((s) => task.id in s.waiting)
   const status = statusOf(task)
   const provider = task.assigneeProvider ? (providerLabel[task.assigneeProvider] ?? task.assigneeProvider) : null
   return (
@@ -38,6 +40,7 @@ function TaskRowView({ task, now, open, onOpen }: { task: Task; now: number; ope
       </span>
       <span className={cn('truncate', status === 'normal' ? 'text-muted-foreground' : status === 'decision' || task.state === 'cerrando' ? 'text-warning' : 'text-error')}>
         {statusText(task)}
+        {waiting && status === 'normal' && <span className="ml-2 text-warning">· Esperando respuesta</span>}
       </span>
       <span className="text-right text-xs text-muted-foreground tabular-nums">{temp ? 'ahora' : relativeTime(task.updatedAt, now)}</span>
     </button>
