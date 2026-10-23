@@ -1,6 +1,6 @@
 # Glifos de Kratos
 
-Corrección del hito 9, 2026-10-23. La leyenda tiene **37 entradas: 30 iconos y 7 pastillas de proveedor**. Antes tenía 68 entradas. Las pastillas son texto Geist Mono de 11 px más un punto cuyo color procede de los tokens; el nombre identifica al proveedor aunque no se perciba el color.
+Corrección del hito 9, 2026-10-23, con CORRECCIÓN 2 de agentes. La leyenda tiene **38 entradas: 30 iconos y 8 pastillas de proveedor**, incluido OpenCode. Antes de la corrección 2 eran 37; originalmente eran 68. Las pastillas identifican proveedores sin agente; los agentes usan monograma circular y nombre corto, según el addendum del brief.
 
 ## Registro y ubicaciones comprobables
 
@@ -33,6 +33,7 @@ La columna «Dónde aparece» describe esta rama. Las otras vistas las integra o
 | `directorState/desconectado` | `PlugZap` | Desconectado | /estilo · Glifos |
 | `provider/codex` | `Pastilla` | Codex | /estilo · Glifos y Arte |
 | `provider/claude` | `Pastilla` | Claude | /estilo · Glifos y Arte |
+| `provider/opencode` | `Pastilla / Oc` | OpenCode | /estilo · Glifos y grupo de agentes; sin adaptador nuevo en servicio |
 | `provider/meshy` | `Pastilla` | Meshy | /estilo · Glifos y Arte |
 | `provider/blender` | `Pastilla` | Blender | /estilo · Glifos y Arte |
 | `provider/unreal` | `Pastilla` | Unreal | /estilo · Glifos y Arte |
@@ -50,7 +51,7 @@ La columna «Dónde aparece» describe esta rama. Las otras vistas las integra o
 
 - Áreas, estados de tarea, estados del director y artefactos no comparten iconos. Dentro de cada grupo tampoco se repiten formas. La prueba compara SVG renderizados, además del contrato de iconos elegidos.
 - Cada entrada tiene etiqueta y tono válido; `Glyph` y las pastillas exponen `role="img"` y `aria-label`. Las áreas desconocidas conservan el texto como nombre accesible y tooltip junto a `CircleDashed`.
-- `AgentAvatar` muestra proveedor e instancia: `Codex 1`, `Claude 2`. Usa `instance` cuando llega explícita, el sufijo numérico del id si existe, o 1 como fallback para ids opacos. Quien integra varias instancias con ids opacos debe suministrar su número. No genera caras ni geometría.
+- `AgentAvatar` muestra un círculo con monograma del implementador: Cx, Cl, Oc, Me, Bl, Un, Kr o La. Nombre corto derivado de área y rol junto al avatar; proveedor en tooltip y detalle. Anillo sólido durante ejecución, discontinuo al esperar respuesta, ninguno libre o terminado. Ordinal de 14 px únicamente entre agentes vivos del mismo nombre; no se extrae del id. `AvatarGroup` apila tres avatares y muestra +N para el resto, con recuento real por proveedor.
 - Los roles llevan texto corto: Director, Implementación, Arte, Revisor, Calidad, Integrador, Coordinador. Las fuentes llevan pastillas: Fab, Megascans, Poly Haven, ambientCG, Kenney, Quaternius, Sketchfab, Freesound, Meshy y Blender. Ninguno de esos grupos se añade a la leyenda.
 - Los eventos de tarea, revisión, prueba, integración y decisión reutilizan la forma del estado de su entidad con etiqueta neutral de entidad, sin inferir el estado actual a partir del prefijo; un evento de entrega reutiliza `PackageCheck`. Los eventos de ejecución y de agente aceptan `provider` para mostrar su pastilla. Una ejecución sin proveedor muestra «Ejecución». Agente sin proveedor usa `Bot`, Orden usa `ListChecks` y Reserva usa `Lock`. Mensaje, Respuesta, Descarga y eventos desconocidos usan texto corto. No existe un segundo registro de iconos de eventos.
 - `AreaPictogram` amplía a 48 px el mismo icono del área. `EmptyState` utiliza el concepto de la vista a 48 px, una frase y una acción; admite reemplazar la acción con un callback o enlace de la vista.

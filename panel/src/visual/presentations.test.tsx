@@ -3,10 +3,11 @@ import { expect, it } from 'vitest'
 import { Glyph, GlyphLegend } from './Glyph'
 import { glyphFor, glyphs } from './glyphs'
 
-it('reduce el registro y la leyenda a 30 iconos y siete proveedores', () => {
+it('reduce el registro y la leyenda a 30 iconos y ocho proveedores, incluido OpenCode', () => {
   expect(Object.keys(glyphs)).toEqual(['area', 'taskState', 'directorState', 'provider', 'artifact'])
   render(<GlyphLegend />)
-  expect(screen.getAllByRole('listitem')).toHaveLength(37)
+  expect(screen.getAllByRole('listitem')).toHaveLength(38)
+  expect(screen.getByRole('img', { name: 'OpenCode' })).toHaveTextContent('OpenCode')
   for (const title of ['Roles', 'Eventos', 'Fuentes del catálogo']) expect(screen.queryByText(title)).toBeNull()
 })
 
