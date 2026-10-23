@@ -16,7 +16,7 @@ async function stopChild(child: ChildProcess) {
 export const cliPath = join(import.meta.dirname, "../service/src/cli.ts");
 export function cli(dataDir: string, ...args: string[]) {
   return spawnSync(process.execPath, [cliPath, ...args, "--data", dataDir], {
-    encoding: "utf8", timeout: 10_000, windowsHide: true });
+    encoding: "utf8", timeout: 30_000, windowsHide: true });
 }
 export async function freePort(): Promise<number> {
   const server = createServer();
@@ -51,7 +51,8 @@ export function watcher(t: TestContext, dataDir: string, session = "t1") {
   t.after(() => stopChild(child));
   return child;
 }
-export async function until(check: () => Promise<boolean>, timeout = 6000) {
+/** Espera por condición; el plazo solo cuenta si falla (con carga, arrancar un proceso CLI pasaba de 6 s). */
+export async function until(check: () => Promise<boolean>, timeout = 20_000) {
   const end = Date.now() + timeout;
   while (!await check()) {
     if (Date.now() > end) throw new Error("No se cumplió la condición");

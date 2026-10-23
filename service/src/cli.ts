@@ -11,6 +11,7 @@ import { seed } from "./seed.ts";
 import { directorCli } from './cli-director.ts';
 import { assetCli } from './cli-asset.ts';
 import { skillsCli } from './skills-install.ts';
+import { doctor, renderDoctor } from './doctor.ts';
 
 function openBrowser(url: string) {
   const [command, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
@@ -26,13 +27,23 @@ async function main() {
     force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false } } });
   const [command, ...args] = positionals; const dataDir = resolve(values.data!);
   const session = values.session?.trim(); const port = Number(values.port);
-  const commands = ["start", "status", "vigila", "ack", "reply", "stop", "seed"];
+  const commands = ["start", "status", "vigila", "ack", "reply", "stop", "seed", "doctor"];
   if (!commands.includes(command) || !Number.isInteger(port) || port < 1 || port > 65535
     || (["ack", "vigila"].includes(command) && !session) || (values.types!==undefined && command!=='vigila')
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim()))
-    || (["start", "status", "vigila", "stop", "seed"].includes(command) && args.length)) {
-    throw new Error("Uso: kratos start|status|vigila --session ID|ack SEQ --session ID|reply ID TEXTO|stop|seed [--force] [--data CARPETA]");
+    || (["start", "status", "vigila", "stop", "seed", "doctor"].includes(command) && args.length)) {
+    throw new Error("Uso: kratos start|status|vigila --session ID|ack SEQ --session ID|reply ID TEXTO|stop|seed [--force]|doctor [--data CARPETA]");
+  }
+  if (command === "doctor") {
+    mkdirSync(dataDir, { recursive: true });
+    const db = openDb(join(dataDir, "kratos.db"));
+    try {
+      const rows = await doctor(dataDir, db);
+      console.log(renderDoctor(rows));
+      if (rows.some(row => row.state === "falla")) process.exitCode = 1;
+    } finally { db.close(); }
+    return;
   }
   if (command === "seed") {
     mkdirSync(dataDir, { recursive: true });
@@ -47,13 +58,14 @@ async function main() {
       const child = spawn(process.execPath, [join(import.meta.dirname, "server.ts"), "--serve", "--data", dataDir, "--port", String(port)],
         { detached: true, stdio: "ignore", windowsHide: true });
       let failed = false; child.on("error", () => { failed = true; }); child.unref();
-      const deadline = Date.now() + 5000;
+      // con el equipo cargado (compilaciones, otros agentes) cargar el servicio pasa de 5 s
+      const deadline = Date.now() + 15_000;
       while (Date.now() < deadline && !failed) {
         info = readServiceInfo(dataDir);
         if (info && await isAlive(info)) break;
         await sleep(100);
       }
-      if (!info || !await isAlive(info)) throw new ServiceError("No se pudo arrancar el servicio en cinco segundos");
+      if (!info || !await isAlive(info)) throw new ServiceError("No se pudo arrancar el servicio en quince segundos");
     }
     const url = serviceUrl(info!); console.log(`URL ${url}`);
     console.log(active ? "YA_ACTIVO" : "ARRANCADO");

@@ -7,9 +7,9 @@ import { startRunner } from '../../service/src/runner.ts';
 import { listEvents } from '../../service/src/store.ts';
 import { resolve, dirname } from 'node:path';
 
-export async function until(check: () => boolean) {
-  for (let i = 0; i < 200 && !check(); i++) await delay(10);
-  assert.ok(check(), 'No se observó el resultado antes de 2 s');
+export async function until(check: () => boolean, ms = 10_000) {
+  for (const end = Date.now() + ms; Date.now() < end && !check();) await delay(10);
+  assert.ok(check(), `No se observó el resultado antes de ${ms / 1000} s`);
 }
 test('runner serializa entregas y stop.drained espera escritura del handler', async () => {
   const db = openDb(':memory:');

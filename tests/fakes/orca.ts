@@ -26,6 +26,12 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   console.log('respuesta rota');
 } else if (!args.includes('--json')) {
   fail('missing_json');
+} else if (args[0] === 'open') {
+  state.down = false; state.opened = (state.opened ?? 0) + 1; save(); emit({ app: { running: true } });
+} else if (args[0] === 'status') {
+  emit({ app: { running: !state.down }, runtime: { state: state.down ? 'stopped' : 'ready', reachable: !state.down } });
+} else if (state.down) {
+  fail('orca_not_running', 'Orca no está abierto');
 } else if (args[0] === 'repo' && args[1] === 'list') {
   emit({ repos: state.repos });
 } else if (args[0] === 'repo' && args[1] === 'add') {

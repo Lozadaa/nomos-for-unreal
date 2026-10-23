@@ -10,6 +10,15 @@ export function normalizeTypes(types: string[]=defaultTypes): string[] {
   }
   return result;
 }
+/** En Windows renombrar sobre un archivo que otro proceso tiene abierto (antivirus, indexador, un lector) da EPERM un instante. */
+function replace(from: string, to: string): void {
+  for (let attempt = 0; ; attempt++) {
+    try { renameSync(from, to); return; } catch (error) {
+      if (attempt >= 20 || !['EPERM', 'EBUSY', 'EACCES'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+    }
+  }
+}
 function valid(value: unknown): value is number {return Number.isSafeInteger(value) && Number(value)>=0;}
 export function deliveryCheckpoint(dataDir: string,session: string,types: string[]) {
   const path=join(dataDir,'watcher-cursors.json'),key=JSON.stringify([session,types]);
@@ -32,7 +41,7 @@ export function deliveryCheckpoint(dataDir: string,session: string,types: string
     const next={...cursors,[key]:seq},temporary=path+'.tmp';
     try {
       writeFileSync(temporary,JSON.stringify({version:1,cursors:next})+'\n',{encoding:'utf8',mode:0o600});
-      renameSync(temporary,path);
+      replace(temporary,path);
     } catch(error) {
       throw new CheckpointError(`watcher_checkpoint_error: entrega ${seq} sin guardar; no continuar: ${(error as Error).message}`);
     }

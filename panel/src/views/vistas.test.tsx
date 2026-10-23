@@ -303,7 +303,7 @@ describe('Capacidades', () => {
     { id: 'blender', label: 'Blender', state: 'ausente', detail: 'Ejecutable de Blender ausente' },
   ]
   it('«Comprobar ahora» queda pendiente y luego anota cuándo se revisó', async () => {
-    serve(() => caps)
+    serve((path) => path === '/capabilities/git/check' ? { ...caps[0], state: 'comprobado', checkedAt: new Date().toISOString() } : caps)
     render(<Capacidades />)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Comprobar ahora' }))

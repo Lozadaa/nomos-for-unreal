@@ -14,7 +14,8 @@ test('archivo corrupto recupera desde cero con aviso sin usar ACK como entrega',
   writeFileSync(join(dataDir,'watcher-cursors.json'),'null');
   const watcher=start(t,dataDir);await watcher.wait(1);
   assert.match(watcher.error(),/watcher_checkpoint_recovery/);
-  await until(async()=>watcher.saved().cursors[defaultKey]>=1);
+  // la línea sale antes de guardar el cursor: hasta entonces el archivo sigue siendo «null»
+  await until(async()=>watcher.saved()?.cursors?.[defaultKey]>=1);
 });
 
 test('fallo al guardar checkpoint detiene entrega y explica disco sin service_down',async t=>{

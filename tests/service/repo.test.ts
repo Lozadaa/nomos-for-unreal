@@ -68,7 +68,7 @@ test('capacidades usan filesystem inyectado, config y PATH sin revelar claves',(
  const paths=new Set(['custom/UnrealEditor-Cmd.exe','custom/blender.exe','bin/git.exe']);
  const fs={existsSync:(p:string)=>paths.has(p),readFileSync:()=>JSON.stringify({unrealPath:'custom/UnrealEditor-Cmd.exe',blenderPath:'custom/blender.exe'})};
  const caps=detectCapabilities({PATH:'bin',MESHY_API_KEY:'secret'},fs);
- assert.equal(caps.length,8); assert.equal(caps.find(c=>c.id==='unreal')!.state,'detectado');
+ assert.equal(caps.length,9); assert.equal(caps.find(c=>c.id==='unreal')!.state,'detectado');
  assert.equal(caps.find(c=>c.id==='blender')!.state,'detectado');
  assert.equal(caps.find(c=>c.id==='meshy')!.state,'detectado');
  assert.ok(caps.every(c=>['ausente','detectado'].includes(c.state))); assert.ok(!JSON.stringify(caps).includes('secret'));

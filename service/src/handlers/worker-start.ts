@@ -20,6 +20,7 @@ import { launchCommand, readyPattern } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
 import { continuationBrief } from './continue.ts';
+import { orcaDeferral, orcaDown } from './orca-down.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -67,7 +68,15 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   }
   db.prepare('update tasks set wait_reason=null where id=?').run(task.id);
   try {
-  const {repoId}=await orca.repoAdd(projectDir);
+  let repoId:string;
+  try {({repoId}=await orca.repoAdd(projectDir));} catch(error) {
+    if(!orcaDown(error)) throw error;
+    // Orca cerrado: nada se creó todavía; el mismo run se reutiliza al reintentar
+    release(db,run.id);
+    const waiting=await orcaDeferral(ctx,cmd,task.id);
+    if(waiting) return waiting;
+    ({repoId}=await orca.repoAdd(projectDir));
+  }
   if(review && !await review.valid()) throw new Error('invalid_review_snapshot');
   const beforeTree=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,!review,run.id);
   if(beforeTree) {

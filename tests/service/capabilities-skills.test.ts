@@ -21,7 +21,7 @@ test('capabilities legacy y details=1 autenticado: skills del juego real y concu
   const details=await (await get('/capabilities?details=1')).json();
   assert.deepEqual(details.capabilities,legacy);
   assert.deepEqual(details.skills,[{name:'solo-juego',path,source:'agents'}]);
-  assert.deepEqual(details.concurrency,{codex:2,claude:2,opencode:0});
+  assert.deepEqual(details.concurrency,{codex:0,claude:2,opencode:0});
   writeFileSync(join(dataDir,'config.json'),'{"concurrency":{"claude":3,"opencode":8}}');
   assert.deepEqual((await (await get('/capabilities?details=1')).json()).concurrency,{codex:0,claude:3,opencode:8});
   writeFileSync(join(dataDir,'config.json'),'{"concurrency":{"codex":-1}}');

@@ -33,6 +33,10 @@ export type Orca = {
   terminalClose(handle: string): Promise<void>;
   /** Vivo si Orca aún puede leerlo; un terminal desconocido o cerrado está muerto. */
   terminalAlive(handle: string): Promise<boolean>;
+  /** Hito 7: `orca status` de solo lectura (5 s como máximo); cualquier fallo cuenta como cerrado. */
+  isRunning?(): Promise<boolean>;
+  /** Hito 7: `orca open`, la acción «Abrir Orca». */
+  open?(): Promise<void>;
 };
 function required(value: unknown): string {
   if (typeof value !== 'string' || !value) throw new OrcaError('cli_error', 'Respuesta Orca incompleta');
@@ -176,6 +180,13 @@ export function createOrca(opts: Options = {}): Orca {
       // Orca 1.4.207 sigue leyendo un terminal cerrado: responde ok con `status: "exited"`
       try { return await run(['terminal', 'read', '--terminal', handle, '--limit', '50'], result => result?.terminal?.status !== 'exited'); }
       catch (error) { if (error instanceof OrcaError && error.code === 'cli_error') return false; throw error; }
+    },
+    async isRunning() {
+      try { return await run(['status'], result => result?.app?.running === true && result?.runtime?.reachable !== false, 5000); }
+      catch { return false; }
+    },
+    async open() {
+      await run(['open'], () => {});
     },
     async worktreeRemove(worktreeId, force = false) {
       await run(['worktree', 'rm', '--worktree', `id:${worktreeId}`, ...(force ? ['--force'] : [])], () => {});

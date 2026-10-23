@@ -33,7 +33,7 @@ test('wait no satisfecho con ok true y exit1 devuelve false sin evento de error'
 
 test('readiness relee Ask Codex tras wait no satisfecho con exit1', async t => {
   const { orca, calls } = fixture(t, { FAKE_ORCA_READY_AFTER_WAIT: '1' });
-  assert.equal(await orca.terminalWaitIdle('term_fake', 5000), true);
+  assert.equal(await orca.terminalWaitIdle('term_fake', 10_000), true);
   assert.deepEqual(calls.map(e => [e.command[1], e.exitCode]), [['read', 0], ['wait', 1], ['read', 0]]);
 });
 
@@ -46,7 +46,7 @@ test('wait ok false con error timeout devuelve idle false conservando error obse
 
 test('readiness relee Ask Codex tras timeout JSON sin conceder éxito por timeout', async t => {
   const { orca, calls } = fixture(t, { FAKE_ORCA_WAIT_TIMEOUT: '1', FAKE_ORCA_READY_AFTER_WAIT: '1' });
-  assert.equal(await orca.terminalWaitIdle('term_fake', 5000), true);
+  assert.equal(await orca.terminalWaitIdle('term_fake', 10_000), true);
   assert.deepEqual(calls.map(e => e.command[1]), ['read', 'wait', 'read']);
   assert.equal(calls[1].error, 'timeout');
   const pending = fixture(t, { FAKE_ORCA_WAIT_TIMEOUT: '1' });

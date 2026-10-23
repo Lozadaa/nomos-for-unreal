@@ -75,3 +75,17 @@ export function migrateClosing(db: DatabaseSync): void {
       if (!columns.some(row => row.name === column)) db.exec(`alter table tasks add column ${column} ${definition}`);
   });
 }
+
+/** Hito 7: carril del ejecutor (normal o largo), latido del comando en curso, tipo de fallo y comprobaciones de capacidades. */
+export function migrateLanes(db: DatabaseSync): void {
+  transaction(db, () => {
+    const columns = db.prepare('pragma table_info(commands)').all();
+    const legacy = !columns.some(row => row.name === 'lane');
+    for (const [column, definition] of [['lane', "text not null default 'normal'"], ['heartbeat_at', 'text'], ['failure_kind', 'text']])
+      if (!columns.some(row => row.name === column)) db.exec(`alter table commands add column ${column} ${definition}`);
+    // solo al migrar: escribir en cada apertura convertía la lectura en escritura y dos conexiones se bloqueaban
+    if (legacy) db.exec(`update commands set lane='long' where type in ('checks.run','ui.cycle','asset.migrate')`);
+    db.exec(`create table if not exists capability_checks(
+      id text primary key, state text not null check(state in ('comprobado','roto')), detail text not null, checked_at text not null)`);
+  });
+}

@@ -81,4 +81,5 @@ export type Command = Entity & {
   type: string; payload: JsonValue; idempotencyKey: string;
   state: 'pending' | 'running' | 'done' | 'failed'; attempts: number;
   error: string | null; claimedBy: string | null; startedAt: string | null; finishedAt: string | null; notBefore: string | null;
+  lane?: 'normal' | 'long'; heartbeatAt?: string | null;
 };

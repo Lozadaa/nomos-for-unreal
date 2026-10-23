@@ -7,6 +7,7 @@ import { normalizedPaths } from '../handlers/worker-policy.ts';
 import { enqueue } from '../commands.ts';
 import { implementerOf } from '../handlers/checks.ts';
 import type { WorkerContext } from '../runner.ts';
+import { taskFailures } from '../failure-kind.ts';
 
 export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   const checks = /^\/tasks\/([^/]+)\/checks$/.exec(url.pathname);
@@ -22,9 +23,9 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   }
   const match = /^\/tasks\/([^/]+)$/.exec(url.pathname);
   if (req.method === 'GET' && match) {
-    const task = requireTask(db, id(match[1]));
+    const task = requireTask(db, id(match[1])), failure = taskFailures(db).get(task.id);
     json(res, 200, {
-      task,
+      task: failure ? {...task, failure} : task,
       runs: filtered(db, 'runs', {taskId: task.id}),
       events: listEvents(db, 0).filter(e => e.payload.taskId === task.id),
       artifacts: filtered(db, 'artifacts', {taskId: task.id}),
@@ -35,10 +36,12 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   }
   if (url.pathname !== '/tasks') return false;
   if (req.method === 'GET') {
+    // hito 7: el estado de fallo (conexión, ejecución, cancelación, capacidad) viaja con la tarea
+    const failures = taskFailures(db);
     json(res, 200, listTasks(db, {
       area: choice(url.searchParams.get('area'), areas),
       state: choice(url.searchParams.get('state'), states)
-    }));
+    }).map(task => failures.has(task.id) ? {...task, failure: failures.get(task.id)} : task));
     return true;
   }
   if (req.method !== 'POST') return false;

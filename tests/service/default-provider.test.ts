@@ -7,10 +7,10 @@ import { concurrency, readConfig } from '../../service/src/config.ts';
 import { chooseProvider } from '../../service/src/scheduler-provider.ts';
 
 const idle={codex:0,claude:0,opencode:0};
-test('Claude es el proveedor por defecto; Codex solo cubre cupo o se deshabilita con 0',()=>{
-  assert.deepEqual(concurrency({}),{codex:2,claude:2,opencode:0});
+test('Claude es el proveedor por defecto; Codex apagado salvo que config.json lo habilite',()=>{
+  assert.deepEqual(concurrency({}),{codex:0,claude:2,opencode:0});
   assert.equal(chooseProvider('implementacion',{},idle).provider,'claude');
-  assert.equal(chooseProvider('implementacion',{},{...idle,claude:2}).provider,'codex');
+  assert.equal(chooseProvider('implementacion',{},{...idle,claude:2}).provider,undefined,'sin config nunca usa Codex');
   assert.equal(chooseProvider('implementacion',{concurrency:{claude:2}},{...idle,claude:2}).provider,undefined,'codex:0 nunca usa Codex');
   const both={concurrency:{codex:1,claude:1}};
   assert.equal(chooseProvider('implementacion',both,idle).provider,'claude');
