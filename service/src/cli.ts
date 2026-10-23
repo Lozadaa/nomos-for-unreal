@@ -21,12 +21,12 @@ async function main() {
   if (await directorCli(process.argv.slice(2))) return;
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     data: { type: "string", default: ".kratos" }, port: { type: "string", default: "8780" },
-    force: { type: "boolean", default: false }, session: { type: "string" }, "no-open": { type: "boolean", default: false } } });
+    force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false } } });
   const [command, ...args] = positionals; const dataDir = resolve(values.data!);
   const session = values.session?.trim(); const port = Number(values.port);
   const commands = ["start", "status", "vigila", "ack", "reply", "stop", "seed"];
   if (!commands.includes(command) || !Number.isInteger(port) || port < 1 || port > 65535
-    || (["ack", "vigila"].includes(command) && !session)
+    || (["ack", "vigila"].includes(command) && !session) || (values.types!==undefined && command!=='vigila')
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim()))
     || (["start", "status", "vigila", "stop", "seed"].includes(command) && args.length)) {
@@ -58,7 +58,7 @@ async function main() {
     if (!values["no-open"]) openBrowser(url);
     return;
   }
-  if (command === "vigila") return watch(dataDir, session!);
+  if (command === "vigila") return watch(dataDir, session!,{types:values.types?.split(',')});
   const info = serviceInfo(dataDir);
   if (command === "status") console.log(JSON.stringify(await request(info, "/status")));
   if (command === "ack") console.log(JSON.stringify(await request(info, `/events/${args[0]}/ack`, { session })));

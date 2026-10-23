@@ -3,8 +3,9 @@ import { acquireLock } from "./lock.ts";
 import { serviceInfo, request } from "./client.ts";
 import type { ServiceInfo } from "./service-info.ts";
 import type { EventRow, Status } from "./store.ts";
+import { CheckpointError, deliveryCheckpoint, normalizeTypes } from './watcher-cursors.ts';
 
-async function readPending(info: ServiceInfo, since: number, advance: (seq: number) => void): Promise<number> {
+async function readPending(info: ServiceInfo, since: number, consume: (event: EventRow) => Promise<void>): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 800);
   let cursor = since;
@@ -24,24 +25,23 @@ async function readPending(info: ServiceInfo, since: number, advance: (seq: numb
           if (!data) continue;
           const event: EventRow = JSON.parse(data.slice(6));
           if (event.seq <= cursor) continue;
-          if (event.type === "message.received") console.log(JSON.stringify({ seq: event.seq,
-            messageId: event.messageId, text: event.payload.text, origin: event.payload.origin }));
+          await consume(event);
           cursor = event.seq;
-          advance(cursor);
         }
       }
     } finally { await reader.cancel().catch(() => {}); }
-  } catch (error) { if (!controller.signal.aborted) throw error; }
+  } catch (error) { if (error instanceof CheckpointError || !controller.signal.aborted) throw error; }
   finally { clearTimeout(timer); }
-  return cursor;
 }
 
-export async function watch(dataDir: string, session: string): Promise<void> {
+export async function watch(dataDir: string, session: string, opts: {types?:string[]}={}): Promise<void> {
+  const types=normalizeTypes(opts.types);
   const release = acquireLock(dataDir, "watcher");
   process.once("exit", release);
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => process.exit(0));
-  let cursor: number | null = null; let startedToken = "";
+  let transportCursor=0; let startedToken = "";
   try {
+    const checkpoint=deliveryCheckpoint(dataDir,session,types);
     while (true) {
       const began = Date.now();
       try {
@@ -49,8 +49,21 @@ export async function watch(dataDir: string, session: string): Promise<void> {
         await request(info, "/director/heartbeat", { session, started: startedToken !== info.token });
         startedToken = info.token;
         const state: Status = await request(info, "/status");
-        cursor = await readPending(info, Math.max(cursor ?? 0, state.lastAckSeq), seq => { cursor = seq; });
-      } catch { console.log(JSON.stringify({ error: "service_down" })); }
+        await readPending(info, Math.max(transportCursor,Math.min(state.lastAckSeq,checkpoint.cursor)),async event=>{
+          if(event.seq<=transportCursor) return;
+          const selected=types.includes(event.type) && event.seq>(event.type==='message.received' ? state.lastAckSeq : checkpoint.cursor);
+          if(selected) {
+            const line=event.type==='message.received' ? {seq:event.seq,type:event.type,
+              messageId:event.messageId,text:event.payload.text,origin:event.payload.origin}
+              : {seq:event.seq,type:event.type,payload:event.payload,createdAt:event.createdAt};
+            await new Promise<void>((resolve,reject)=>process.stdout.write(JSON.stringify(line)+'\n',error=>error ? reject(error) : resolve()));
+          }
+          checkpoint.advance(event.seq);transportCursor=event.seq;
+        });
+      } catch(error) {
+        if(error instanceof CheckpointError) throw error;
+        console.log(JSON.stringify({ error: "service_down" }));
+      }
       await sleep(Math.max(0, 2000 - (Date.now() - began)));
     }
   } finally { release(); }
