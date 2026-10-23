@@ -1,49 +1,89 @@
 {
   "method": "Tokens Unicode por nodo visible de main; DOM completo incluso fuera del viewport. Excluye hidden/inert/aria-hidden/sr-only/display:none/visibility:hidden, script/style/SVG title, atributos y valores de input. Select cerrado: solo opción seleccionada. Tooltips: solo texto abierto. Misma función para antes y después.",
   "seed": "Servicio real seed, conversación POST /messages + reply y Git temporal con diff real. Vacíos: respuestas API interceptadas solo en el navegador; no borran datos. Sin fixtures de miniaturas.",
-  "measuredAt": "2026-10-23T16:06:48.251Z",
-  "revision": "7a8105be36fe76083baaf8bde43ba5621a956b62",
+  "measuredAt": "2026-10-23T16:27:18.531Z",
+  "revision": "4ac81e2f55cea7a4ea3a8fa13b1efc4d1cf69291",
   "views": {
     "produccion": {
       "1366": {
         "full": 118,
-        "firstRow": 7
+        "firstRow": 7,
+        "empty": 25
       },
       "1920": {
         "full": 118,
-        "firstRow": 7
+        "firstRow": 7,
+        "empty": 25
       }
     },
     "chat": {
       "1366": {
-        "full": 48
+        "full": 48,
+        "empty": 11
       },
       "1920": {
-        "full": 48
+        "full": 48,
+        "empty": 11
       }
     },
     "actividad": {
       "1366": {
-        "full": 45
+        "full": 45,
+        "empty": 6
       },
       "1920": {
-        "full": 45
+        "full": 45,
+        "empty": 6
       }
     },
     "presupuesto": {
       "1366": {
-        "full": 58
+        "full": 58,
+        "empty": 5
       },
       "1920": {
-        "full": 58
+        "full": 58,
+        "empty": 5
       }
     },
     "capacidades": {
       "1366": {
-        "full": 75
+        "full": 75,
+        "empty": 6
       },
       "1920": {
-        "full": 75
+        "full": 75,
+        "empty": 6
+      }
+    },
+    "entregas": {
+      "1366": {
+        "full": 24,
+        "empty": 6
+      },
+      "1920": {
+        "full": 24,
+        "empty": 6
+      }
+    },
+    "catalogo": {
+      "1366": {
+        "full": 151,
+        "empty": 9
+      },
+      "1920": {
+        "full": 151,
+        "empty": 9
+      }
+    },
+    "decisiones": {
+      "1366": {
+        "full": 31,
+        "empty": 6
+      },
+      "1920": {
+        "full": 31,
+        "empty": 6
       }
     }
   }

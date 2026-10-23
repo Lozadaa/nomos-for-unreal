@@ -14,6 +14,7 @@ import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
 import { assignAgentNames } from '@/visual/art/agentName'
 import { ProductionMap } from '@/visual/art/ProductionMap'
+import { EmptyState } from '@/visual/art/EmptyState'
 
 type Filter = 'todas' | Stage
 
@@ -99,13 +100,8 @@ export function Produccion() {
       <section aria-label="Producción" className="overflow-hidden rounded-lg border border-subtle">
         {!loaded ? (showSkeleton ? <RowsSkeleton /> : <div className="h-48" />)
           : groups.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-              <h2 className="text-base font-medium">{filtering ? 'Ninguna tarea coincide con el filtro' : 'Escribe la primera petición a Kratos'}</h2>
-              <p className="text-sm text-muted-foreground">{filtering ? 'Prueba con otra etapa o con otra búsqueda.' : 'Kratos la convierte en tareas y las reparte.'}</p>
-              {filtering
-                ? <Button variant="outline" size="sm" onClick={clearFilters}>Quitar filtro</Button>
-                : <Button size="sm" onClick={() => document.querySelector<HTMLInputElement>('input[aria-label="Título de la petición"]')?.focus()}>Nueva petición</Button>}
-            </div>
+            <EmptyState view="produccion" message={filtering ? 'Ninguna tarea coincide con el filtro' : undefined}
+              action={filtering ? { label: 'Quitar filtro', onClick: clearFilters } : { label: 'Nueva petición', onClick: () => document.querySelector<HTMLInputElement>('input[aria-label="Título de la petición"]')?.focus() }} />
           ) : groups.map(({ stage, rows }) => (
             <div key={stage} role="group" aria-labelledby={`etapa-${stage}`}>
               <h2 id={`etapa-${stage}`} className="flex h-8 items-center gap-2 border-b border-subtle bg-card px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">

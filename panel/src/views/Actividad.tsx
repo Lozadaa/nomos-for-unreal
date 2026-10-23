@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { EmptyState } from '@/components/EmptyState'
+import { EmptyState } from '@/visual/art/EmptyState'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useFresh } from '@/hooks/fresh'
 import { useParam } from '@/hooks/useParam'
@@ -60,7 +60,7 @@ export function Actividad() {
   const filter = (id: string) => void animateUpdate(() => { setSelected(null); return setTaskId(id) })
 
   if (events.length === 0) {
-    return <EmptyState title="Aún no hay actividad" hint="Aparecerá cuando Kratos empiece a trabajar." action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
+    return <EmptyState view="actividad" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
 
   return (
@@ -77,7 +77,7 @@ export function Actividad() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-lg border border-subtle"><EmptyState title="Ningún evento coincide con el filtro" action={{ label: 'Quitar filtro', onClick: () => filter('') }} /></div>
+        <div className="rounded-lg border border-subtle"><EmptyState view="actividad" message="Ningún evento coincide con el filtro" action={{ label: 'Quitar filtro', onClick: () => filter('') }} /></div>
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)_240px] items-start gap-4">
         <section aria-label="Actividad por carriles" className="min-w-0 rounded-lg border border-subtle">

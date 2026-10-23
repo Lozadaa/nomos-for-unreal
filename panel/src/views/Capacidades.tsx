@@ -15,6 +15,7 @@ import { glyphFor } from '@/visual/glyphs'
 import { AvatarGroup, type AvatarGroupAgent } from '@/visual/art/AvatarGroup'
 import { assignAgentNames } from '@/visual/art/agentName'
 import type { AgentAvatarState } from '@/visual/art/AgentAvatar'
+import { EmptyState } from '@/visual/art/EmptyState'
 
 interface Capability { id: string; label: string; state: 'ausente' | 'detectado' | 'comprobado' | 'roto'; detail: string }
 
@@ -106,12 +107,12 @@ export function Capacidades() {
           </li>)}
         </ul>
       </section>}
-      <ul aria-label="Capacidades" className="overflow-hidden rounded-lg border border-subtle">
+      {!data?.length ? <EmptyState view="capacidades" /> : <ul aria-label="Capacidades" className="overflow-hidden rounded-lg border border-subtle">
         {data?.map((cap) => (
           <Row key={cap.id} cap={cap} checkedAt={checked[cap.id]} now={now}
             onChecked={(list) => { mutate(() => list); setChecked((c) => ({ ...c, [cap.id]: Date.now() })) }} />
         ))}
-      </ul>
+      </ul>}
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { SheetSkeleton } from '@/components/Skeletons'
 import { StageStepper } from '@/components/StageStepper'
+import { DecisionDetails, DecisionOptions, decisionText } from '@/components/DecisionOptions'
 import { StatusDot } from '@/components/StatusDot'
 import { nameFor } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
@@ -181,19 +182,12 @@ function DecisionCard({ decision, task, onStale }: { decision: Decision; task: T
   )
   const choose = (id: string) => { option.current = id; setChosen(id); void action.fire() }
   return (
-    <section aria-label="Decisión pendiente" className="flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4">
-      <h3 className="text-base font-medium">{decision.reason}</h3>
-      {decision.evidence.length > 0 && (
-        <ul className="text-xs text-muted-foreground">{decision.evidence.map((e) => <li key={e.ref}><span className="font-mono">{e.kind}</span> · {e.ref}</li>)}</ul>
-      )}
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Opciones">
-        {decision.options.map((o) => (
-          <div key={o.id} className="flex flex-col items-start gap-1">
-            <Button variant={chosen === o.id ? 'default' : 'outline'} aria-pressed={chosen === o.id} disabled={action.pending} onClick={() => choose(o.id)}>{o.label}</Button>
-            {o.description && <span className="max-w-48 text-xs text-muted-foreground">{o.description}</span>}
-          </div>
-        ))}
+    <section aria-label="Decisión pendiente" data-decision-card className="flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <h3 aria-label={decision.reason} title={decision.reason} className="text-base font-medium">{decisionText(decision).reason}</h3>
+        <DecisionDetails decision={decision} taskTitle={task.title} />
       </div>
+      <DecisionOptions decision={decision} area={task.area} selected={chosen} disabled={action.pending} onChoose={choose} />
       {action.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
       {action.error && !action.pending && <p className="text-xs text-error" role="alert">No se registró la elección. {humanError(action.error)}</p>}
     </section>

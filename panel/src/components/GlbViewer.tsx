@@ -14,7 +14,7 @@ export function GlbViewer({ id, name }: { id: string; name: string }) {
   if (failed) return <div className="grid h-full place-items-center text-sm text-muted-foreground">No se pudo cargar el visor 3D.</div>
   if (!ready || !src) return <div aria-hidden className="h-full" />
   return createElement('model-viewer', {
-    src, alt: `Modelo 3D de ${name}`, 'camera-controls': '', 'auto-rotate': '', 'shadow-intensity': '0',
-    style: { width: '100%', height: '100%', backgroundColor: 'var(--card)', '--poster-color': 'var(--card)' },
+    src, alt: `Modelo 3D de ${name}`, role: 'img', 'aria-label': `Modelo 3D de ${name}`, 'camera-controls': '', 'shadow-intensity': '0',
+    className: 'size-full bg-card', style: { '--poster-color': 'var(--card)' },
   })
 }

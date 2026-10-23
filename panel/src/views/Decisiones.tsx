@@ -3,7 +3,8 @@ import { humanError } from '@/lib/errors'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router'
 import { api } from '@/api'
-import { EmptyState } from '@/components/EmptyState'
+import { DecisionDetails, DecisionOptions, decisionText } from '@/components/DecisionOptions'
+import { EmptyState as VisualEmpty } from '@/visual/art/EmptyState'
 import { StatusDot } from '@/components/StatusDot'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,9 +12,10 @@ import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { useResource } from '@/hooks/useResource'
-import { providerLabel, type Decision } from '@/lib/tasks'
+import { providerLabel, shortId, type Decision } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { patchTask, useStore } from '@/store'
+import { truncateWords } from '@/visual/text-budget'
 
 const typing = (el: Element | null) => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
 
@@ -64,7 +66,7 @@ export function Decisiones() {
 
   if (loading) return slow ? <div role="status" aria-label="Cargando las decisiones" className="flex flex-col gap-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
   if (!list.length) {
-    return <EmptyState title="No tienes decisiones pendientes" hint="Cuando Kratos necesite tu criterio, aparecerá aquí." action={{ label: 'Ver producción', onClick: () => void withViewTransition(() => navigate('/', { flushSync: true })) }} />
+    return <VisualEmpty view="decisiones" message="No tienes decisiones pendientes" action={{ label: 'Ver producción', onClick: () => void withViewTransition(() => navigate('/', { flushSync: true })) }} />
   }
 
   const option = current?.options.find((o) => o.id === (justChosen ?? current.chosenOptionId))
@@ -89,8 +91,8 @@ export function Decisiones() {
                   onClick={() => select(d.id)}
                   className={cn('flex w-full flex-col gap-1 border-b border-subtle px-4 py-3 text-left text-sm transition-colors duration-(--k-dur-micro) last:border-b-0 hover:bg-card', active && 'bg-card', d.state !== 'open' && 'text-muted-foreground')}
                 >
-                  <span className="flex items-center gap-2"><StatusDot tone={d.state === 'open' ? 'warning' : d.state === 'resolved' ? 'success' : 'neutral'} /><span className="truncate font-medium">{d.reason}</span></span>
-                  <span className="truncate pl-4 text-xs text-muted-foreground">{t?.title ?? d.taskId}{d.state === 'resolved' ? ' · resuelta' : d.state === 'stale' ? ' · caducada' : ''}</span>
+                  <span className="flex items-center gap-2"><StatusDot tone={d.state === 'open' ? 'warning' : d.state === 'resolved' ? 'success' : 'neutral'} /><span title={d.reason} className="truncate font-medium">{d.reason}</span></span>
+                  <span title={t?.title ?? d.taskId} className="truncate pl-4 text-xs text-muted-foreground">{t?.title ?? d.taskId}{d.state === 'resolved' ? ' · resuelta' : d.state === 'stale' ? ' · caducada' : ''}</span>
                 </button>
               </li>
             )
@@ -98,32 +100,23 @@ export function Decisiones() {
         </ul>
 
         {current && (
-          <section aria-label="Decisión" className={cn('flex flex-col gap-4 rounded-lg border border-subtle p-6', current.state === 'stale' && 'opacity-70')}>
+          <section aria-label="Decisión" data-decision-card className={cn('flex flex-col gap-4 rounded-lg border border-subtle p-6', current.state === 'stale' && 'opacity-70')}>
             <div className="flex flex-col gap-1">
-              <h3 className="text-lg font-semibold">{current.reason}</h3>
-              {task && <p className="text-sm text-muted-foreground">En la tarea «{task.title}»</p>}
+              <h3 aria-label={current.reason} title={current.reason} className="text-lg font-semibold">{decisionText(current).reason}</h3>
+              <div className="flex items-center gap-3">
+                <span title={task?.title ?? current.taskId} aria-label={`Tarea: ${task?.title ?? current.taskId}`} className="font-mono text-xs text-muted-foreground">{shortId(current.taskId)}</span>
+                <DecisionDetails decision={current} taskTitle={task?.title} />
+              </div>
             </div>
-            {current.evidence.length > 0 && (
-              <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
-                {current.evidence.map((e) => <li key={`${e.kind}${e.ref}`}><span className="font-mono">{e.kind}</span> · {e.ref}</li>)}
-              </ul>
-            )}
             {current.state === 'open' && (
               <>
-                <div role="group" aria-label="Opciones" className="flex flex-wrap gap-2">
-                  {current.options.map((o) => (
-                    <div key={o.id} className="flex flex-col items-start gap-1">
-                      <Button variant={justChosen === o.id ? 'default' : 'outline'} aria-pressed={justChosen === o.id} disabled={resolve.pending} onClick={() => choose(o.id)}>{o.label}</Button>
-                      {o.description && <span className="max-w-48 text-xs text-muted-foreground">{o.description}</span>}
-                    </div>
-                  ))}
-                </div>
+                <DecisionOptions decision={current} area={task?.area} selected={justChosen} disabled={resolve.pending} onChoose={choose} />
                 {resolve.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
                 {resolve.error && !resolve.pending && <p role="alert" className="text-xs text-error">No se registró la elección. {humanError(resolve.error)}</p>}
               </>
             )}
             {current.state === 'resolved' && (
-              <p role="status" className="text-sm">Elegiste {option?.label ?? 'una opción'}. {owner} continúa.</p>
+              <p role="status" aria-label={`Elegiste ${option?.label ?? 'una opción'}. ${owner} continúa.`} title={`Elegiste ${option?.label ?? 'una opción'}. ${owner} continúa.`} className="text-sm">Elegiste {truncateWords(option?.label ?? 'una opción', decisionText(current).optionLimit)}. {owner} continúa.</p>
             )}
             {current.state === 'stale' && (
               <div className="flex flex-col items-start gap-2">
@@ -134,7 +127,7 @@ export function Decisiones() {
           </section>
         )}
       </div>
-      <p className="text-xs text-muted-foreground"><kbd className="font-mono">j</kbd> / <kbd className="font-mono">k</kbd> para moverte por la bandeja</p>
+      <p className="text-xs text-muted-foreground" title="j / k para moverte por la bandeja"><kbd className="font-mono">j</kbd> / <kbd className="font-mono">k</kbd></p>
     </div>
   )
 }

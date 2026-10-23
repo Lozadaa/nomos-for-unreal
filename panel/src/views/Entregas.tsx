@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router'
 import { humanError } from '@/lib/errors'
-import { EmptyState } from '@/components/EmptyState'
+import { EmptyState as VisualEmpty } from '@/visual/art/EmptyState'
+import { Glyph } from '@/visual/Glyph'
 import { GlbViewer } from '@/components/GlbViewer'
 import { Skeleton } from '@/components/ui/skeleton'
 import { withViewTransition } from '@/feel/transitions'
@@ -19,7 +20,7 @@ function Preview({ a }: { a: Artifact }) {
   const name = a.path.split('/').pop() ?? a.path
   if (isModel(a)) return <GlbViewer id={a.id} name={name} />
   if (isImage(a) && src) return <img src={src} alt={name} width={400} height={300} className="size-full object-cover" loading="lazy" />
-  return <div aria-hidden className="grid size-full place-items-center font-mono text-xs text-muted-foreground">{name.split('.').pop()?.toUpperCase()}</div>
+  return <div className="grid size-full place-items-center text-muted-foreground"><Glyph kind="artifact" value={a.kind} size={48} /></div>
 }
 
 export function Entregas() {
@@ -31,7 +32,7 @@ export function Entregas() {
   if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron cargar las entregas. {humanError(new Error(error))}</p>
   if (loading) return slow ? <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4" role="status" aria-label="Cargando las entregas">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-56" />)}</div> : null
   if (!data?.length) {
-    return <EmptyState title="Aún no hay entregas" hint="Los modelos y capturas aparecerán aquí." action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
+    return <VisualEmpty view="entregas" message="Aún no hay entregas" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
   return (
     <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
 import { AgentAvatar } from '@/visual/art/AgentAvatar'
 import { CheckCircle2 } from 'lucide-react'
+import { EmptyState } from '@/visual/art/EmptyState'
 
 interface Message { id: string; text: string; at: string; acked: boolean; reply: { text: string; at: string } | null }
 interface Outbox { key: string; text: string; sentAt: number; messageId?: string }
@@ -60,6 +61,7 @@ export function Chat() {
   const [text, setText] = useState('')
   const draft = useRef<Outbox>({ key: '', text: '', sentAt: 0 })
   const end = useRef<HTMLLIElement>(null)
+  const field = useRef<HTMLTextAreaElement>(null)
 
   const send = useAction(
     async () => {
@@ -99,9 +101,8 @@ export function Chat() {
     <div className="flex h-[calc(100dvh-var(--k-header)-var(--k-tabs)-3rem)] min-h-96 flex-col">
       <ul aria-label="Conversación con Kratos" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
         {count === 0 && (
-          <li className="m-auto flex flex-col items-center gap-2 text-center">
-            <h2 className="text-base font-medium">Cuéntale a Kratos qué quieres construir</h2>
-            <p className="text-sm text-muted-foreground">Kratos lo convierte en tareas y las reparte.</p>
+          <li className="m-auto">
+            <EmptyState view="chat" action={{ label: 'Escribir mensaje', onClick: () => field.current?.focus() }} />
           </li>
         )}
         {conversation.map((m) => (
@@ -119,6 +120,7 @@ export function Chat() {
         className="flex flex-col gap-2 border-t border-subtle pt-4"
       >
         <Textarea
+          ref={field}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit() } }}
