@@ -13,7 +13,7 @@ import { reviewFixture } from './review-fixture.ts';
 const payloadOf = (c: Command) => JSON.parse(c.payload as unknown as string);
 
 test('captura sin UI: umg failed «la captura no contiene la UI», vuelve al implementador y no hay QA', async () => {
-  const f = checksFixture();
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
   try {
     process.env.KRATOS_FAKE = 'noui';
     const result = await f.handlers['ui.cycle']({id: 'c1', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c1'} as any, f.ctx) as any;
@@ -28,7 +28,7 @@ test('captura sin UI: umg failed «la captura no contiene la UI», vuelve al imp
 });
 
 test('con UI: dos resoluciones → dos capturas con procedencia, umg running y review.start de QA con Claude', async () => {
-  const f = checksFixture();
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
   try {
     process.env.KRATOS_FAKE = 'ok';
     const result = await f.handlers['ui.cycle']({id: 'c2', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c2'} as any, f.ctx) as any;
@@ -99,4 +99,15 @@ test('QA rechazado: umg failed y los hallazgos vuelven al mismo implementador', 
   assert.equal(payloadOf(send).runId, f.implementer.id);
   assert.match(payloadOf(send).text, /Correcciones de QA visual:\nWBP_Vida:1 \[bloqueante\] 1280×720: contraste 2,1:1/);
   assert.equal(getTask(f.db, f.task.id)!.state, 'implementando');
+});
+
+test('diff sin cambios de Unreal (p. ej. solo docs/ui-direction.md): ui.cycle no captura ni encola QA', async () => {
+  const f = checksFixture({files: ['docs/ui-direction.md']});
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const result = await f.handlers['ui.cycle']({id: 'c3', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c3'} as any, f.ctx) as any;
+    assert.deepEqual(result, {skipped: 'el diff no toca Unreal'});
+    assert.equal(filtered<TestRun>(f.db, 'test_runs', {taskId: f.task.id}).length, 0);
+    assert.equal(filtered<Command>(f.db, 'commands', {type: 'review.start'}).length, 0);
+  } finally { f.close(); }
 });

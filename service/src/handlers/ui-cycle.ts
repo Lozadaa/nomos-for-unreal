@@ -12,6 +12,7 @@ import { workerSkillsBrief } from '../brief.ts';
 import { withEditor } from '../editor/queue.ts';
 import { runCheck, type CheckDeps } from '../checks/run.ts';
 import { umgCapture, type UmgOptions } from '../checks/umg.ts';
+import { selectChecks } from '../checks/select.ts';
 import { checkRun, implementerOf, sendCorrection, treeOf } from './checks.ts';
 
 export const uiCycleKey = (run: Run) => `ui.cycle:${run.id}:${run.metadata.pollGeneration ?? 0}`;
@@ -23,6 +24,9 @@ export function createUiCycle(deps: CheckDeps = {}): Handler {
     if (typeof payload.taskId !== 'string') throw new Error('invalid_command_payload');
     const task = requireTask(ctx.db, payload.taskId), implementer = implementerOf(ctx, task, payload.runId);
     const {tree, project} = treeOf(ctx, implementer);
+    // una tarea ui que no toca Unreal (la dirección de arte escribe docs/ui-direction.md) no tiene pantalla que capturar
+    const files = tree ? await ctx.git.changedFiles!(tree.path, tree.baseCommit) : undefined;
+    if (files && !selectChecks(files).length) return {skipped: 'el diff no toca Unreal'};
     const run = checkRun(ctx, command, task, implementer);
     const input = {task, run, implementer, project, files: [], worktree: tree?.path ?? project.dir};
     const outcome = await withEditor(ctx, project, run,
