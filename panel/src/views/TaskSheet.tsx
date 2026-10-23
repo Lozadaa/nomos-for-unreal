@@ -19,7 +19,8 @@ import { Glyph } from '@/visual/Glyph'
 import { glyphFor } from '@/visual/glyphs'
 import { AgentAvatar } from '@/visual/art/AgentAvatar'
 import { agentName, assignAgentNames } from '@/visual/art/agentName'
-import { ArtifactsTab, ChangesTab, TestsTab, TimelineTab, WorkerChatTab } from './TaskTabs'
+import { ArtifactsTab, ChangesTab, TimelineTab, WorkerChatTab } from './TaskTabs'
+import { TestsTab } from './TestsTab'
 import { XIcon } from 'lucide-react'
 
 export interface AgentIdentity { name: string; ordinal?: number }
@@ -113,7 +114,8 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
               <TabsContent value="resumen" className="p-6"><Summary detail={detail} task={task ?? detail.task} agentsByRunId={runAgents} onStale={() => setReloads((n) => n + 1)} /></TabsContent>
               <TabsContent value="chat" className="p-6"><WorkerChatTab detail={detail} /></TabsContent>
               <TabsContent value="cambios" className="p-6"><ChangesTab detail={detail} /></TabsContent>
-              <TabsContent value="pruebas" className="p-6"><TestsTab detail={detail} /></TabsContent>
+              <TabsContent value="pruebas" className="p-6"><TestsTab detail={detail} decisionCard={detail.decision?.state === 'open' && isCheckDecision(detail.decision)
+                ? <DecisionCard decision={detail.decision} task={task ?? detail.task} onStale={() => setReloads((n) => n + 1)} /> : null} /></TabsContent>
               <TabsContent value="assets" className="p-6"><ArtifactsTab detail={detail} /></TabsContent>
               <TabsContent value="linea" className="p-6"><TimelineTab detail={detail} /></TabsContent>
             </div>
@@ -168,6 +170,9 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
     </div>
   )
 }
+
+// Decisiones que abre checks.run (comprobación no disponible, assets rotos): también se responden desde la pestaña Pruebas
+const isCheckDecision = (d: Decision) => d.evidence.some((e) => e.kind === 'gate:checks' || e.kind === 'command')
 
 function DecisionCard({ decision, task, onStale }: { decision: Decision; task: Task; onStale: () => void }) {
   const [chosen, setChosen] = useState<string | null>(null)

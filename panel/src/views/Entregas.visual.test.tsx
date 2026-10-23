@@ -55,4 +55,15 @@ describe('Entregas · previews y vacío visual', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Nueva petición' }))
     await waitFor(() => expect(router.state.location.search).toBe('?nueva=1'))
   })
+
+  it('agrupa por tarea y etiqueta cada captura con resolución, mapa y run', async () => {
+    const shot = (id: string, taskId: string, resolution: string): Artifact => ({ ...artifact(id, 'screenshot', `C:/d/tests/x/ui-${resolution}.png`), taskId, runId: 'run12345abcdef',
+      provenance: { resolution, map: '/Game/Maps/Nivel1', testRunId: 'x' } } as Artifact)
+    mockApi.mockResolvedValue([shot('a', 't1', '1280x720'), shot('b', 't1', '1920x1080'), artifact('c', 'report', 'informe.txt')].map((a, i) => i === 2 ? { ...a, taskId: 't2' } : a))
+    inRouter()
+    const groups = await screen.findAllByRole('region', { name: /^Tarea / })
+    expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual(['Tarea t2', 'Tarea t1'])
+    expect(screen.getByText('1280×720 · Nivel1 · run run1234')).toBeInTheDocument()
+    expect(screen.getByText('1920×1080 · Nivel1 · run run1234')).toBeInTheDocument()
+  })
 })

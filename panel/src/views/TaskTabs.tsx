@@ -4,10 +4,9 @@ import { api, ApiError } from '@/api'
 import { useArtifactSrc } from '@/hooks/artifact'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { StatusDot } from '@/components/StatusDot'
 import { useAction } from '@/feel/useAction'
 import { relativeTime } from '@/lib/time'
-import type { Run, TaskDetail, TestRun, Tone } from '@/lib/tasks'
+import type { Run, TaskDetail } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { eventText } from '@/lib/events'
 import { parseDiffStat } from '@/lib/parseDiffStat'
@@ -161,30 +160,7 @@ export function ChangesTab({ detail }: { detail: TaskDetail }) {
   )
 }
 
-const resultLook: Record<TestRun['result'], [string, Tone]> = {
-  passed: ['Superada', 'success'], failed: ['Fallida', 'error'], pending: ['Pendiente', 'neutral'],
-  running: ['En curso', 'info'], skipped: ['Omitida', 'neutral'], unavailable: ['No disponible', 'warning'],
-}
-
-export function TestsTab({ detail }: { detail: TaskDetail }) {
-  if (!detail.testRuns.length) return <Empty title="Esta tarea aún no tiene pruebas" hint="Las pruebas aparecen cuando Kratos las lanza al revisar la tarea." />
-  return (
-    <ul className="flex flex-col">
-      {detail.testRuns.map((t) => {
-        const [text, tone] = resultLook[t.result]
-        return (
-          <li key={t.id} className="flex h-10 items-center gap-3 border-b border-subtle text-sm">
-            <StatusDot tone={tone} />
-            <span>{text}</span>
-            {t.map && <span className="font-mono text-xs text-muted-foreground">{t.map}</span>}
-            {t.commit && <span className="font-mono text-xs text-muted-foreground">{t.commit.slice(0, 7)}</span>}
-            <span className="ml-auto text-xs text-muted-foreground">{relativeTime(t.createdAt)}</span>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
+export { TestsTab } from './TestsTab'
 
 const kindLabel: Record<string, string> = { model: 'Modelo', texture: 'Textura', screenshot: 'Captura', video: 'Vídeo', build: 'Compilación', report: 'Informe', diff: 'Cambios' }
 
