@@ -47,7 +47,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
         try {
           if (!handler) throw new Error('unknown_command_type');
           const result=await handler(active,context);
-          if((active.type==='worker.start'||active.type==='review.start') && result && 'deferred' in result
+          if(result && 'deferred' in result
             && result.deferred===true && 'reason' in result && typeof result.reason==='string')
             defer(db,active.id,result.reason);
           else complete(db,active.id,result || undefined);
