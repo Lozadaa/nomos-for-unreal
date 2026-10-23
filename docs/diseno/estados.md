@@ -89,7 +89,7 @@ Bloqueos con evidencia y opciones; se cierran con una elección registrada.
 | Vacía | Lista vacía | `No tienes decisiones pendientes` · apoyo: `Cuando Kratos necesite tu criterio, aparecerá aquí.` | Botón `Ver producción` |
 | N pendientes | Lista, con el número junto al menú lateral | `Tienes 2 decisiones pendientes` | Elegir una opción |
 | Con dos opciones | Pregunta, evidencia y dos botones | `¿Qué shader usamos para el pack?` · `Advanced Cel Shader Lite` / `Material propio` | Un botón con el nombre de cada opción |
-| Elegida | Aviso breve que no roba el foco, con la consecuencia dicha | `Elegiste Advanced Cel Shader Lite. Codex continúa.` · apoyo bajo las opciones: `Se registra tu elección y Codex continúa. Podrás deshacerla unos segundos.` | `Deshacer` |
+| Elegida | Aviso breve que no roba el foco, con la consecuencia dicha | `Elegiste Advanced Cel Shader Lite. Codex continúa.` · apoyo bajo las opciones: `Se registra tu elección y Codex continúa.` | Ninguna: una decisión caducada se regenera, no se deshace |
 | Caducada | Decisión atenuada, aviso | `Esta decisión caducó porque cambió el contexto. Kratos la prepara de nuevo.` | `Ver la nueva` |
 
 ## Presupuesto

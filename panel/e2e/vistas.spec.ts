@@ -17,13 +17,14 @@ for (const [path, name] of routes) {
     await page.goto(url().replace('/#', `${path}#`))
     await expect(page.getByRole('link', { name: new RegExp(`^${name}`) }).first()).toHaveAttribute('aria-current', 'page')
     await page.waitForTimeout(600)
-    // Hallazgo abierto: el visor 3D instancia WebAssembly y la política de seguridad del servicio no admite 'wasm-unsafe-eval' (service/src/server.ts, del hito 2)
-    expect(problems.filter((p) => !(path === '/entregas' && /WebAssembly|unsafe-eval|wasm/i.test(p)))).toEqual([])
+    expect(problems).toEqual([])
   })
 }
 
 test('Entregas: las imágenes y el modelo GLB cargan pese a la política de seguridad (service worker con el token)', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'WebGL del visor 3D: se comprueba en Chromium')
+  const problems: string[] = []
+  page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()) })
   await page.goto(url().replace('/#', '/entregas#'))
   const img = page.getByRole('img', { name: 'captura-01.png' })
   await expect(img).toBeVisible()
@@ -31,6 +32,7 @@ test('Entregas: las imágenes y el modelo GLB cargan pese a la política de segu
   const viewer = page.locator('model-viewer')
   await expect(viewer).toHaveCount(1)
   await expect.poll(() => viewer.evaluate((el: HTMLElement & { loaded?: boolean }) => Boolean(el.loaded)), { timeout: 15000 }).toBe(true)
+  expect(problems).toEqual([]) // sin error de wasm gracias a 'wasm-unsafe-eval' en la política de seguridad
 })
 
 test('Producción se actualiza en vivo por SSE: una tarea creada fuera del panel aparece sin recargar', async ({ page }) => {
