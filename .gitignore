@@ -10,3 +10,5 @@ panel/node_modules/
 panel/dist/
 .superpowers/
 .agents/
+panel/test-results/
+panel/playwright-report/

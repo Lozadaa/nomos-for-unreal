@@ -7,6 +7,7 @@ export interface Status {
   lastAckAt: string | null
   pending: number
   paused: boolean
+  project?: { name: string; uproject: string } | null
 }
 
 export class ApiError extends Error {

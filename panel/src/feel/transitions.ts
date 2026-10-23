@@ -1,5 +1,8 @@
 import { durations } from './motion'
 
+export const supportsViewTransitions = (): boolean =>
+  typeof (document as unknown as { startViewTransition?: unknown }).startViewTransition === 'function'
+
 type Transition = { finished: Promise<void> }
 type StartViewTransition = (update: () => void | Promise<void>) => Transition
 
@@ -32,5 +35,11 @@ export async function queueWhileTransitioning(fn: () => void | Promise<void>): P
   await fn()
 }
 
-export const nameFor = (entity: 'task' | 'decision' | 'asset', id: string): string =>
+/** Anima un cambio de estructura de una lista con View Transitions (sin la API, lo aplica tal cual: nada de fundidos de página por cada evento). */
+export async function animateUpdate(update: () => void): Promise<void> {
+  if (!supportsViewTransitions()) return queueWhileTransitioning(update)
+  await queueWhileTransitioning(() => withViewTransition(update))
+}
+
+export const nameFor = (entity: 'task' | 'row' | 'decision' | 'asset', id: string): string =>
   `${entity}-${id.replace(/[^a-zA-Z0-9_-]/g, '-')}`

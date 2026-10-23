@@ -1,6 +1,8 @@
-import { createBrowserRouter, RouterProvider } from 'react-router'
+import { createBrowserRouter } from 'react-router'
+import { RouterProvider } from 'react-router/dom'
 import { Layout } from '@/shell/Layout'
 import { views } from '@/shell/Tabs'
+import { Produccion } from '@/views/Produccion'
 
 function EnConstruccion({ title }: { title: string }) {
   return (
@@ -17,7 +19,7 @@ export const router = createBrowserRouter([
     element: <Layout />,
     children: views.map((v) =>
       v.to === '/'
-        ? { index: true, element: <EnConstruccion title={v.label} /> }
+        ? { index: true, element: <Produccion /> }
         : { path: v.to.slice(1), element: <EnConstruccion title={v.label} /> }),
   },
 ])
