@@ -3,8 +3,8 @@ import {
   Activity, AudioWaveform, Ban, Box, Boxes, Camera, CheckCircle2, Circle, CircleDashed,
   CircleDot, Code2, Command, Crown, Diff, DoorClosed, Download, Eye, FileText, Film,
   FlaskConical, Gamepad2, GitMerge, Hammer, HelpCircle, Hourglass, Image, LayoutPanelTop,
-  Leaf, Library, MessageCircle, Mountain, Network, Package, PackageCheck, Palette, Play,
-  PlugZap, Radio, Reply, Scan, Search, ShieldCheck, TestTube2, Timer, Users, WifiOff, Wrench,
+  MessageCircle, Mountain, Package, PackageCheck, Palette, Play,
+  PlugZap, Radio, Reply, Search, ShieldCheck, TestTube2, Timer, Users, WifiOff, Wrench,
 } from 'lucide-react'
 import { Bone } from './GeometricIcon'
 
@@ -58,9 +58,9 @@ export const glyphs = {
     video: spec(Film, 'Vídeo'), build: spec(PackageCheck, 'Compilación'), report: spec(FileText, 'Informe'), diff: spec(Diff, 'Cambios'),
   },
   source: {
-    fab: spec(Library, 'Fab'), megascans: spec(Scan, 'Megascans'), polyhaven: spec(Mountain, 'Poly Haven'),
-    ambientcg: spec(Leaf, 'ambientCG'), kenney: spec(Gamepad2, 'Kenney'), quaternius: spec(Box, 'Quaternius'),
-    sketchfab: spec(Network, 'Sketchfab'), freesound: spec(AudioWaveform, 'Freesound'),
+    fab: provider('Fab'), megascans: provider('Megascans'), polyhaven: provider('Poly Haven'),
+    ambientcg: provider('ambientCG'), kenney: provider('Kenney'), quaternius: provider('Quaternius'),
+    sketchfab: provider('Sketchfab'), freesound: provider('Freesound'),
     meshy: provider('Meshy', 'success'), blender: provider('Blender', 'warning'),
   },
 } satisfies Record<GlyphKind, Record<string, GlyphSpec>>
