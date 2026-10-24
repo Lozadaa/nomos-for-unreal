@@ -19,8 +19,10 @@ Otros proveedores producen `invalid_worker_provider`; un modelo de OpenCode que 
 La orden de OpenCode no lleva comillas porque `terminalSend` las rechaza; `run` une las palabras
 del mensaje. Antes de lanzar, el servicio escribe `opencode.json` con el modelo en el árbol
 (excluido de Git como el brief) y guarda el modelo en `metadata.model`. Si el terminal responde que
-`opencode` no se reconoce, el sondeo falla la run con «OpenCode no está instalado o no está en el
-PATH del terminal». Cuando `run` termina sin marcador, el terminal queda en el prompt y el sondeo
+`opencode` no se reconoce o `Error: … Invalid credential`, el sondeo cierra el terminal, quita el
+árbol, falla la run (`discarded`, no incierta), emite `worker.failed` con «OpenCode no está instalado
+o no está en el PATH del terminal» u «OpenCode rechazó las credenciales: ejecuta opencode auth login»
+y devuelve la tarea a `preparada` asignada a Claude, sin Decisión. Cuando `run` termina sin marcador, el terminal queda en el prompt y el sondeo
 lo trata como «opencode espera instrucciones». No existe fallback de proveedor.
 
 El contrato Orca amplía `terminalWaitIdle(handle: string, timeoutMs: number, pattern?: RegExp): Promise<boolean>`.
