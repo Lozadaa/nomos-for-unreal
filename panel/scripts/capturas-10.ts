@@ -86,6 +86,22 @@ try {
       }) : undefined
       ;(measures[name] ??= {})[width] = { contentWidth, words: await visibleWords(main), ...(cardsPerRow === undefined ? {} : { cardsPerRow }) }
       console.log(`${name}-${tag}-${width}.png`, JSON.stringify(measures[name][width]))
+      if (name !== 'entregas') continue
+      // la galería de ángulos (hito 10) y los informes desplegados, si esta versión del panel los tiene
+      const gallery = page.getByRole('button', { name: /^Ver .* · \d+ vistas a tamaño completo$/ }).first()
+      if (await gallery.count()) {
+        await gallery.click()
+        await page.getByRole('group', { name: 'Ángulos' }).waitFor()
+        await page.waitForTimeout(800)
+        await page.screenshot({ path: join(out, `galeria-angulos-${tag}-${width}.png`) })
+        await page.keyboard.press('Escape')
+      }
+      const reports = page.getByText('Informes y registros').first()
+      if (await reports.count()) {
+        await reports.click()
+        await page.waitForTimeout(800)
+        await page.screenshot({ path: join(out, `entregas-informes-${tag}-${width}.png`), fullPage: true })
+      }
     }
     await context.close()
   }

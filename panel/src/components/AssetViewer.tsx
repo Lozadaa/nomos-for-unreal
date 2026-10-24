@@ -5,6 +5,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { GlbViewer } from '@/components/GlbViewer'
 import { useAuthedSrc } from '@/hooks/artifact'
 import { isErrorLine } from '@/lib/artifactName'
+import { cn } from '@/lib/utils'
 
 /** Un asset del listado tal como se ve (filtrado y ordenado). `path` es del servicio (lleva token); `url`, una dirección ya usable. */
 export interface ViewerItem {
@@ -18,6 +19,9 @@ export interface ViewerItem {
   modelId?: string
   /** Lo que se ve cuando no hay vista propia: el glifo del artefacto o el aviso de Meshy caducado. */
   fallback?: ReactNode
+  /** Galería de ángulos (hito 10): las imágenes de una misma comprobación comparten `group`; `angle` es su rótulo. */
+  group?: string
+  angle?: string
 }
 
 export const viewerType = (path: string): ViewerItem['type'] =>
@@ -57,6 +61,16 @@ function Body({ item, src }: { item: ViewerItem; src: string | null }) {
   return <div className="flex flex-col items-center gap-4 text-muted-foreground">{item.fallback}</div>
 }
 
+/** Miniatura de un ángulo en la tira inferior del visor. */
+function AngleThumb({ item, active, onSelect }: { item: ViewerItem; active: boolean; onSelect: () => void }) {
+  const src = useAuthedSrc(item.path ?? null)
+  return <button type="button" aria-label={item.angle} aria-current={active ? 'true' : undefined} onClick={onSelect} title={item.angle}
+    className={cn('flex w-28 shrink-0 flex-col gap-1 rounded-md border p-1 text-xs outline-offset-2', active ? 'border-strong text-foreground' : 'border-subtle text-muted-foreground hover:border-strong')}>
+    {src && <img src={src} alt="" width={112} height={63} className="aspect-video w-full rounded-sm object-cover" />}
+    <span className="truncate">{item.angle}</span>
+  </button>
+}
+
 function AssetDialog({ items, id, setId, opener }: {
   items: ViewerItem[]; id: string | null; setId: (id: string | null) => void; opener: RefObject<HTMLElement | null>
 }) {
@@ -64,6 +78,7 @@ function AssetDialog({ items, id, setId, opener }: {
   const item = index >= 0 ? items[index] : null
   const served = useAuthedSrc(item?.path ?? null)
   const src = item?.url ?? served
+  const angles = item?.group ? items.filter((i) => i.group === item.group) : []
   const go = (step: number) => { if (items.length > 1 && index >= 0) setId(items[(index + step + items.length) % items.length].id) }
   return <Dialog open={!!item} onOpenChange={(open) => { if (!open) setId(null) }}>
     {item && <DialogContent finalFocus={opener} showCloseButton={false}
@@ -76,6 +91,9 @@ function AssetDialog({ items, id, setId, opener }: {
       <div data-viewer-frame className="relative grid min-h-0 flex-1 place-items-center overflow-hidden">
         <Body item={item} src={src} />
       </div>
+      {angles.length > 1 && <div role="group" aria-label="Ángulos" className="flex justify-center gap-2 overflow-x-auto">
+        {angles.map((a) => <AngleThumb key={a.id} item={a} active={a.id === item.id} onSelect={() => setId(a.id)} />)}
+      </div>}
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" aria-label="Anterior" disabled={items.length < 2} onClick={() => go(-1)}><ChevronLeft />Anterior</Button>
         <Button variant="outline" size="sm" aria-label="Siguiente" disabled={items.length < 2} onClick={() => go(1)}>Siguiente<ChevronRight /></Button>
