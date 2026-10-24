@@ -31,7 +31,7 @@ comandos se ejecutan desde el juego con `--data .nomos`. `scripts/kratos.ts` es 
    `nomos vigila --session <sesion> --data .nomos --types <tipos>` con
    `message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed,`
    `task.moved,integration.completed,task.closing_blocked`.
-   `--types` reemplaza los defaults; conserva sesión y tipos al rearmar.
+   `--types` reemplaza los defaults; conserva sesión y tipos al rearmar. Se puede encadenar.
 4. Anuncia escucha en una línea solo cuando Monitor esté armado. Si la herramienta
    no está disponible, explica la limitación; no afirmes estar escuchando.
    Añade `.nomos/` al `.gitignore` del juego si falta. No pidas permiso para conectar.
