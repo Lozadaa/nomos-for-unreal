@@ -54,6 +54,13 @@ test('bloqueado dos veces: terminal nuevo con --resume y la orden como argumento
   assert.equal(run.metadata.screenFingerprint, undefined);
 });
 
+test('el terminal de relevo conserva el modelo con el que arrancó el worker', async t => {
+  const f = setup(t, 2);
+  const run = updateRun(f.db, f.run.id, {model: 'haiku'});
+  await deliver(f.db, f.orca, run, f.tree, 'Lee el archivo x.md y ejecuta lo que dice.', f.home);
+  assert.match(f.calls.at(-1)![3], /^claude --model haiku --dangerously-skip-permissions --resume /);
+});
+
 test('otro error de Orca no se reintenta ni cambia de terminal', async t => {
   const f = setup(t, 0);
   f.orca.terminalSend = async () => { throw new OrcaError('cli_error', 'El terminal no aceptó el texto'); };

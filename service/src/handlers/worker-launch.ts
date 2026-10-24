@@ -1,12 +1,12 @@
-import type { WorkerProvider } from '../config.ts';
+import type { WorkerModel, WorkerProvider } from '../config.ts';
 
 function adapter(provider:string):Exclude<WorkerProvider,'opencode'> {
   if(provider==='codex'||provider==='claude') return provider;
   throw new Error(provider==='opencode' ? 'unsupported_worker_provider' : 'invalid_worker_provider');
 }
-export function launchCommand(provider:string):string {
+export function launchCommand(provider:string,model:WorkerModel='sonnet'):string {
   return adapter(provider)==='codex' ? 'codex --yolo --no-daemon'
-    : 'claude --model sonnet --dangerously-skip-permissions';
+    : `claude --model ${model} --dangerously-skip-permissions`;
 }
 export function readyPattern(provider:string):RegExp {
   return adapter(provider)==='codex' ? /Ask\s*Codex/i : /bypass permissions|Try "/i;

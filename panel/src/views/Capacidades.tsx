@@ -14,7 +14,7 @@ import { Glyph } from '@/visual/Glyph'
 import { glyphFor } from '@/visual/glyphs'
 import { AvatarGroup, type AvatarGroupAgent } from '@/visual/art/AvatarGroup'
 import { assignAgentNames } from '@/visual/art/agentName'
-import type { AgentAvatarState } from '@/visual/art/AgentAvatar'
+import { agentTitle, type AgentAvatarState } from '@/visual/art/AgentAvatar'
 import { EmptyState } from '@/visual/art/EmptyState'
 import { EditorQueue, type NamedAgent } from './EditorQueue'
 
@@ -82,7 +82,7 @@ export function Capacidades() {
     const agents = assignAgentNames([...runs]
       .sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
       .map((run) => ({
-        id: run.id, provider: run.provider, role: run.role, area: byTask.get(run.taskId)?.area, skills: run.metadata?.confirmedSkills,
+        id: run.id, provider: run.provider, role: run.role, area: byTask.get(run.taskId)?.area, skills: run.metadata?.confirmedSkills, model: run.metadata?.model,
         state: (run.state === 'running' ? run.waiting || waiting[run.taskId]?.runId === run.id ? 'waiting' : 'running' : 'idle') as AgentAvatarState,
       })))
     const providers = new Map<string, AvatarGroupAgent[]>()
@@ -106,8 +106,9 @@ export function Capacidades() {
         <ul aria-label="Agentes por proveedor" className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
           {groups.list.map(({ provider, agents }) => <li key={provider} className="flex flex-col gap-3 rounded-lg border border-subtle p-4">
             <AvatarGroup agents={agents} size={48} />
+            {[...new Set(agents.map((a) => a.model).filter(Boolean))].map((model) => <p key={model} className="text-xs text-muted-foreground">Modelo {model}</p>)}
             <ul aria-label={`Nombres de ${glyphFor('provider', provider).label}`} className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {agents.map((agent) => <li key={agent.id} title={agent.skills?.length ? `${glyphFor('provider', provider).label} · skills confirmadas: ${agent.skills.join(', ')}` : glyphFor('provider', provider).label}>{agent.name}</li>)}
+              {agents.map((agent) => <li key={agent.id} title={agentTitle(provider, agent.model, agent.skills)}>{agent.name}</li>)}
             </ul>
           </li>)}
         </ul>

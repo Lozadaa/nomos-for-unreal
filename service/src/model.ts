@@ -26,6 +26,8 @@ export type RunMetadata = {
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
   confirmedSkills?: string[]; seenAskMarkers?: string[];
+  /** Modelo Claude con el que arrancó (workerModel); el relevo de terminal lo repite. */
+  model?: import('./config.ts').WorkerModel;
   // trabajo de assets (hito 4): orden que lo creó y, en Meshy, el job remoto
   commandId?: string; remoteId?: string; kind?: string; stage?: string; idempotencyKey?: string;
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;

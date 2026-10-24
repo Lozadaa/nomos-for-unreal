@@ -15,7 +15,7 @@ import { requireGameProject } from '../project-root.ts';
 import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
-import { readConfig } from '../config.ts';
+import { readConfig, workerModel } from '../config.ts';
 import { launchCommand, readyPattern } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
@@ -34,7 +34,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     || payload.attempt!==undefined && (!Number.isSafeInteger(payload.attempt)||payload.attempt<1)) throw new Error('invalid_worker_payload');
   if (!task.title.trim() || !task.spec.trim() || !task.acceptance.length
     || !task.acceptance.every(s=>typeof s==='string'&&s.trim())) throw new Error('invalid_worker_spec');
-  readConfig(ctx.dataDir);
+  const model=workerModel(readConfig(ctx.dataDir));
   if(payload.provider==='opencode') return {deferred:true,reason:'OpenCode sin adaptador disponible'};
   const history=filtered<Run>(db,'runs',{taskId:task.id});
   const reusable=history.find(r=>r.state==='running'&&r.provider===payload.provider&&r.attempt===(payload.attempt ?? 1)
@@ -110,7 +110,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);
-  await orca.terminalSend(created.terminalHandle,launchCommand(run.provider));
+  if(run.provider==='claude') run=updateRun(db,run.id,{model});
+  await orca.terminalSend(created.terminalHandle,launchCommand(run.provider,model));
   if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,readyPattern(run.provider)))
     throw new Error(`orca: ${run.provider} no estuvo listo antes de 90 s`);
   const pauseDispatch=()=>{

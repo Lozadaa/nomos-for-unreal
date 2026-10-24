@@ -6,6 +6,10 @@ import { screenMarkers } from '../../service/src/handlers/worker-markers.ts';
 test('comandos y readiness conservan contratos separados por proveedor',()=>{
   assert.equal(launchCommand('codex'),'codex --yolo --no-daemon');
   assert.equal(launchCommand('claude'),'claude --model sonnet --dangerously-skip-permissions');
+  for(const model of ['sonnet','opus','haiku'] as const) {
+    assert.equal(launchCommand('claude',model),`claude --model ${model} --dangerously-skip-permissions`);
+    assert.equal(launchCommand('codex',model),'codex --yolo --no-daemon','el modelo solo afecta a Claude');
+  }
   assert.ok(readyPattern('codex').test('› Ask Codex'));
   for(const line of ['bypass permissions on','Try "edit file"']) assert.ok(readyPattern('claude').test(line));
   assert.equal(readyPattern('claude').test('› Ask Codex'),false);
