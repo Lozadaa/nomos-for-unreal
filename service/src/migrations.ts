@@ -98,3 +98,12 @@ export function migrateLanes(db: DatabaseSync): void {
       id text primary key, state text not null check(state in ('comprobado','roto')), detail text not null, checked_at text not null)`);
   });
 }
+
+/** Hito 10: el chat en vivo guarda cuándo empezó a escribir el director y si se le pasó el plazo de 3 min. */
+export function migrateChat(db: DatabaseSync): void {
+  transaction(db, () => {
+    const columns = db.prepare('pragma table_info(messages)').all();
+    for (const column of ['typing_at', 'timed_out_at'])
+      if (!columns.some(row => row.name === column)) db.exec(`alter table messages add column ${column} text`);
+  });
+}

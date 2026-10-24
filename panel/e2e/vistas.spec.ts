@@ -56,7 +56,8 @@ test('Chat: el mensaje enviado aparece al instante, pasa a «Recibido» y la res
   await page.getByRole('button', { name: 'Enviar' }).click()
   await expect(page.getByText(text)).toBeVisible()
   const { messageId } = await (await posted).json()
-  await expect(page.locator('li', { hasText: text }).getByText(/Enviado · esperando confirmación de Kratos/)).toBeVisible()
+  // hito 10: estado real con hora, nunca «lo atenderá en breve»
+  await expect(page.locator('li', { hasText: text }).getByText(/^Recibido \d\d:\d\d$/)).toBeVisible()
   // Kratos (la sesión de Claude) confirma y responde por la API del servicio
   await call(page, `/messages/${messageId}/reply`, { text: 'Entendido, lo preparo' })
   await expect(page.getByText('Entendido, lo preparo')).toBeVisible()

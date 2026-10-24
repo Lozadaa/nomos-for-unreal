@@ -77,13 +77,13 @@ function receive(event) {
   if (row.seq <= lastSeq) return;
   if (row.type === "message.received") renderMessage(row.messageId, row.payload.text, row.seq);
   const message = messages.get(row.messageId);
-  if (message && row.type === "message.acked") message.state.textContent = "Recibido por Kratos";
-  if (message && row.type === "reply.published") { message.reply.textContent = row.payload.text; message.reply.hidden = false; }
+  if (message && (row.type === "message.read" || row.type === "message.acked")) message.state.textContent = "Recibido por Kratos";
+  if (message && (row.type === "message.replied" || row.type === "reply.published")) { message.reply.textContent = row.payload.text; message.reply.hidden = false; }
   lastSeq = row.seq;
 }
 function connect() {
   source = new EventSource("/events?since=" + lastSeq + "&token=" + encodeURIComponent(token));
-  for (const type of ["message.received", "message.acked", "reply.published", "director.started", "director.stopped"]) source.addEventListener(type, receive);
+  for (const type of ["message.received", "message.read", "message.replied", "message.acked", "reply.published", "director.started", "director.stopped"]) source.addEventListener(type, receive);
   source.onerror = () => { source.close(); setTimeout(connect, 2000); };
 }
 async function refresh() {

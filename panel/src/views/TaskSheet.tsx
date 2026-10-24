@@ -9,6 +9,7 @@ import { StatusDot } from '@/components/StatusDot'
 import { nameFor } from '@/feel/transitions'
 import { useAfter } from '@/hooks/time'
 import { relativeTime } from '@/lib/time'
+import { Markdown } from '@/lib/markdown'
 import { areaLabel, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Task, type TaskDetail } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { Glyph } from '@/visual/Glyph'
@@ -151,7 +152,7 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
       )}
       <section className="flex flex-col gap-2">
         <h3 className={label}>Qué se pide</h3>
-        <p className="text-sm whitespace-pre-wrap">{task.spec || 'Esta tarea no tiene descripción.'}</p>
+        <Markdown className="text-sm" text={task.spec || 'Esta tarea no tiene descripción.'} />
       </section>
       {task.acceptance.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -169,7 +170,7 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
                 <AgentAvatar id={r.id} provider={r.provider} model={r.metadata?.model} name={agentsByRunId.get(r.id)?.name} ordinal={agentsByRunId.get(r.id)?.ordinal} state={r.state !== 'running' ? 'idle' : waiting?.runId === r.id || r.metadata?.waiting ? 'waiting' : 'running'} size={32} />
                 <span>{agentsByRunId.get(r.id)?.name}</span>
                 <Glyph kind="role" value={r.role} />
-                <span className="text-muted-foreground">{r.summary ?? ''}</span>
+                {r.summary && <Markdown className="min-w-0 text-muted-foreground" text={r.summary} />}
               </li>
             ))}
           </ul>

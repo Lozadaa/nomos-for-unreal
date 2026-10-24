@@ -4,12 +4,14 @@ import { relativeTime } from '@/lib/time'
 import { useSyncExternalStore } from 'react'
 import type { Status } from '@/api'
 import { onSession, sessionState } from '@/session'
-import { DirectorDot, directorState } from './DirectorDot'
+import { DirectorDot, directorState, typingActive } from './DirectorDot'
 import { Glyph } from '@/visual/Glyph'
+import { useStore } from '@/store'
 
 export function Header({ project, status, onCommand, onTogglePause, pausePending = false }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean }) {
   const session = useSyncExternalStore(onSession, sessionState)
-  const state = directorState(status, session)
+  const typing = useStore((s) => typingActive(s.events))
+  const state = directorState(status, session, typing)
   const confirmation = status?.lastAckAt ? relativeTime(status.lastAckAt) : 'sin confirmaciones todavía'
   return (
     <header className="flex h-(--k-header) items-center gap-4 border-b border-subtle bg-background px-6">

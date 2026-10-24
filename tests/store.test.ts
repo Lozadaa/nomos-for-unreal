@@ -22,7 +22,7 @@ test("ack es idempotente y no retrocede el cursor", t => {
   ackEvent(db, a.seq, "s1");
   assert.deepEqual(pendingEvents(db).map(e => e.seq), [b.seq]);
   assert.equal(getMessage(db, a.messageId)!.ackedAt, firstAck);
-  assert.equal(listEvents(db, 0).filter(e => e.type === "message.acked").length, 1);
+  assert.equal(listEvents(db, 0).filter(e => e.type === "message.read").length, 1);
   ackEvent(db, b.seq, "s1"); ackEvent(db, a.seq, "s1");
   assert.equal(status(db).lastAckSeq, b.seq);
 });
@@ -32,7 +32,7 @@ test("publishReply guarda respuesta y rechaza id desconocido", t => {
   const { messageId } = createMessage(db, "pregunta", "web");
   publishReply(db, messageId, "respuesta");
   assert.equal(getMessage(db, messageId)!.replyText, "respuesta");
-  assert.equal(listEvents(db, 0).at(-1)!.type, "reply.published");
+  assert.equal(listEvents(db, 0).at(-1)!.type, "message.replied");
   assert.throws(() => publishReply(db, "nope", "x"), /unknown_message/);
 });
 

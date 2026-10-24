@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { body, json } from '../http.ts';
 import { enqueue } from '../commands.ts';
 import { listEvents } from '../store.ts';
+import { linkedMessage } from '../chat.ts';
+
+const withMessage=(messageId: string | null)=>messageId ? {messageId} : {};
 import { requireRun, invalidateImplementation } from '../repo/worker.ts';
 import { requireTask } from '../repo/tasks.ts';
 import { filtered, read, transaction } from '../repo/rows.ts';
@@ -54,7 +57,7 @@ export async function runs({db,req,res,url}: Context): Promise<boolean> {
         throw new Error('invalid_transition');
       if(action==='message') invalidateImplementation(db,current.id);
       return enqueue(db,action==='stop' ? 'worker.stop' : 'worker.send',
-        action==='stop' ? {runId:current.id} : {runId:current.id,text:data.text},key).id;
+        action==='stop' ? {runId:current.id} : {runId:current.id,text:data.text,...withMessage(linkedMessage(db,data.messageId))},key).id;
     });
     json(res,202,{commandId});return true;
   }

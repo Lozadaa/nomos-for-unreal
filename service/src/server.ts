@@ -1,6 +1,7 @@
 import * as http from "node:http";
 import type { DatabaseSync } from "node:sqlite";
 import { createMessage, getMessage, ackEvent, publishReply, heartbeat, status, appendEvent } from "./store.ts";
+import { checkTyping, listMessages, startTyping } from "./chat.ts";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
 import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
@@ -54,6 +55,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         if (!Number.isSafeInteger(since) || since < 0) return json(res, 400, { error: "invalid_seq" });
         return streamEvents(db, req, res, since, streams);
       }
+      if (method === "GET" && path === "/messages") return json(res, 200, listMessages(db));
       if (method === "GET" && parts.length === 3 && parts[1] === "messages") {
         const message = getMessage(db, parts[2]);
         return json(res, message ? 200 : 404, message || { error: "unknown_message" });
@@ -76,6 +78,8 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         if (path === "/messages") return json(res, 201, createMessage(db, data.text, "web"));
         if (parts.length === 4) return json(res, 201, publishReply(db, parts[2], data.text));
       }
+      // hito 10: el director avisa de que empieza a redactar la respuesta
+      if (parts.length === 4 && parts[1] === "messages" && parts[3] === "typing") return json(res, 200, startTyping(db, parts[2]));
       if (path === "/director/heartbeat" || (parts[1] === "events" && parts[3] === "ack")) {
         if (typeof data.session !== "string" || !data.session.trim()) return json(res, 400, { error: "empty_session" });
         if (path === "/director/heartbeat") {
@@ -133,7 +137,11 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
     appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));
   runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers(),...createCheckHandlers(),...createClosingHandlers()},
     {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});
+  // chat en vivo: leído y sin respuesta en 3 min → director.typing_timeout (el panel dice «sigue trabajando»)
+  const typing = setInterval(() => { try { checkTyping(db); } catch { /* base ocupada: el siguiente pase lo ve */ } }, 15_000);
+  typing.unref();
   server.once("close", async () => {
+    clearInterval(typing);
     runner!();await runner!.drained;
     db.close();
     if (readServiceInfo(opts.dataDir)?.token === token) rmSync(file, { force: true });
