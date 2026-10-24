@@ -4,8 +4,8 @@
 
 | Fuente | Qué buscar | Cómo |
 |---|---|---|
-| Mapas (`Content/**/*.umap`) | Cielo, luz, niebla, tono general | Captura de Kratos (`.kratos/artifacts/tests/<id>/*.png`) o una captura del editor |
-| Packs (`Content/Fab`, `Content/<Pack>`) | Género visual y materiales dominantes | Nombres de carpeta y `kratos asset search` |
+| Mapas (`Content/**/*.umap`) | Cielo, luz, niebla, tono general | Captura de Nomos (`.nomos/artifacts/tests/<id>/*.png`) o una captura del editor |
+| Packs (`Content/Fab`, `Content/<Pack>`) | Género visual y materiales dominantes | Nombres de carpeta y `nomos asset search` |
 | Materiales (`M_*`, `MI_*`) | Colores base y si hay cel shading o contornos | Nombres y parámetros de color de las instancias |
 | UI existente (`Content/UI`, `WBP_*`) | Fuentes, colores y estilos ya usados | Abrir los widgets o leer los nombres de estilos |
 | Documentos (`docs/`, `README`) | Referencias de arte del equipo | Texto e imágenes enlazadas |

@@ -5,7 +5,7 @@ Scripts/hello.ps1 imprime EngineAssociation. Diff actual muestra versión fija y
 metadata.correctionCount=0. No hay Decisión abierta; run actual done, tarea revisando.
 
 Resultado esperado: consulta task show T/estado actual y run diff R, compara criterio
-y alcance. Escribe .kratos/correcciones/R/1.md: archivo, versión fija observada y
+y alcance. Escribe .nomos/correcciones/R/1.md: archivo, versión fija observada y
 lectura requerida del .uproject. worker send R --file mantiene run/worktree, usa clave
 estable para reintentos y no crea otro responsable. Al cumplir, reply a m11 y revisando.
 
@@ -14,7 +14,7 @@ Variantes:
 - worker.waiting pregunta «¿color?» sin respuesta en spec: run output, abre Decisión
   con evidencia run y opción answer; espera texto explícito, resolve y worker send.
 - Pregunta contestada en spec: envía solo esa respuesta, sin decisión creativa.
-- Decisión durante preparing: resuelve y manda leer .kratos-brief.md al mismo run;
+- Decisión durante preparing: resuelve y manda leer .nomos-brief.md al mismo run;
   sin nuevo start ni consumo de corrección de preparación.
 - Replay run.finished viejo con run reanudado/Decisión abierta: inspecciona y no corrige.
 - command.failed con timeout: informa causa e inspecciona comando/estado antes de reenviar.

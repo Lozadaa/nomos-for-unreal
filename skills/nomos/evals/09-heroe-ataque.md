@@ -5,7 +5,7 @@ MetaHuman Hudson y Emory (Megascans), las plantillas del motor (maniquíes UE5, 
 `AM_ComboAttack`) y Cascadeur instalado con licencia gratuita.
 
 Resultado esperado: ACK y petición de trabajo. Crea la tarea (área `animacion`) y pide candidatos con
-`kratos asset candidates --task <id> "héroe MetaHuman con ataque" --animation AM_ComboAttack` antes de nada. Publica que hay
+`nomos asset candidates --task <id> "héroe MetaHuman con ataque" --animation AM_ComboAttack` antes de nada. Publica que hay
 una Decisión con tres personajes y espera la elección del usuario, sin elegir por él. Tras la elección, informa de las
 migraciones y de `character.setup` (y de la Decisión del plugin LiveLink si el proyecto no lo tiene). Cuando llegue la
 comprobación `animation`, publica el vídeo de dos ángulos por su nombre en Entregas, no por ruta de archivo. Si falla con

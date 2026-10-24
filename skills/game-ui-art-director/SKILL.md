@@ -1,6 +1,6 @@
 ---
 name: game-ui-art-director
-description: 'Fija la dirección de arte de la UI de un juego Unreal antes de la primera pantalla: lee el estilo 3D del proyecto y escribe ui-direction.md con tipografía, paleta con contraste medido, espaciado, iconografía, jerarquía, estados de foco y mando, con ejemplos de HUD y menús. Triggers: "dirección de arte de la UI", "estilo del HUD", "paleta de la interfaz", primera tarea ui en Kratos. No usar para construir widgets (ue-umg-ui) ni revisar capturas (ue-visual-qa).'
+description: 'Fija la dirección de arte de la UI de un juego Unreal antes de la primera pantalla: lee el estilo 3D del proyecto y escribe ui-direction.md con tipografía, paleta con contraste medido, espaciado, iconografía, jerarquía, estados de foco y mando, con ejemplos de HUD y menús. Triggers: "dirección de arte de la UI", "estilo del HUD", "paleta de la interfaz", primera tarea ui en Nomos. No usar para construir widgets (ue-umg-ui) ni revisar capturas (ue-visual-qa).'
 license: MIT
 metadata:
   version: 0.1.0
@@ -19,10 +19,10 @@ Mira lo que el proyecto ya tiene; no inventes un estilo ajeno al juego.
 1. `Content/`: carpetas de packs (`Fab/`, `Megascans`, estilos tipo `AdvancedCelShader`), mapas
    (`*.umap`) y la UI existente (`Content/UI/`, `WBP_*`). Anota el género visual: realista,
    cel shading, low poly, pixel art…
-2. Catálogo de Kratos: `kratos asset search <palabra> --data .kratos` devuelve los packs del
+2. Catálogo de Nomos: `nomos asset search <palabra> --data .nomos` devuelve los packs del
    juego con su categoría y miniatura.
 3. Paleta 3D: colores dominantes de los materiales principales y del cielo o la luz del mapa
-   (si hay una captura de Kratos en `.kratos/artifacts/tests/`, úsala).
+   (si hay una captura de Nomos en `.nomos/artifacts/tests/`, úsala).
 4. Fuentes: `Content/**/Fonts` o las del motor (Roboto) si el proyecto no trae ninguna.
 
 Detalle de qué mirar y cómo medir: [references/leer-estilo.md](references/leer-estilo.md).

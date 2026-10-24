@@ -9,7 +9,7 @@ Solo inspección: no modifiques el juego, no hagas commits ni merge. Usa la skil
 ## Criterios de aceptación
 {{acceptance}}
 
-## Capturas (en `.kratos-review/`)
+## Capturas (en `.nomos-review/`)
 Cada una con su captura de control sin widgets, en el mismo fotograma pausado:
 
 {{captures}}
@@ -31,8 +31,8 @@ personaje no se mueve.
 
 ## Veredicto
 Termina fuera de bloques de código con una línea:
-KRATOS_REVIEW {"approved":true,"findings":[]}
+NOMOS_REVIEW {"approved":true,"findings":[]}
 Para rechazar usa approved:false y findings con file (widget, clase o ruta de la captura),
 line (entero ≥ 1; 1 para una imagen), severity (bloqueante, mayor o menor) y note (qué se ve,
 dónde, la medida y la corrección). Aprueba solo sin hallazgos bloqueantes ni mayores.
-Si necesitas aclaración: KRATOS_ASK {"question":"Pregunta"}. No uses KRATOS_DONE.
+Si necesitas aclaración: NOMOS_ASK {"question":"Pregunta"}. No uses NOMOS_DONE.

@@ -1,6 +1,6 @@
 # Ciclo UMG
 
-Toda pantalla de UI pasa por crear → jugar → capturar → QA visual → corregir. Kratos dirige;
+Toda pantalla de UI pasa por crear → jugar → capturar → QA visual → corregir. Nomos dirige;
 el servicio ejecuta. Nada de esto lo hace el director a mano.
 
 ## Antes de la primera pantalla
@@ -11,24 +11,24 @@ dependen de ella (`--depends`). El brief de todo worker `ui` incluye ese archivo
 
 ## Secuencia
 
-1. El worker `ui` termina con `KRATOS_DONE` → `run.finished`.
+1. El worker `ui` termina con `NOMOS_DONE` → `run.finished`.
 2. El servicio encola `ui.cycle {taskId, runId}` (clave por run y corrección).
 3. `ui.cycle` reserva `editor/<juego>` y, a 1280×720 y 1920×1080, lanza el juego con `-game`,
    captura con UI y sin UI (`Shot showui`, juego pausado) y compara: menos del 0,5 % de píxeles
    distintos → `TestRun umg failed` «la captura no contiene la UI» y corrección al implementador.
 4. Con UI visible, la prueba `umg` queda `running` y se encola `review.start` con `qa`: un run
-   revisor de Claude con `ue-visual-qa` y las capturas en `.kratos-review/`.
-5. `KRATOS_REVIEW` aprobado → `TestRun umg passed`. Rechazado → `umg failed` y los hallazgos
-   vuelven al mismo implementador como corrección; el siguiente `KRATOS_DONE` repite el ciclo.
-6. La revisión de código (`kratos task review`) sigue siendo independiente. La tarea pasa de
+   revisor de Claude con `ue-visual-qa` y las capturas en `.nomos-review/`.
+5. `NOMOS_REVIEW` aprobado → `TestRun umg passed`. Rechazado → `umg failed` y los hallazgos
+   vuelven al mismo implementador como corrección; el siguiente `NOMOS_DONE` repite el ciclo.
+6. La revisión de código (`nomos task review`) sigue siendo independiente. La tarea pasa de
    `probando` a `integrando` solo con todas sus comprobaciones en `passed`.
 
-## Qué hace Kratos
+## Qué hace Nomos
 
 - `review.finished` con `qa`: responde al usuario con veredicto, número de hallazgos y las rutas
-  de las capturas (`kratos task show <id>` → artefactos `screenshot`).
+  de las capturas (`nomos task show <id>` → artefactos `screenshot`).
 - `test.failed` de `umg`: no reenvíes nada, el servicio ya avisó al implementador; informa en una línea.
-- Para relanzar a mano: `kratos task check <id>` (si `umg` no tiene ciclo aprobado en el commit
+- Para relanzar a mano: `nomos task check <id>` (si `umg` no tiene ciclo aprobado en el commit
   actual, encola `ui.cycle`).
 
 ## Límites conocidos

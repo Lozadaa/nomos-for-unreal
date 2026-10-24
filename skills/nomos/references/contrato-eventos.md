@@ -1,6 +1,6 @@
 # Contrato de eventos y dirección (hitos 0–2)
 
-HTTP en `127.0.0.1:8780` por defecto. SQLite y `service.json` viven en `.kratos/`
+HTTP en `127.0.0.1:8780` por defecto. SQLite y `service.json` viven en `.nomos/`
 de la carpeta del juego, excluida de Git. Token de 48 caracteres hexadecimales
 por arranque; la URL inicial lo entrega por hash, la web lo guarda en sessionStorage
 y limpia el hash. Sin token válido: `401 {"error":"unauthorized"}`.
@@ -35,14 +35,14 @@ No hay CORS para orígenes ajenos. CSP impide scripts externos. No se usan frame
 |---|---|---|
 | `message.received` | `{text,origin}` | POST mensaje, origin `web` |
 | `message.read` | `{seq,session}` | POST ack (antes `message.acked`); repetir no duplica el evento |
-| `director.typing` | `{messageId,since}` | `kratos typing ID` / POST `/messages/:id/typing`: el director empieza a redactar |
+| `director.typing` | `{messageId,since}` | `nomos typing ID` / POST `/messages/:id/typing`: el director empieza a redactar |
 | `director.typing_timeout` | `{messageId}` | leído y sin respuesta en 3 min; el panel dice «sigue trabajando» |
 | `message.replied` | `{messageId,text}` | POST reply (antes `reply.published`); puede haber varias: acuse corto y cierre |
 | `director.started` | `{session}` | Vigilante: heartbeat con started true |
 | `director.stopped` | `{session}` | POST admin/stop; sesión null si nunca hubo director |
 | `run.finished` | `{taskId,runId,state,summary}` | Fin de vuelta del run; no cierra tarea |
 | `worker.waiting` | `{taskId,runId,question,lastLines}` | Pregunta o terminal idle actual |
-| `worker.skills_missing` | `{taskId,runId,provider,required,confirmed,missing}` | KRATOS_SKILLS válido con diferencia; no bloquea |
+| `worker.skills_missing` | `{taskId,runId,provider,required,confirmed,missing}` | NOMOS_SKILLS válido con diferencia; no bloquea |
 | `command.failed` | `{commandId,...command}` | Error terminal; payload de command conserva taskId/runId |
 
 SSE: `id: <seq>`, `event: <type>`, `data: <JSON EventRow>` y línea vacía.
@@ -56,9 +56,9 @@ de 6 segundos. Un latido no confirma mensajes.
 
 | Regla | Copy exacto |
 |---|---|
-| Servicio responde, sin listener, pending=0 | Servicio activo · esperando a Kratos |
-| listener, pending=0 | Kratos escuchando |
-| listener, pending>0 | Kratos atendiendo N mensajes |
+| Servicio responde, sin listener, pending=0 | Servicio activo · esperando a Nomos |
+| listener, pending=0 | Nomos escuchando |
+| listener, pending>0 | Nomos atendiendo N mensajes |
 | Sin listener, pending>0 | Vigilante caído · N mensajes en espera |
 | Red fallida o credenciales caducadas | Servicio desconectado |
 
@@ -69,7 +69,7 @@ Además: `Última confirmación: <hora local>` o `sin confirmaciones`.
 1. La web persiste mensaje + evento en una transacción; muestra «Enviado».
 2. Monitor recibe JSON `{seq,type:"message.received",messageId,text,origin}` del vigilante.
 3. Claude ejecuta ack **en orden ascendente**; el cursor acumulativo avanza sin
-   retroceder y SSE cambia el mensaje a «Recibido por Kratos».
+   retroceder y SSE cambia el mensaje a «Recibido por Nomos».
 4. Claude publica reply con el mismo messageId; SSE muestra la respuesta.
 5. Rearmar recupera `message.received` con `seq>lastAckSeq`, aunque ya se haya impreso.
    Los eventos del director usan un cursor de entrega separado, nunca el ACK.
@@ -88,18 +88,18 @@ pendiente; en este hito no pausa al runner ni apaga el vigilante y no constituye
 
 ## Tipos y checkpoint del vigilante
 
-`kratos vigila --session ID [--types a,b] --data .kratos` imprime por defecto
+`nomos vigila --session ID [--types a,b] --data .nomos` imprime por defecto
 `message.received,run.finished,worker.waiting,command.failed`. Una lista custom
 reemplaza los cuatro; se recorta, deduplica y ordena. Vacíos/tipos malformados
 fallan antes de conectar. Ejemplo: `--types run.finished,worker.waiting`.
 
 Mensajes conservan seq/messageId/text/origin y añaden type. Otros eventos:
 `{seq,type,payload,createdAt}`. `worker.output` solo aparece si se solicita por types;
-para leerlo por run usa `kratos run output RUN --since N`.
+para leerlo por run usa `nomos run output RUN --since N`.
 ACK sigue exclusivo de message.received; intentar ack de run.finished, waiting o
 failed devuelve 404 `unknown_event`. El vigilante no confirma ningún evento.
 
-`.kratos/watcher-cursors.json` guarda `{version:1,cursors:{CLAVE:SEQ}}`.
+`.nomos/watcher-cursors.json` guarda `{version:1,cursors:{CLAVE:SEQ}}`.
 CLAVE es JSON de `[sesion,tiposNormalizados]`; SEQ es entero seguro no negativo.
 No contiene token ni depende de él. Cambiar sesión o tipos crea suscripción con
 cursor0; orden y duplicados equivalentes reutilizan la misma. Se escribe `.tmp`
@@ -140,14 +140,14 @@ El panel nuevo y la aceptación real con Codex/Claude pertenecen a entregas sepa
 
 `GET /capabilities` autenticado conserva `Capability[]`. `GET /capabilities?details=1`
 devuelve `{capabilities,skills,concurrency}`: inventario local de `dirname(dataDir)` y cupos
-del scheduler. Contrato completo: `docs/skills-workspace.md` del repositorio Kratos.
+del scheduler. Contrato completo: `docs/skills-workspace.md` del repositorio Nomos.
 `run.skills` enumera lo solicitado; `metadata.confirmedSkills` solo existe tras un marcador
 válido. Ausente significa desconocido; `[]` significa ninguna declarada por el worker.
 
 ## Chat en vivo
 
-El usuario ve en el panel el estado real de su mensaje, con hora: Recibido → Leído por Kratos (ack) →
-Kratos está escribiendo… (`kratos typing <messageId>`) → la respuesta. Si a los 60 s no hay ack, el panel
+El usuario ve en el panel el estado real de su mensaje, con hora: Recibido → Leído por Nomos (ack) →
+Nomos está escribiendo… (`nomos typing <messageId>`) → la respuesta. Si a los 60 s no hay ack, el panel
 lo dice en ámbar («no ha leído tu mensaje todavía»); si tras el ack pasan 3 min sin `reply`, el servicio
 emite `director.typing_timeout` y el panel muestra «sigue trabajando en tu mensaje».
 
@@ -161,8 +161,8 @@ el servicio enlaza al último mensaje leído en los últimos 15 min. `GET /messa
 
 ## Panel por proyecto
 
-Cada juego arranca su propio servicio (`kratos start --data .kratos` en la carpeta del juego) con puerto y token
-propios. Al arrancar se apunta en `%LOCALAPPDATA%\kratos\projects.json` (nombre del `.uproject`, carpeta, puerto,
+Cada juego arranca su propio servicio (`nomos start --data .nomos` en la carpeta del juego) con puerto y token
+propios. Al arrancar se apunta en `%LOCALAPPDATA%\nomos\projects.json` (nombre del `.uproject`, carpeta, puerto,
 pid; nunca el token) y al parar se borra; una entrada cuyo pid ya no existe caduca en el siguiente arranque.
 `GET /projects` (con token) devuelve los proyectos con tareas vivas, Decisiones abiertas y si hay captura;
 `GET /projects/<puerto>/capture` sirve la última captura de cada uno.
@@ -170,5 +170,5 @@ pid; nunca el token) y al parar se borra; una entrada cuyo pid ya no existe cadu
 El panel abre la portada `/proyectos` la primera vez de la sesión si hay más de un proyecto, y la cabecera lleva
 el nombre del `.uproject` con un selector. Abrir otro juego es ir a `http://127.0.0.1:<puerto>/`: ese panel pide su
 token a su propio servicio (`GET /session`, solo para su mismo origen: Host `127.0.0.1:<puerto>` y nada de webs
-ajenas). Para dar al usuario el panel correcto, pásale la URL que imprime `kratos start` en la carpeta de su juego,
+ajenas). Para dar al usuario el panel correcto, pásale la URL que imprime `nomos start` en la carpeta de su juego,
 o dile que abra cualquiera y elija el juego en la portada.

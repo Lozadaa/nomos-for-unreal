@@ -29,9 +29,9 @@ las capturas, además, `resolution`, `map`, `widget`, `control` (captura sin UI)
 | check | Cómo | Tiempo máximo |
 |---|---|---|
 | cpp | `Build.bat <Juego>Editor Win64 Development` | 20 min |
-| blueprint | `kratos_compile_bp.py`: carga, compila y comprueba referencias | 10 min |
+| blueprint | `nomos_compile_bp.py`: carga, compila y comprueba referencias | 10 min |
 | asset | `verifyPack` del hito 4 + escala y materiales | 3 min por carpeta |
-| map | `kratos_validate.py` (Data Validation) y juego `-game` 30 s con captura 1280×720 y 3 vistas del rig | 10 min |
+| map | `nomos_validate.py` (Data Validation) y juego `-game` 30 s con captura 1280×720 y 3 vistas del rig | 10 min |
 | umg | `ui.cycle`: capturas con y sin UI a dos resoluciones + QA visual | 10 min por resolución |
 | build | `RunUAT BuildCookRun` + arranque 30 s con `HighResShot` | 40 min |
 
@@ -46,7 +46,7 @@ mapa. Si ni el diff ni el informe lo dicen, es `GameDefaultMap` de `Config/Defau
 (o el último `/Game/` cargado en el log); la antigua sin mapa se adopta para el mapa por
 defecto renombrándola, con una línea en el resumen.
 
-`animation` solo se exige si hay personaje que reproducir (`kratos-personaje.json` en el
+`animation` solo se exige si hay personaje que reproducir (`nomos-personaje.json` en el
 árbol, o malla con esqueleto y clips en el diff). Montajes o clips sin él: no aplica, no se
 selecciona ni abre Decisión, y el resumen del lote dice «animation no aplica».
 

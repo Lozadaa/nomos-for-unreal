@@ -1,7 +1,7 @@
 # Ciclo de dirección del hito 2
 
-`kratos` abrevia `node "<base>/scripts/kratos.ts"`. Ejecuta desde el juego;
-`--data .kratos` es el valor por defecto. La sesión directora decide y revisa;
+`nomos` abrevia `node "<base>/scripts/nomos.ts"`. Ejecuta desde el juego;
+`--data .nomos` es el valor por defecto. La sesión directora decide y revisa;
 los workers Codex y Claude implementan o revisan en sesiones independientes. La aceptación
 con proveedores reales corresponde a T6; la integración final sigue en hitos posteriores.
 
@@ -13,7 +13,7 @@ dependencias y asignación mientras la tarea sigue pendiente y solo después apl
 `--spec-file`; valida las dependencias antes de crear. Por HTTP el orden equivale a
 `POST /tasks` (con `leases`, `assigneeRole`, `assigneeProvider`), después
 `POST /tasks/TASK/depends` con `{ "dependsOn": ["BASE"] }` y por último `/spec`. Consulta `docs/planificador.md` del repositorio
-Kratos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
+Nomos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
 Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode solo corre si
 la tarea lo pide (`--provider opencode`) y tiene cupo; tareas sencillas sin Unreal, revisor
 siempre Claude y modelo barato (reglas en la referencia OpenCode de la skill).
@@ -24,7 +24,7 @@ su marcador de readiness antes de entregarle el brief. Sus permisos «Do you wan
 «Allow» o «(y/n)» generan `worker.waiting` con la línea original: el director evalúa
 la pregunta y el alcance antes de responder. El servicio no responde automáticamente.
 El brief de workers y revisores enumera skills explícitas y requeridas por rol y pide
-`KRATOS_SKILLS […]` con las realmente cargadas. `metadata.confirmedSkills` conserva la
+`NOMOS_SKILLS […]` con las realmente cargadas. `metadata.confirmedSkills` conserva la
 declaración; `worker.skills_missing` informa diferencias sin bloquear DONE/REVIEW.
 Sin marcador la confirmación es desconocida; `[]` declara ninguna. Inventario del juego
 y concurrencia: `GET /capabilities?details=1` autenticado; la ruta sin query sigue siendo un array.
@@ -32,7 +32,7 @@ y concurrencia: `GET /capabilities?details=1` autenticado; la ruta sin query sig
 Recibe y confirma `message.received`, clasifica el mensaje y consulta el registro
 local de su ID antes de crear nada. Si ya existe taskId, inspecciónalo y continúa.
 Elige un ID local para el archivo; el servicio asignará el taskId definitivo.
-Ejemplo completo en `.kratos/specs/documentacion.md`:
+Ejemplo completo en `.nomos/specs/documentacion.md`:
 
 ```md
 # Documentar el juego
@@ -41,11 +41,11 @@ Crear README y script PowerShell que informe la versión del motor desde el .upr
 ## Por qué
 Permitir que otra persona identifique el proyecto y su versión antes de probarlo.
 ## Criterios de aceptación
-1. Docs/README-kratos.md describe el proyecto sin inventar mecánicas.
+1. Docs/README-nomos.md describe el proyecto sin inventar mecánicas.
 2. Scripts/hello.ps1 lee EngineAssociation del .uproject e imprime su valor.
 3. El script se ejecuta sin errores desde la raíz del juego.
 ## Alcance
-- Docs/README-kratos.md
+- Docs/README-nomos.md
 - Scripts/hello.ps1
 ## No tocar
 - Content/
@@ -58,16 +58,16 @@ criterios numerados y alcance con guiones. Rutas relativas literales, sin `..`,
 absolutos ni glob; usa prefijos de directorio cuando corresponda. Los fences no
 aportan criterios/rutas. El parser valida el archivo antes de crear una tarea.
 No tocar se conserva en el Markdown/brief. Contrato ampliado: `docs/task-spec.md`
-del repositorio Kratos, no del juego. Si falta una decisión creativa, pregunta al usuario.
+del repositorio Nomos, no del juego. Si falta una decisión creativa, pregunta al usuario.
 
 ```sh
-kratos task create --title 'Documentar el juego' --area qa --spec-file .kratos/specs/documentacion.md
-kratos worker start TASK --role implementacion
+nomos task create --title 'Documentar el juego' --area qa --spec-file .nomos/specs/documentacion.md
+nomos worker start TASK --role implementacion
 ```
 
 Entre ambos comandos, guarda `{taskId,messageId,specFile}` en
-`.kratos/specs/documentacion.json` y publica ID + resumen de dos líneas con
-`kratos reply MESSAGE -- '<texto de dos líneas>'`. La tarea ya queda `preparada`.
+`.nomos/specs/documentacion.json` y publica ID + resumen de dos líneas con
+`nomos reply MESSAGE -- '<texto de dos líneas>'`. La tarea ya queda `preparada`.
 `task spec TASK --spec-file ARCHIVO` prepara una tarea existente sin run activo.
 Entrega contexto/skills mediante la plantilla brief-worker.md enlazada desde SKILL.md.
 
@@ -81,7 +81,7 @@ interrumpió antes de guardar su ID, consulta `GET /tasks` y evidencia de evento
 
 `task show TASK` devuelve tarea, runs, eventos y Decisión. Para el estado preciso
 del responsable usa `GET /runs/RUN`: run, worktree y latestStatus. Las consultas
-HTTP usan Bearer leído de `.kratos/service.json`; no muestres ni persistas el token.
+HTTP usan Bearer leído de `.nomos/service.json`; no muestres ni persistas el token.
 `GET /commands` y seleccionar por id aporta estado/payload/error; no hay `run show`
 ni `command show` en la CLI. No inventes comandos.
 
@@ -100,15 +100,15 @@ Probando/integrando/cerrando/done final y limpieza pertenecen a hitos posteriore
 
 ## Revisar y corregir
 
-1. `kratos run diff RUN` muestra stat, patch y commits desde la base guardada,
+1. `nomos run diff RUN` muestra stat, patch y commits desde la base guardada,
    incluyendo cambios pendientes. Binarios figuran en stat; no se inventa su contenido.
 2. Revisa cada criterio y las rutas cambiadas contra scope/No tocar. Lee las pruebas
    y ejecuta lo que corresponda; no conviertas «tests: passed» del worker en evidencia propia.
 3. Si cumple, publica por reply al mensaje original el resultado y los límites de
    verificación; deja `revisando`. No marques done ni hagas merge/push.
-4. Si no cumple, crea `.kratos/correcciones/RUN/1.md` (luego 2.md y 3.md).
+4. Si no cumple, crea `.nomos/correcciones/RUN/1.md` (luego 2.md y 3.md).
    Especifica archivo, problema observado y resultado comprobable esperado.
-   Envía `kratos worker send RUN --file .kratos/correcciones/RUN/1.md --idempotency-key correccion-RUN-1`.
+   Envía `nomos worker send RUN --file .nomos/correcciones/RUN/1.md --idempotency-key correccion-RUN-1`.
    Guarda la clave, commandId y contador. Ante respuesta incierta, consulta el comando
    y repite la misma clave si procede; no fabriques otro envío.
 5. Después de tres correcciones, si sigue sin cumplir, abre Decisión antes de una
@@ -116,11 +116,11 @@ Probando/integrando/cerrando/done final y limpieza pertenecen a hitos posteriore
 
 ## Pregunta y Decisión
 
-Ante waiting consulta estado y `kratos run output RUN --since 0` la primera vez;
+Ante waiting consulta estado y `nomos run output RUN --since 0` la primera vez;
 después guarda el mayor seq de worker.output y usa ese cursor. Es distinto del
 cursor de Orca y del checkpoint del vigilante. Lee metadata.question y la spec.
-Si contiene la respuesta, `kratos worker send RUN --text '<respuesta de la spec>'`
-con una clave estable de respuesta. Si no, escribe `.kratos/decisiones/pregunta.json`:
+Si contiene la respuesta, `nomos worker send RUN --text '<respuesta de la spec>'`
+con una clave estable de respuesta. Si no, escribe `.nomos/decisiones/pregunta.json`:
 
 ```json
 {
@@ -130,15 +130,15 @@ con una clave estable de respuesta. Si no, escribe `.kratos/decisiones/pregunta.
 }
 ```
 
-Sustituye RUN por el ID real. `kratos decision open TASK --file .kratos/decisiones/pregunta.json`;
+Sustituye RUN por el ID real. `nomos decision open TASK --file .nomos/decisiones/pregunta.json`;
 publica la pregunta por reply y espera respuesta explícita. Una selección answer
 sin texto no inventa una respuesta. Para un límite de correcciones, ofrece opciones
 concretas de replanificación/inspección, sin prometer un cuarto envío automático.
 
 ```sh
-kratos decision list --state open
-kratos decision resolve DECISION --option answer --by kratos
-kratos worker send RUN --text 'Respuesta explícita del usuario' --idempotency-key respuesta-DECISION
+nomos decision list --state open
+nomos decision resolve DECISION --option answer --by nomos
+nomos worker send RUN --text 'Respuesta explícita del usuario' --idempotency-key respuesta-DECISION
 ```
 
 Si resolve rechaza `decision_stale`, relee la tarea y abre una pregunta vigente;
@@ -147,7 +147,7 @@ Si la Decisión frenó la preparación, comprueba phase=preparing y que no haya 
 inciertos antes de enviar al MISMO run:
 
 ```sh
-kratos worker send RUN --text 'Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.' --idempotency-key continuar-DECISION
+nomos worker send RUN --text 'Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.' --idempotency-key continuar-DECISION
 ```
 
 Esto conserva sesión/worktree y no consume corrección de preparación. No ejecutes
@@ -161,7 +161,7 @@ eludir una Decisión ni repitas efectos inciertos; failed exige reconciliación.
 ## Tarea parada
 
 Si una tarea pasa 10 min en implementando, revisando, probando, integrando o cerrando sin run viva ni
-comando pendiente, el servicio abre la Decisión «Tarea parada en …» (`kratos doctor` la
+comando pendiente, el servicio abre la Decisión «Tarea parada en …» (`nomos doctor` la
 lista en «Tareas atascadas»). «Retomar» = pide tú el paso de ese estado: `worker send`, `task review`,
 `task check`, `task integrate` o `task finalize`. «Cancelar» = déjala y avisa al usuario.
 

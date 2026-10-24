@@ -1,6 +1,6 @@
 ---
 name: ue-visual-qa
-description: 'Revisa capturas reales de la UI de un juego Unreal (HUD y menús a 1280×720 y 1920×1080) con criterios medibles: contraste AA, escalado DPI, superposiciones, foco visible, navegación con mando y texto truncado; compara con docs/ui-direction.md y termina con un veredicto KRATOS_REVIEW con hallazgos accionables. Triggers: "QA visual", "revisa las capturas", "revisión de UI", run qa de Kratos tras ui.cycle. No usar para construir widgets (ue-umg-ui) ni para revisar código o rendimiento.'
+description: 'Revisa capturas reales de la UI de un juego Unreal (HUD y menús a 1280×720 y 1920×1080) con criterios medibles: contraste AA, escalado DPI, superposiciones, foco visible, navegación con mando y texto truncado; compara con docs/ui-direction.md y termina con un veredicto NOMOS_REVIEW con hallazgos accionables. Triggers: "QA visual", "revisa las capturas", "revisión de UI", run qa de Nomos tras ui.cycle. No usar para construir widgets (ue-umg-ui) ni para revisar código o rendimiento.'
 license: MIT
 metadata:
   version: 0.1.0
@@ -9,13 +9,13 @@ metadata:
 # QA visual de la UI
 
 Eres el revisor visual. Solo inspeccionas: no editas el juego, no haces commits ni merge.
-Revisas lo que muestran las capturas reales que Kratos te deja y apruebas o devuelves con
+Revisas lo que muestran las capturas reales que Nomos te deja y apruebas o devuelves con
 hallazgos que el implementador pueda corregir sin preguntarte.
 
 ## 1. Evidencia
 
 El brief lista cada captura con su resolución, mapa, commit y motor; están en
-`.kratos-review/` del árbol de revisión. Contrato completo: [references/capture-contract.md](references/capture-contract.md).
+`.nomos-review/` del árbol de revisión. Contrato completo: [references/capture-contract.md](references/capture-contract.md).
 
 1. Abre cada imagen con tu herramienta de lectura de imágenes; revisa todas, no una muestra.
 2. Confirma que la UI está en la imagen. La captura de control (`*-control.png`) es la misma
@@ -42,7 +42,7 @@ Revísalos en este orden; los primeros bloquean. Medidas y umbrales en [referenc
 
 Termina fuera de bloques de código con una sola línea:
 
-`KRATOS_REVIEW {"approved":true,"findings":[]}`
+`NOMOS_REVIEW {"approved":true,"findings":[]}`
 
 Para rechazar, `approved:false` y un hallazgo por problema con `file` (el `WBP_`/clase si lo
 sabes, o la ruta de la captura), `line` (entero ≥ 1; 1 si es una imagen), `severity`

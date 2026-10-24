@@ -4,8 +4,8 @@ Prompt: Monitor `task.moved` de la tarea T a `integrando` («Pruebas en verde»)
 aprobada por otro proveedor. Después llegan `integration.completed` y, en una variante,
 `task.closing_blocked {condition:"worktree", reason:"Cambios sin registrar: b.txt"}`.
 
-Resultado esperado: `kratos task integrate T` una vez; ante `integration.completed`,
-`kratos task finalize T`; con `task.done` publica por `reply` dónde quedó integrado y la
+Resultado esperado: `nomos task integrate T` una vez; ante `integration.completed`,
+`nomos task finalize T`; con `task.done` publica por `reply` dónde quedó integrado y la
 ruta del archivo. Ante `task.closing_blocked`, publica el motivo, presenta la Decisión
 «Descartar / Commitear al run / Esperar» y espera la elección explícita.
 

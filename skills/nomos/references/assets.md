@@ -5,10 +5,10 @@ compra o toca licencias abre una Decisión; la Decisión enumera lo ya buscado.
 
 | Paso | Qué haces | Decisión |
 |---|---|---|
-| 1. Catálogo propio | `kratos asset search '<palabras>'` y lista candidatos con fuente, estado y licencia | Ninguna si hay candidato con licencia |
-| 2. Tu Fab no descargado (nivel 2) | `kratos asset download <entrada>`: abre el Launcher y espera la llegada | «Reintentar / Cancelar» a los 20 min |
+| 1. Catálogo propio | `nomos asset search '<palabras>'` y lista candidatos con fuente, estado y licencia | Ninguna si hay candidato con licencia |
+| 2. Tu Fab no descargado (nivel 2) | `nomos asset download <entrada>`: abre el Launcher y espera la llegada | «Reintentar / Cancelar» a los 20 min |
 | 3. Fuentes CC0 | Poly Haven, ambientCG, Kenney, Quaternius: propón enlaces, no descargues | Usuario elige |
-| 4. Compra | Propón el listado de Fab con precio | Siempre Decisión: Kratos nunca compra |
+| 4. Compra | Propón el listado de Fab con precio | Siempre Decisión: Nomos nunca compra |
 | 5. Meshy | Solo piezas hard surface, dentro de presupuesto | Fuera de presupuesto, «Presupuesto agotado» |
 
 **Meshy solo para piezas hard surface** (props, vehículos, armas, piezas mecánicas,
@@ -24,12 +24,12 @@ Todos encolan en la bandeja (`POST /commands`); el resultado llega por eventos.
 
 | Comando | Orden | Eventos |
 |---|---|---|
-| `kratos asset index` | `asset.index` | `catalog.indexed` |
-| `kratos asset search '<q>'` | lectura de `GET /catalog?q=` | — |
-| `kratos asset migrate <entrada> [--target <proyecto>]` | `asset.migrate` | `asset.migrated`, `asset.verify_failed` |
-| `kratos asset prepare <entrada>` | `asset.prepare` | `asset.prepared`, `decision.opened` |
-| `kratos asset download <entrada>` | `asset.request_download` | `download.requested`, `download.completed`, `download.timeout` |
-| `kratos asset generate <tarea> --kind text\|image\|remesh --params-file F --credits N` | `asset.meshy_generate` | `meshy.job.created`, `meshy.job.completed`, `meshy.link_expired` |
+| `nomos asset index` | `asset.index` | `catalog.indexed` |
+| `nomos asset search '<q>'` | lectura de `GET /catalog?q=` | — |
+| `nomos asset migrate <entrada> [--target <proyecto>]` | `asset.migrate` | `asset.migrated`, `asset.verify_failed` |
+| `nomos asset prepare <entrada>` | `asset.prepare` | `asset.prepared`, `decision.opened` |
+| `nomos asset download <entrada>` | `asset.request_download` | `download.requested`, `download.completed`, `download.timeout` |
+| `nomos asset generate <tarea> --kind text\|image\|remesh --params-file F --credits N` | `asset.meshy_generate` | `meshy.job.created`, `meshy.job.completed`, `meshy.link_expired` |
 
 Añade `asset.migrated,asset.verify_failed,download.completed,download.timeout,meshy.job.completed`
 a `--types` del vigilante cuando dirijas trabajo de assets.
@@ -53,7 +53,7 @@ Nunca uses cookies del navegador, tokens copiados a mano ni endpoints internos d
 
 ## Importar al juego
 
-`kratos asset prepare` crea una tarea de arte (`provider: claude`) con el contrato
+`nomos asset prepare` crea una tarea de arte (`provider: claude`) con el contrato
 `ue-asset-intake`: escala, pivote, colisión, materiales y licencia registrada.
 Licencia desconocida abre «Licencia desconocida» y la tarea espera. El worker de arte
 usa `blender-director`, `unreal-export`, `qa-review` y `ue-asset-intake`; la

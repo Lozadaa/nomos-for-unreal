@@ -1,6 +1,6 @@
 # 04 · Petición a tarea
 
-Prompt del Monitor: message.received seq11 messageId=m11: «Crea Docs/README-kratos.md
+Prompt del Monitor: message.received seq11 messageId=m11: «Crea Docs/README-nomos.md
 que describa el proyecto y Scripts/hello.ps1 que imprima EngineAssociation del .uproject».
 Contexto: juego Unreal válido, Monitor armado, sin tarea previa para m11.
 

@@ -34,7 +34,7 @@ un `opencode.json` del árbol, así ningún subproceso hereda el modelo caro.
 ## Cómo corre
 
 El servicio escribe en el terminal de Orca
-`opencode run --auto --model <modelo> --title kratos-<id> Lee el archivo .kratos-brief.md …`:
+`opencode run --auto --model <modelo> --title nomos-<id> Lee el archivo .nomos-brief.md …`:
 el brief viaja en la orden y OpenCode sale al terminar. Las correcciones y respuestas usan
 `opencode run --continue …` en el mismo terminal. Sin `opencode` en el PATH o con la credencial
 rechazada, la run falla (`worker.failed`: «… no está en el PATH…» o «OpenCode rechazó las credenciales:
