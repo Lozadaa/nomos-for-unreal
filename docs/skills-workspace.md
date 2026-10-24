@@ -31,7 +31,7 @@ a partir de la especificación. Un rol y área desconocidos no añaden skills.
 sin duplicados. No se filtra por instalación: las ausentes deben poder reportarse.
 El payload y la clave idempotente del comando original permanecen intactos.
 El brief de Codex, Claude y revisor enumera esa lista y pide cargarla antes de empezar.
-OpenCode recibe el mismo contrato de brief, pero sigue sin adaptador de lanzamiento.
+OpenCode recibe el mismo contrato de brief (hito 12: viaja en la orden `opencode run`).
 
 ## Confirmación del worker
 
@@ -78,7 +78,7 @@ skills que apunte fuera del workspace. No se consulta configuración ni catálog
 La concurrencia usa `concurrency(readConfig(dataDir))`: sin configuración es
 `{codex:0,claude:2,opencode:0}` (Codex apagado por defecto desde el hito 7); una configuración parcial pone en cero los proveedores
 omitidos. Configuración de concurrencia inválida produce 400. Cupo OpenCode positivo
-no implica adaptador ni autoriza su lanzamiento. Esta entrega no modifica el panel.
+solo lo usa una tarea que pida `opencode` (hito 12). Esta entrega no modifica el panel.
 
 T22 se verifica con fake Orca y Git real para Codex/Claude y revisor. La aceptación
 con proveedores reales y las skills instaladas en un juego concreto corresponden a T6.
