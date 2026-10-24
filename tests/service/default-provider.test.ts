@@ -51,3 +51,30 @@ test('readConfig valida opencodeModel; beam-free gratuito por defecto, nunca el 
     writeFileSync(join(dir,'config.json'),`{"opencodeModel":${bad}}`);assert.throws(()=>readConfig(dir),/invalid_worker_config/,bad);
   }
 });
+
+test('OpenCode solo entra si la tarea lo pide y hay cupo; nunca por defecto',()=>{
+  const on={concurrency:{claude:1,opencode:1}};
+  assert.deepEqual(chooseProvider('implementacion',on,idle,undefined,'opencode'),{provider:'opencode',reason:'Disponible'});
+  assert.equal(chooseProvider('implementacion',on,idle).provider,'claude','sin pedirlo no se elige');
+  assert.equal(chooseProvider('implementacion',{...on,defaultProvider:'opencode'},idle).provider,'claude','defaultProvider no lo activa');
+  assert.equal(chooseProvider('implementacion',{concurrency:{claude:0,opencode:3}},idle).provider,undefined);
+  assert.deepEqual(chooseProvider('implementacion',on,{...idle,opencode:1},undefined,'opencode'),{reason:'Sin hueco en opencode'});
+});
+test('OpenCode sin cupo dice cómo encenderlo',()=>{
+  for(const config of [{},{concurrency:{claude:2,opencode:0}}])
+    assert.deepEqual(chooseProvider('implementacion',config,idle,undefined,'opencode'),{reason:'OpenCode apagado: dale cupo en config.json'});
+});
+test('OpenCode nunca hace arte, UI ni QA aunque la tarea lo pida',()=>{
+  for(const role of ['arte','ui','qa'])
+    assert.deepEqual(chooseProvider(role,{concurrency:{claude:1,opencode:2}},idle,undefined,'opencode'),
+      {reason:'OpenCode no hace arte, UI ni QA: asígnala a Claude'});
+});
+test('el revisor de OpenCode es siempre Claude; OpenCode nunca revisa',()=>{
+  const all={concurrency:{codex:2,claude:1,opencode:2}};
+  assert.deepEqual(chooseProvider('revisor',all,idle,'opencode'),{provider:'claude',reason:'Disponible',sameProvider:false});
+  assert.deepEqual(chooseProvider('revisor',all,{...idle,claude:1},'opencode'),{reason:'El revisor de OpenCode es Claude: sin hueco en claude'});
+  assert.deepEqual(chooseProvider('revisor',{concurrency:{claude:0,opencode:2}},idle,'opencode'),
+    {reason:'El revisor de OpenCode es Claude: dale cupo a claude en config.json'});
+  assert.equal(chooseProvider('revisor',{concurrency:{claude:0,opencode:2}},idle,'claude').provider,undefined,'OpenCode no revisa a Claude');
+  assert.equal(chooseProvider('revisor',all,{...idle,claude:1},'claude').provider,'codex');
+});

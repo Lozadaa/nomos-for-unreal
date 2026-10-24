@@ -121,12 +121,11 @@ test('readConfig valida concurrencia desde dataDir real y conserva otros campos'
     assert.equal((readConfig(dir) as any).unrealPath,'engine');
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
-test('OpenCode reconoce configuración pero no se selecciona sin adaptador',t=>{
+test('OpenCode arranca la tarea que lo pide y nunca la que no',t=>{
   const {db,add}=setup(t),task=add('OpenCode',{assigneeProvider:'opencode'});
   assert.equal(concurrency({}).opencode,0);
-  const decisions=plan(db,{concurrency:{opencode:3}} as any);
-  assert.equal(decisions[0].taskId,task.id);assert.equal(decisions[0].action,'wait');
-  assert.match(decisions[0].reason,/sin adaptador/i);
+  assert.deepEqual(plan(db,{concurrency:{opencode:3}} as any)[0],{taskId:task.id,action:'start',reason:'Disponible',provider:'opencode'});
+  assert.deepEqual(plan(db,{concurrency:{claude:1}} as any)[0],{taskId:task.id,action:'wait',reason:'OpenCode apagado: dale cupo en config.json'});
   db.prepare('update tasks set assignee_provider=null where id=?').run(task.id);
   assert.equal(plan(db,{concurrency:{opencode:3}} as any)[0].action,'wait');
   db.prepare('update tasks set leases=? where id=?').run('["Content/HUD.uasset"]',task.id);
@@ -139,6 +138,11 @@ test('OpenCode reconoce configuración pero no se selecciona sin adaptador',t=>{
     writeFileSync(join(dir,'config.json'),'{"concurrency":{"opencode":3}}');
     assert.equal(readConfig(dir).concurrency?.opencode,3);
   } finally {rmSync(dir,{recursive:true,force:true});}
+});
+test('una implementación de OpenCode se planifica con revisor Claude',t=>{
+  const {db,add}=setup(t),task=add('Docs',{assigneeProvider:'opencode',assigneeRole:'revisor'});
+  finishRun(db,startRun(db,{taskId:task.id,role:'implementacion',provider:'opencode'}).id,'done','Docs');
+  assert.deepEqual(plan(db,{concurrency:{claude:1,opencode:2}} as any)[0],{taskId:task.id,action:'start',reason:'Disponible',provider:'claude'});
 });
 test('hito 5b: una run de assets ya terminada (character.setup) no impide arrancar el worker de la tarea',t=>{
   const {db,add}=setup(t),a=add('Héroe');

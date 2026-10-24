@@ -28,7 +28,6 @@ export const reviewStart:Handler=async(cmd,ctx)=>{
     return {runId:previous.id};
   const choice=chooseProvider('revisor',readConfig(ctx.dataDir),{codex:0,claude:0,opencode:0},implementer.provider as WorkerProvider);
   if(!choice.provider) return {deferred:true,reason:choice.reason};
-  if(payload.provider==='opencode') return {deferred:true,reason:'OpenCode sin adaptador disponible'};
   if(payload.provider!==choice.provider) {
     const previousProvider=payload.provider;payload.provider=choice.provider;
     ctx.db.prepare('update commands set payload=?,updated_at=? where id=?')
