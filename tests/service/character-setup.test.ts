@@ -89,6 +89,28 @@ test('deformación fuera de rango a mitad del clip: falla y bloquea con el insta
   } finally { f.close(); }
 });
 
+test('Review Focus 10: malla estirada hacia la raíz o prendas sin seguir al cuerpo → falla con el motivo', async () => {
+  for (const [mode, text] of [['stretch', /malla estirada hacia la raíz: pelvis a 0/], ['clothes', /prendas sin seguir al cuerpo: Torso/]] as const) {
+    const f = setup();
+    try {
+      process.env.KRATOS_FAKE = mode;
+      assert.equal((await f.run()).passed, false, mode);
+      assert.match(getTask(f.db, f.task.id)!.blockedReason!, text);
+    } finally { f.close(); }
+  }
+});
+
+test('el vídeo junta la cámara frontal y la lateral en un solo MP4 (hstack)', async () => {
+  const f = setup();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    await f.run();
+    const video = listArtifacts(f.db, {taskId: f.task.id, kind: 'video'})[0];
+    assert.match(readFileSync(video.path, 'utf8'), /hstack/);
+    assert.equal((video.provenance as any).angles, 2);
+  } finally { f.close(); }
+});
+
 test('sin ffmpeg: fotogramas en un zip con nombre y el resumen lo dice; nunca un vídeo inventado', async () => {
   const f = setup(null);
   try {

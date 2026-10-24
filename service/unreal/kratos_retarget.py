@@ -56,6 +56,19 @@ def auto_rig(mesh, dest):
     return rig
 
 
+def fix_roots(ctrl):
+    """El root motion va de hueso raíz a hueso raíz. Con un cuerpo MetaHuman de destino, add_default_ops deja la operación
+    «Root Motion» con TargetRoot = pelvis: copia la raíz del origen (en el suelo) sobre la pelvis y la malla pesada a la
+    pelvis se estira hasta el suelo (visto en Hudson, 2026-10-24). `set_settings` ignora ese campo: va por su controlador."""
+    for i in range(ctrl.get_num_retarget_ops()):
+        op = ctrl.get_op_controller(i)
+        if op and hasattr(op, "set_target_root_bone"):
+            op.set_source_root_bone(unreal.Name("root"))
+            op.set_target_root_bone(unreal.Name("root"))
+            return str(op.get_target_root_bone())
+    return None
+
+
 def chains_of(rig):
     return [str(c.chain_name) for c in unreal.IKRigController.get_controller(rig).get_retarget_chains()]
 
@@ -97,6 +110,7 @@ def retarget(animations, target_mesh_path, dest, source_mesh_path=None, target_r
     ctrl.assign_ik_rig_to_all_ops(unreal.RetargetSourceOrTarget.SOURCE, source_rig)
     ctrl.assign_ik_rig_to_all_ops(unreal.RetargetSourceOrTarget.TARGET, target_rig)
     ctrl.auto_map_chains(unreal.AutoMapChainType.FUZZY, True)
+    report["root_motion_target"] = fix_roots(ctrl)
     report["retargeter"] = rtg.get_path_name()
     mapped_sources = set()
     for target_chain in chains_of(target_rig):

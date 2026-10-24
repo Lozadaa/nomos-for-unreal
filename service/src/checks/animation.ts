@@ -16,7 +16,7 @@ export const minMotion = 0.002;
 export const animMap = '/Game/Kratos/Maps/AnimTest';
 
 type Frame = {fraction: number; ratio: number; pose_diff: number | null; worst_bone: string | null; zero_scale_bones: string[];
-  deformation_ok: boolean; screenshot: string | null};
+  stretch?: {pelvis_cm: number; errors: string[]}; deformation_ok: boolean; screenshot: string | null};
 type Capture = {ok: boolean; frames: Frame[]; errors: string[]; engine?: string; video_frames?: number; video_seconds?: number};
 const short = (path: string) => path.split('/').at(-1)!.split('.')[0];
 const pct = (fraction: number) => `${Math.round(fraction * 100)} %`;
@@ -78,7 +78,9 @@ export function animationCheck(given?: CharacterSpec): Executor {
       for (const frame of capture.frames) {
         if (frame.screenshot) artifacts.push({kind: 'screenshot', path: frame.screenshot,
           provenance: {label: `Animación · captura ${res} · ${pct(frame.fraction)}`, resolution: `${width}x${height}`, map: animMap, fraction: frame.fraction}});
-        if (!frame.deformation_ok) failures.push(`${res} ${pct(frame.fraction)}: deformación (caja ×${comma(frame.ratio)}`
+        // Review Focus 10: la malla estirada hacia la raíz se dice tal cual, antes que cualquier otra medida
+        for (const error of frame.stretch?.errors ?? []) failures.push(`${res} ${pct(frame.fraction)}: ${error}`);
+        if (!frame.deformation_ok && !frame.stretch?.errors.length) failures.push(`${res} ${pct(frame.fraction)}: deformación (caja ×${comma(frame.ratio)}`
           + `${frame.pose_diff !== null ? `, pose ${comma(frame.pose_diff)} en ${frame.worst_bone}` : ''}${frame.zero_scale_bones.length ? `, huesos a escala 0: ${frame.zero_scale_bones.join(', ')}` : ''})`);
       }
       failures.push(...capture.errors.map(e => `${res}: ${e}`));
@@ -86,14 +88,17 @@ export function animationCheck(given?: CharacterSpec): Executor {
       const motion = motionOf(frames);
       if (motion < minMotion) failures.unshift(`${res}: la animación no se reproduce (cambio medio entre fotogramas ${comma(Number((motion * 100).toFixed(2)))} %)`);
       const middle = capture.frames.find(f => f.fraction === 0.5)?.screenshot ?? undefined;
-      const ff = ffmpegOf(ctx, deps), meta = {resolution: `${width}x${height}`, clip, seconds: capture.video_seconds ?? null, frames: capture.video_frames ?? null};
+      const side = existsSync(join(frames, 'lateral', 'frame_0000.png')) ? join(frames, 'lateral') : undefined;
+      const ff = ffmpegOf(ctx, deps), meta = {resolution: `${width}x${height}`, clip, seconds: capture.video_seconds ?? null,
+        frames: capture.video_frames ?? null, angles: side ? 2 : 1};
       if (ff) {
         const video = join(dir, `${prefix}.mp4`);
-        await encodeFrames(ff, frames, video);
+        await encodeFrames(ff, frames, video, side);
         artifacts.push({kind: 'video', path: video, previewPath: middle, provenance: {label: `Animación · vídeo ${res} · ${clip}`, ...meta}});
       } else {
         const zip = join(dir, `${prefix}-fotogramas.zip`);
-        writeZip(readdirSync(frames).sort().map(name => ({name, path: join(frames, name)})), zip);
+        const pngs = (d: string, prefix = '') => readdirSync(d).filter(n => n.endsWith('.png')).sort().map(name => ({name: prefix + name, path: join(d, name)}));
+        writeZip([...pngs(frames), ...(side ? pngs(side, 'lateral/') : [])], zip);
         artifacts.push({kind: 'report', path: zip, provenance: {label: `Animación · fotogramas ${res} · ${clip}`, ...meta}});
         lines.push('Vídeo: sin ffmpeg, los fotogramas van en un zip');
       }

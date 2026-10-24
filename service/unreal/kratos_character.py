@@ -12,8 +12,8 @@ import json, os, re, sys, unreal
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kratos_retarget import retarget, short  # noqa: E402
 
-# base de la columna: en el cuerpo MetaHuman «pelvis» es un socket pegado a la raíz (mide 0); spine_01 existe en ambos
-HIPS = "spine_01"
+# cadera: el hueso pelvis (si mide ~0 es que el retarget no le da movimiento: Review Focus 10)
+HIPS = "pelvis"
 MH_RIG = "/MetaHumanCharacter/Animation/Retargeting/IK_MH_IKRig"
 TEMPLATE = "/Engine/Maps/Templates/Template_Default"
 MESH = os.environ["KRATOS_MESH"]
@@ -33,13 +33,24 @@ def body_of(actor):
     return named[0] if named else max((c for c in comps if c.get_skeletal_mesh_asset()), key=lambda c: c.get_num_bones(), default=None)
 
 
+def no_cloth(actor, body):
+    """Review Focus 10: la tela Chaos de las prendas se queda colgada cuando el clip salta de pose en pose; en el mapa de
+    prueba va desactivada (la prenda queda skinneada y sigue al cuerpo). Se anota en el informe."""
+    names = []
+    for comp in actor.get_components_by_class(unreal.SkeletalMeshComponent):
+        if comp != body:
+            comp.set_editor_property("disable_cloth_simulation", True)
+            names.append(comp.get_name())
+    return [n for n in names if not n.startswith("TRASH_")]
+
+
 def open_map():
     if unreal.EditorAssetLibrary.does_asset_exist(MAP):
         levels.load_level(MAP)
     elif not levels.new_level_from_template(MAP, TEMPLATE):
         raise RuntimeError(f"No se pudo crear {MAP} desde {TEMPLATE}")
     for old in actors.get_all_level_actors():
-        if any(str(t) in ("KratosAnim", "KratosCamera", "KratosReference", "KratosProbe") for t in old.tags):
+        if any(str(t) in ("KratosAnim", "KratosCamera", "KratosCamera2", "KratosReference", "KratosProbe") for t in old.tags):
             actors.destroy_actor(old)
 
 
@@ -51,8 +62,11 @@ def spawn(asset):
         actor = actors.spawn_actor_from_class(unreal.SkeletalMeshActor, unreal.Vector(0, 0, 0), rot)
         actor.skeletal_mesh_component.set_skeletal_mesh_asset(asset)
     actor.tags = [unreal.Name("KratosAnim")]
-    camera = actors.spawn_actor_from_class(unreal.CameraActor, unreal.Vector(-380, 0, 110), unreal.Rotator(0, -6, 0))
-    camera.tags = [unreal.Name("KratosCamera")]
+    # dos ángulos para el vídeo (Review Focus 10): frontal 3/4 del lado del sol y lateral
+    for tag, at, rot in [("KratosCamera", unreal.Vector(-340, -170, 110), unreal.Rotator(0, -6, 26)),
+                         ("KratosCamera2", unreal.Vector(0, -380, 110), unreal.Rotator(0, -6, 90))]:
+        camera = actors.spawn_actor_from_class(unreal.CameraActor, at, rot)
+        camera.tags = [unreal.Name(tag)]
     return actor
 
 
@@ -83,6 +97,8 @@ def main():
         raise RuntimeError(f"No carga {MESH}")
     open_map()
     actor = spawn(asset)
+    # cambiar propiedades de un componente del Blueprint re-ejecuta su construction script: después se vuelven a pedir
+    report["cloth_disabled"] = no_cloth(actor, body_of(actor))
     body = body_of(actor)
     if body is None:
         raise RuntimeError(f"{short(MESH)} no tiene malla esquelética")

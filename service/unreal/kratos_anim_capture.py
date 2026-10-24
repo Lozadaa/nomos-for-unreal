@@ -12,11 +12,11 @@ la altura de cadera, cabeza, pies y manos de una y otra, relativas a la cadera e
 Variables: KRATOS_PELVIS (JSON {target, source}), KRATOS_REPORT, KRATOS_SHOT_DIR (carpeta de PNG), KRATOS_PREFIX (nombre base), KRATOS_FRACTIONS (JSON, [0, 0.5, 0.9]),
 KRATOS_REST (JSON, caja de reposo [x, y, z]), KRATOS_VIDEO_DIR (carpeta de fotogramas del vídeo; sin ella, no hay vídeo), KRATOS_WAIT (segundos antes de la primera captura; 10 por defecto).
 """
-import json, os, shutil, time, unreal
+import json, os, shutil, sys, time, unreal
 
-# base de la columna: en el cuerpo MetaHuman «pelvis» es un socket pegado a la raíz (mide 0); spine_01 existe en ambos
-HIPS = "spine_01"
-BONES = (HIPS, "head", "foot_l", "foot_r", "hand_l", "hand_r")
+# el juego ejecuta este archivo con exec(): los módulos hermanos se cargan desde la carpeta de KRATOS_SCRIPT
+sys.path.insert(0, os.path.dirname(os.environ.get("KRATOS_SCRIPT", "")))
+from kratos_anim_follow import BONES, center, follow_report, followers, pose, stretch  # noqa: E402
 
 REPORT = os.environ["KRATOS_REPORT"]
 OUT = os.environ.get("KRATOS_SHOT_DIR") or unreal.Paths.project_saved_dir()
@@ -57,6 +57,11 @@ def console(command):
 
 def finish():
     frames = report["frames"]
+    if state.get("followers") and len(state["body_centers"]) >= 2:
+        report["followers"] = follow_report(state["followers"], state["body_centers"])
+        stuck = [f["name"] for f in report["followers"] if not f["follows"]]
+        if stuck:
+            report["errors"].append("prendas sin seguir al cuerpo: " + ", ".join(stuck))
     report["ok"] = not report["errors"] and report["length"] > 0 and len(frames) == len(FRACTIONS) \
         and all(f["screenshot"] and f["deformation_ok"] for f in frames)
     with open(REPORT, "w", encoding="utf-8") as f:
@@ -73,19 +78,15 @@ def freeze(comp, fraction):
     comp.set_position(fraction * report["length"], False)
 
 
-def pose(comp, actor, rest):
-    """Altura de cada hueso de BONES dividida por la de la cadera en reposo (independiente de la estatura)."""
-    if not rest:
-        return None
-    base = actor.get_actor_location().z
-    return {b: round((comp.get_socket_location(b).z - base) / rest, 3) for b in BONES}
-
-
 def measure(fraction):
     """Congela el clip en la fracción y mide caja del actor, escala de los huesos y, con sondas, la pose frente al original."""
     comp, actor, ref, probe = state["body"], state["actor"], state.get("reference"), state.get("probe")
     for c in [comp] + [a.skeletal_mesh_component for a in (ref, probe) if a]:
         freeze(c, fraction)
+    state["body_centers"].append(center(comp))
+    for f in state["followers"]:
+        f["centers"].append(center(f["comp"]))
+    stretched = stretch(comp, actor, state["followers"])
     extent = actor.get_actor_bounds(False)[1]
     box = [round(v, 2) for v in (extent.x, extent.y, extent.z)]
     zero = [str(comp.get_bone_name(i)) for i in range(comp.get_num_bones())
@@ -93,7 +94,6 @@ def measure(fraction):
     # diagonal de la caja: por eje, un brazo extendido multiplica el fondo (20 cm) sin que haya deformación
     diag = lambda v: sum(x * x for x in v) ** 0.5
     ratio = diag(box) / diag(REST) if REST and diag(REST) > 0 else 0
-    # los Blueprint MetaHuman no exponen sus huesos al juego (get_socket_location devuelve el actor): mide la sonda
     mine = pose(probe.skeletal_mesh_component, probe, PELVIS.get("target")) if probe else None
     theirs = pose(ref.skeletal_mesh_component, ref, PELVIS.get("source")) if ref else None
     diffs = {b: round(abs(mine[b] - theirs[b]), 3) for b in BONES} if mine and theirs else {}
@@ -101,7 +101,13 @@ def measure(fraction):
     diff = diffs[worst] if worst else None
     return {"fraction": fraction, "time": round(fraction * report["length"], 3), "extent": box, "ratio": round(ratio, 3),
             "zero_scale_bones": zero[:20], "pose": mine, "reference_pose": theirs, "pose_diff": diff, "worst_bone": worst,
-            "deformation_ok": ratio <= MAX_RATIO and not zero and (diff is None or diff <= MAX_PELVIS_DIFF), "screenshot": None}
+            "stretch": stretched, "screenshot": None,
+            "deformation_ok": ratio <= MAX_RATIO and not zero and (diff is None or diff <= MAX_PELVIS_DIFF) and not stretched["errors"]}
+
+
+def view(i):
+    if state["cameras"][i]:
+        state["pc"].set_view_target_with_blend(state["cameras"][i], 0.0)
 
 
 def next_video_frame():
@@ -136,9 +142,10 @@ def tick(_dt):
             state["actor"] = tagged(world, "KratosAnim")
             state["body"] = body_of(state["actor"])
             state["reference"], state["probe"] = tagged(world, "KratosReference"), tagged(world, "KratosProbe")
-            camera, pc = tagged(world, "KratosCamera"), unreal.GameplayStatics.get_player_controller(world, 0)
-            if camera:
-                pc.set_view_target_with_blend(camera, 0.0)
+            state["followers"], state["body_centers"] = followers(state["actor"], state["body"]), []
+            pc = unreal.GameplayStatics.get_player_controller(world, 0)
+            state.update(pc=pc, cameras=[tagged(world, "KratosCamera"), tagged(world, "KratosCamera2")])
+            view(0)
             if pc.get_controlled_pawn():  # el DefaultPawn del GameModeBase es una esfera delante del personaje
                 pc.get_controlled_pawn().set_actor_hidden_in_game(True)
             console("DisableAllScreenMessages")
@@ -159,8 +166,13 @@ def tick(_dt):
         elif state["phase"] == "shot":
             new = sorted(pngs() - state["before"], key=os.path.getmtime)
             if new and os.path.getsize(new[-1]) > 0 and time.time() - os.path.getmtime(new[-1]) > 0.2:
-                if state.get("video"):
-                    shutil.copyfile(new[-1], os.path.join(VIDEO_DIR, f"frame_{state['k']:04d}.png"))
+                if state.get("video"):  # cada fotograma, desde la cámara frontal y después desde la lateral
+                    side = state.get("side", False)
+                    shutil.copyfile(new[-1], os.path.join(VIDEO_DIR, "lateral" if side else "", f"frame_{state['k']:04d}.png"))
+                    view(0 if side else 1)
+                    if not side and state["cameras"][1]:
+                        return state.update(side=True, phase="settle", t=time.time())
+                    state["side"] = False
                     report["video_frames"] = state["k"] = state["k"] + 1
                     return next_video_frame()
                 frame = report["frames"][-1]
@@ -171,7 +183,7 @@ def tick(_dt):
                 if state["i"] >= len(FRACTIONS):
                     if not VIDEO_DIR:
                         return finish()
-                    os.makedirs(VIDEO_DIR, exist_ok=True)
+                    os.makedirs(os.path.join(VIDEO_DIR, "lateral"), exist_ok=True)
                     state.update(video=True, k=0, total=int(round(min(max(report["length"], MIN_S), MAX_S) * FPS)))
                     report["video_seconds"] = round(state["total"] / FPS, 2)
                     return next_video_frame()

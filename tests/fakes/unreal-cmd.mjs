@@ -65,16 +65,20 @@ if (mode === 'hang') {
   const frames = [0, 0.5, 0.9].map(fraction => {
     const shot = join(dir, `${prefix}-${Math.round(fraction * 100)}.png`);
     png(shot, width, height, true);
-    const bad = mode === 'deform' && fraction === 0.5;
+    const bad = mode === 'deform' && fraction === 0.5, stretched = mode === 'stretch';
     return {fraction, time: fraction * 3.667, extent: [24, 60, 95], ratio: bad ? 3.4 : 1.06, zero_scale_bones: [], pose_diff: bad ? 0.31 : 0.05,
-      worst_bone: 'head', deformation_ok: !bad, screenshot: shot};
+      worst_bone: 'head', stretch: {pelvis_cm: stretched ? 0 : 83, errors: stretched ? ['malla estirada hacia la raíz: pelvis a 0.0 cm'] : []},
+      deformation_ok: !bad && !stretched, screenshot: shot};
   });
   if (video) {
-    mkdirSync(video, {recursive: true});
-    for (let k = 0; k < 12; k++) png(join(video, `frame_${String(k).padStart(4, '0')}.png`), width, height, true, mode === 'static' ? 0 : k);
+    mkdirSync(join(video, 'lateral'), {recursive: true});
+    for (let k = 0; k < 12; k++) for (const dir of [video, join(video, 'lateral')])
+      png(join(dir, `frame_${String(k).padStart(4, '0')}.png`), width, height, true, mode === 'static' ? 0 : k);
   }
-  write({ok: mode !== 'deform', engine, map: args.find(a => a.startsWith('/Game/')) ?? null, clip: '/Game/Kratos/Retarget/x', length: 3.667,
-    frames, errors: [], ...(video ? {video_frames: 12, video_seconds: 3.67} : {})});
+  const followers = ['Face', 'Torso', 'Legs'].map(name => ({name, leader: name !== 'Face', anim: name === 'Face', follows: !(mode === 'clothes' && name === 'Torso')}));
+  write({ok: !['deform', 'stretch', 'clothes'].includes(mode), engine, followers,
+    ...(mode === 'clothes' ? {errors: ['prendas sin seguir al cuerpo: Torso']} : {}), map: args.find(a => a.startsWith('/Game/')) ?? null, clip: '/Game/Kratos/Retarget/x', length: 3.667,
+    frames, ...(mode === 'clothes' ? {} : {errors: []}), ...(video ? {video_frames: 12, video_seconds: 3.67} : {})});
 } else if (script.endsWith('kratos_metahuman.py')) {
   // MetaHuman por script: «ok» lo crea y ensambla; «noplugin», sin el subsistema; «cloud», el ensamblado pide la nube
   const name = process.env.KRATOS_NAME, ok = mode === 'ok';
