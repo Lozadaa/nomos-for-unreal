@@ -28,18 +28,6 @@ export type Git = GitLfs & {
   filesBetween(dir: string, from: string, to: string): Promise<string[]>;
   advanceBranch(repoDir: string, branch: string, commit: string, expected: string): Promise<void>;
 };
-/** Lo que impide un --ff-only: sin seguir que se sobrescribiría y cambios locales de archivos seguidos (git los sangra con tabulador). */
-function overwritten(text: string): {untracked: string[]; changed: string[]} | null {
-  const found={untracked:[] as string[],changed:[] as string[]};
-  let kind: keyof typeof found | null=null;
-  for(const line of text.split(/\r?\n/)) {
-    if(/untracked working tree files would be overwritten/.test(line)) kind='untracked';
-    else if(/local changes to the following files would be overwritten/.test(line)) kind='changed';
-    else if(line.startsWith('\t')&&kind) found[kind].push(line.trim());
-    else kind=null;
-  }
-  return found.untracked.length||found.changed.length ? found : null;
-}
 export function createGit(): Git {
   // `timeoutMs`: tope para lo largo (git lfs migrate); sin él, sin tope
   const run: GitRun = (dir, args, diff = false, timeoutMs = 0) => new Promise<string>((accept, reject) => {
@@ -173,23 +161,37 @@ export function createGit(): Git {
       try { await ff(); return; } catch(error) {
         // hito 7: lo del checkout byte a byte igual a lo que llega (asset que Kratos migró sin versionar, la línea de LiveLink
         // ya puesta) se sustituye; lo distinto (Config con secretos del usuario) no se toca y el rechazo sigue, ya solo con eso
-        const blocked=overwritten(error instanceof Error ? error.message : String(error));
-        if(!blocked) throw error;
-        const differ={untracked:[] as string[],changed:[] as string[]};
+        // la lista la calcula Kratos: git trunca su mensaje a 4 KB y con cientos de archivos corta rutas a medias
+        if(!/would be overwritten by merge/.test(error instanceof Error ? error.message : String(error))) throw error;
+        const z=(out:string)=>out.split('\0').filter(Boolean);
+        const incoming=new Set(z(await run(dir,['diff','--name-only','-z','--no-renames','--diff-filter=ACMRT','HEAD',commit])));
+        // por contenido, nunca por la caché de stat de git (con .gitattributes recién cambiado da «sin cambios» según el reloj)
+        const tracked=new Set(z(await run(dir,['ls-files','-z'])));
+        const blocked={untracked:z(await run(dir,['ls-files','--others','--exclude-standard','-z'])).filter(f=>incoming.has(f)),
+          changed:[...incoming].filter(f=>tracked.has(f)&&existsSync(join(dir,f)))};
+        const differ={untracked:[] as string[],changed:[] as string[]},same:string[]=[];
         for(const kind of ['untracked','changed'] as const) for(let i=0;i<blocked[kind].length;i+=100) {
           // hash-object aplica los filtros de .gitattributes (LFS) igual que el commit; por lotes, por la línea de órdenes
-          const chunk=blocked[kind].slice(i,i+100);
+          const chunk=blocked[kind].slice(i,i+100),blobs=(refs:string[])=>run(dir,['rev-parse',...refs]).then(o=>o.trim().split(/\r?\n/));
           const local=(await run(dir,['hash-object','--',...chunk])).trim().split(/\r?\n/);
-          const incoming=(await run(dir,['rev-parse',...chunk.map(f=>`${commit}:${f}`)])).trim().split(/\r?\n/);
-          chunk.forEach((file,j)=>{ if(local[j]!==incoming[j]) differ[kind].push(file); });
+          const next=await blobs(chunk.map(f=>`${commit}:${f}`)),head=kind==='changed' ? await blobs(chunk.map(f=>`HEAD:${f}`)) : [];
+          // igual a lo que llega: se registra; igual a HEAD (seguido y sin tocar): el avance lo actualiza solo; si no, es del usuario
+          chunk.forEach((file,j)=>{ if(local[j]===next[j]) same.push(file); else if(local[j]!==head[j]) differ[kind].push(file); });
         }
         // solo se toca algo si todo es igual: si el merge sigue sin poder hacerse, nada desaparece del disco
         if(differ.untracked.length||differ.changed.length) throw new Error([
           ...(differ.untracked.length ? ['error: The following untracked working tree files would be overwritten by merge:',...differ.untracked.map(f=>`\t${f}`)] : []),
           ...(differ.changed.length ? ['error: Your local changes to the following files would be overwritten by merge:',...differ.changed.map(f=>`\t${f}`)] : []),
         ].join('\n'));
-        for(const file of blocked.untracked) rmSync(join(dir,file));
-        for(let i=0;i<blocked.changed.length;i+=100) await run(dir,['checkout','--',...blocked.changed.slice(i,i+100)]);
+        // lo igual se registra en el índice tal cual (el filtro limpio da el mismo blob) y el avance lo acepta sin borrar ni
+        // reescribir nada del disco; también vale cuando .gitattributes acaba de pasar ese tipo a LFS
+        if(!same.length) throw error;
+        // --renormalize en los seguidos: sin él, `add` también se fía del stat y deja el blob viejo en el índice
+        for(let i=0;i<same.length;i+=100) {
+          const chunk=same.slice(i,i+100),known=chunk.filter(f=>tracked.has(f)),fresh=chunk.filter(f=>!tracked.has(f));
+          if(known.length) await run(dir,['add','--renormalize','--',...known]);
+          if(fresh.length) await run(dir,['add','--',...fresh]);
+        }
         await ff();
       }
     },

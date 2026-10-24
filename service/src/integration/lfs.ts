@@ -73,6 +73,11 @@ export async function lfsGate(ctx: WorkerContext, command: Command, task: Task, 
     moveTask(ctx.db, task.id, 'probando', 'Integración cancelada: contenido pesado');
     return {cancelled: true};
   }
+  // con LFS ya en la rama objetivo, lo que aún sigue como blob completo pasa a puntero antes del merge (mismo contenido)
+  if (/filter=lfs/.test(await ctx.git.showFile(ws.dir, 'HEAD', '.gitattributes') ?? '')) {
+    const base = await ctx.git.head(ws.dir), commit = await ctx.git.commitAttributes(ws.dir, null, 'Git LFS: lo ya seguido pasa a puntero');
+    if (commit) await ctx.git.advanceBranch(ctx.projectDir, ws.branch, commit, base);
+  }
   const heavy = await heavyContent(ctx, ws.dir, tree);
   return heavy ? ask(ctx, command, task, run, ws, heavy) : null;
 }
@@ -91,19 +96,19 @@ export const integrateLfs: Handler = async (command, ctx) => {
   await ctx.git.lfsMigrate(tree.path, tree.branch, ws.branch);
   const attributes = await ctx.git.showFile(tree.path, tree.branch, '.gitattributes');
   if (!attributes) throw new Error('lfs_without_attributes');
-  let commit: string | null = null;
-  if (await ctx.git.showFile(ws.dir, 'HEAD', '.gitattributes') !== attributes) {
-    const base = await ctx.git.head(ws.dir);
-    commit = await ctx.git.commitFile(ws.dir, '.gitattributes', attributes, 'Git LFS para el contenido de Unreal');
-    await ctx.git.advanceBranch(ctx.projectDir, ws.branch, commit, base);
-  }
+  const base = await ctx.git.head(ws.dir), same = await ctx.git.showFile(ws.dir, 'HEAD', '.gitattributes') === attributes;
+  const commit = await ctx.git.commitAttributes(ws.dir, same ? null : attributes, 'Git LFS para el contenido de Unreal');
+  if (commit) await ctx.git.advanceBranch(ctx.projectDir, ws.branch, commit, base);
   appendEvent(ctx.db, 'integration.lfs', null, {taskId: task.id, branch: ws.branch, sourceBranch: tree.branch, commit,
     seconds: Math.round((Date.now() - started) / 1000)});
   return {configured: true, commit};
 };
 
-/** La rama objetivo solo cambió en `.gitattributes` (la configuración de LFS): no hace falta recomprobar el resultado. */
+/** La rama objetivo solo cambió por la configuración de LFS (`.gitattributes` y lo ya seguido pasado a puntero con el mismo
+ *  contenido): no hace falta recomprobar el resultado. */
 export async function onlyAttributes(ctx: WorkerContext, dir: string, from: string, to: string): Promise<boolean> {
   const files = await ctx.git.filesBetween(dir, from, to);
-  return files.length > 0 && files.every(f => f === '.gitattributes');
+  if (!files.length) return false;
+  for (const file of files) if (file !== '.gitattributes' && !await ctx.git.samePointer(dir, from, to, file)) return false;
+  return true;
 }

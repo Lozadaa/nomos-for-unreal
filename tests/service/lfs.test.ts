@@ -124,3 +124,43 @@ test('Capacidades: fila «Git LFS» con git-lfs junto a Git para Windows y si el
   assert.equal(row('*.uasset filter=lfs diff=lfs merge=lfs -text\n').detail, 'git-lfs detectado · configurado en el proyecto');
   assert.deepEqual([row(undefined, 'C:\Otro').state, row(undefined, 'C:\Otro').detail], ['ausente', 'git-lfs ausente']);
 });
+
+test('hito 5b: con cientos de sin seguir iguales (lista de más de 4 KB) y un .uasset que master ya seguía sin LFS, el avance llega', {skip: !lfs}, async () => {
+  const racket = 'Content/Fab/Raqueta_🎾/raqueta.uasset';
+  const many = Object.fromEntries(Array.from({length: 200}, (_, i) =>
+    [`Content/Characters/Mannequins/Anims/Rifle/Jog/MF_Rifle_Jog_Fwd_Right_variante_larga_${String(i).padStart(3, '0')}.uasset`, Buffer.from([0, i % 256])]));
+  const f = integrationFixture({...heavy, ...many});
+  try {
+    f.repo.commitMaster({[racket]: Buffer.from([0, 7, 7, 7])});
+    const a = f.addTask('heroe');
+    for (const [file, content] of Object.entries({...heavy, ...many})) {
+      mkdirSync(join(f.repo.dir, file, '..'), {recursive: true}); writeFileSync(join(f.repo.dir, file), content);
+    }
+    await integrate(f, a.task.id);
+    resolveDecision(f.db, listDecisions(f.db, 'open')[0].id, 'lfs', 'usuario');
+    await integrate(f, a.task.id);
+    await runLfs(f);
+    const result = await integrate(f, a.task.id);
+    assert.equal(result.integrated, true, JSON.stringify(result));
+    assert.match(f.repo.git(f.repo.dir, 'cat-file', '-p', `master:${racket}`), /^version https:\/\/git-lfs/, 'el .uasset que ya seguía master también pasa a LFS');
+    assert.deepEqual([...readFileSync(join(f.repo.dir, racket))], [0, 7, 7, 7]);
+    assert.equal(f.repo.git(f.repo.dir, 'status', '--porcelain', '--untracked-files=no'), '');
+  } finally { f.close(); }
+});
+
+test('hito 5b: master ya con LFS en .gitattributes pero un .uasset de antes como blob: se pasa a puntero antes del merge y no se recomprueba', {skip: !lfs}, async () => {
+  const racket = 'Content/Fab/Raqueta_🎾/raqueta.uasset';
+  const f = integrationFixture({'Source/Vida.cpp': 'int vida = 100;\n'});
+  try {
+    f.repo.commitMaster({[racket]: Buffer.from([0, 7, 7, 7])});
+    f.repo.git(f.repo.dir, 'lfs', 'install', '--local');
+    f.repo.commitMaster({'.gitattributes': '*.uasset filter=lfs diff=lfs merge=lfs -text\n'});
+    const a = f.addTask('vida');
+    const result = await integrate(f, a.task.id);
+    assert.equal(result.integrated, true, JSON.stringify(result));
+    assert.match(f.repo.git(f.repo.dir, 'cat-file', '-p', `master:${racket}`), /^version https:\/\/git-lfs/);
+    assert.equal(f.events('integration.completed')[0].rechecked, false, 'pasar a puntero no cambia el contenido');
+    assert.deepEqual([...readFileSync(join(f.repo.dir, racket))], [0, 7, 7, 7]);
+    assert.equal(listDecisions(f.db, 'open').length, 0);
+  } finally { f.close(); }
+});

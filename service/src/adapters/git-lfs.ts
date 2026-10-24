@@ -1,3 +1,5 @@
+import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GitRun } from './git.ts';
@@ -12,11 +14,23 @@ export type GitLfs = {
   blobSizes(dir: string, from: string, to: string): Promise<{path: string; size: number}[]>;
   /** Pasa a LFS los commits de `branch` que no están en `keep` (la rama objetivo nunca se reescribe) y borra los blobs viejos. */
   lfsMigrate(dir: string, branch: string, keep: string): Promise<void>;
-  /** Commit de un solo archivo en `dir` (el workspace de integración, en HEAD separada); devuelve el sha. */
-  commitFile(dir: string, path: string, content: string, message: string): Promise<string>;
+  /** Commit en `dir` (el workspace de integración, en HEAD separada) de `.gitattributes` (si `content`) y de lo ya seguido que
+   *  debía ser puntero LFS; devuelve el sha, o null si no había nada que cambiar. */
+  commitAttributes(dir: string, content: string | null, message: string): Promise<string | null>;
   showFile(dir: string, ref: string, path: string): Promise<string | null>;
   hasRemote(dir: string): Promise<{any: boolean; github: boolean}>;
+  /** `path` en `to` es el puntero LFS del mismo contenido que tenía en `from` (renormalizado, no cambiado). */
+  samePointer(dir: string, from: string, to: string, path: string): Promise<boolean>;
 };
+
+/** sha256 y tamaño de un blob sin pasarlo por una cadena (un .uasset es binario). */
+const blobDigest = (dir: string, ref: string) => new Promise<{oid: string; size: number}>((accept, reject) => {
+  const child = spawn('git', ['-C', dir, 'cat-file', 'blob', ref], {windowsHide: true}), hash = createHash('sha256');
+  let size = 0;
+  child.stdout.on('data', (chunk: Buffer) => { hash.update(chunk); size += chunk.length; });
+  child.on('error', reject);
+  child.on('close', code => code === 0 ? accept({oid: hash.digest('hex'), size}) : reject(new Error(`git cat-file: ${code}`)));
+});
 
 export function gitLfs(run: GitRun): GitLfs {
   return {
@@ -39,14 +53,26 @@ export function gitLfs(run: GitRun): GitLfs {
       await run(dir, ['reflog', 'expire', '--expire-unreachable=now', '--all']);
       await run(dir, ['gc', '--prune=now', '--quiet'], false, 30 * 60_000);
     },
-    async commitFile(dir, path, content, message) {
-      writeFileSync(join(dir, path), content, 'utf8');
-      await run(dir, ['add', '--', path]);
-      await run(dir, ['commit', '-m', message, '--', path]);
+    async commitAttributes(dir, content, message) {
+      if (content !== null) { writeFileSync(join(dir, '.gitattributes'), content, 'utf8'); await run(dir, ['add', '--', '.gitattributes']); }
+      // lo que la rama ya seguía como blob completo (un .uasset de antes) pasa a puntero: si no, con LFS en .gitattributes sale
+      // «modificado» en cualquier checkout y el merge siguiente se niega. Solo esos (git lfs ls-files dice cuáles ya lo son)
+      const pointers = new Set((await run(dir, ['lfs', 'ls-files', '-n'])).split(/\r?\n/).filter(Boolean));
+      const stale = (await run(dir, ['ls-files', '-z', '--', ...lfsPatterns.map(p => `:(glob)**/${p}`)])).split('\0').filter(f => f && !pointers.has(f));
+      for (let i = 0; i < stale.length; i += 100) await run(dir, ['add', '--renormalize', '--', ...stale.slice(i, i + 100)]);
+      if (!(await run(dir, ['diff', '--cached', '--name-only'])).trim()) return null;
+      await run(dir, ['commit', '-m', message]);
       return (await run(dir, ['rev-parse', '--verify', 'HEAD'])).trim();
     },
     async showFile(dir, ref, path) {
       try { return await run(dir, ['show', `${ref}:${path}`]); } catch { return null; }
+    },
+    async samePointer(dir, from, to, path) {
+      const pointer = await run(dir, ['cat-file', 'blob', `${to}:${path}`]).catch(() => '');
+      const oid = /^oid sha256:([0-9a-f]{64})$/m.exec(pointer)?.[1], size = Number(/^size (\d+)$/m.exec(pointer)?.[1]);
+      if (!oid) return false;
+      const before = await blobDigest(dir, `${from}:${path}`).catch(() => null);
+      return before !== null && before.oid === oid && before.size === size;
     },
     async hasRemote(dir) {
       const urls = (await run(dir, ['remote', '-v'])).trim();
