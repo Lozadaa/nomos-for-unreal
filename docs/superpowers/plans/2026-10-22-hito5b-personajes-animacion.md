@@ -2,48 +2,95 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **PAUSADO 2026-10-23 por decisión del usuario** («No haremos animaciones en meshy just hard surface pawns» y «dejalo pausado ese»). No se refina ni se despacha. Si se retoma, sin Meshy `rig`/`animate`: personajes y animación solo desde el catálogo (Fab, MetaHuman por toolset, packs con esqueleto) y retarget de clips existentes.
+> **Despausado 2026-10-24** por decisión del usuario («dale con el de animaciones y tal ese que pausamos cuando termines esto»). Refinado contra `main@8418068` (hitos 0-9 completos, MVP cerrado). Regla vigente del usuario: **sin Meshy `rig`/`animate`, nunca personajes ni formas orgánicas generadas**; personajes y animación salen del catálogo (plantillas del motor, Fab, MetaHuman) y del retarget de clips existentes. **Ningún worker Codex.**
 
-> Se refina antes de despachar con el editor administrado del hito 5 funcionando y el adaptador de Meshy del hito 4 probado.
+**Goal:** Que una petición como «un héroe con animación de ataque» produzca una Decisión con hasta tres candidatos reales del catálogo (con miniatura cuando la hay), y que el elegido acabe **migrado al proyecto, con sus animaciones retargeteadas si vienen de otro esqueleto, reproduciéndose en PIE con capturas y una comprobación de deformación**, todo verificado por el servicio como una comprobación más (`animation`), con el mismo ciclo de tarea, revisión y cierre que ya existe.
 
-**Goal:** Que una petición como «un héroe de hielo con animación de ataque» produzca un personaje riggeado y animado reproducido en PIE con captura, eligiendo entre Meshy (criaturas y objetos), MetaHuman (humanos realistas, ya en tu motor 5.8.3) y assets del catálogo, y que el retargeting a los esqueletos del proyecto quede verificado.
+**Architecture:** Nada nuevo de infraestructura: una fuente de catálogo más (`engine`: las plantillas del motor), un handler de candidatos que abre una Decisión con `options[].thumbnail` (el panel ya tiene `DecisionOptions` con miniatura y el `AssetViewer`), un handler `character.setup` que corre en el carril largo por `withEditor` con `UnrealEditor-Cmd` + un script Python (`service/unreal/kratos_character.py`), y una comprobación `animation` en `checks/select.ts` que lo reutiliza. MetaHuman queda como ruta opcional detrás de una capacidad.
 
-**Architecture:** Dos rutas sobre la infraestructura existente: Meshy (`meshy_rig`, `meshy_animate`, text-to-motion) como trabajos externos con presupuesto que terminan en FBX/GLB importados por el editor administrado y retargeteados con IK Retargeter por script; MetaHuman por el toolset `MetaHumanGenerator` del motor (create, set_body_shape, set_skin_tone, set_eye_color, finalize) a través del MCP, con la Python API de `MetaHumanCharacterEditorSubsystem` solo para lo que el toolset no cubra (esculpir, conformar, auto-rig). Las alternativas creativas (candidatos) se presentan como Decisión con miniaturas (plan v2 §5.3).
+**Tech Stack:** El de `main`: Node ≥ 25 sin dependencias, `node:sqlite`, `node:test`; adaptador `adapters/unreal-cmd.ts` (lotes, `render` opcional), `editor/queue.ts` (`withEditor`, reserva `editor/<proyecto>`), `handlers/asset-migrate.ts` (copia + verificación sin GUI), `repo/decisions.ts` (`openDecision`), `checks/{select,gate,run}.ts`, `repo/capabilities.ts`, `panel/src/components/{DecisionOptions,AssetViewer}.tsx`, `panel/src/lib/artifactName.ts`, `skills.ts` (rol `animation` → `rigging`, `ue-animation-system`), fakes `tests/fakes/unreal-cmd.mjs`.
 
-**Tech Stack:** Lo de los hitos 4 y 5; skills `ue-animation-system`, `rigging`, `animation`, `hair-groom`, `cloth-sim`, `character-artist`, `creature-artist`; Game Animation Sample como base de locomoción; Mixamo solo por archivos exportados a mano (Decisión «Exporta de Mixamo y deja el FBX en …»).
+**Hechos comprobados en este equipo (2026-10-24, Unreal 5.8.3 en `C:\Program Files\Epic Games\UE_5.8`):**
+- `Templates/TemplateResources/High/Characters/Content/Mannequins/`: `Meshes/SKM_Manny_Simple`, `SKM_Quinn_Simple`, `SK_Mannequin` (esqueleto UE5), `Anims/Unarmed/{ABP_Unarmed, BS_Idle_Walk_Run, MM_Idle, Attack/, Jog/, Jump/, Walk/}`, `Anims/{Pistol,Rifle,Death}/`, `Rigs/`, materiales y texturas.
+- `Templates/TP_ThirdPerson/Content/Variant_Combat/Anims/`: `ABP_Manny_Combat`, `AM_ChargedAttack`, `AM_ComboAttack` (montajes de ataque sobre Manny).
+- `Templates/TemplateResources/High/Mannequin/Content/Character/Mesh/SK_Mannequin` (+ `_Female`): el maniquí **UE4**, esqueleto distinto → caso real de retarget.
+- Plugins presentes: `IKRig`, `MotionWarping`, `AnimationLocomotionLibrary`, `MetaHuman*` (incl. `MetaHumanCharacter`, `MetaHumanSDK`), `Mutable`.
+- `UIKRetargetBatchOperation::RunBatchRetarget(const FIKRetargetBatchOperationInputs&)` es `BlueprintCallable` (expuesto a Python como `unreal.IKRetargetBatchOperation.run_batch_retarget`); `DuplicateAndRetarget` está deprecado en 5.8. `UIKRetargeterController` también es accesible.
+- El catálogo de KratosFabTest ya indexa 2 entradas `metahuman-preset` (Megascans Library) y 8 `pack`; ninguna con esqueleto. Game Animation Sample **no** está descargado (sería nivel 2 de Fab con clics: fuera de este hito).
+- Scripts Python que ya existen y se reutilizan: `service/unreal/{kratos_import, kratos_verify, kratos_validate, kratos_pie_capture, kratos_compile_bp}.py` (entrada por variables `KRATOS_*`, salida JSON en `KRATOS_REPORT`).
 
 **Spec:** `docs/plan-v2.md` §3.5, §4 (fila «Personaje y animación»), hito 5b de §6, prueba 30 de §7.
 
 ## Global Constraints
 
-- MetaHuman solo si Capacidades marca el plugin y el toolset disponibles (en este equipo: 5.8.3, disponibles); con motor < 5.8, ausente y ninguna tarea lo promete (prueba 30).
-- Partes del flujo MetaHuman dependen de servicios en la nube de Epic (auto-rig, texturas): se registran como pasos externos con tiempo máximo y Decisión si fallan; gap conocido en 5.8.0 (`RemoveBodyRig` no expuesto): comprobar en 5.8.3 en la primera tarea.
-- Todo clip Meshy pasa por presupuesto (créditos por clip); `ai_forbidden` del catálogo bloquea usar ese asset como referencia de imagen.
-- Verificación obligatoria: personaje cargado en PIE con la animación reproduciéndose, captura por resolución y comprobación de deformaciones básicas (bounding box estable, sin huesos a escala 0) por script.
+- Reglas del usuario: ningún Meshy para personajes ni animación (`rig`/`animate` siguen prohibidos; `requireKind` ya lo rechaza); ningún worker Codex; **ningún artefacto ni tarjeta con nombre de archivo o uuid** (nombres por `artifactName`/`provenance.label`); agentes `{Área} {Rol}` con avatar por proveedor (ya en main); el token del servicio nunca se pega en el chat; sin push ni merge; `.kratos-brief.md` fuera de los commits.
+- **`Config/DefaultEngine.ini` de `KratosFabTest` está sin seguir a propósito (contiene un `SecurityToken` del usuario): nunca entra en un commit, nunca se sobrescribe, nunca se copia a un diff de revisión.** La regla del hito 7 (archivos locales del usuario fuera de los commits, `Config/` sin seguir fuera del diff) se respeta tal cual.
+- Técnicas: cero dependencias npm en el servicio; TypeScript con sintaxis borrable; archivos ≤ 200 líneas; `127.0.0.1` + token en toda ruta; copy en español; LF; sin colores a mano fuera de `theme.css`/`tokens.json`; acciones del panel por `useAction`, navegación por `withViewTransition`; glifo nuevo solo si pasa la prueba de unicidad de `panel/src/visual/`; fixtures `.log` cubiertas por `!tests/fixtures/**/*.log`.
+- Licencias: las plantillas del motor se indexan con licencia «Epic Content License (solo proyectos Unreal)», `ai_forbidden: false`, sin coste; se muestran en Catálogo como cualquier entrada.
+- Todo paso que abra el editor va por `withEditor` en el carril largo y con tiempo máximo; si Unreal no está (`Capacidades`), el handler devuelve `{deferred:true, reason}` o abre Decisión, nunca inventa resultados.
+- Verificación obligatoria de cada personaje: cargado en PIE con la animación reproduciéndose, capturas a 1280×720 y 1920×1080 en tres instantes del clip, y comprobación de deformación por script (caja envolvente del `SkeletalMeshComponent` dentro de ×3 de la pose de reposo, ningún hueso con escala 0, duración del clip > 0).
 
 ## Review Focus
 
-1. Esqueleto de Meshy incompatible con el del proyecto: el retarget por script debe producir un informe con los huesos sin mapear y abrir Decisión, no una animación rota aprobada. (Tarea 2.)
-2. MetaHuman auto-rig en la nube tarda más de 10 min: el job queda `esperando_externo` con reintento, la tarea no se bloquea sola. (Tarea 3.)
-3. Tres candidatos de personaje presentados: la Decisión lleva miniatura, origen, licencia y coste de cada uno; elegir uno cancela los otros jobs si estaban en preview. (Tarea 1.)
-4. Clip de 10 s pedido con presupuesto para 3 s: Decisión antes de generar, con el coste exacto. (Tarea 2.)
-5. Personaje importado sin materiales (texturas vencidas en Meshy): la verificación falla con «sin texturas» y la copia propia se usa si existe. (Tarea 2.)
+1. Animación de un esqueleto distinto (maniquí UE4 → Manny UE5): el retarget por script debe producir el informe de cadenas/huesos sin mapear y, si no puede retargetear solo, abrir Decisión con guion; nunca una animación rota aprobada. (Tarea 2.)
+2. Tres candidatos presentados: la Decisión lleva miniatura (si la hay), origen, licencia y coste; abrir la miniatura en el visor **no elige**; elegir encola la migración y el `character.setup`, y la tarea queda en espera de editor con su `waitReason`. (Tarea 1.)
+3. Migración de plantillas del motor: las rutas internas (`/Game/Characters/Mannequins/...`) deben seguir resolviendo tras copiar; `kratos_verify.py` sin referencias rotas. (Tarea 0.)
+4. `character.setup` con Unreal ocupado por otra tarea: `deferred` con «Esperando editor», sin pisar la reserva. (Tarea 2.)
+5. MetaHuman sin la API disponible en modo lote o con pasos en la nube: la run queda `esperando_externo` con Decisión y guion, la tarea no se bloquea sola ni se da por hecha. (Tarea 3.)
+
+## Estructura de archivos
+
+- Create `service/src/catalog/sources/engine.ts` (plantillas del motor), `service/src/handlers/asset-candidates.ts`, `service/src/handlers/character-setup.ts`, `service/src/handlers/character-metahuman.ts`, `service/src/checks/animation.ts`, `service/unreal/kratos_character.py`, `service/unreal/kratos_retarget.py`, `service/unreal/kratos_metahuman.py`, `skills/kratos/references/personajes.md`, `skills/kratos/evals/09-heroe-ataque.md`, `docs/aceptacion-hito5b.md`, `docs/capturas-5b/`.
+- Modify `service/src/catalog/{indexer,paths}.ts`, `service/src/handlers/asset.ts` (registro), `service/src/checks/{select,run}.ts`, `service/src/repo/capabilities.ts`, `service/src/cli-asset.ts` (`asset candidates`), `service/src/model.ts` (solo si hace falta un campo de metadata), `skills/kratos/SKILL.md`, `panel/src/lib/artifactName.ts`, `tests/fakes/unreal-cmd.mjs`, `docs/estado-entregas.md`.
 
 ---
 
+### Task 0: Plantillas del motor en el catálogo
+
+**Files:** Create `catalog/sources/engine.ts`; Modify `catalog/{indexer,paths}.ts`, `handlers/asset-migrate.ts` (solo la ruta destino para `source: 'engine'`); tests `tests/service/indexer.test.ts`, `asset-migrate.test.ts`.
+
+- Indexar, a partir de `unrealPath` del `config.json` (`…/UE_5.8`), una entrada por carpeta de contenido: «Maniquíes UE5 (Manny y Quinn)» = `Templates/TemplateResources/High/Characters/Content` (categoría `character`), «Animaciones de combate (plantilla Tercera persona)» = `Templates/TP_ThirdPerson/Content/Variant_Combat/Anims` (categoría `animation`), «Maniquí UE4» = `Templates/TemplateResources/High/Mannequin/Content` (categoría `character`). `source: 'engine'`, `engineVersions: ['5.8']`, `license: 'Epic Content License (solo proyectos Unreal)'`, `formats: ['uasset']`, `tags` con `skeleton: UE5_Mannequin | UE4_Mannequin` y la lista de clips detectados por nombre (`AM_*`, `A_*`, `BS_*`, `MM_*`).
+- `asset migrate` de una entrada `engine` copia **preservando la ruta relativa a `Content/`** (las plantillas referencian `/Game/Characters/Mannequins/...`) y verifica con `kratos_verify.py`; si el destino ya existe, no sobrescribe y lo dice.
+- [ ] Pruebas con fixture de carpetas vacías con nombres reales; `npm test` ×2; commit `feat: plantillas del motor en el catálogo`.
+
 ### Task 1: Candidatos como Decisión
-**Interfaces:** `asset.candidates {taskId, query, kinds: ['catalog','meshy_preview','metahuman_preset']}` → hasta 3 por tipo, Decisión con miniaturas (catálogo: `thumbnail_path`; Meshy: preview de bajo coste; MetaHuman: presets de Megascans Library ya indexados); elegir → encola la ruta correspondiente. Pruebas con MCP falso. Commit.
 
-### Task 2: Ruta Meshy → rig → animación → retarget
-**Interfaces:** `character.meshy {taskId, source: entryId|prompt, animations: [{prompt, seconds}]}`: `meshy_rig` → `meshy_animate`/text-to-motion → descarga a `.kratos/artifacts` → `importFile` → `kratos_retarget.py` (IK Retargeter al esqueleto declarado en `.kratos/config.json: targetSkeleton`, informe de huesos) → `kratos_play_anim.py` (PIE con la animación, captura, comprobación de deformación) → `TestRun animation`. Pruebas: Review Focus 1, 4, 5. Commit.
+**Files:** Create `handlers/asset-candidates.ts`; Modify `handlers/asset.ts`, `cli-asset.ts`; tests `tests/service/asset-candidates.test.ts`; e2e `panel/e2e/candidatos.spec.ts`.
 
-### Task 3: Ruta MetaHuman
-**Interfaces:** `character.metahuman {taskId, preset?, body, skin, eyes, name}` por `callTool` del toolset `MetaHumanGenerator` (`create`, `set_*`, `finalize`); auto-rig y ensamblado por `MetaHumanCharacterEditorSubsystem` en `kratos_metahuman.py` con tiempo máximo y estado `esperando_externo` (Review Focus 2); verificación como en Tarea 2. Prueba real una vez en `KratosFabTest` con un preset. Commit.
+- `asset.candidates {taskId, query, kinds?: ('character'|'animation'|'metahuman-preset'|'pack')[]}` → busca en el catálogo (FTS existente) hasta 3 por tipo con esqueleto o preset; abre `openDecision` con `reason` «Elegir personaje base: N candidatos del catálogo» y `options[]` = `{id: entryId, label ≤ 4 palabras, description (origen · licencia · coste 0 ó créditos), thumbnail: /catalog/<id>/thumbnail si existe, recommended}`; sin candidatos → Decisión con las dos salidas reales («Buscar en Fab (nivel 2, con clics)» / «Usar maniquí del motor»).
+- Resolver la Decisión encola `asset.migrate` del elegido (`idempotency migrate:<entry>:<proyecto>`) y después `character.setup` (Tarea 2) con las animaciones pedidas; la tarea pasa a `preparada` con `waitReason` «Esperando editor» mientras tanto.
+- Panel: nada nuevo salvo prueba e2e: la Decisión muestra 3 tarjetas, la miniatura abre el `AssetViewer` y **no** elige; elegir cierra la Decisión. Captura `docs/capturas-5b/candidatos-1920.png`.
+- [ ] `kratos asset candidates --task <id> "héroe con ataque"` desde la CLI; `npm test` ×2, `npm run test:panel`, Playwright; commit `feat: candidatos de personaje como Decisión`.
 
-### Task 4: Skill y aceptación
-- [ ] `SKILL.md` sección «Personajes»: cuándo catálogo, Meshy o MetaHuman; siempre candidatos primero; eval `09-heroe-de-hielo.md`.
-- [ ] Aceptación: «Un héroe de hielo con animación de ataque» → candidatos → Meshy → rig → clip → retarget → PIE con captura; «Un guardia humano de 50 años» → MetaHuman por toolset → PIE. `docs/aceptacion-hito5b.md`; commit.
+### Task 2: `character.setup`, retarget y comprobación `animation`
+
+**Files:** Create `handlers/character-setup.ts`, `checks/animation.ts`, `service/unreal/kratos_character.py`, `service/unreal/kratos_retarget.py`; Modify `checks/{select,run}.ts`, `tests/fakes/unreal-cmd.mjs`, `panel/src/lib/artifactName.ts`; tests `tests/service/character-setup.test.ts`, `checks-select.test.ts`, `panel/src/lib/artifactName.test.ts`.
+
+- `character.setup {taskId, mesh: '/Game/...', animations: ['/Game/...'], targetSkeleton?: '/Game/...'}` en el carril largo por `withEditor` (Review Focus 4): `kratos_character.py` carga el `SkeletalMesh`, resuelve el esqueleto, y por cada animación: mismo esqueleto → la usa; distinto → `kratos_retarget.py` con `unreal.IKRetargetBatchOperation.run_batch_retarget` usando un `IKRetargeter` existente del pack (`Rigs/`) o uno creado por script con `IKRetargeterController` y mapeo automático de cadenas; el informe lista cadenas/huesos sin mapear; si queda alguna cadena principal sin mapear (`spine`, `head`, brazos, piernas) → Decisión «Retarget manual» con guion y la tarea no avanza (Review Focus 1).
+- Prueba en PIE: crea (o reutiliza) `/Game/Kratos/Maps/AnimTest` con un actor de prueba que reproduce el clip o el montaje; `kratos_pie_capture.py` a 1280×720 y 1920×1080 en 0 %, 50 % y 90 % del clip; comprobación de deformación (Global Constraints); JSON → `recordTestRun` tipo `animation` y artefactos con `provenance.label` («Animación · captura 1280×720 · 50 %», «Retarget · informe», «Deformación · informe»). `artifactName.ts` conoce los nuevos tipos (filtro Capturas/Informes ya existente).
+- `checks/select.ts`: nuevo `CheckId 'animation'` para `SK_*`, `SKM_*`, `ABP_*`, `AM_*`, `A_*`, `BS_*`, `MM_*`, `IK_*`, `RTG_*` y rutas `/Anims/`, `/Animations/`, `/Characters/`; orden `cpp, blueprint, asset, animation, map, umg, build`; `checks/run.ts` lo ejecuta con el mismo `checkGate`. `kratos task check` lo relanza.
+- Fake `unreal-cmd.mjs`: informes de `character`/`retarget` configurables (ok, cadenas sin mapear, editor ocupado) para probar sin motor.
+- [ ] `npm test` ×2, `npm run test:panel`, `npm run build`; commit `feat: character.setup, retarget por lotes y comprobación animation`.
+
+### Task 3: MetaHuman por capacidad (opcional, sin inventar)
+
+**Files:** Create `handlers/character-metahuman.ts`, `service/unreal/kratos_metahuman.py`; Modify `repo/capabilities.ts`; tests `tests/service/capabilities-metahuman.test.ts`, `character-metahuman.test.ts`.
+
+- Capacidades: filas «MetaHuman» (plugins `MetaHumanCharacter`/`MetaHumanSDK` presentes en el motor + al menos un `metahuman-preset` indexado) y «Retarget IK» (`IKRig`); `estado` `listo | ausente`, con detalle.
+- `character.metahuman {taskId, presetEntryId, name}`: en modo lote intenta `unreal.MetaHumanCharacterEditorSubsystem` (crear desde el preset, ensamblar, guardar en `/Game/MetaHumans/<name>`); tiempo máximo 10 min; cualquier paso que exija GUI o nube deja la run en `esperando_externo` y abre Decisión «Crear el MetaHuman en el editor (guion de 5 pasos) / Usar maniquí del motor» (Review Focus 5). Lo que ocurra de verdad en 5.8.3 se documenta en `docs/aceptacion-hito5b.md`; si la API no existe en lote, la ruta queda como «asistida» y se dice.
+- [ ] Prueba real **una vez** en `KratosFabTest` con un preset indexado (resultado real, sea cual sea); `npm test` ×2; commit `feat: MetaHuman por capacidad`.
+
+### Task 4: Skill, aceptación y cierre del hito
+
+**Files:** Modify `skills/kratos/SKILL.md` (sección «Personajes», ≤ 10 líneas), Create `references/personajes.md`, `evals/09-heroe-ataque.md`, `docs/aceptacion-hito5b.md`; Modify `docs/estado-entregas.md` (5b «En `main`» + prueba 30).
+
+- SKILL: «Personajes: siempre candidatos primero (`asset candidates`); orden catálogo propio → plantillas del motor → Fab → MetaHuman si Capacidades lo marca; nunca Meshy para personajes ni animación; toda animación pasa por `character.setup` y la comprobación `animation` en PIE». skillsmith ≥ 95 (`npx -y @lozadaa/skillsmith@1.2.0 --path skills/kratos --report`).
+- Aceptación real en `KratosFabTest` (datos en `.kratos-hito5b`; antes `kratos stop --data .kratos-hito7` si sigue vivo en 8780): (a) «Un héroe con animación de ataque» → candidatos (Manny, Quinn, preset MetaHuman) → Manny → migración de maniquíes + animaciones de combate → `character.setup` con `AM_ComboAttack` → capturas PIE → revisión → comprobaciones (`animation`) → integración → DONE; (b) retarget real de un clip del maniquí UE4 al Manny UE5 por `run_batch_retarget` → PIE con captura; (c) Review Focus 1 provocado a propósito (clip sobre un esqueleto sin retargeter) → Decisión. Tiempos por etapa como en `docs/recorrido-mvp.md`.
+- Capturas finales en `docs/capturas-5b/` (Decisión con candidatos, visor abierto sobre un candidato, Entregas con capturas de animación, Capacidades con MetaHuman/Retarget, PIE 1280×720 y 1920×1080).
+- [ ] `npm test` ×3 en verde al cerrar, `npm run test:panel`, `npm run build`, Playwright; commit `docs: aceptación del hito 5b`.
 
 ## Self-review
-- Cobertura: §3.5 completa salvo DeepMotion/Cascadeur/Rokoko (fuera de v1 por §9 del plan v2); fila de §4 → brief con `ue-animation-system`, `rigging`; prueba 30 → Global Constraints y Capacidades.
-- Review Focus 1, 4, 5 → Tarea 2; 2 → Tarea 3; 3 → Tarea 1.
+
+- Cobertura: §3.5 sin Meshy (decisión del usuario) y sin DeepMotion/Cascadeur/Rokoko (§9 del plan v2); fila de §4 → `character.setup` + rol `animation`; prueba 30 → Capacidades «MetaHuman» (Tarea 3) y Global Constraints.
+- Review Focus 1, 4 → Tarea 2; 2 → Tarea 1; 3 → Tarea 0; 5 → Tarea 3.
+- Riesgos conocidos: la API Python de MetaHuman en modo lote puede no existir (la Tarea 3 lo contempla); copiar plantillas del motor exige preservar `/Game/...` (Tarea 0 lo verifica); `run_batch_retarget` necesita un `IKRetargeter` válido (Tarea 2 crea o pide uno).
