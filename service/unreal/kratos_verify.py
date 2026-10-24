@@ -23,6 +23,11 @@ for data in registry.get_assets_by_path(ROOT, recursive=True):
             entry["triangles_lod0"] = obj.get_num_triangles(0)
             entry["materials"] = [str(m.material_interface.get_path_name()) if m.material_interface else None
                                   for m in obj.static_materials]
+            # hito 5b: las tarjetas de pelo reciben el material del Groom que las usa, no de su propio slot
+            entry["groom_cards"] = any(str(a.asset_class_path.asset_name) in ("GroomAsset", "GroomBindingAsset")
+                                       for r in registry.get_referencers(data.package_name, unreal.AssetRegistryDependencyOptions(
+                                           include_soft_package_references=True, include_hard_package_references=True)) or []
+                                       for a in registry.get_assets_by_package_name(r))
             extent = obj.get_bounds().box_extent
             entry["bounds_cm"] = [round(2 * v, 1) for v in (extent.x, extent.y, extent.z)]
         elif isinstance(obj, unreal.Texture2D):
