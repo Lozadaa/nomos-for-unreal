@@ -30,6 +30,8 @@ export interface Task {
   decisionId: string | null
   area: Area
   assigneeRole: string | null
+  /** hito 13: mayor arranca antes; 0 (o ausente) no se enseña */
+  priority?: number
   assigneeProvider: string | null
   parentTaskId: string | null
   dependsOn: string[]

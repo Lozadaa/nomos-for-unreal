@@ -21,6 +21,11 @@ function integer(value: string): number {
   if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value))) throw new Error('Uso: entero no negativo requerido');
   return Number(value);
 }
+/** Hito 13: prioridad entera (mayor arranca antes), también negativa. */
+function priorityValue(value: string | undefined): number {
+  if (value===undefined || !/^-?\d+$/.test(value) || !Number.isSafeInteger(Number(value))) throw new Error('Uso: prioridad entera requerida');
+  return Number(value);
+}
 export async function directorCli(argv: string[]): Promise<boolean> {
   const index=commandIndex(argv),group=argv[index];
   if (group==='pausar' || group==='reanudar') {
@@ -32,15 +37,18 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
   const flags: Record<string,string[]>={
-    'task.create':['title','area','spec-file','leases','depends','role','provider','message'],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
-    'task.integrate':[],'task.finalize':[],'task.continue':['file','text'],
+    'task.create':['title','area','spec-file','leases','depends','role','provider','message','priority'],'task.priority':[],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
+    'task.integrate':[],'task.finalize':[],'task.reconcile':[],'task.continue':['file','text'],
     'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key','message'],'worker.stop':[],
     'run.diff':[],'run.output':['since'],'decision.open':['file','message'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
   const options=Object.fromEntries(['data',...allowed].map(key=>[key,{type:'string' as const}]));
-  const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options});
-  const [, ,rawId,...extra]=positionals;
-  const needsId=!(group==='task' && action==='create' || group==='decision' && action==='list');
+  // `task priority TAREA -1`: un entero negativo es un valor, no una opción
+  const args=group+'.'+action==='task.priority' ? argv.map(a=>/^-\d+$/.test(a) ? 'n'+a : a) : argv;
+  const {values,positionals}=parseArgs({args,allowPositionals:true,options});
+  const [, ,rawId,...rest]=positionals;
+  const level=group+'.'+action==='task.priority' ? rest.shift() : undefined;
+  const extra=rest,needsId=!(group==='task' && action==='create' || group==='decision' && action==='list');
   if (extra.length || needsId && !rawId || !needsId && rawId) throw new Error('Uso: argumentos incorrectos');
   const id=rawId ? encodeURIComponent(rawId) : '',dataDir=resolve(values.data ?? '.nomos');
   const call=(path: string,data?: unknown,timeoutMs?: number)=>request(serviceInfo(dataDir),path,data,timeoutMs);
@@ -49,10 +57,11 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   let result: unknown;
   if (group==='task') {
     if (action==='show') result=await call('/tasks/'+id);
+    else if(action==='priority') result=await call('/tasks/'+id+'/priority',{priority:priorityValue(level?.replace(/^n/,''))});
     // la revisión calcula el diff antes de responder: con 1,5 GB de contenido tarda más de los 10 s por defecto
     else if(action==='review') result=await call('/tasks/'+id+'/review',{},120_000);
     else if(action==='check') result=await call('/tasks/'+id+'/checks',values.run===undefined ? {} : {runId:required(values.run,'--run')});
-    else if(action==='integrate' || action==='finalize') result=await call('/tasks/'+id+'/'+action,{});
+    else if(action==='integrate' || action==='finalize' || action==='reconcile') result=await call('/tasks/'+id+'/'+action,{});
     else if(action==='continue') {
       if ((values.file===undefined)===(values.text===undefined)) throw new Error('Uso: elige --file o --text');
       result=await call('/tasks/'+id+'/continue',{text:required(values.file===undefined ? values.text : readFileSync(values.file,'utf8'),'texto')});
@@ -69,6 +78,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
         const list=(value?:string)=>value===undefined ? undefined : value.split(',').map(s=>s.trim()).filter(Boolean);
         for(const dep of list(values.depends) ?? []) await call('/tasks/'+encodeURIComponent(dep));
         const task=await call('/tasks',{title,area,...(parsed ?? {spec:'',acceptance:[]}),leases:list(values.leases),
+          ...(values.priority===undefined ? {} : {priority:priorityValue(values.priority)}),
           assigneeRole:values.role,assigneeProvider:values.provider,...message});
         if(values.depends!==undefined) await call('/tasks/'+encodeURIComponent(task.id)+'/depends',{dependsOn:list(values.depends)});
         result=parsed ? await call('/tasks/'+encodeURIComponent(task.id)+'/spec',{...parsed,area}) : task;

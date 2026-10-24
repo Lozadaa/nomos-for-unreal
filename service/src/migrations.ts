@@ -112,6 +112,14 @@ export function migrateChat(db: DatabaseSync): void {
   });
 }
 
+/** Hito 13: prioridad del director (mayor arranca antes; 0 por defecto). */
+export function migratePriority(db: DatabaseSync): void {
+  transaction(db, () => {
+    if (!db.prepare('pragma table_info(tasks)').all().some(row => row.name === 'priority'))
+      db.exec('alter table tasks add column priority integer not null default 0');
+  });
+}
+
 /** Hito 11: el proveedor del propio servicio pasa a `nomos` en las bases anteriores al renombrado (ver legacy.ts). */
 export function migrateNomos(db: DatabaseSync): void {
   transaction(db, () => migrateBrand(db, (table, column, value) => widenCheck(db, table, column, value)));

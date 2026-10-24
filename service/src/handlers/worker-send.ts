@@ -13,6 +13,7 @@ import { acquire, release, leaseWaitReason } from '../leases.ts';
 import { dependencyReason } from '../scheduler-state.ts';
 import { limits, readConfig } from '../config.ts';
 import { deliver } from './worker-deliver.ts';
+import { reconcileTask } from './reconcile.ts';
 
 export const workerSend: Handler=async (cmd,ctx)=>{
   const payload=cmd.payload as any,{db,orca}=ctx;
@@ -72,19 +73,25 @@ export const workerSend: Handler=async (cmd,ctx)=>{
     if(dispatchBlocked(db,guard)) pauseForDecision(db,task.id,run.id);
   });
 };
+/** Hito 13: cancelar deja la run reconciliada (terminal cerrado, árbol retirado, tarea preparada) o pregunta qué hacer con lo que quede. */
 export const workerStop: Handler=async (cmd,ctx)=>{
   const run=requireRun(ctx.db,(cmd.payload as any).runId);
-  transaction(ctx.db,()=>{
-    if(run.state==='running') finishRun(ctx.db,run.id,'cancelled',`Seguimiento detenido; no se confirma terminación del proceso ${run.provider}`);
-    release(ctx.db,run.id);
-    updateRun(ctx.db,run.id,{waiting:false,phase:'finished',pollGeneration:(run.metadata.pollGeneration ?? 0)+1});
+  const owns=()=>{
     const task=requireTask(ctx.db,run.taskId);
     const latest=ctx.db.prepare('select id from runs where task_id=? order by rowid desc limit 1').get(run.taskId);
-    const ownsTracking=latest?.id===run.id && (!task.worktreeId || task.worktreeId===run.metadata.worktreeId);
-    if(task.state!=='done' && ownsTracking) {
-      moveTask(ctx.db,task.id,'preparada');
+    return task.state!=='done' && latest?.id===run.id && (!task.worktreeId || task.worktreeId===run.metadata.worktreeId);
+  };
+  const tracking=owns();
+  // al reanudarse tras una espera, nada de lo de arriba se repite (cambiaría el contexto de la Decisión abierta)
+  if(run.metadata.stopCommandId!==cmd.id) transaction(ctx.db,()=>{
+    if(run.state==='running') finishRun(ctx.db,run.id,'cancelled',`Seguimiento detenido; no se confirma terminación del proceso ${run.provider}`);
+    release(ctx.db,run.id);
+    updateRun(ctx.db,run.id,{waiting:false,phase:'finished',stopCommandId:cmd.id,pollGeneration:(run.metadata.pollGeneration ?? 0)+1});
+    if(tracking) {
+      moveTask(ctx.db,run.taskId,'preparada');
       ctx.db.prepare('update tasks set wait_reason=? where id=?')
-        .run('Seguimiento detenido; reconciliar el worktree conservado antes de continuar',task.id);
+        .run('Seguimiento detenido; reconciliar el worktree conservado antes de continuar',run.taskId);
     }
   });
+  if(tracking) return reconcileTask(ctx,cmd,run.taskId);
 };

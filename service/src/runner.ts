@@ -12,6 +12,7 @@ import { openStallDecisions } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
 import { failureKind } from './failure-kind.ts';
+import { closeIdleTerminals, sweepIntervalMs, sweepTerminals } from './sweep.ts';
 export type WorkerContext = {db: DatabaseSync; orca: Orca; git: Git; dataDir: string; projectDir: string};
 export type Handler = (command: Command, context: WorkerContext) => Promise<object | void>;
 export type RunnerStop = (() => void) & {drained: Promise<void>};
@@ -41,7 +42,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
   }});
   const context: WorkerContext={...opts.context,db,dataDir,projectDir:resolve(opts.context?.projectDir ?? dirname(dataDir)),
     git:opts.context?.git ?? createGit(),orca:opts.context?.orca ?? orca};
-  let nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000);
+  let nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000),nextSweep=0;
   async function execute(command: Command) {
     const handler=handlers[command.type];
     const pulse=setInterval(()=>{try {beat(db,command.id);} catch {/* la base puede estar cerrándose */}},opts.heartbeatMs ?? 5000);
@@ -67,6 +68,11 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
     if (stopped) return;
     inFlight[lane]=true;
     try {
+      // hito 13: terminales de workers sin uso se cierran a ritmo del planificador; cada 10 min (y al arrancar) se cuentan los vivos
+      if(lane==='normal' && (Date.now()>=nextSweep || Date.now()>=nextSchedule)) try {
+        if(Date.now()>=nextSweep) {nextSweep=Date.now()+sweepIntervalMs;await sweepTerminals(db,context.orca);}
+        else await closeIdleTerminals(db,context.orca);
+      } catch(error) {appendEvent(db,'sweep.error',null,{reason:error instanceof Error ? error.message : String(error)});}
       if(lane==='normal' && Date.now()>=nextSchedule) {
         nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000);
         // dueños muertos sin latido (otro proceso que cayó): una pasada por ciclo del planificador

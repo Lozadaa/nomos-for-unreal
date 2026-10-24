@@ -53,6 +53,13 @@ Exige `cerrando`. Condiciones en orden; la primera que falla deja la tarea en
 hasta cinco veces. «Descartar» es la única vía a `--force` y queda registrado quién
 lo eligió (`worktree.discarded`); nunca lo elijas tú.
 
+Sin esperar al cierre, el servicio cierra el terminal de Orca de cada run que ya no
+tiene nada que leer: revisores terminados, runs `failed` o canceladas y tareas `done`
+(el del responsable sigue abierto hasta cerrar: las correcciones llegan a esa sesión).
+Al arrancar y cada 10 min barre solo los terminales de sus propias runs; `nomos status`
+trae `workers.text` («procesos de workers vivos: N») y `workers.warning` si hay más
+vivos que runs en marcha.
+
 El archivo contiene `conversacion.jsonl`, `eventos.jsonl`, `diff-final.patch`,
 `informes/`, `sesiones.json`, `resumen.md` y `manifest.json`; el panel lo enseña en
 la pestaña Archivo. Las tareas sin worktree (assets remotos) cierran solo con él.

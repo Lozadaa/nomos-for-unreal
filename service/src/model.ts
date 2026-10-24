@@ -12,6 +12,7 @@ export type Task = Entity & {
   dependsOn: string[]; worktreeId: string | null; budgetId: string | null; scope: string[];
   leases: string[]; reviewApproved: 0 | 1; waitReason: string | null;
   attribution: Attribution; archivePath: string | null;
+  /** hito 13: mayor arranca antes; empate por fecha de creación */ priority: number;
 };
 /** Quién hizo qué en la tarea (hito 6): implemento, reviso, genero, integro, verifico. */
 export type Attribution = Record<string, {runId: string; provider: string; agentName: string; at: string}[]>;
@@ -22,6 +23,9 @@ export type RunMetadata = {
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
   uncertain?: boolean; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
   startCommandId?: string;
+  /** hito 13: reintentos de cerrar el terminal y de retirar el worktree al reconciliar; la cancelación que ya la paró */
+  closeAttempts?: number; removeAttempts?: number; stopCommandId?: string;
+  /** hito 13: el barrido ya cerró (o encontró cerrado) su terminal de Orca */ terminalClosed?: boolean;
   review?: import('./review.ts').ReviewSnapshot;
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];

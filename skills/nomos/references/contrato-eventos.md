@@ -51,6 +51,10 @@ La web ignora secuencias ya vistas y reúne los eventos por messageId.
 
 ## Franja del director
 
+`nomos vigila` se puede encadenar: escribe cada evento como una línea y la entrega a la tubería
+antes de avanzar el cursor. El filtro que pongas detrás debe hacer lo mismo: `cut`, `awk` o `sed`
+retienen por bloques al escribir a otra tubería; usa `grep --line-buffered` o `stdbuf -oL cut …`.
+
 El vigilante late cada 2 segundos; `listener` solo es true si el latido tiene menos
 de 6 segundos. Un latido no confirma mensajes.
 

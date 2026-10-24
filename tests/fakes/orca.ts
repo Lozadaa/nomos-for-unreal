@@ -57,6 +57,8 @@ if (process.env.FAKE_ORCA_HANG === '1') {
     state.rmBusy--; save(); fail('worktree_remove_failed', 'EBUSY: resource busy or locked, rmdir');
   }
   else {
+    // hito 13: como Orca 1.4.207, retira la carpeta y conserva la rama (solo si la prueba lo pide)
+    if (state.realRepo && state.realRemove) execFileSync('git',['-C',state.realRepo,'worktree','remove','--force',state.treePath],{windowsHide:true});
     state.removed = [...(state.removed ?? []), value('--worktree').slice(3)]; save();
     emit({ removed: true, forced: args.includes('--force') });
   }

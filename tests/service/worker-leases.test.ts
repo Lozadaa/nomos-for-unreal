@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixture } from './worker-fixture.ts';
 import { createTask, requireTask } from '../../service/src/repo/tasks.ts';
@@ -40,9 +40,10 @@ test('dos tareas del mismo asset solo arrancan un worker; stop libera y permite 
   assert.deepEqual(listLeases(f.db),[]);
   const stopped=requireTask(f.db,f.task.id);
   assert.equal(stopped.state,'preparada');assert.equal(stopped.blockedReason,null);
-  assert.match(stopped.waitReason!,/reconciliar/i);assert.equal(stopped.worktreeId,f.tree().id);
-  assert.ok(existsSync(join(f.tree().path,'.nomos-brief.md')));
-  writeFileSync(f.file,JSON.stringify({...f.state(),treePath:join(f.dir,'second tree')}));
+  // hito 13: la cancelación reconcilia (terminal cerrado, árbol retirado); nada queda pidiendo reconciliar
+  assert.equal(stopped.waitReason,null);assert.equal(stopped.worktreeId,null);
+  assert.deepEqual(f.state().removed,[f.tree().id]);
+  writeFileSync(f.file,JSON.stringify({...f.state(),treePath:join(f.dir,'second tree'),terminalHandle:'term_2'}));
   await start();assert.equal(f.state().creates,2);
   assert.equal(filtered<Run>(f.db,'runs',{taskId:second.id}).length,2);
   assert.equal(requireTask(f.db,second.id).waitReason,null);

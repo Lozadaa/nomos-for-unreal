@@ -1,7 +1,7 @@
 import { body, json } from '../http.ts';
 import { createTask, listTasks, requireTask } from '../repo/tasks.ts';
 import { filtered, read } from '../repo/rows.ts';
-import { listEvents } from '../store.ts';
+import { appendEvent, listEvents } from '../store.ts';
 import { areas, states, choice, text, id, type Context } from './context.ts';
 import { normalizedPaths } from '../handlers/worker-policy.ts';
 import { enqueue } from '../commands.ts';
@@ -35,6 +35,15 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     });
     return true;
   }
+  const priority = /^\/tasks\/([^/]+)\/priority$/.exec(url.pathname);
+  if (req.method === 'POST' && priority) {
+    const task = requireTask(db, id(priority[1])), data = await body(req);
+    if (!Number.isSafeInteger(data.priority)) throw new Error('invalid_priority');
+    db.prepare('update tasks set priority=?,updated_at=? where id=?').run(data.priority as number, new Date().toISOString(), task.id);
+    appendEvent(db, 'task.priority', null, {taskId: task.id, priority: data.priority});
+    json(res, 200, requireTask(db, task.id));
+    return true;
+  }
   if (url.pathname !== '/tasks') return false;
   if (req.method === 'GET') {
     // hito 7: el estado de fallo (conexión, ejecución, cancelación, capacidad) viaja con la tarea
@@ -55,12 +64,14 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   if(data.assigneeRole!==undefined && !text(data.assigneeRole)
     || data.assigneeProvider!==undefined && !['codex','claude','opencode'].includes(data.assigneeProvider as string))
     throw new Error('invalid_worker_payload');
+  if (data.priority !== undefined && !Number.isSafeInteger(data.priority)) throw new Error('invalid_priority');
   json(res, 201, createTask(db, {
     title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance,
     assigneeRole: data.assigneeRole as string | undefined ?? null,
     assigneeProvider: data.assigneeProvider as string | undefined ?? null,
     scope: data.scope === undefined ? [] : normalizedPaths(data.scope),
-    leases: data.leases === undefined ? [] : normalizedPaths(data.leases)
+    leases: data.leases === undefined ? [] : normalizedPaths(data.leases),
+    ...(data.priority === undefined ? {} : {priority: data.priority as number})
   }, linkedMessage(db, data.messageId)));
   return true;
 }

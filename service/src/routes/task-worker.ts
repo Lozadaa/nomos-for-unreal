@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { body, json } from '../http.ts';
 import { requireTask, moveTask } from '../repo/tasks.ts';
 import { filtered, transaction } from '../repo/rows.ts';
@@ -6,6 +7,7 @@ import { normalizedPaths } from '../handlers/worker-policy.ts';
 import { areas, choice, id, text, type Context } from './context.ts';
 import type { Run } from '../model.ts';
 import { resumeWorkerStart } from './worker-resume.ts';
+import { reconcileStates } from '../handlers/reconcile.ts';
 
 export function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(text);
@@ -18,10 +20,20 @@ export function taskSpec(data: Record<string,unknown>) {
   return {spec:data.spec,acceptance:data.acceptance,area:area!,scope};
 }
 export async function taskWorker({db,req,res,url}: Context): Promise<boolean> {
-  const match=/^\/tasks\/([^/]+)\/(spec|worker)$/.exec(url.pathname);
+  const match=/^\/tasks\/([^/]+)\/(spec|worker|reconcile)$/.exec(url.pathname);
   if (req.method!=='POST' || !match) return false;
   const taskId=id(match[1]);requireTask(db,taskId);
-  const data=await body(req);
+  const data=match[2]==='reconcile' ? {} : await body(req);
+  if (match[2]==='reconcile') {
+    // hito 13: la orden viva de la tarea, o una nueva (una tarea puede reconciliarse más de una vez)
+    const commandId=transaction(db,()=>{
+      if (!reconcileStates.includes(requireTask(db,taskId).state)) throw new Error('invalid_transition');
+      const live=db.prepare(`select id from commands where type='task.reconcile' and state in ('pending','running')
+        and json_extract(payload,'$.taskId')=?`).get(taskId);
+      return live ? live.id : enqueue(db,'task.reconcile',{taskId},`task.reconcile:${taskId}:${randomUUID()}`).id;
+    });
+    json(res,202,{commandId});return true;
+  }
   if (match[2]==='spec') {
     const spec=taskSpec(data);
     const prepared=transaction(db,()=>{

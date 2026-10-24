@@ -76,6 +76,9 @@ Conserva commandId devuelto al arrancar. `worker start` usa attempt 1 y clave
 No incrementes attempt para eludir un fallo de efecto incierto. Si la creación se
 interrumpió antes de guardar su ID, consulta `GET /tasks` y evidencia de eventos:
 `task create` no tiene clave de idempotencia; repetirlo puede crear otra tarea.
+Prioridad: `--priority N` al crear o `nomos task priority TAREA N` después (entero, 0 por
+defecto, mayor arranca antes; a igual prioridad, la más antigua). Úsala para lo urgente en
+vez de pausar el planificador y arrancar a mano.
 
 ## Estado actual antes de eventos reentregados
 
@@ -156,7 +159,19 @@ run o recursos (presupuesto finito, sistemas críticos o init_git), resuelve y c
 la tarea/comando. Repite explícitamente `worker start TASK --attempt N` con el mismo
 intento original: conserva commandId y autorización, reevalúa políticas y solo reanuda
 un bloqueo previo a efectos marcado `policyBlocked:true`. No aumentes attempt para
-eludir una Decisión ni repitas efectos inciertos; failed exige reconciliación.
+eludir una Decisión ni repitas efectos inciertos; un worker anterior se reconcilia (abajo).
+
+Marcas largas: el servicio reensambla una marca partida por el terminal (hasta 40 líneas u 8 KB) y
+lee antes `.nomos-inbox/done.json`, `review.json` o `ask.json` del worktree si el worker lo dejó.
+
+## Reconciliar un worker anterior
+
+`nomos worker stop RUN` ya reconcilia: cierra su terminal (si sigue vivo, reintenta cada 30 s
+hasta cinco veces), comprueba el árbol, retira el worktree y deja la tarea `preparada`.
+Una tarea que quedó atascada («Requiere reconciliar worker existente») se desatasca con
+`nomos task reconcile TAREA`. Si el árbol tiene cambios sin registrar, Decisión
+«Descartar / Commitear al run / Esperar». La Decisión de `worker start` ofrece
+«Reconciliar y reintentar», «Reconciliar y dejar preparada» o «Cancelar la tarea».
 
 ## Tarea parada
 

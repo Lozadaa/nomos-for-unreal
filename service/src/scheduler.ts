@@ -13,7 +13,8 @@ import { appendEvent } from './store.ts';
 export type PlanDecision = {taskId:string;action:'start'|'wait';reason:string;provider?:WorkerProvider};
 export function plan(db:DatabaseSync,config:SchedulerConfig): PlanDecision[] {
   const {usage,leases,runs}=reservations(db);
-  return listTasks(db,{state:'preparada'}).map(task=>{
+  // hito 13: la prioridad del director manda; a igual prioridad, la más antigua (orden estable por rowid)
+  return listTasks(db,{state:'preparada'}).sort((a,b)=>b.priority-a.priority).map(task=>{
     const wait=(reason:string):PlanDecision=>({taskId:task.id,action:'wait',reason});
     const reason=automaticReason(db,task) ?? dependencyReason(db,task);
     if(reason) return wait(reason);

@@ -30,6 +30,9 @@ NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"se
 
 Si falta una aclaración, usa `NOMOS_ASK {"question":"Pregunta concreta"}`. No termines con `NOMOS_DONE`.
 
+Si el JSON pasa de una línea, guarda el mismo JSON (sin el marcador) en `.nomos-inbox/review.json`
+(`.nomos-inbox/ask.json` para preguntas): el terminal parte las líneas largas y Nomos lee el archivo antes que la pantalla.
+
 ## Entrega
 
 El servicio guarda un artefacto `report` y emite `review.finished` con findings, generación, commit y huella del diff.
