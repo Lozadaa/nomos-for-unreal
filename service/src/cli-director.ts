@@ -43,11 +43,12 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   const needsId=!(group==='task' && action==='create' || group==='decision' && action==='list');
   if (extra.length || needsId && !rawId || !needsId && rawId) throw new Error('Uso: argumentos incorrectos');
   const id=rawId ? encodeURIComponent(rawId) : '',dataDir=resolve(values.data ?? '.kratos');
-  const call=(path: string,data?: unknown)=>request(serviceInfo(dataDir),path,data);
+  const call=(path: string,data?: unknown,timeoutMs?: number)=>request(serviceInfo(dataDir),path,data,timeoutMs);
   let result: unknown;
   if (group==='task') {
     if (action==='show') result=await call('/tasks/'+id);
-    else if(action==='review') result=await call('/tasks/'+id+'/review',{});
+    // la revisión calcula el diff antes de responder: con 1,5 GB de contenido tarda más de los 10 s por defecto
+    else if(action==='review') result=await call('/tasks/'+id+'/review',{},120_000);
     else if(action==='check') result=await call('/tasks/'+id+'/checks',values.run===undefined ? {} : {runId:required(values.run,'--run')});
     else if(action==='integrate' || action==='finalize') result=await call('/tasks/'+id+'/'+action,{});
     else if(action==='continue') {

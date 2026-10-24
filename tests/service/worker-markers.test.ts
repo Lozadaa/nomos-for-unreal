@@ -75,3 +75,11 @@ test('Claude real (hito 7): mensaje largo cuya viñeta ya salió del frame; el D
   // la salida de herramienta sigue fuera aunque tampoco se vea su cabecera
   assert.deepEqual(screenMarkers(['  ⎿  KRATOS_DONE {"summary":"x","commits":[],"tests":"none"}']), []);
 });
+
+test('hito 5b: KRATOS_REVIEW partido a mitad de clave por llenar el ancho del terminal se lee entero', () => {
+  const rule = '─'.repeat(60);
+  const head = '● KRATOS_REVIEW {"approved":false,"findings":[{"file":"A.uasset","line":1,"sev';
+  const frame = [rule.slice(0, head.length), head, '  erity":"high","note":"Borra MM_Attack_01 y AM_ComboAttack lo', '  referencia."}]}', rule.slice(0, head.length)];
+  assert.deepEqual(screenMarkers(frame), [{kind: 'REVIEW', approved: false,
+    findings: [{file: 'A.uasset', line: 1, severity: 'high', note: 'Borra MM_Attack_01 y AM_ComboAttack lo referencia.'}]}]);
+});

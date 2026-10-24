@@ -140,3 +140,8 @@ test('OpenCode reconoce configuración pero no se selecciona sin adaptador',t=>{
     assert.equal(readConfig(dir).concurrency?.opencode,3);
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
+test('hito 5b: una run de assets ya terminada (character.setup) no impide arrancar el worker de la tarea',t=>{
+  const {db,add}=setup(t),a=add('Héroe');
+  finishRun(db,startRun(db,{taskId:a.id,role:'animacion',provider:'unreal'}).id,'done','BP_Hudson reproduce AM_ComboAttack');
+  assert.deepEqual(plan(db,config),[{taskId:a.id,action:'start',provider:'codex',reason:'Disponible'}]);
+});

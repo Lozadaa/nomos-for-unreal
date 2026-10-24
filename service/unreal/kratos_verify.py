@@ -9,7 +9,8 @@ ROOT = os.environ.get("KRATOS_ROOT", "/Game/Fab")  # p. ej. /Game/AdvancedCelSha
 ALLOWED_PREFIXES = (ROOT + "/", "/Engine/", "/Fab/", "/Interchange/", "/InterchangeAssets/", "/Script/")
 registry = unreal.AssetRegistryHelpers.get_asset_registry()
 registry.scan_paths_synchronous([ROOT], True)
-report = {"root": ROOT, "engine": str(unreal.SystemLibrary.get_engine_version()), "assets": [], "missing_dependencies": [], "external_dependencies": [], "errors": []}
+report = {"root": ROOT, "engine": str(unreal.SystemLibrary.get_engine_version()), "assets": [], "missing_dependencies": [], "soft_missing": [], "external_dependencies": [], "errors": []}
+HARD = unreal.AssetRegistryDependencyOptions(include_soft_package_references=False, include_hard_package_references=True)
 
 for data in registry.get_assets_by_path(ROOT, recursive=True):
     path = str(data.package_name)
@@ -30,12 +31,14 @@ for data in registry.get_assets_by_path(ROOT, recursive=True):
         entry["loaded"] = False
         report["errors"].append(f"{path}: {e}")
     deps = registry.get_dependencies(data.package_name, unreal.AssetRegistryDependencyOptions(include_soft_package_references=True, include_hard_package_references=True))
+    # hito 5b: solo una dependencia dura que falta impide cargar; las blandas que faltan se anotan aparte
+    hard = {str(d) for d in registry.get_dependencies(data.package_name, HARD) or []}
     for dep in deps or []:
         dep = str(dep)
         if not dep.startswith(ALLOWED_PREFIXES):
             report["external_dependencies"].append({"from": path, "to": dep})
         if not dep.startswith("/Script/") and not registry.get_assets_by_package_name(dep):
-            report["missing_dependencies"].append({"from": path, "to": dep})
+            report["missing_dependencies" if dep in hard else "soft_missing"].append({"from": path, "to": dep})
     report["assets"].append(entry)
 
 report["ok"] = bool(report["assets"]) and not report["errors"] and not report["missing_dependencies"] \

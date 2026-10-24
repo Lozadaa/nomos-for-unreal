@@ -39,16 +39,15 @@ function overwritten(text: string): {untracked: string[]; changed: string[]} | n
   return found.untracked.length||found.changed.length ? found : null;
 }
 export function createGit(): Git {
-  // `hash`: la salida va a un SHA-256 y no a memoria (un diff --binary de 1,4 GB no cabe en una cadena de V8)
-  const spawnGit = (dir: string, args: string[], diff: boolean, timeoutMs: number, hash?: ReturnType<typeof createHash>) => new Promise<string>((accept, reject) => {
+  // `timeoutMs`: tope para lo largo (git lfs migrate); sin él, sin tope
+  const run: GitRun = (dir, args, diff = false, timeoutMs = 0) => new Promise<string>((accept, reject) => {
     const child = spawn('git', ['-c', 'core.quotepath=false', '-C', dir, ...args], {windowsHide:true,shell:false,env:{...process.env,LC_ALL:'C'}});
     let stdout='', stderr='';
     const timer = timeoutMs ? setTimeout(() => child.kill(), timeoutMs) : undefined;
-    child.stdout.on('data', chunk => {if (hash) hash.update(chunk); else stdout+=chunk;}); child.stderr.on('data', chunk => {stderr+=chunk;});
+    child.stdout.on('data', chunk => {stdout+=chunk;}); child.stderr.on('data', chunk => {stderr+=chunk;});
     child.on('error',reject);
     child.on('close',code => {clearTimeout(timer); code === 0 || diff && code === 1 ? accept(stdout) : reject(new Error(stderr || `git: ${code}`));});
   });
-  const run: GitRun = (dir, args, diff = false, timeoutMs = 0) => spawnGit(dir, args, diff, timeoutMs);
   const local = (path: string) => /^(\.kratos(?:\/|$)|\.kratos-brief\.md$|\.kratos-inbox(?:\/|$)|\.kratos-review(?:\/|$))/.test(path);
   // hito 7: lo que Unreal genera al compilar o empaquetar no es trabajo del worker ni entra en la revisión
   const generated = (path: string) => /^(Build|Saved|Intermediate|DerivedDataCache|Binaries)\//.test(path);
@@ -75,8 +74,12 @@ export function createGit(): Git {
     async diff(dir,base) {
       if (!base) throw new Error('invalid_base');
       let stat=await run(dir,['diff','--stat',base,...paths]);
-      const fingerprint=createHash('sha256');
-      await spawnGit(dir,['diff','--binary','--no-ext-diff',base,...paths],false,0,fingerprint);
+      // huella del contenido por los shas de blob (diff --raw): un diff --binary de 1,5 GB tardaba más de 5 minutos; lo que
+      // solo está en el árbol de trabajo sale con sha nulo y se hashea su contenido
+      const raw=await run(dir,['diff','--raw','--no-abbrev','--no-renames','-z',base,...paths]);
+      const fingerprint=createHash('sha256').update(raw), records=raw.split('\0');
+      for (let i=0;i+1<records.length;i+=2) if (/ 0{40} \w$/.test(records[i]) && existsSync(join(dir,records[i+1])))
+        fingerprint.update(JSON.stringify([records[i+1],createHash('sha256').update(readFileSync(join(dir,records[i+1]))).digest('hex')]));
       // los binarios (también renombrados o con cambio de modo, que no dicen «Binary files») se quitan del patch por ruta,
       // no con una exclusión por archivo: 1.361 rutas no caben en la línea de órdenes de Windows
       const binary=(await run(dir,['diff','--numstat','--no-renames','-z',base,...paths])).split('\0')
