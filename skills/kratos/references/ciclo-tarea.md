@@ -18,7 +18,8 @@ Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode todaví
 no tiene adaptador: puede declararse, pero no debe seleccionarse ni lanzarse;
 una espera «sin adaptador» no autoriza a inventar otro comando ni recursos.
 CLI y HTTP aceptan los tres proveedores y conservan la clave por tarea e intento.
-Claude usa `claude --model sonnet --dangerously-skip-permissions`; el servicio espera
+Claude usa `claude --model <workerModel> --dangerously-skip-permissions` (`sonnet` por defecto;
+`opus` o `haiku` en la config; el revisor usa el mismo y el run lo guarda en `metadata.model`); el servicio espera
 su marcador de readiness antes de entregarle el brief. Sus permisos «Do you want to»,
 «Allow» o «(y/n)» generan `worker.waiting` con la línea original: el director evalúa
 la pregunta y el alcance antes de responder. El servicio no responde automáticamente.

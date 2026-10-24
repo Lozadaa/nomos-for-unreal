@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { concurrency, readConfig } from '../../service/src/config.ts';
+import { concurrency, readConfig, workerModel } from '../../service/src/config.ts';
 import { chooseProvider } from '../../service/src/scheduler-provider.ts';
 
 const idle={codex:0,claude:0,opencode:0};
@@ -23,6 +23,16 @@ test('readConfig valida defaultProvider',t=>{
   const dir=mkdtempSync(join(tmpdir(),'kratos-default-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"codex"}');assert.equal(readConfig(dir).defaultProvider,'codex');
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"otro"}');assert.throws(()=>readConfig(dir),/invalid_worker_config/);
+});
+test('readConfig valida workerModel; sonnet por defecto',t=>{
+  const dir=mkdtempSync(join(tmpdir(),'kratos-model-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  assert.equal(workerModel(readConfig(dir)),'sonnet');
+  for(const model of ['sonnet','opus','haiku']) {
+    writeFileSync(join(dir,'config.json'),JSON.stringify({workerModel:model}));assert.equal(workerModel(readConfig(dir)),model);
+  }
+  for(const bad of ['"gpt"','""','1','null','["opus"]']) {
+    writeFileSync(join(dir,'config.json'),`{"workerModel":${bad}}`);assert.throws(()=>readConfig(dir),/invalid_worker_config/,bad);
+  }
 });
 
 test('una tarea asignada a un proveedor apagado dice cuál y cómo encenderlo, no «sin proveedor»', () => {

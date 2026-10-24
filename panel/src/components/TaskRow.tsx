@@ -50,7 +50,7 @@ function TaskRowView({ task, run, agent, now, open, onOpen }: {
         </span>
         {implementer ? (
           <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-            <AgentAvatar id={run?.id} provider={implementer} name={name} state={state} ordinal={state === 'idle' ? undefined : agent?.ordinal} size={24} />
+            <AgentAvatar id={run?.id} provider={implementer} model={run?.metadata?.model} name={name} state={state} ordinal={state === 'idle' ? undefined : agent?.ordinal} size={24} />
             <span>{name}</span>
             {waiting && <span className="sr-only">Esperando respuesta</span>}
           </span>

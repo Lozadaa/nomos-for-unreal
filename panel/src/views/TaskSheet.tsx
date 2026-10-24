@@ -84,7 +84,7 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
             <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="inline-flex items-center gap-2">Área: <Glyph kind="area" value={task.area} />{areaLabel[task.area]}</span>
               <span className="inline-flex items-center gap-2">Estado: <Glyph kind="taskState" value={statusOf(task) === 'normal' ? task.state : statusOf(task)} tone={toneOf(task)} /><StatusDot tone={toneOf(task)} />{statusText(task)}</span>
-              {assigneeProvider && <span className="inline-flex items-center gap-2"><AgentAvatar id={assignee?.id ?? task.id} provider={assigneeProvider} name={assigneeName} ordinal={assigneeAgent?.ordinal} state={assigneeState} size={32} /><span>{assigneeName}</span><span>{providerLabel[assigneeProvider] ?? glyphFor('provider', assigneeProvider).label}</span>{assigneeRole && <Glyph kind="role" value={assigneeRole} />}</span>}
+              {assigneeProvider && <span className="inline-flex items-center gap-2"><AgentAvatar id={assignee?.id ?? task.id} provider={assigneeProvider} model={assignee?.metadata?.model} name={assigneeName} ordinal={assigneeAgent?.ordinal} state={assigneeState} size={32} /><span>{assigneeName}</span><span>{providerLabel[assigneeProvider] ?? glyphFor('provider', assigneeProvider).label}</span>{assigneeRole && <Glyph kind="role" value={assigneeRole} />}</span>}
               <span>Etapa: {stageLabel[task.state]}</span>
               <span>Actualizada {relativeTime(task.updatedAt)}</span>
             </SheetDescription>
@@ -166,7 +166,7 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
             {detail.runs.map((r) => (
               <li key={r.id} className="flex items-baseline gap-3">
                 <StatusDot tone={r.state === 'running' ? 'info' : r.state === 'done' ? 'success' : r.state === 'failed' ? 'error' : 'neutral'} />
-                <AgentAvatar id={r.id} provider={r.provider} name={agentsByRunId.get(r.id)?.name} ordinal={agentsByRunId.get(r.id)?.ordinal} state={r.state !== 'running' ? 'idle' : waiting?.runId === r.id || r.metadata?.waiting ? 'waiting' : 'running'} size={32} />
+                <AgentAvatar id={r.id} provider={r.provider} model={r.metadata?.model} name={agentsByRunId.get(r.id)?.name} ordinal={agentsByRunId.get(r.id)?.ordinal} state={r.state !== 'running' ? 'idle' : waiting?.runId === r.id || r.metadata?.waiting ? 'waiting' : 'running'} size={32} />
                 <span>{agentsByRunId.get(r.id)?.name}</span>
                 <Glyph kind="role" value={r.role} />
                 <span className="text-muted-foreground">{r.summary ?? ''}</span>

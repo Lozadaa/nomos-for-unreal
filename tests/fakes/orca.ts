@@ -85,7 +85,7 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   if (!args.includes('--enter')) fail('missing_enter');
   else {
     const text=value('--text');
-    const launch=text==='codex --yolo --no-daemon'||text==='claude --model sonnet --dangerously-skip-permissions';
+    const launch=text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions$/.test(text);
     if (state.realRepo && launch && !existsSync(join(state.treePath,'.kratos-brief.md'))) {
       fail('missing_brief');
     } else {
