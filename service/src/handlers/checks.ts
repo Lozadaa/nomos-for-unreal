@@ -107,12 +107,17 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     // los archivos borrados cuentan para elegir comprobaciones, no para validar ni compilar assets que ya no existen
     const present = files.filter(file => existsSync(join(worktree, file)));
     const input = {task, run, implementer, project: target, files: present, worktree};
+    // hito 5b: el editor y el empaquetado escriben en el árbol (mapa de prueba, clips retargeteados, Build/); lo que el lote
+    // cambió se deshace al terminar, para que no entre en la revisión ni frene el cierre. Nunca en el checkout del usuario
+    const own = worktree !== ctx.projectDir, before = own ? new Set((await ctx.git.status(worktree)).files) : new Set<string>();
     const outcome = await withEditor(ctx, target, run, async () => {
-      for (const row of rows) {
-        const execute = executors[row.checkId as CheckId];
-        if (row.result !== 'pending' || !execute) continue;
-        if ((await runCheck(row.checkId as CheckId, execute, ctx, input, deps, row)).result === 'failed') break;
-      }
+      try {
+        for (const row of rows) {
+          const execute = executors[row.checkId as CheckId];
+          if (row.result !== 'pending' || !execute) continue;
+          if ((await runCheck(row.checkId as CheckId, execute, ctx, input, deps, row)).result === 'failed') break;
+        }
+      } finally { if (own) await ctx.git.discard(worktree, (await ctx.git.status(worktree)).files.filter(f => !before.has(f))); }
     });
     if (outcome && typeof outcome === 'object' && 'deferred' in outcome) return outcome;
     rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});

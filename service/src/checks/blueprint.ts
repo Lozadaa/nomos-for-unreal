@@ -14,5 +14,6 @@ export const blueprintCheck: Executor = async (ctx, {project, files}, deps) => {
     {KRATOS_ASSETS: JSON.stringify(assets)}, 10 * 60_000);
   if (!reportJson) return {result: 'failed', log, summary: [`El editor terminó con código ${exitCode} sin escribir el informe`]};
   return {result: reportJson.ok ? 'passed' : 'failed', log, engine: reportJson.engine as string,
-    summary: reportJson.ok ? [`${(reportJson.compiled as unknown[]).length} Blueprints compilados`] : reportJson.errors as string[]};
+    summary: reportJson.ok ? [`${(reportJson.compiled as unknown[]).length} Blueprints compilados`, ...(reportJson.warnings as string[] ?? [])]
+      : reportJson.errors as string[]};
 };

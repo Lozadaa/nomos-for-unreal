@@ -31,11 +31,8 @@ editor (`Build.bat KratosFabTestEditor`, 44 s; solo crea `Binaries/` e `Intermed
 | (d) Cascadeur `cleanup` sobre `MM_Attack_01` | 05:09:06 → 05:09:37 | 31 s | Unreal exporta el FBX, Cascadeur lo importa sin ventana, la exportación la bloquea la licencia gratuita: Decisión «Exportar a mano / Usar solo retarget» y Capacidades «Cascadeur · No responde» con el motivo |
 | Entregas con el vídeo en el visor y Capacidades | 05:10 | — | grabado con Playwright (demo, parte 2) |
 
-**Lo que no se hizo: revisión → integración → DONE de (a).** El personaje y sus clips quedan como archivos sin seguir en el
-checkout de KratosFabTest (1,4 GB del MetaHuman, 126 MB de los maniquíes, 6 MB de `/Game/Kratos`) más la línea de LiveLink en
-`KratosFabTest.uproject`. Llevarlos a DONE por el ciclo normal (worker en un worktree → commit → revisión → `checks.run` con
-`animation` → integración en `master`) mete 1,6 GB de binarios en la historia de git del proyecto, sin Git LFS. Es una
-decisión del usuario: ver el informe final. `master` sigue en `2263a65`.
+**Revisión → integración → DONE de (a):** quedó pendiente de una decisión del usuario sobre meter 1,6 GB de binarios en git.
+El usuario eligió Git LFS («Ok git lfs») y se hizo después: ver «Cierre con LFS».
 
 **Seguridad.** `Config/DefaultEngine.ini` sigue sin seguir y sin tocar (515 bytes, 2026-10-22 21:20); no entró en ningún commit
 ni en ningún informe.
@@ -47,6 +44,63 @@ ni en ningún informe.
   Entregas con el vídeo abierto → Capacidades). Cascadeur antes/después: no hay, la licencia no exporta FBX.
 - Capturas: `candidatos-1920.png`, `visor-candidato-1920.png`, `entregas-animacion-1920.png`, `visor-video-animacion-1920.png`,
   `capacidades-1920.png`, `pie-heroe-1280x720.png` y `pie-heroe-1920x1080.png`.
+
+## Cierre con LFS (Tarea 5)
+
+Mismo KratosFabTest, servicio de la rama `hito5b-lfs` (`127.0.0.1:8780`, datos en `KratosFabTest/.kratos-hito5b-lfs`, fuera de
+git por `.git/info/exclude`), worker y revisores Claude (Sonnet 5.5) por Orca. Antes: `master` en `2263a65`, sin
+`.gitattributes`, `.git` de 1,3 GB (1.191 objetos sueltos, 1,22 GiB: los blobs que el worker commiteó antes de decidir LFS).
+Horas UTC del 24 de octubre, de los eventos del servicio.
+
+| Etapa | Desde → hasta | Duración | Resultado |
+|---|---|---|---|
+| Tarea, candidatos y elección de Hudson | 07:34:06 → 07:34:23 | 17 s | Decisión con Hudson, Manny y Emory; planificador en pausa hasta montar el personaje |
+| Migraciones (Hudson, maniquíes, animaciones de combate) | 07:34:28 → 07:35:12 | 44 s | ya estaban: solo se copia lo que falta, nada se sobrescribe |
+| `character.setup` (Hudson con `AM_ComboAttack`) | 07:35:13 → 07:38:13 | 3 min | `animation` **passed** |
+| Worker: copia, compila el módulo y commitea | 07:39:23 → 07:41:53 | 2 min 30 s | 668 archivos, 1,5 GB, iguales al checkout del usuario |
+| Siete rondas de revisión y comprobaciones | 07:44:07 → 12:06:56 | 4 h 23 min | ver abajo: casi todo fueron fallos de las comprobaciones de Kratos, corregidos en el código |
+| Última ronda de comprobaciones | 11:37:47 → 12:06:56 | 29 min | blueprint 28 s, asset (102 carpetas) 25 min, animation 3 min, map 1 min: **todo en verde** |
+| Decisión «Contenido pesado (1491 MB): 666 archivos, 32 de más de 10 MB» | 12:07:28 → 12:07:34 | 6 s | Configurar Git LFS / Integrar sin LFS / Cancelar, con la nota de la cuota de GitHub (sin remoto) |
+| `integrate.lfs` (carril largo) | 12:07:57 → 12:08:16 | **19 s** | `git lfs migrate import` de la rama, `.gitattributes` en `master` (`7ff0785`), gc |
+| Integración, primer intento | → 12:08:41 | — | **falla**: la raqueta (hito 7) que `master` ya seguía como blob sale «modificada» con el `.gitattributes` nuevo (hallazgo 12) |
+| Integración tras el arreglo | 12:41:50 → 12:42:19 | 29 s | `6bbe44d` (la raqueta pasa a puntero, mismo contenido) y merge `9a1c3c7`; sin recomprobar |
+| Cierre | 12:42:57 → 12:43:08 | 11 s | **DONE**; archivo de 81 entradas; worktrees retirados |
+
+**Después**, comprobado en KratosFabTest: `master` en `9a1c3c7`; `git lfs ls-files` = **666** (93 de Hudson); `git count-objects`:
+13 objetos sueltos (2,7 KiB) y packs de 25 MB, los binarios en `.git/lfs/objects` (1,5 GB); checkout del usuario limpio (la línea
+de LiveLink ya es de `master`); Capacidades «Git LFS · git-lfs 3.7.1 · configurado en el proyecto». `Config/DefaultEngine.ini`
+**sin seguir y sin tocar** (515 bytes, 2026-10-22 21:20); no está en `master` ni en la rama del héroe. (Dos ramas de workers del 23
+de octubre sin fusionar, `kratos/4c443009` y `kratos/2e3d41ae`, tienen un commit que le añade dos líneas: son anteriores y no se tocaron.)
+Capturas: `docs/capturas-5b/decision-lfs-1920.png` y `capacidades-lfs-1920.png`.
+
+**Las siete rondas.** El worker cumplió a la primera; lo que fallaba eran las comprobaciones de Kratos sobre contenido de terceros:
+blueprint y map daban por rotas las referencias **blandas** que faltan en las plantillas de Epic (malla de vista previa
+`SKM_Manny`, secuencias `LS_Attack_*`); asset rechazaba los **planos** del rig facial de MetaHuman y las **tarjetas de pelo** sin
+material propio; build comparaba la captura con la **línea base de otro mapa**; map y build elegían como mapa de juego el
+**escenario de animación** de Kratos. Además: dos assets de la prueba (c) (`IK_SK_Mannequin` y su retargeter) dependen del maniquí
+UE4 (`Content/Mannequin`, fuera del alcance) y se quedaron fuera por decisión del director (la spec se actualizó); una instrucción
+mía equivocada (quitar 15 assets, entre ellos los `MM_Attack_*` que forman `AM_ComboAttack`) la paró el segundo revisor y se
+deshizo; la rama acabó en un solo commit (`72b3e10`) sobre `2263a65`. Por el límite de correcciones el director subió
+`limits.corrections` a 7 en `.kratos-hito5b-lfs/config.json`, con la Decisión registrada.
+
+### Hallazgos del cierre con LFS
+
+10. **Un diff de revisión con 1,5 GB de binarios.** La huella con `diff --binary` tardaba 37 s y la CLI se rendía a los 10 s. Ahora la
+    huella sale de los shas de blob (8 s) y `task review` espera hasta 2 min.
+11. **Las comprobaciones ensuciaban el worktree** (mapa re-guardado, clips retargeteados nuevos en cada pasada, `Build/`, y un
+    `Config/DefaultEngine.ini` que genera el editor con un token propio, no el del usuario). Ahora cada lote deshace lo que escribió.
+12. **Adoptar LFS en un repo que ya seguía `.uasset` como blobs.** Con el `.gitattributes` nuevo, esos archivos salen «modificados»
+    en cualquier checkout y el merge se niega. El commit de LFS los pasa a puntero (mismo contenido, comprobado por `oid` y
+    tamaño). Además, git trunca su mensaje de error a 4 KB: el avance calcula él mismo lo que bloquea y decide por contenido, no por
+    la caché de stat (que daba resultados distintos según el reloj).
+13. **Un fallo inesperado dejaba la integración retenida.** El run integrador quedaba «en curso» con la reserva y la siguiente
+    integración esperaba para siempre. Ahora un fallo definitivo cierra los runs de la orden y suelta sus reservas. (El que quedó
+    colgado antes del arreglo se cerró a mano con la misma función, con el servicio parado.)
+14. **Más del ciclo.** Una run de assets terminada impedía que el planificador arrancara el worker; un `KRATOS_REVIEW` partido a
+    mitad de palabra no se leía; el bloqueo «Máximo de N correcciones» no se levantaba al subir el límite; `task spec` devuelve la
+    tarea a `preparada` (hay que pedir al worker que confirme para volver a revisión); un `KRATOS_DONE` idéntico a uno anterior se
+    descarta. Todo corregido salvo los dos últimos, que se anotan como pendientes.
+15. **Sin vigilante armado, el director tardó 12 min en ver una pregunta del worker.** Hay que armar `kratos vigila` desde el principio.
 
 ### Hallazgos del recorrido real
 

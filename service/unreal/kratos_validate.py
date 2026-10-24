@@ -27,10 +27,14 @@ for package in ASSETS:
             entry["errors"].append(str(e))
         deps = registry.get_dependencies(data.package_name, unreal.AssetRegistryDependencyOptions(
             include_soft_package_references=True, include_hard_package_references=True))
+        # hito 5b: solo una dependencia dura que falta rompe; una blanda (vista previa de las plantillas de Epic) se avisa
+        hard = {str(d) for d in registry.get_dependencies(data.package_name, unreal.AssetRegistryDependencyOptions(
+            include_soft_package_references=False, include_hard_package_references=True)) or []}
         for dep in deps or []:
             dep = str(dep)
             if dep.startswith("/Game/") and "/__External" not in dep and not registry.get_assets_by_package_name(dep):
-                entry["errors"].append(f"Dependencia rota: {dep}")
+                if dep in hard: entry["errors"].append(f"Dependencia rota: {dep}")
+                else: entry.setdefault("warnings", []).append(f"Dependencia blanda inexistente: {dep} (no impide cargar)")
     report["assets"].append(entry)
 
 report["ok"] = all(not a["errors"] and a["result"] != "invalid" for a in report["assets"]) and not report["errors"]

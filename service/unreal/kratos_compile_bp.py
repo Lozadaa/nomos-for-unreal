@@ -6,7 +6,8 @@ import json, os, unreal
 
 ASSETS = json.loads(os.environ.get("KRATOS_ASSETS") or "[]")
 registry = unreal.AssetRegistryHelpers.get_asset_registry()
-report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "compiled": [], "errors": []}
+report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "compiled": [], "errors": [], "warnings": []}
+HARD = unreal.AssetRegistryDependencyOptions(include_soft_package_references=False, include_hard_package_references=True)
 
 for package in ASSETS:
     found = registry.get_assets_by_package_name(package)
@@ -26,10 +27,14 @@ for package in ASSETS:
                 report["errors"].append(f"{package}: el Blueprint no compila ({status})")
         deps = registry.get_dependencies(data.package_name, unreal.AssetRegistryDependencyOptions(
             include_soft_package_references=True, include_hard_package_references=True))
+        # hito 5b: una referencia dura que falta rompe la carga; una blanda (malla de vista previa, secuencia editable de
+        # las plantillas de Epic) no: se avisa sin fallar
+        hard = {str(d) for d in registry.get_dependencies(data.package_name, HARD) or []}
         for dep in deps or []:
             dep = str(dep)
             if dep.startswith("/Game/") and "/__External" not in dep and not registry.get_assets_by_package_name(dep):
-                report["errors"].append(f"{package}: referencia inexistente {dep}")
+                if dep in hard: report["errors"].append(f"{package}: referencia inexistente {dep}")
+                else: report["warnings"].append(f"{package}: referencia blanda inexistente {dep} (no impide cargar)")
 
 report["ok"] = not report["errors"]
 with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:

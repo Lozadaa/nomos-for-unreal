@@ -19,6 +19,17 @@ sin forzar. Lo comprueba el servicio; Kratos solo lo pide.
   a `probando` con el motivo y la rama objetivo no se toca.
 - Publicar es `merge --ff-only` en el checkout que tenga activa la rama (el tuyo); si
   tienes cambios que chocan, la integración espera y lo dice.
+- Contenido pesado (un archivo de más de 10 MB, o más de 100 MB en total, que entraría
+  como blob completo): no se fusiona. Decisión «Contenido pesado (N MB): Configurar Git
+  LFS / Integrar sin LFS / Cancelar», con la cuota de LFS de GitHub (1 GB) si no hay
+  remoto o es GitHub; sin git-lfs no aparece la primera. «Configurar» va al carril
+  largo (`integrate.lfs`): `git lfs migrate import` de la rama del worker con los
+  patrones de Unreal y `--exclude-ref` de la rama objetivo (nunca se reescribe, ni
+  `Config/`), el mismo `.gitattributes` commiteado antes en la rama objetivo, y `gc`
+  de los blobs viejos. Cambiar solo `.gitattributes` no obliga a recomprobar.
+- Al publicar, lo del checkout del usuario igual byte a byte a lo que llega (asset
+  migrado sin seguir, la línea de LiveLink ya puesta) se sustituye; lo distinto
+  (`Config/` con secretos) no se toca nunca.
 - Conflicto (texto o binario, p. ej. `.uasset`): nada se resuelve. `abortMerge`,
   informe «Integración · conflicto» y Decisión «Resolver en el worktree / Descartar
   la integración» con el sha de cada rama y quién integró antes ese archivo.

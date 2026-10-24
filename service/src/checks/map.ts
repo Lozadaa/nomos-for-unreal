@@ -2,6 +2,10 @@ import { join } from 'node:path';
 import type { UnrealCmd } from '../adapters/unreal-cmd.ts';
 import { unrealOf, type CheckDeps, type Executor } from './run.ts';
 import { packages, scripts } from './blueprint.ts';
+import { animMap } from './animation.ts';
+
+/** El mapa de juego que toca el diff. El escenario de animación de Kratos no lo es: lo juega y lo graba la comprobación animation. */
+export const gameMap = (files: string[]) => packages(files, f => /\.umap$/i.test(f)).find(p => p !== animMap);
 
 /** Juego a resolución fija (`-game <mapa>`, 10 min como máximo): captura con UI y, si `KRATOS_CONTROL`, sin UI. */
 export function capture(unreal: UnrealCmd, uproject: string, map: string | undefined, [width, height]: [number, number],
@@ -22,7 +26,7 @@ export const mapCheck: Executor = async (ctx, {project, files, dir}, deps) => {
   if (!report) return {result: 'failed', log: validation.log, summary: [`El editor terminó con código ${validation.exitCode} sin el informe de validación`]};
   const broken = report.assets.flatMap(a => a.errors.map(e => `${a.package}: ${e}`));
   if (!report.ok) return {result: 'failed', log: validation.log, engine: report.engine, summary: broken, blocking: broken};
-  const map = packages(files, f => /\.umap$/i.test(f))[0];
+  const map = gameMap(files);
   const shot = join(dir, 'map-1280x720.png');
   const run = await capture(unreal, project.uproject, map, [1280, 720], shot, deps);
   const pie = run.reportJson as Pie | undefined, log = `${validation.log}\n${run.log}`;

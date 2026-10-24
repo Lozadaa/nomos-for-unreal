@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { createOrca } from './adapters/orca.ts';
@@ -39,6 +40,12 @@ export async function checkCapability(id: string, deps: CheckDeps): Promise<Chec
   if (id === 'git') {
     try { return {state: 'comprobado', detail: await firstLine('git', ['--version'])}; }
     catch { return {state: 'ausente', detail: 'Git no encontrado'}; }
+  }
+  if (id === 'git_lfs') {
+    const project = deps.dataDir && /filter=lfs/.test((() => { try { return readFileSync(join(dirname(deps.dataDir), '.gitattributes'), 'utf8'); } catch { return ''; } })())
+      ? 'configurado en el proyecto' : 'sin configurar en el proyecto';
+    try { return {state: 'comprobado', detail: `${(await firstLine('git', ['lfs', 'version'])).split(' ')[0].replace('/', ' ')} · ${project}`}; }
+    catch { return {state: 'ausente', detail: 'git-lfs no está instalado: el contenido pesado solo puede integrarse sin LFS'}; }
   }
   if (id === 'meshy') {
     if (!env.MESHY_API_KEY) return {state: 'ausente', detail: 'Falta MESHY_API_KEY'};

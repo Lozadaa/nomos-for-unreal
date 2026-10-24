@@ -102,3 +102,36 @@ test('hito 7: sin seguir e idéntico al que llega (asset migrado) se sustituye; 
     assert.equal(readFileSync(join(repo.dir, racket), 'utf8'), 'UASSET');
   } finally { repo.close(); }
 });
+
+test('hito 5b: un cambio local igual al que llega (LiveLink ya puesto) no frena el avance; uno distinto sí y no se toca', async () => {
+  const repo = gameRepo(), git = createGit();
+  try {
+    const live = '{"Plugins":[{"Name":"LiveLink","Enabled":true}]}\n';
+    const tree = repo.tree('livelink', {'Juego.uproject': live});
+    const ws = join(repo.root, 'integracion');
+    await git.worktreeAdd(repo.dir, ws, 'master');
+    const before = await git.head(ws);
+    const commit = (await git.merge(ws, tree.branch, {noFf: true}) as {commit: string}).commit;
+    writeFileSync(join(repo.dir, 'Juego.uproject'), '{"Plugins":[]}\n');
+    await assert.rejects(git.advanceBranch(repo.dir, 'master', commit, before), /local changes[\s\S]*\tJuego\.uproject/);
+    assert.equal(readFileSync(join(repo.dir, 'Juego.uproject'), 'utf8'), '{"Plugins":[]}\n', 'el cambio distinto del usuario sigue');
+    writeFileSync(join(repo.dir, 'Juego.uproject'), live);
+    await git.advanceBranch(repo.dir, 'master', commit, before);
+    assert.equal(repo.git(repo.dir, 'rev-parse', 'master'), commit);
+    assert.equal(repo.git(repo.dir, 'status', '--porcelain'), '');
+  } finally { repo.close(); }
+});
+
+test('hito 5b: discard deja como en HEAD lo que tocó un lote de pruebas (mapa re-guardado, clip nuevo, Build/)', async () => {
+  const repo = gameRepo(), git = createGit();
+  try {
+    const tree = repo.tree('heroe', {'Content/Kratos/Maps/AnimTest.umap': 'MAPA'});
+    writeFileSync(join(tree.path, 'Content', 'Kratos', 'Maps', 'AnimTest.umap'), 'MAPA RE-GUARDADO');
+    mkdirSync(join(tree.path, 'Build', 'Windows'), {recursive: true});
+    writeFileSync(join(tree.path, 'Build', 'Windows', 'Juego.exe'), 'exe');
+    writeFileSync(join(tree.path, 'Content', 'Kratos', 'Clip2.uasset'), 'clip');
+    await git.discard(tree.path, (await git.status(tree.path)).files);
+    assert.deepEqual(await git.status(tree.path), {clean: true, files: []});
+    assert.equal(readFileSync(join(tree.path, 'Content', 'Kratos', 'Maps', 'AnimTest.umap'), 'utf8'), 'MAPA');
+  } finally { repo.close(); }
+});

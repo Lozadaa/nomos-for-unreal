@@ -120,3 +120,16 @@ test('un error fatal del juego (el informador de fallos lo mantiene vivo) falla 
     assert.match(summary, /FilenameToLongPackageName failed to convert 'C:\/Program'/);
   } finally { f.close(); }
 });
+
+test('hito 5b: el build de otro mapa no se compara con la línea base del mapa anterior; crea la suya', async () => {
+  const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: game({}, png(16))}});
+  try {
+    env();
+    writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({walkthrough: {map: '/Game/Kratos/Maps/AnimTest'}}));
+    mkdirSync(join(f.projectDir, 'docs', 'baseline'), {recursive: true});
+    writeFileSync(join(f.projectDir, 'docs', 'baseline', 'build-1280x720.png'), png(32));
+    assert.equal((await f.run()).passed, true);
+    assert.match(f.events('test.passed').at(-1)!.summary, /Línea base creada: build-AnimTest-1280x720/);
+    assert.ok(existsSync(join(f.projectDir, 'docs', 'baseline', 'build-AnimTest-1280x720.png')));
+  } finally { f.close(); }
+});

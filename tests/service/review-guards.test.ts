@@ -54,3 +54,18 @@ test('nueva generación del mismo implementador permite otro run, repetir genera
   const before=f.state().creates;await f.startReview();assert.equal(f.state().creates,before);
   assert.equal(f.reviewer().id,second.id);
 });
+test('hito 5b: si el director sube limits.corrections, el bloqueo del límite ya alcanzado se levanta y la corrección llega',async t=>{
+  const f=await reviewFixture(t);updateRun(f.db,f.implementer.id,{correctionCount:3});await f.startReview();
+  f.output('KRATOS_REVIEW {"approved":false,"findings":[{"file":"x","line":1,"severity":"error","note":"Corregir"}]}');
+  await f.poll();const row=f.db.prepare("select payload from commands where type='worker.send'").get()!;
+  await f.invoke('worker.send',JSON.parse(row.payload as string));
+  const decision=requireTask(f.db,f.task.id).decisionId!;
+  const {resolveDecision}=await import('../../service/src/repo/decisions.ts');
+  resolveDecision(f.db,decision,'review','director');
+  await f.invoke('worker.send',JSON.parse(row.payload as string));
+  assert.equal(requireTask(f.db,f.task.id).blockedReason,'Máximo de tres correcciones alcanzado','con el límite en 3 sigue bloqueada');
+  writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({concurrency:{codex:2,claude:0},limits:{corrections:5}}));
+  await f.invoke('worker.send',JSON.parse(row.payload as string));
+  assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
+  assert.equal(f.current().state,'running');assert.equal(f.current().metadata.correctionCount,4);
+});

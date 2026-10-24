@@ -13,11 +13,11 @@ import { workerFailure } from './handlers/worker-failure.ts';
 export const staleHeartbeatMs = 60_000;
 const resumable = ['worker.poll', 'review.poll', 'worker.stop'];
 // estado al que vuelve la tarea cuando el resultado de su orden larga queda incierto
-const home: Record<string, TaskState> = {'checks.run': 'probando', 'ui.cycle': 'probando', 'integrate.run': 'integrando', 'finalize.run': 'cerrando'};
+const home: Record<string, TaskState> = {'checks.run': 'probando', 'ui.cycle': 'probando', 'integrate.run': 'integrando', 'integrate.lfs': 'integrando', 'finalize.run': 'cerrando'};
 export const uncertainCause = 'orca: resultado incierto tras reinicio';
 
 /** Runs propios de la orden (pruebas, integración): terminan como fallidos, sueltan reservas y sus pruebas en curso fallan. */
-function closeRuns(db: DatabaseSync, commandId: string, cause: string): void {
+export function closeRuns(db: DatabaseSync, commandId: string, cause: string): void {
   const runs = db.prepare(`select id from runs where state='running' and provider in ('unreal','kratos')
     and json_extract(metadata,'$.commandId')=?`).all(commandId).map(r => r.id as string);
   for (const id of runs) {

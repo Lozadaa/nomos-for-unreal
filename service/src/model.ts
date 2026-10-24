@@ -35,6 +35,8 @@ export type RunMetadata = {
   implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
   // integración (hito 6): merge hecho en el workspace y pendiente de publicar
   integration?: {base: string; commit: string; files: string[]; checked?: boolean};
+  // hito 5b: contenido pesado al integrar (Decisión de Git LFS)
+  lfs?: 'sin' | 'configurando' | 'listo';
   continuationOf?: string; busyAttempts?: number;
 };
 export type Run = Entity & {

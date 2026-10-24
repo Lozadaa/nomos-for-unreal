@@ -6,9 +6,12 @@ import { packages } from './blueprint.ts';
 function intake(asset: Record<string, any>): string[] {
   const problems: string[] = [];
   if (asset.loaded === false) problems.push(`${asset.package}: no carga`);
-  if (Array.isArray(asset.bounds_cm) && asset.bounds_cm.some((v: number) => v <= 0 || v > 100_000))
+  // un plano (grosor 0, p. ej. los controles del rig facial de MetaHuman) es una malla válida; degenerada es sin ninguna medida
+  if (Array.isArray(asset.bounds_cm) && (Math.max(...asset.bounds_cm) <= 0 || asset.bounds_cm.some((v: number) => v > 100_000)))
     problems.push(`${asset.package}: escala fuera de rango (${asset.bounds_cm.join(' × ')} cm)`);
-  if (Array.isArray(asset.materials) && asset.materials.some((m: unknown) => m === null)) problems.push(`${asset.package}: material vacío`);
+  // las tarjetas de pelo toman el material de su Groom (hito 5b)
+  if (Array.isArray(asset.materials) && asset.materials.some((m: unknown) => m === null) && !asset.groom_cards)
+    problems.push(`${asset.package}: material vacío`);
   return problems;
 }
 

@@ -71,6 +71,7 @@ function bulletContinuation(lines:string[],i:number):boolean {
 /** Cada frame es autónomo; nunca se conserva JSON parcial de pantalla entre lecturas. */
 export function screenMarkers(lines:string[]): Marker[] {
   const found:Marker[]=[];let fence='';
+  const width=Math.max(0,...lines.map(l=>l.length));
   for(let i=0;i<lines.length;i++) {
     const nextFence=fenceLine(lines[i],fence);
     if(nextFence!==undefined) {fence=nextFence;continue;}
@@ -85,11 +86,13 @@ export function screenMarkers(lines:string[]): Marker[] {
       continue;
     }
     const original=lines[i];
-    let text=match[2],marker=decode(match[1],text);
+    let text=match[2],marker=decode(match[1],text),tight=text;
     while(!marker && i+1<lines.length && /^ {2,}\S/.test(lines[i+1]) && !/^\s*(`{3,}|~{3,})/.test(lines[i+1])) {
-      text+=' '+lines[++i].trimStart().replace(/^⎿ /,'');
+      // hito 5b: una línea que llena el ancho del terminal se partió a mitad de palabra («"sev» / «erity"»): sin espacio
+      const full=lines[i].length>=width,next=lines[++i].trimStart().replace(/^⎿ /,'');
+      text+=' '+next; tight+=(full ? '' : ' ')+next;
       if(text.length>65536) break;
-      marker=decode(match[1],text);
+      marker=decode(match[1],text) ?? decode(match[1],tight);
     }
     if(marker) found.push(marker);
     else if(match[1]==='REVIEW') found.push({kind:'INVALID_REVIEW',question:original});

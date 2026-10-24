@@ -7,7 +7,7 @@ import { beat, claim, complete, defer, fail, type Lane } from './commands.ts';
 import { appendEvent } from './store.ts';
 import { databaseDirectory } from './routes/index.ts';
 import { dirname, resolve } from 'node:path';
-import { recoverCommands } from './recovery.ts';
+import { closeRuns, recoverCommands } from './recovery.ts';
 import { openStallDecisions } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
@@ -59,6 +59,8 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
         // decisiones de política (presupuesto, prohibido para IA, Meshy hard surface): reintentar no cambia nada
         && !['budget_exceeded','asset_ai_forbidden','meshy_kind_not_allowed','meshy_missing_key','cascadeur_not_justified'].includes(message);
       fail(db,command.id,message,{retry,kind:failureKind(error)});
+      // hito 5b: fallo definitivo → sus runs propios (integración, pruebas) no quedan «en curso» reteniendo reservas
+      if(db.prepare('select state from commands where id=?').get(command.id)?.state==='failed') closeRuns(db,command.id,message.split(/\r?\n/)[0]);
     } finally {clearInterval(pulse);}
   }
   async function tick(lane: Lane) {
