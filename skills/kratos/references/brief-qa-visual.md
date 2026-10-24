@@ -25,6 +25,9 @@ iconos ≥ 3:1), texto truncado, superposiciones, escalado entre 1280×720 y 192
 visible y navegación con mando (si no se ve en la captura, «no comprobado»), coherencia con la
 dirección de arte. Si la imagen con UI y la de control se ven iguales, rechaza: la captura no
 contiene la UI.
+Si la tarea es de personajes o animación, mira también el vídeo (dos ángulos) y los fotogramas del 0, 50 y 90 %, ampliados:
+rechaza si una prenda, la cintura o la entrepierna no acompañan al cuerpo, si la malla se estira hacia el suelo o si el
+personaje no se mueve.
 
 ## Veredicto
 Termina fuera de bloques de código con una línea:

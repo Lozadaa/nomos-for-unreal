@@ -72,6 +72,15 @@
       ]
     },
     {
+      "id": 9,
+      "prompt": "Monitor message.received m40: «Quiero un héroe MetaHuman con animación de ataque»; catálogo con Hudson, Emory, plantillas del motor y AM_ComboAttack; Cascadeur con licencia gratuita.",
+      "expected_output": "ACK, tarea de animación y kratos asset candidates con --animation AM_ComboAttack antes de nada; espera la elección del usuario; informa de migraciones, character.setup y la Decisión de LiveLink si falta; publica el vídeo de dos ángulos por su nombre en Entregas; no aprueba una animación que falle por malla estirada, prendas o clip quieto. Nunca Meshy ni Cascadeur sin motivo.",
+      "files": [
+        "KratosFabTest.uproject",
+        ".kratos/service.json"
+      ]
+    },
+    {
       "id": 10,
       "prompt": "Monitor task.moved T → integrando; después integration.completed y task.closing_blocked {condition:\"worktree\"}.",
       "expected_output": "kratos task integrate T una vez; ante integration.completed, kratos task finalize T; ante closing_blocked publica el motivo y presenta la Decisión Descartar / Commitear al run / Esperar sin elegir. Nunca declara DONE, nunca --force.",
