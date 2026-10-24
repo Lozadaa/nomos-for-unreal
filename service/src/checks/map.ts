@@ -4,6 +4,8 @@ import type { UnrealCmd } from '../adapters/unreal-cmd.ts';
 import { unrealOf, type CheckDeps, type Executor } from './run.ts';
 import { packages, scripts } from './blueprint.ts';
 import { animMap } from './animation.ts';
+import { ffmpegOf } from './run.ts';
+import { contactSheet, viewCount, viewsEnv, viewShots } from './views.ts';
 
 /** El mapa de juego que toca el diff. El escenario de animación de Kratos no lo es: lo juega y lo graba la comprobación animation. */
 export const gameMap = (files: string[]) => packages(files, f => /\.umap$/i.test(f)).find(p => p !== animMap);
@@ -38,12 +40,17 @@ export const mapCheck: Executor = async (ctx, {project, files, dir}, deps) => {
   const broken = report.assets.flatMap(a => a.errors.map(e => `${a.package}: ${e}`));
   if (!report.ok) return {result: 'failed', log: validation.log, engine: report.engine, summary: broken, blocking: broken};
   const map = gameMap(files);
-  const shot = join(dir, 'map-1280x720.png');
-  const run = await capture(unreal, project.uproject, map, [1280, 720], shot, deps);
+  const shot = join(dir, 'map-1280x720.png'), count = viewCount(ctx.dataDir);
+  const run = await capture(unreal, project.uproject, map, [1280, 720], shot, deps, viewsEnv(dir, 'map', count));
   const pie = run.reportJson as Pie | undefined, log = `${validation.log}\n${run.log}`;
   if (!pie?.ok) return {result: 'failed', log, map, summary: pie?.errors.length ? pie.errors : ['El juego no produjo la captura']};
   const played = pie.map ?? map ?? defaultMap(project.dir, run.log);
+  // hito 10: la del jugador juzga la regresión; las del rig y la hoja de contactos son para mirar
+  const base = {resolution: '1280x720', map: played}, views = viewShots(run.reportJson, count, base);
+  const sheet = await contactSheet(count > 1 ? ffmpegOf(ctx, deps) : null,
+    [{view: 'player', path: shot}, ...views.shots.map(s => ({view: String(s.provenance!.view), path: s.path}))], join(dir, 'map-hoja.jpg'));
   return {result: 'passed', log, map: played, mapDefault: !map, engine: pie.engine, config: '1280x720',
-    summary: [`${touched.length} assets válidos; captura en ${played}`],
-    artifacts: [{kind: 'screenshot', path: shot, provenance: {resolution: '1280x720', map: played}}]};
+    summary: [`${touched.length} assets válidos; captura en ${played}`, ...views.notes],
+    artifacts: [{kind: 'screenshot', path: shot, provenance: {...base, view: 'player'}}, ...views.shots,
+      ...(sheet ? [{kind: 'screenshot' as const, path: sheet, provenance: {...base, sheet: true, label: 'Mapa · hoja de contactos'}}] : [])]};
 };

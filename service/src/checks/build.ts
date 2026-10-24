@@ -4,8 +4,9 @@ import { basename, dirname, join } from 'node:path';
 import { buildCookRun, errorLines } from '../adapters/unreal-build.ts';
 import { quote } from '../adapters/process.ts';
 import { readConfig } from '../config.ts';
-import { defaultMap, gameMap } from './map.ts';
-import { buildOf, type Executor, type Launch } from './run.ts';
+import { capture, defaultMap, gameMap } from './map.ts';
+import { contactSheet, viewCount, viewsEnv, viewShots } from './views.ts';
+import { buildOf, ffmpegOf, unrealOf, type Executor, type Launch, type Outcome } from './run.ts';
 
 const pngs = (dir: string): string[] => !existsSync(dir) ? [] : readdirSync(dir, {withFileTypes: true})
   .flatMap(e => e.isDirectory() ? pngs(join(dir, e.name)) : e.name.toLowerCase().endsWith('.png') ? [join(dir, e.name)] : []);
@@ -81,7 +82,23 @@ export const buildCheck: Executor = async (ctx, {project, files, dir}, deps) => 
   const shot = pngs(out).sort((a, b) => statSync(a).mtimeMs - statSync(b).mtimeMs).at(-1);
   // sin mapa elegido, el paquete arranca con el suyo por defecto: la línea base tiene que saber cuál (Esquina J0.4)
   const played = map ?? defaultMap(project.dir, gameText);
+  const base = {resolution: '1280x720', source: 'build', map: played}, views = shot ? await rigViews(ctx, deps, project.uproject, dir, played, base) : {shots: [], notes: []};
+  const sheet = shot && views.shots.length ? await contactSheet(ffmpegOf(ctx, deps),
+    [{view: 'player', path: shot}, ...views.shots.map(s => ({view: String(s.provenance!.view), path: s.path}))], join(dir, 'build-hoja.jpg')) : null;
   return {result: shot ? 'passed' : 'failed', log: result.log, config: 'Development Win64', map: played, mapDefault: !map,
-    summary: shot ? [`Empaquetado en ${result.exePath}; recorrido de ${Math.round(life.seconds)} s`] : ['El ejecutable arrancó pero no dejó la captura', ...gameErrors(gameText)],
-    artifacts: [...evidence, ...(shot ? [{kind: 'screenshot' as const, path: shot, provenance: {resolution: '1280x720', source: 'build', map: played}}] : [])]};
+    summary: shot ? [`Empaquetado en ${result.exePath}; recorrido de ${Math.round(life.seconds)} s`, ...views.notes] : ['El ejecutable arrancó pero no dejó la captura', ...gameErrors(gameText)],
+    artifacts: [...evidence, ...(shot ? [{kind: 'screenshot' as const, path: shot, provenance: {...base, view: 'player'}}] : []), ...views.shots,
+      ...(sheet ? [{kind: 'screenshot' as const, path: sheet, provenance: {...base, sheet: true, label: 'Empaquetado · hoja de contactos'}}] : [])]};
+};
+
+/** Hito 10: el ejecutable empaquetado no corre Python; las tres vistas del rig salen del editor (`-game`) en el mismo mapa.
+ *  Nunca tumban el build: si el editor falla, se anota y queda la vista del jugador. */
+async function rigViews(ctx: Parameters<Executor>[0], deps: Parameters<Executor>[2], uproject: string, dir: string, map: string | null,
+  base: Record<string, string | null>): Promise<{shots: NonNullable<Outcome['artifacts']>; notes: string[]}> {
+  const count = viewCount(ctx.dataDir);
+  if (count < 2 || !map) return {shots: [], notes: count < 2 ? [] : ['Vistas extra: sin mapa conocido, solo la del jugador']};
+  try {
+    const run = await capture(unrealOf(ctx, deps), uproject, map, [1280, 720], join(dir, 'build-editor.png'), deps, viewsEnv(dir, 'build', count));
+    return viewShots(run.reportJson as Parameters<typeof viewShots>[0], count, base);
+  } catch (error) { return {shots: [], notes: [`Vistas extra sin editor: ${error instanceof Error ? error.message : String(error)}`]}; }
 };

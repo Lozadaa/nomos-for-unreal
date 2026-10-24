@@ -18,6 +18,8 @@ test('checks.run guarda provenance.label en el registro y en la captura del mapa
     process.env.KRATOS_FAKE = 'ok';
     await f.run();
     const labels = listArtifacts(f.db, {taskId: f.task.id}).map(a => (a.provenance as {label?: string}).label);
-    assert.deepEqual(labels, ['Mapa · registro', 'Captura de control 1280×720']);
+    // hito 10: la del jugador, las tres del rig y la hoja de contactos
+    assert.deepEqual(labels, ['Mapa · registro', 'Captura de control 1280×720', 'Vista 3/4 izquierda 1280×720', 'Vista 3/4 derecha 1280×720',
+      'Vista picado 1280×720', 'Mapa · hoja de contactos']);
   } finally { f.close(); }
 });

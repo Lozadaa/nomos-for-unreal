@@ -9,6 +9,8 @@ Variables de entorno:
   KRATOS_SHOT    PNG con la UI;  KRATOS_CONTROL  PNG sin UI (opcional: sin ella no hay captura de control)
   KRATOS_WAIT    segundos de juego antes de capturar (30 por defecto)
   KRATOS_WIDGETS lista JSON de clases de widget esperadas; sin ella vale cualquier UserWidget en el viewport
+  KRATOS_VIEWS   (hito 10) lista JSON de vistas extra {view, path}: cámara libre que orbita al pawn, HighResShot sin UI
+  KRATOS_VIEWS_BUDGET  segundos para las vistas extra (90); pasado el plazo se entregan las que haya y se anota
 """
 import json, os, shutil, time, unreal
 
@@ -71,6 +73,65 @@ def landed(key):
     return False
 
 
+# --- Hito 10: vistas extra con un rig de cámara fijo relativo al pawn ------------------------------------------------
+# KRATOS_VIEWS   lista JSON [{"view": "left|right|top", "path": "..."}]: tras las capturas del jugador, una vista por cámara libre
+# KRATOS_VIEWS_BUDGET  segundos para todas las vistas extra (90): se entregan las que haya y se anota
+VIEWS = json.loads(os.environ.get("KRATOS_VIEWS") or "[]")
+BUDGET = float(os.environ.get("KRATOS_VIEWS_BUDGET", "90"))
+report["views"] = {}
+
+
+# Cámara libre del PlayerCameraManager («camera freecam»): orbita al pawn con la rotación de control a la distancia que se
+# fije. Probado en UE 5.8.3 -game: desde Python no se pueden crear actores en el mundo de juego (no hay spawn expuesto).
+RIG = {"left": (45 + 180, -24.6, 385.0), "right": (-45 + 180, -24.6, 385.0), "top": (0.0, -45.0, 600.0)}
+
+
+def aim(item):
+    """3/4 izquierda y derecha: a 3,5 m y 1,6 m de altura mirando al pawn (385 cm de órbita, -24,6°); picado: 6 m a 45°."""
+    world = state["world"]
+    pawn = unreal.GameplayStatics.get_player_pawn(world, 0)
+    yaw = pawn.get_actor_rotation().yaw if pawn else 0.0
+    turn, pitch, distance = RIG[item["view"]]
+    if not state.get("freecam"):
+        console("pause")  # el juego estaba en pausa para las capturas del jugador; la cámara libre necesita que avance
+        console("camera freecam")
+        state["freecam"] = True
+    unreal.GameplayStatics.get_player_camera_manager(world, 0).set_editor_property("free_cam_distance", distance)
+    unreal.GameplayStatics.get_player_controller(world, 0).set_control_rotation(unreal.Rotator(0.0, pitch, yaw + turn))
+
+
+def view_tick():
+    """Una vista por vuelta: apuntar, esperar medio segundo, HighResShot (sin UI) y copiar el PNG nuevo."""
+    if time.time() - state["views_t"] > BUDGET:
+        report["views_note"] = f"Vistas extra cortadas a los {int(BUDGET)} s: {len(report['views'])} de {len(VIEWS)}"
+        return finish()
+    if state["view"] >= len(VIEWS):
+        return finish()
+    item = VIEWS[state["view"]]
+    if state["phase"] == "view-aim":
+        aim(item)
+        state.update(phase="view-wait", t=time.time())
+    elif state["phase"] == "view-wait" and time.time() - state["t"] > 1.0:
+        state.update(before=pngs(), target=item["path"], phase="view-shot", t=time.time())
+        console("HighResShot 1280x720")
+    elif state["phase"] == "view-shot":
+        new = sorted(pngs() - state["before"], key=os.path.getmtime)
+        if new and os.path.getsize(new[-1]) > 0 and time.time() - os.path.getmtime(new[-1]) > 0.5:
+            shutil.copyfile(new[-1], item["path"])
+            report["views"][item["view"]] = item["path"]
+            state.update(view=state["view"] + 1, phase="view-aim")
+        elif time.time() - state["t"] > FILE_WAIT:
+            report.setdefault("views_errors", []).append(f"{item['view']}: la captura no se escribió en 20 s")
+            state.update(view=state["view"] + 1, phase="view-aim")
+
+
+def start_views():
+    """Tras las capturas del jugador: si hay vistas pedidas, el rig; si no, terminar."""
+    if not VIEWS:
+        return finish()
+    state.update(phase="view-aim", view=0, views_t=time.time())
+
+
 def tick(_dt):
     if state["handle"] is None:
         return
@@ -93,14 +154,20 @@ def tick(_dt):
                 shoot(SHOT, "ui")
         elif state["phase"] == "ui" and landed("screenshot"):
             if not CONTROL:
-                return finish()
+                return start_views()
             for widget in state["found"]:
                 widget.set_visibility(unreal.SlateVisibility.COLLAPSED)
             state.update(phase="hide", t=time.time())
         elif state["phase"] == "hide" and elapsed > 0.5:
             shoot(CONTROL, "control")
         elif state["phase"] == "control" and landed("control"):
-            finish()
+            start_views()
+        elif state["phase"].startswith("view"):
+            try:
+                view_tick()
+            except Exception as e:  # noqa: BLE001  una vista que falla no tumba la comprobación: se anota y se entrega lo que haya
+                report.setdefault("views_errors", []).append(str(e))
+                finish()
     except Exception as e:  # noqa: BLE001
         report["errors"].append(str(e))
         finish()
