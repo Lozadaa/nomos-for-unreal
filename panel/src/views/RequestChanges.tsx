@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAction } from '@/feel/useAction'
 import { humanError } from '@/lib/errors'
 import { providerLabel, shortId, type Task } from '@/lib/tasks'
+import { BRAND } from '@/lib/brand'
 
 const label = 'text-xs font-medium tracking-wider text-muted-foreground uppercase'
 
@@ -23,7 +24,7 @@ export function RequestChanges({ task }: { task: Task }) {
       <h3 className={label}>Pedir cambios</h3>
       {task.state === 'done' && (
         <p className="text-sm text-muted-foreground">
-          Esta tarea ya está hecha. Tu mensaje abre una continuación con {providerLabel[task.assigneeProvider ?? ''] ?? 'Kratos'}, que la hizo.
+          Esta tarea ya está hecha. Tu mensaje abre una continuación con {providerLabel[task.assigneeProvider ?? ''] ?? BRAND.short}, que la hizo.
         </p>
       )}
       <Textarea
@@ -39,7 +40,7 @@ export function RequestChanges({ task }: { task: Task }) {
           {action.pending ? 'Enviando…' : 'Pedir cambios'}
         </Button>
         {sentText && !action.error && (
-          <span role="status" className="text-xs text-muted-foreground">{action.pending ? 'Enviado · esperando confirmación de Kratos' : 'Recibido · Kratos lo atenderá en breve'}</span>
+          <span role="status" className="text-xs text-muted-foreground">{action.pending ? `Enviado · esperando confirmación de ${BRAND.short}` : `Recibido · ${BRAND.short} lo atenderá en breve`}</span>
         )}
         {action.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(action.error)}</span>}
       </div>

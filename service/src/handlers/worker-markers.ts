@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+// Marcadores NOMOS_*; hasta el 2026-11-24 también los KRATOS_* de workers lanzados con briefs anteriores al hito 11.
 export type Finding={file:string;line:number;severity:string;note:string};
 export type Marker = {kind:'DONE';summary:string;commits:string[];tests:string} | {kind:'ASK'|'INVALID_REVIEW';question:string}
   | {kind:'REVIEW';approved:boolean;findings:Finding[]} | {kind:'SKILLS';skills:string[]};
@@ -37,12 +38,12 @@ export function streamMarkers(lines:string[],buffer:string,fence=''): {found:Mar
     const nextFence=fenceLine(line,fence);
     if(nextFence!==undefined) {fence=nextFence;buffer='';continue;}
     if(fence) {buffer='';continue;}
-    if(!/^KRATOS_/.test(line) && buffer) line=buffer+line;
+    if(!/^(?:NOMOS|KRATOS)_/.test(line) && buffer) line=buffer+line;
     buffer='';
-    const match=/^KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
+    const match=/^(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
     if(!match) {
-      if(['KRATOS_DONE ','KRATOS_ASK ','KRATOS_REVIEW ','KRATOS_SKILLS '].some(prefix=>prefix.startsWith(line)) && line) buffer=line;
-      else if(/^KRATOS_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:line});
+      if(['NOMOS_DONE ','NOMOS_ASK ','NOMOS_REVIEW ','NOMOS_SKILLS ','KRATOS_DONE ','KRATOS_ASK ','KRATOS_REVIEW ','KRATOS_SKILLS '].some(prefix=>prefix.startsWith(line)) && line) buffer=line;
+      else if(/^(?:NOMOS|KRATOS)_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:line});
       continue;
     }
     const marker=decode(match[1],match[2]);
@@ -76,13 +77,13 @@ export function screenMarkers(lines:string[]): Marker[] {
     const nextFence=fenceLine(lines[i],fence);
     if(nextFence!==undefined) {fence=nextFence;continue;}
     if(fence) continue;
-    const line=/^ {2}KRATOS_/.test(lines[i]) && bulletContinuation(lines,i) ? lines[i].slice(2) : lines[i];
+    const line=/^ {2}(?:NOMOS|KRATOS)_/.test(lines[i]) && bulletContinuation(lines,i) ? lines[i].slice(2) : lines[i];
     // hito 7: Claude Code parte la línea justo tras el marcador si el JSON no cabe; el JSON sigue en las líneas sangradas
-    const bare=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS)\s*$/.exec(line);
+    const bare=/^(?:[•●⏺] )?(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW|SKILLS)\s*$/.exec(line);
     const match=bare && /^ {2,}[\[{]/.test(lines[i+1] ?? '') ? [line,bare[1],lines[++i].trimStart()]
-      : /^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
+      : /^(?:[•●⏺] )?(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
     if(!match) {
-      if(/^(?:[•●⏺] )?KRATOS_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:lines[i]});
+      if(/^(?:[•●⏺] )?(?:NOMOS|KRATOS)_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:lines[i]});
       continue;
     }
     const original=lines[i];

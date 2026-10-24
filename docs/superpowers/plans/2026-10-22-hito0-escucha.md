@@ -1,10 +1,10 @@
-# Kratos · Hito 0 «prueba de escucha» · Plan de implementación
+# Nomos · Hito 0 «prueba de escucha» · Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Que una sola invocación de `/kratos` en la carpeta de un juego levante un servicio local con token, abra una página de intercambio y conecte la sesión original de Claude como director: un mensaje de la web llega a la sesión, se confirma su recepción y recibe respuesta, y nada se pierde ni se duplica al expirar el vigilante o reiniciar el servicio.
+**Goal:** Que una sola invocación de `/nomos` en la carpeta de un juego levante un servicio local con token, abra una página de intercambio y conecte la sesión original de Claude como director: un mensaje de la web llega a la sesión, se confirma su recepción y recibe respuesta, y nada se pierde ni se duplica al expirar el vigilante o reiniciar el servicio.
 
-**Architecture:** Un servicio HTTP en Node (sin dependencias: `node:http`, `node:sqlite`, `node:crypto`) escucha solo en 127.0.0.1 y guarda mensajes y eventos en SQLite dentro de `.kratos/` del proyecto del juego. La sesión de Claude recibe los eventos por un vigilante (`kratos vigila`, ejecutado con la herramienta Monitor de Claude Code) que imprime cada evento pendiente y late cada 2 s; confirma y responde con una CLI (`kratos ack`, `kratos reply`). La página web habla con el servicio por HTTP y recibe los cambios por SSE. El patrón es el del skill `dojo` (`serve.py` + `vigila.py` + Monitor rearmado), ya probado.
+**Architecture:** Un servicio HTTP en Node (sin dependencias: `node:http`, `node:sqlite`, `node:crypto`) escucha solo en 127.0.0.1 y guarda mensajes y eventos en SQLite dentro de `.nomos/` del proyecto del juego. La sesión de Claude recibe los eventos por un vigilante (`nomos vigila`, ejecutado con la herramienta Monitor de Claude Code) que imprime cada evento pendiente y late cada 2 s; confirma y responde con una CLI (`nomos ack`, `nomos reply`). La página web habla con el servicio por HTTP y recibe los cambios por SSE. El patrón es el del skill `dojo` (`serve.py` + `vigila.py` + Monitor rearmado), ya probado.
 
 **Tech Stack:** Node ≥ 25 (ejecuta `.ts` directamente y trae `node:sqlite`), TypeScript solo con sintaxis borrable (sin `enum`, sin `namespace`, sin parámetros de constructor con modificadores), `node:test` + `node:assert/strict`, HTML + JavaScript sin framework para la página de intercambio (Ant Design entra en el hito 1b). Cero paquetes npm en este hito.
 
@@ -15,7 +15,7 @@
 - Node ≥ 25.0 (comprobado v25.9.0): `node archivo.ts` ejecuta TypeScript sin compilar; `import { DatabaseSync } from "node:sqlite"` disponible. Ningún `package.json` con `dependencies` ni `devDependencies`.
 - El servicio escucha únicamente en `127.0.0.1`; puerto por defecto `8780`, configurable con `--port`.
 - Token aleatorio por arranque: `randomBytes(24).toString("hex")` (48 caracteres). Toda ruta salvo `GET /`, `GET /health` y `GET /web/*` exige `Authorization: Bearer <token>`; `GET /events` acepta además `?token=` porque `EventSource` no envía cabeceras. Sin token o con token distinto: `401 {"error":"unauthorized"}`.
-- Datos en `<proyecto>/.kratos/`: `kratos.db` (SQLite), `service.json` (`{pid, port, token, startedAt}`). Esa carpeta se añade al `.gitignore` del juego; nunca se versiona.
+- Datos en `<proyecto>/.nomos/`: `nomos.db` (SQLite), `service.json` (`{pid, port, token, startedAt}`). Esa carpeta se añade al `.gitignore` del juego; nunca se versiona.
 - Copy de la interfaz y de los mensajes de la CLI en español; nombres de código en inglés.
 - Archivos de ≤ 200 líneas; un módulo por responsabilidad.
 - Cada tarea termina con `node --test "tests/**/*.test.ts"` en verde y un commit. Mensajes de commit en español, imperativo, prefijo `feat:`, `test:` o `docs:`.
@@ -24,7 +24,7 @@
 ## Review Focus
 
 1. Mensaje vacío o solo espacios en `POST /messages`: debe responder `400 {"error":"empty_text"}` y no crear evento. (Prueba en Tarea 3.)
-2. `service.json` obsoleto (el proceso murió): `kratos start` debe detectarlo con `GET /health`, borrar el archivo y arrancar un servicio nuevo en vez de imprimir una URL muerta. (Prueba en Tarea 4.)
+2. `service.json` obsoleto (el proceso murió): `nomos start` debe detectarlo con `GET /health`, borrar el archivo y arrancar un servicio nuevo en vez de imprimir una URL muerta. (Prueba en Tarea 4.)
 3. Reconexión del navegador tras reinicio del servicio: `GET /events?since=N` debe reproducir solo los eventos con `seq > N`, sin duplicar los ya mostrados. (Prueba en Tarea 3.)
 4. Texto con emoji o con `<script>` en un mensaje: debe viajar intacto por JSON y SQLite y pintarse con `textContent`, nunca con `innerHTML`. (Pruebas en Tareas 2 y 6.)
 5. El vigilante expira o muere mientras hay mensajes sin confirmar: al rearmarse debe reimprimirlos (son los eventos con `seq > director.last_ack_seq`), y mientras está caído la página debe decir «Vigilante caído», no «Escuchando». (Pruebas en Tareas 2 y 5.)
@@ -39,12 +39,12 @@
 | `service/src/db.ts` | Abrir SQLite y crear el esquema |
 | `service/src/store.ts` | Funciones puras sobre la base: mensajes, eventos, confirmación, respuesta, latido, estado |
 | `service/src/server.ts` | Servidor HTTP: rutas, token, SSE, arranque y `service.json` |
-| `service/src/cli.ts` | CLI `kratos start|status|vigila|ack|reply|stop` |
+| `service/src/cli.ts` | CLI `nomos start|status|vigila|ack|reply|stop` |
 | `service/web/index.html` | Página de intercambio con franja del director |
-| `skills/kratos/SKILL.md` | La skill `/kratos` (hito 0: arrancar, vigilar, confirmar, responder, `estado`, `cerrar`) |
-| `skills/kratos/scripts/kratos.ts` | Envoltorio que reexporta la CLI desde la carpeta del skill |
-| `skills/kratos/references/contrato-eventos.md` | Tabla de eventos, rutas y estados del director |
-| `skills/kratos/evals/` | Tres casos de evaluación de la skill |
+| `skills/nomos/SKILL.md` | La skill `/nomos` (hito 0: arrancar, vigilar, confirmar, responder, `estado`, `cerrar`) |
+| `skills/nomos/scripts/nomos.ts` | Envoltorio que reexporta la CLI desde la carpeta del skill |
+| `skills/nomos/references/contrato-eventos.md` | Tabla de eventos, rutas y estados del director |
+| `skills/nomos/evals/` | Tres casos de evaluación de la skill |
 | `tests/store.test.ts`, `tests/server.test.ts`, `tests/cli.test.ts` | Pruebas `node:test` |
 | `docs/aceptacion-hito0.md` | Recorrido manual de aceptación (pruebas 1-4, 15, 21) |
 
@@ -81,7 +81,7 @@ test("node trae sqlite y ejecuta ts", () => {
 });
 ```
 
-- [ ] **Step 2: Crear `package.json`** con `{"name":"kratos","private":true,"type":"module","engines":{"node":">=25"},"scripts":{"test":"node --test \"tests/**/*.test.ts\""}}`.
+- [ ] **Step 2: Crear `package.json`** con `{"name":"nomos","private":true,"type":"module","engines":{"node":">=25"},"scripts":{"test":"node --test \"tests/**/*.test.ts\""}}`.
 
 - [ ] **Step 3: Ejecutar `npm test`**. Esperado: `# pass 1`, `# fail 0`.
 
@@ -203,7 +203,7 @@ Para leer SSE en la prueba: `const res = await fetch(url); const reader = res.bo
 
 **Interfaces:**
 - Produces:
-  - `start(opts: { dataDir: string; port?: number; webDir?: string }): Promise<{ port: number; token: string; pid: number; url: string }>` — crea `dataDir`, abre `kratos.db`, genera token, escucha en `127.0.0.1:port` (por defecto 8780), escribe `service.json`, añade evento `director.started`? No: ese evento lo añade el vigilante (Tarea 5). `url = "http://127.0.0.1:" + port + "/#token=" + token`.
+  - `start(opts: { dataDir: string; port?: number; webDir?: string }): Promise<{ port: number; token: string; pid: number; url: string }>` — crea `dataDir`, abre `nomos.db`, genera token, escucha en `127.0.0.1:port` (por defecto 8780), escribe `service.json`, añade evento `director.started`? No: ese evento lo añade el vigilante (Tarea 5). `url = "http://127.0.0.1:" + port + "/#token=" + token`.
   - `readServiceInfo(dataDir): { pid; port; token; startedAt } | null`.
   - `isAlive(info): Promise<boolean>` — `GET /health` con 500 ms de tiempo máximo.
   - Si `start` encuentra un `service.json` vivo, devuelve esa información sin arrancar otro servicio (idempotente). Si está muerto, lo borra y arranca.
@@ -232,7 +232,7 @@ test("start sustituye un service.json obsoleto", async () => { /* escribir servi
 
 **Interfaces:**
 - Consumes: `start`, `readServiceInfo`, `isAlive` (Tarea 4); rutas HTTP (Tarea 3).
-- Produces: `node service/src/cli.ts <comando> [opciones]` con `--data <dir>` (por defecto `./.kratos`) y:
+- Produces: `node service/src/cli.ts <comando> [opciones]` con `--data <dir>` (por defecto `./.nomos`) y:
   - `start [--port N] [--no-open]`: si hay servicio vivo imprime `URL <url>` y `YA_ACTIVO`; si no, lanza `node service/src/server.ts --serve --data <dir> --port N` con `spawn(process.execPath, [...], { detached: true, stdio: "ignore" }).unref()`, espera `isAlive` hasta 5 s e imprime `URL <url>` y `ARRANCADO`. Sin `--no-open` abre el navegador con `start "" "<url>"` en Windows (`cmd /c start`), `open` en macOS, `xdg-open` en Linux.
   - `status`: imprime `Status` en JSON (una línea).
   - `vigila --session <id>`: bucle infinito cada 2 s: `POST /director/heartbeat`, luego `GET /status` y por cada evento de `pendingEvents` (vía `GET /events?since=<último impreso>` filtrando `message.received`) imprime una línea JSON `{"seq","messageId","text","origin"}`; al arrancar imprime primero todos los pendientes (recuperación) y un evento `director.started` se añade vía `POST /director/heartbeat {session, started: true}` (el servidor añade el evento solo cuando `started` es true). Si el servicio no responde, imprime `{"error":"service_down"}` y sigue intentando.
@@ -254,7 +254,7 @@ test("vigila imprime pendientes al arrancar y late", async () => {
 - [ ] **Step 2: Ejecutar `npm test`**. Esperado: fallos por `cli.ts` inexistente.
 - [ ] **Step 3: Implementar `cli.ts`** con `util.parseArgs` de Node para las opciones.
 - [ ] **Step 4: Ejecutar `npm test`**. Esperado: verde. Comprobar a mano: `node service/src/cli.ts start --data /tmp/k --no-open` imprime URL y `node service/src/cli.ts stop --data /tmp/k` detiene.
-- [ ] **Step 5: Commit** `feat: CLI kratos start/status/vigila/ack/reply/stop`.
+- [ ] **Step 5: Commit** `feat: CLI nomos start/status/vigila/ack/reply/stop`.
 
 ---
 
@@ -266,91 +266,91 @@ test("vigila imprime pendientes al arrancar y late", async () => {
 
 **Interfaces:**
 - Consumes: rutas de la Tarea 3; token en `location.hash` (`#token=...`).
-- Produces: la página que abre `kratos start`.
+- Produces: la página que abre `nomos start`.
 
 Comportamiento fijado:
-- Al cargar, lee `token` del hash, lo guarda en `sessionStorage`, limpia el hash (`history.replaceState`). Sin token: muestra «Abre esta página desde /kratos» y no llama a la API.
-- Franja superior `#director` con uno de cinco estados y este copy exacto: `Servicio activo · esperando a Kratos` (service ok, listener false, pending 0), `Kratos escuchando` (listener true, pending 0), `Kratos atendiendo N mensajes` (listener true, pending > 0), `Vigilante caído · N mensajes en espera` (listener false, pending > 0), `Servicio desconectado` (fallo de red). Se actualiza con `GET /status` cada 2 s. Muestra además `Última confirmación: <hora local>` o `sin confirmaciones`.
-- Formulario: `textarea` + botón «Enviar a Kratos»; `Ctrl+Enter` envía; vacío no envía.
-- Lista de mensajes, cada uno con su estado: `Enviado`, `Recibido por Kratos` (al llegar `message.acked` con su seq) y la respuesta debajo al llegar `reply.published`. Todo texto se pinta con `textContent`.
+- Al cargar, lee `token` del hash, lo guarda en `sessionStorage`, limpia el hash (`history.replaceState`). Sin token: muestra «Abre esta página desde /nomos» y no llama a la API.
+- Franja superior `#director` con uno de cinco estados y este copy exacto: `Servicio activo · esperando a Nomos` (service ok, listener false, pending 0), `Nomos escuchando` (listener true, pending 0), `Nomos atendiendo N mensajes` (listener true, pending > 0), `Vigilante caído · N mensajes en espera` (listener false, pending > 0), `Servicio desconectado` (fallo de red). Se actualiza con `GET /status` cada 2 s. Muestra además `Última confirmación: <hora local>` o `sin confirmaciones`.
+- Formulario: `textarea` + botón «Enviar a Nomos»; `Ctrl+Enter` envía; vacío no envía.
+- Lista de mensajes, cada uno con su estado: `Enviado`, `Recibido por Nomos` (al llegar `message.acked` con su seq) y la respuesta debajo al llegar `reply.published`. Todo texto se pinta con `textContent`.
 - `EventSource("/events?since=" + lastSeq + "&token=" + token)`; al cerrarse, reconecta a los 2 s desde el último `seq` recibido (el propio `lastEventId` del navegador sirve de cursor cuando reconecta solo).
 - Estilo mínimo propio (fondo `#F3F5F9`, tarjetas blancas con sombra `0 1px 3px rgba(16,24,40,.10)`, fuente del sistema); sin frameworks. El diseño real llega con el hito 1a/1b.
 
 - [ ] **Step 1: Escribir la prueba** en `tests/server.test.ts`: `GET /` devuelve `text/html`, contiene `id="director"`, `id="mensaje"`, `EventSource(` y no contiene `innerHTML`.
 - [ ] **Step 2: Ejecutar `npm test`**. Esperado: fallo (archivo no existe).
 - [ ] **Step 3: Escribir `index.html`**.
-- [ ] **Step 4: Ejecutar `npm test`**. Esperado: verde. Comprobar en el navegador integrado de Claude Code: arrancar con `node service/src/cli.ts start --data /tmp/k --no-open`, abrir la URL impresa, enviar «hola 🎾», ver `Enviado`; ejecutar `node service/src/cli.ts vigila --session prueba --data /tmp/k` en segundo plano y ver pasar la franja a `Kratos atendiendo 1 mensajes`; `ack` y `reply` desde la CLI y ver `Recibido por Kratos` y la respuesta. Captura a `docs/capturas-hito0/intercambio.png`.
+- [ ] **Step 4: Ejecutar `npm test`**. Esperado: verde. Comprobar en el navegador integrado de Claude Code: arrancar con `node service/src/cli.ts start --data /tmp/k --no-open`, abrir la URL impresa, enviar «hola 🎾», ver `Enviado`; ejecutar `node service/src/cli.ts vigila --session prueba --data /tmp/k` en segundo plano y ver pasar la franja a `Nomos atendiendo 1 mensajes`; `ack` y `reply` desde la CLI y ver `Recibido por Nomos` y la respuesta. Captura a `docs/capturas-hito0/intercambio.png`.
 - [ ] **Step 5: Commit** `feat: página de intercambio con franja del director y SSE`.
 
 ---
 
-### Task 7: La skill `/kratos`
+### Task 7: La skill `/nomos`
 
 **Files:**
-- Create: `skills/kratos/SKILL.md`, `skills/kratos/scripts/kratos.ts`, `skills/kratos/references/contrato-eventos.md`, `skills/kratos/evals/{01-arranque,02-ida-vuelta,03-recuperacion}.md`, `skills/kratos/LICENSE` (copia de `LICENSE`)
+- Create: `skills/nomos/SKILL.md`, `skills/nomos/scripts/nomos.ts`, `skills/nomos/references/contrato-eventos.md`, `skills/nomos/evals/{01-arranque,02-ida-vuelta,03-recuperacion}.md`, `skills/nomos/LICENSE` (copia de `LICENSE`)
 - Create: `docs/aceptacion-hito0.md`
 
 **Interfaces:**
 - Consumes: CLI de la Tarea 5.
-- Produces: skill descubrible por Claude Code mediante junction `%USERPROFILE%\.claude\skills\kratos` → `<repo>\skills\kratos`.
+- Produces: skill descubrible por Claude Code mediante junction `%USERPROFILE%\.claude\skills\nomos` → `<repo>\skills\nomos`.
 
-`scripts/kratos.ts` (envoltorio de 3 líneas): resuelve `../../../service/src/cli.ts` respecto a `import.meta.dirname` y lo importa; la CLI lee `process.argv` igual.
+`scripts/nomos.ts` (envoltorio de 3 líneas): resuelve `../../../service/src/cli.ts` respecto a `import.meta.dirname` y lo importa; la CLI lee `process.argv` igual.
 
 Contenido de `SKILL.md` (frontmatter + secciones; el implementador respeta esta estructura y este contenido, ajustando redacción solo si skillsmith lo exige):
 
 ```markdown
 ---
-name: kratos
-description: 'Director de producción de videojuegos Unreal con IA. Al invocarlo en la carpeta de un juego levanta el servicio local, abre el panel y deja esta sesión escuchando las peticiones de la web. Triggers: /kratos, "kratos", "panel de producción", "director", "levanta el entorno"; también /kratos estado y /kratos cerrar.'
+name: nomos
+description: 'Director de producción de videojuegos Unreal con IA. Al invocarlo en la carpeta de un juego levanta el servicio local, abre el panel y deja esta sesión escuchando las peticiones de la web. Triggers: /nomos, "nomos", "panel de producción", "director", "levanta el entorno"; también /nomos estado y /nomos cerrar.'
 license: MIT
 metadata:
   version: 0.1.0
 ---
 
-# KRATOS
+# NOMOS
 
-Eres Kratos, el director de producción. En este hito solo escuchas y respondes: recibes peticiones desde el panel, confirmas que las has recibido y contestas. No levantas workers todavía.
+Eres Nomos, el director de producción. En este hito solo escuchas y respondes: recibes peticiones desde el panel, confirmas que las has recibido y contestas. No levantas workers todavía.
 
 ## Al invocar
 
-1. Ejecuta `node <base>/scripts/kratos.ts start --data .kratos` desde la carpeta del juego (la que tiene el `.uproject`; si no hay ninguno, dilo y para). Lee la línea `URL ...`. Si imprime `YA_ACTIVO`, no arranques nada más: conéctate.
+1. Ejecuta `node <base>/scripts/nomos.ts start --data .nomos` desde la carpeta del juego (la que tiene el `.uproject`; si no hay ninguno, dilo y para). Lee la línea `URL ...`. Si imprime `YA_ACTIVO`, no arranques nada más: conéctate.
 2. Abre la URL (el comando ya la abre en el navegador del sistema; además muéstrala en el panel integrado con `show_pane preview` si existe).
-3. Arma el vigilante: herramienta `Monitor` con `node <base>/scripts/kratos.ts vigila --session <id de esta sesión o un nombre corto> --data .kratos`, 30 minutos. Es lo que pone «Kratos escuchando» en la franja.
+3. Arma el vigilante: herramienta `Monitor` con `node <base>/scripts/nomos.ts vigila --session <id de esta sesión o un nombre corto> --data .nomos`, 30 minutos. Es lo que pone «Nomos escuchando» en la franja.
 4. Di en una línea que estás escuchando. No pidas permiso.
 
 ## Mientras escuchas
 
 Cada línea del vigilante es un evento `{"seq","messageId","text","origin"}`:
-1. Confirma al instante: `node <base>/scripts/kratos.ts ack <seq> --session <id> --data .kratos`. Confirmar no es resolver.
-2. Piensa la respuesta y publícala: `node <base>/scripts/kratos.ts reply <messageId> "<texto>" --data .kratos`. Respuestas de ≤ 600 caracteres; lo largo va a un archivo en `.kratos/respuestas/` y la respuesta enlaza su ruta.
+1. Confirma al instante: `node <base>/scripts/nomos.ts ack <seq> --session <id> --data .nomos`. Confirmar no es resolver.
+2. Piensa la respuesta y publícala: `node <base>/scripts/nomos.ts reply <messageId> "<texto>" --data .nomos`. Respuestas de ≤ 600 caracteres; lo largo va a un archivo en `.nomos/respuestas/` y la respuesta enlaza su ruta.
 3. En el chat, una línea por mensaje atendido.
 
-Al expirar el Monitor, reármalo con el mismo comando mientras el modo Kratos siga activo; el vigilante reimprime los pendientes. Tras 60 minutos sin ningún mensaje (dos expiraciones vacías), déjalo apagado, dilo en una línea, y el siguiente `/kratos` lo arma de nuevo.
+Al expirar el Monitor, reármalo con el mismo comando mientras el modo Nomos siga activo; el vigilante reimprime los pendientes. Tras 60 minutos sin ningún mensaje (dos expiraciones vacías), déjalo apagado, dilo en una línea, y el siguiente `/nomos` lo arma de nuevo.
 
 ## Argumentos
 
 | Argumento | Qué haces |
 |---|---|
 | (nada) | Arrancar o conectar, abrir el panel, armar el vigilante |
-| `estado` | `node <base>/scripts/kratos.ts status --data .kratos` y resumen de 3 líneas: servicio, vigilante, pendientes |
-| `cerrar` | Dejar de rearmar el vigilante y `node <base>/scripts/kratos.ts stop --data .kratos`; la base `.kratos/kratos.db` se conserva |
+| `estado` | `node <base>/scripts/nomos.ts status --data .nomos` y resumen de 3 líneas: servicio, vigilante, pendientes |
+| `cerrar` | Dejar de rearmar el vigilante y `node <base>/scripts/nomos.ts stop --data .nomos`; la base `.nomos/nomos.db` se conserva |
 
 ## Archivos
 
-`.kratos/kratos.db` (mensajes y eventos), `.kratos/service.json` (puerto y token de este arranque; no lo copies en el chat). Añade `.kratos/` al `.gitignore` del juego si no está. Contrato completo en `references/contrato-eventos.md`.
+`.nomos/nomos.db` (mensajes y eventos), `.nomos/service.json` (puerto y token de este arranque; no lo copies en el chat). Añade `.nomos/` al `.gitignore` del juego si no está. Contrato completo en `references/contrato-eventos.md`.
 ```
 
 `references/contrato-eventos.md`: tabla de rutas (método, ruta, cuerpo, respuesta, token), tabla de eventos (tipo, payload, quién lo produce), los cinco estados de la franja con su regla, y el ciclo recibir → ack → reply → SSE.
 
 `evals/`: tres casos en el formato que usa el skill `dojo` (`C:\Users\richa\.claude\skills\dojo\evals`): (1) invocar en una carpeta con `.uproject` → arranca, abre, arma Monitor; (2) llega un evento → ack y reply en ese orden; (3) segunda invocación con servicio vivo → `YA_ACTIVO`, no duplica.
 
-`docs/aceptacion-hito0.md`: pasos numerados para las pruebas 1 (dos `/kratos`, un servicio y un director), 2 (mensaje web → confirmación → respuesta sin invocación manual), 3 (expirar o matar el vigilante, reiniciar el servicio con `stop`/`start`: pendientes conservados, nada duplicado), 4 (cerrar Claude → franja «Vigilante caído» y mensajes conservados), 15 (401 sin token y con token de un arranque anterior), 21 (vigilante vivo sin `ack` → franja «Kratos atendiendo», no «confirmado»). Cada paso dice qué comando o clic y qué debe verse.
+`docs/aceptacion-hito0.md`: pasos numerados para las pruebas 1 (dos `/nomos`, un servicio y un director), 2 (mensaje web → confirmación → respuesta sin invocación manual), 3 (expirar o matar el vigilante, reiniciar el servicio con `stop`/`start`: pendientes conservados, nada duplicado), 4 (cerrar Claude → franja «Vigilante caído» y mensajes conservados), 15 (401 sin token y con token de un arranque anterior), 21 (vigilante vivo sin `ack` → franja «Nomos atendiendo», no «confirmado»). Cada paso dice qué comando o clic y qué debe verse.
 
 - [ ] **Step 1: Escribir los archivos** anteriores.
-- [ ] **Step 2: Crear el junction**: `cmd /c mklink /J "%USERPROFILE%\.claude\skills\kratos" "<repo>\skills\kratos"` (si ya existe, comparar y avisar; no sobrescribir).
-- [ ] **Step 3: Ejecutar skillsmith**: `npx -y @lozadaa/skillsmith@1.2.0 --path skills/kratos --report`. Objetivo ≥ 90 en este hito (≥ 95 es la puerta del hito 2). Corregir lo que señale sin cambiar el contrato.
+- [ ] **Step 2: Crear el junction**: `cmd /c mklink /J "%USERPROFILE%\.claude\skills\nomos" "<repo>\skills\nomos"` (si ya existe, comparar y avisar; no sobrescribir).
+- [ ] **Step 3: Ejecutar skillsmith**: `npx -y @lozadaa/skillsmith@1.2.0 --path skills/nomos --report`. Objetivo ≥ 90 en este hito (≥ 95 es la puerta del hito 2). Corregir lo que señale sin cambiar el contrato.
 - [ ] **Step 4: Ejecutar `npm test`**. Esperado: verde.
-- [ ] **Step 5: Commit** `feat: skill /kratos (hito 0) con contrato, evals y recorrido de aceptación`.
+- [ ] **Step 5: Commit** `feat: skill /nomos (hito 0) con contrato, evals y recorrido de aceptación`.
 
 ---
 
@@ -358,10 +358,10 @@ Al expirar el Monitor, reármalo con el mismo comando mientras el modo Kratos si
 
 No lo hace el implementador solo: necesita una sesión nueva de Claude Code en una carpeta con `.uproject` (sirve `C:\Users\richa\Documents\Unreal Projects\KratosFabTest`).
 
-- [ ] **Step 1:** Abrir una sesión nueva de Claude Code en esa carpeta y escribir `/kratos`. Esperado: `ARRANCADO`, navegador abierto, franja «Kratos escuchando».
-- [ ] **Step 2:** Enviar «hola» desde la web. Esperado: la sesión imprime el evento, ejecuta `ack` y `reply`; la web muestra `Recibido por Kratos` y la respuesta, sin que nadie escriba nada en el chat.
-- [ ] **Step 3:** En otra sesión de Claude Code en la misma carpeta, `/kratos`. Esperado: `YA_ACTIVO`, un solo servicio (`service.json` sin cambios).
-- [ ] **Step 4:** `kratos stop` y `kratos start` desde la terminal con un mensaje sin confirmar en la web. Esperado: al rearmar el vigilante, el mensaje se reimprime una sola vez.
+- [ ] **Step 1:** Abrir una sesión nueva de Claude Code en esa carpeta y escribir `/nomos`. Esperado: `ARRANCADO`, navegador abierto, franja «Nomos escuchando».
+- [ ] **Step 2:** Enviar «hola» desde la web. Esperado: la sesión imprime el evento, ejecuta `ack` y `reply`; la web muestra `Recibido por Nomos` y la respuesta, sin que nadie escriba nada en el chat.
+- [ ] **Step 3:** En otra sesión de Claude Code en la misma carpeta, `/nomos`. Esperado: `YA_ACTIVO`, un solo servicio (`service.json` sin cambios).
+- [ ] **Step 4:** `nomos stop` y `nomos start` desde la terminal con un mensaje sin confirmar en la web. Esperado: al rearmar el vigilante, el mensaje se reimprime una sola vez.
 - [ ] **Step 5:** Anotar resultados y capturas en `docs/aceptacion-hito0.md` (sección «Resultado 2026-10-XX») y commit `docs: resultado de la aceptación del hito 0`.
 
 ---

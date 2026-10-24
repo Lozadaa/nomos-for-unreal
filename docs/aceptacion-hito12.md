@@ -33,7 +33,7 @@ servidor no los acepta. El script de aceptación lo detecta en su primer paso; e
 OpenCode rechazó las credenciales: ejecuta opencode auth login Error: Upstream request failed: Invalid credential
 ```
 
-No creó `.kratos-hito12` ni arrancó servicio.
+No creó `.nomos-hito12` ni arrancó servicio.
 
 ## Qué hace el servicio cuando OpenCode no puede arrancar
 
@@ -68,14 +68,14 @@ quedaba incierta y la tarea pedía reconciliar).
 
 ## Qué queda sin verificar
 
-1. Que `KRATOS_DONE`/`KRATOS_ASK` salen en la cola del terminal al principio de línea con
+1. Que `NOMOS_DONE`/`NOMOS_ASK` salen en la cola del terminal al principio de línea con
    `opencode run`. Si llevan sangría o viñeta, no se verán y habrá que pasar a la TUI
    (`opencode --auto` + `readyPattern` + brief por `terminalSend`).
 2. Que `run` une las palabras del mensaje sin comillas (la orden no lleva comillas porque
    `terminalSend` las rechaza); el diseño se apoya en `message...` de `opencode run --help`.
 3. Que `opencode run --continue` en el árbol retoma la sesión del worker para correcciones.
 4. Que la línea de credencial rechazada llega tal cual a la cola del terminal durante un run
-   del servicio (hoy se vio en la consola, no dentro de una run de Kratos).
+   del servicio (hoy se vio en la consola, no dentro de una run de Nomos).
 5. El ciclo completo con la pastilla «OpenCode» en Producción.
 
 ## Pendiente: ejecutar cuando OpenCode vuelva a autenticar
@@ -89,14 +89,14 @@ quedaba incierta y la tarea pedía reconciliar).
    # opcional: -Game "<otro juego>" -Model opencode/deepseek-v4.1-flash-free -TimeoutMinutes 45
    ```
 
-   El script: comprueba credenciales; escribe `.kratos-hito12/config.json`
+   El script: comprueba credenciales; escribe `.nomos-hito12/config.json`
    (`{"concurrency":{"claude":1,"opencode":1},"opencodeModel":…,"workerModel":"sonnet"}`); arranca el
    servicio en un puerto libre (no toca el del 8780); crea la tarea «Notas de OpenCode»
    (`Docs/OpenCode.md`, área `builds`, `--provider opencode`); espera `revisando` con la run de
    OpenCode `done`; pide `task review` y exige revisor Claude aprobado; `task integrate` y
    `task finalize` hasta `done`; captura Producción a 1920 en
    `docs/capturas-12/produccion-12-1920.png` (`panel/scripts/capturas-12.ts`, espera el texto
-   «OpenCode»); muestra `opencode stats`; y **siempre** para el servicio de `.kratos-hito12`.
+   «OpenCode»); muestra `opencode stats`; y **siempre** para el servicio de `.nomos-hito12`.
    Se detiene con mensaje claro ante `worker.failed`, una Decisión abierta o el tiempo agotado.
 3. Anotar aquí: id de la tarea, modelo, resumen del run, revisor, commit integrado, gasto y
    las respuestas a «Qué queda sin verificar». No commitear `Config/DefaultEngine.ini` de

@@ -12,7 +12,7 @@ import { createMessage } from "../service/src/store.ts";
 import { cli, cliFixture, watcher, until } from "./cli-helpers.ts";
 
 test("lector transitorio de SQLite no impide reservar un vigilante sin dueño", () => {
-  const dataDir = mkdtempSync(join(tmpdir(), "kratos-lock-reader-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "nomos-lock-reader-"));
   const reader = new DatabaseSync(join(dataDir, "watcher.lock.db"));
   reader.exec("create table probe(id integer); insert into probe values(1); begin; select * from probe");
   try {
@@ -39,7 +39,7 @@ test("request-target malformado devuelve 400 y el servicio sigue vivo", { timeou
 
 test("corte abrupto de SSE no repite mensajes ya impresos por ese vigilante", { timeout: 8000 }, async t => {
   const { server, db } = await fixture(t);
-  const dataDir = mkdtempSync(join(tmpdir(), "kratos-corte-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "nomos-corte-"));
   writeFileSync(join(dataDir, "service.json"), JSON.stringify({ pid: process.pid, token,
     port: (server.address() as { port: number }).port, startedAt: new Date().toISOString() }));
   const message = createMessage(db, "entrega única durante el corte", "web");

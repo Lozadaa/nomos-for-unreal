@@ -21,13 +21,13 @@ async function statusOf(dataDir: string) {
 }
 
 test('/status expone el proyecto del .uproject de la carpeta de datos', () => {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-project-'));
+  const root = mkdtempSync(join(tmpdir(), 'nomos-project-'));
   return (async () => {
     try {
       writeFileSync(join(root, 'CrazyPadel.uproject'), '{}');
-      const data = join(root, '.kratos');
+      const data = join(root, '.nomos');
       mkdirSync(data);
-      // en el padre (lo habitual: .kratos dentro del proyecto)
+      // en el padre (lo habitual: .nomos dentro del proyecto)
       assert.deepEqual((await statusOf(data)).project, {name: 'CrazyPadel', uproject: 'CrazyPadel.uproject'});
       // en la propia carpeta de datos
       writeFileSync(join(data, 'Otro.uproject'), '{}');
@@ -37,9 +37,9 @@ test('/status expone el proyecto del .uproject de la carpeta de datos', () => {
 });
 
 test('/status sin .uproject deja el proyecto en null', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-project-'));
+  const root = mkdtempSync(join(tmpdir(), 'nomos-project-'));
   try {
-    const data = join(root, '.kratos');
+    const data = join(root, '.nomos');
     mkdirSync(data);
     assert.equal((await statusOf(data)).project, null);
   } finally { rmSync(root, {recursive: true, force: true}); }

@@ -9,6 +9,7 @@ import { DirectorDot, directorState, typingActive } from './DirectorDot'
 import { ProjectSwitcher } from './ProjectSwitcher'
 import { Glyph } from '@/visual/Glyph'
 import { useStore } from '@/store'
+import { BRAND } from '@/lib/brand'
 
 export function Header({ project, status, onCommand, onTogglePause, pausePending = false }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean }) {
   const session = useSyncExternalStore(onSession, sessionState)
@@ -18,7 +19,7 @@ export function Header({ project, status, onCommand, onTogglePause, pausePending
   const confirmation = status?.lastAckAt ? relativeTime(status.lastAckAt) : 'sin confirmaciones todavía'
   return (
     <header className="flex h-(--k-header) items-center gap-4 border-b border-subtle bg-background px-6">
-      <span className="font-semibold tracking-tight">Kratos</span>
+      <span className="font-semibold tracking-tight">{BRAND.short}</span>
       <span aria-hidden className="text-muted-foreground">/</span>
       <h1 className="text-sm font-medium">{project}</h1>
       {routed && <ProjectSwitcher />}

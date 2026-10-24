@@ -51,8 +51,8 @@ const decisionOf = (ctx: WorkerContext, task: Task, commandId: string): Decision
 async function importBack(ctx: WorkerContext, deps: CascadeurDeps, project: Project, task: Task, run: Run, spec: ReturnType<typeof parse>) {
   const p = paths(ctx, run), job = JSON.parse(readFileSync(p.job, 'utf8'));
   const result = await withEditor(ctx, project, run, async () => (await unrealFor(deps, ctx).runPython(project.uproject,
-    join(scripts, 'kratos_import_anim.py'), {KRATOS_FBX: p.out, KRATOS_SKELETON: job.skeleton ?? '', KRATOS_DEST: '/Game/Kratos/Cascadeur',
-      KRATOS_NAME: `${short(spec.clip)}_cascadeur`}, 10 * 60_000)).reportJson as Record<string, any> | undefined);
+    join(scripts, 'nomos_import_anim.py'), {NOMOS_FBX: p.out, NOMOS_SKELETON: job.skeleton ?? '', NOMOS_DEST: '/Game/Kratos/Cascadeur',
+      NOMOS_NAME: `${short(spec.clip)}_cascadeur`}, 10 * 60_000)).reportJson as Record<string, any> | undefined);
   if (result && 'deferred' in result) return result;
   const report = existsSync(p.report) ? JSON.parse(readFileSync(p.report, 'utf8')) : {manual: true};
   writeFileSync(p.report, JSON.stringify({...report, job, import: result ?? null}, null, 2), 'utf8');
@@ -78,12 +78,12 @@ function waitExternally(ctx: WorkerContext, task: Task, run: Run, commandId: str
   // la gratuita (Basic) importa y procesa sin ventana, pero bloquea la exportación FBX (comprobado en 2026.2.3)
   if (license) saveCheck(ctx.db, 'cascadeur', {state: 'roto', detail: `Plan Basic: solo guarda .casc; la exportación FBX exige Indie o Pro (${detail})`});
   const guion = `1. ${license ? 'Activa en Cascadeur una licencia con exportación FBX (la gratuita y la de prueba solo guardan .casc)' : 'Abre Cascadeur'}. `
-    + `2. Importa ${paths(ctx, run).input} y aplica ${spec.action} (Commands › Kratos › ${spec.action}). 3. Revisa el resultado. `
-    + `4. File › Export Fbx › Without Meshes, FbxUpAxis Z, ASCII off. 5. Guárdalo como ${out}: Kratos sigue solo.`;
+    + `2. Importa ${paths(ctx, run).input} y aplica ${spec.action} (Commands › Nomos › ${spec.action}). 3. Revisa el resultado. `
+    + `4. File › Export Fbx › Without Meshes, FbxUpAxis Z, ASCII off. 5. Guárdalo como ${out}: Nomos sigue solo.`;
   openDecision(ctx.db, {taskId: task.id, reason: license ? `Cascadeur sin exportación FBX por licencia: ${detail}` : `Cascadeur no terminó solo: ${detail}`,
     evidence: [{kind: 'command', ref: commandId}], options: [{id: 'manual', label: license ? 'Exportar a mano' : 'Hacerlo en Cascadeur', description: guion},
       {id: 'retarget', label: 'Usar solo retarget', description: 'Seguir con el clip retargeteado, sin Cascadeur'},
-      ...(license ? [{id: 'license', label: 'Activar licencia', description: `Activa Indie o Pro (${plans}) y Kratos vuelve a lanzar el trabajo`}] : [])]});
+      ...(license ? [{id: 'license', label: 'Activar licencia', description: `Activa Indie o Pro (${plans}) y Nomos vuelve a lanzar el trabajo`}] : [])]});
   return {deferred: true, reason: `Esperando externo: Cascadeur (${spec.action})`};
 }
 
@@ -99,7 +99,7 @@ export function createAnimationCascadeur(deps: CascadeurDeps = {}): Handler {
     if (previous?.state === 'running' && previous.metadata.waiting) {
       const decision = decisionOf(ctx, task, command.id);
       if (existsSync(paths(ctx, previous).out)) {
-        if (decision?.state === 'open') try { resolveDecision(ctx.db, decision.id, 'manual', 'kratos'); } catch { /* caducada: da igual */ }
+        if (decision?.state === 'open') try { resolveDecision(ctx.db, decision.id, 'manual', 'nomos'); } catch { /* caducada: da igual */ }
         // la run sigue «esperando» hasta importar: si el editor está ocupado, el reintento vuelve aquí y nunca re-exporta
         return importBack(ctx, deps, project, task, previous, spec);
       }
@@ -113,10 +113,10 @@ export function createAnimationCascadeur(deps: CascadeurDeps = {}): Handler {
       else return {deferred: true, reason: `Esperando externo: Cascadeur (${spec.action})`};
     }
     const run = previous?.state === 'running' && !previous.metadata.waiting ? previous
-      : startRun(ctx.db, {taskId: task.id, role: 'animacion', provider: 'kratos', metadata: {commandId: command.id, kind: 'cascadeur'}});
+      : startRun(ctx.db, {taskId: task.id, role: 'animacion', provider: 'nomos', metadata: {commandId: command.id, kind: 'cascadeur'}});
     const p = paths(ctx, run);
     const exported = await withEditor(ctx, project, run, async () => (await unrealFor(deps, ctx).runPython(project.uproject,
-      join(scripts, 'kratos_export_fbx.py'), {KRATOS_CLIP: spec.clip, KRATOS_FBX: p.input}, 10 * 60_000)).reportJson as Record<string, any> | undefined);
+      join(scripts, 'nomos_export_fbx.py'), {NOMOS_CLIP: spec.clip, NOMOS_FBX: p.input}, 10 * 60_000)).reportJson as Record<string, any> | undefined);
     if (exported && 'deferred' in exported) return exported;
     if (!exported?.ok) { finishRun(ctx.db, run.id, 'failed', 'Unreal no exportó el clip a FBX'); return {ok: false, errors: exported?.errors ?? []}; }
     writeFileSync(p.job, JSON.stringify({action: spec.action, notes: spec.notes, input_fbx: p.input, output_fbx: p.out, report: p.report,

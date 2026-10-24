@@ -12,6 +12,7 @@ import { Tabs } from './Tabs'
 import { useStatus } from './useStatus'
 import { LegendSheet } from '@/visual/LegendSheet'
 import { needsTour, Tour } from '@/visual/Tour'
+import { BRAND } from '@/lib/brand'
 
 export function Layout({ project }: { project?: string }) {
   const status = useStatus()
@@ -22,7 +23,7 @@ export function Layout({ project }: { project?: string }) {
   const commandOpener = useRef<HTMLElement | null>(null)
   const showLegend = useCallback((from: HTMLElement | null) => { returnTo.current = from; setLegend(true) }, [])
   const paused = status?.paused ?? false
-  const togglePause = useAction(() => api(paused ? '/director/resume' : '/director/pause', { method: 'POST', body: {} }), { success: () => ({ title: paused ? 'Kratos reanudado' : 'Kratos en pausa' }) })
+  const togglePause = useAction(() => api(paused ? '/director/resume' : '/director/pause', { method: 'POST', body: {} }), { success: () => ({ title: paused ? `${BRAND.short} reanudado` : `${BRAND.short} en pausa` }) })
   const all = useStore((s) => s.tasks)
   const tasks: TaskRef[] = all.filter((t) => !t.id.startsWith('tmp-'))
 

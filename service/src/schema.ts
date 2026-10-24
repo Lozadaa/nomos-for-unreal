@@ -15,7 +15,7 @@ export function applySchema(db: DatabaseSync): void {
     create table if not exists runs(
       id text primary key, created_at text not null, updated_at text not null,
       task_id text not null, role text not null,
-      provider text not null check(provider in ('codex','claude','meshy','blender','unreal','kratos')),
+      provider text not null check(provider in ('codex','claude','meshy','blender','unreal','nomos')),
       model text, session_ref text, attempt integer not null,
       state text not null check(state in ('running','done','failed','cancelled')),
       started_at text not null, finished_at text, summary text, skills text not null);

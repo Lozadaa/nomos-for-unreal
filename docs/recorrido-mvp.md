@@ -1,8 +1,8 @@
 # Recorrido completo del MVP (hito 7)
 
 Real, en `C:\Users\richa\Documents\Unreal Projects\KratosFabTest` (Unreal 5.8.3), con workers Claude Code (Sonnet) en Orca,
-servicio del worktree `hito7-acabado` en `127.0.0.1:8780` y datos en `.kratos-hito7`. Ningún worker Codex. Horas en UTC,
-23–24 de octubre de 2026, sacadas de los eventos del servicio (`kratos.db`).
+servicio del worktree `hito7-acabado` en `127.0.0.1:8780` y datos en `.nomos-hito7`. Ningún worker Codex. Horas en UTC,
+23–24 de octubre de 2026, sacadas de los eventos del servicio (`nomos.db`).
 
 ## Qué se pidió
 
@@ -10,7 +10,7 @@ servicio del worktree `hito7-acabado` en `127.0.0.1:8780` y datos en `.kratos-hi
 2. **A · Retirar `Content/Kratos/Marcador.uasset`** (4 bytes, rompía el cook; hallazgo de la Tarea 3).
 3. **B · HUD de vida y raqueta del catálogo** (área UI, depende de A): barra de vida en C++ que baja un 10 % con H, la
    raqueta migrada delante de la cámara, `cpp` + `umg` (QA visual) + `build` (empaquetado con recorrido).
-4. **C · Continuación de B**: «la cifra de vida como porcentaje», pedida tras el DONE con `kratos task continue`.
+4. **C · Continuación de B**: «la cifra de vida como porcentaje», pedida tras el DONE con `nomos task continue`.
 
 ## Tiempos por etapa
 
@@ -60,8 +60,8 @@ bloqueos de Orca, todos con su hallazgo en [la auditoría](auditoria-7-cierre.md
 
 ## Intervenciones del director (manuales)
 
-Cada una está en la auditoría con su arreglo en Kratos:
-- `kratos task review` tras el QA del primer ciclo (ahora lo encola el servicio, hallazgo 13).
+Cada una está en la auditoría con su arreglo en Nomos:
+- `nomos task review` tras el QA del primer ciclo (ahora lo encola el servicio, hallazgo 13).
 - Registro a mano de un terminal nuevo (`real/rehandle.ts`) y luego, ya automático, el reenvío por terminal nuevo (hallazgo 11).
 - Borrar `screenFingerprint` tras reiniciar el servicio con el lector de marcadores nuevo (hallazgo 12).
 - Regenerar la línea base visual y responder al worker (hallazgo 14).

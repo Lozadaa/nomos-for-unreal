@@ -41,7 +41,7 @@ it('las acciones de Producción y Chat llevan el foco al compositor correspondie
   first.unmount()
   render(<MemoryRouter><Chat /></MemoryRouter>)
   fireEvent.click(screen.getByRole('button', { name: 'Escribir mensaje' }))
-  await waitFor(() => expect(screen.getByRole('textbox', { name: 'Mensaje para Kratos' })).toHaveFocus())
+  await waitFor(() => expect(screen.getByRole('textbox', { name: 'Mensaje para Nomos' })).toHaveFocus())
 })
 
 it('un presupuesto inexistente ofrece definir un límite utilizable', async () => {

@@ -26,7 +26,7 @@ Compatibilidad: CrazyPadel guardó esos assets con el mismo motor instalado (5.8
 3. **Metadatos de la biblioteca: 0 filas.** `listings_v1.db` se rellena al abrir Mi biblioteca en Fab del Launcher. Hasta entonces el Catálogo solo puede listar lo que ya está en disco.
 4. **Escala.** La pelota de tenis mide 200 × 200 × 199 cm en Unreal: el GLB se importó con factor de metros a centímetros sin corregir. Confirma que `ue-asset-intake` debe comprobar escala y pivote en toda importación Fab, también en las que ya hiciste a mano.
 
-## Qué aprende Kratos de esto
+## Qué aprende Nomos de esto
 
 - El toolset de importación del nivel 1 puede ser el propio `verify_pack.py` ampliado: copiar carpeta, escanear con el Asset Registry, cargar, comprobar dependencias y devolver JSON. No necesita C++.
 - La verificación sin GUI es barata (10 s con `-NullRHI`), así que el coordinador puede exigirla en cada cierre de tarea de assets.
@@ -43,4 +43,4 @@ python -I -X utf8 index.py fab-index.json
 "C:/Program Files/Epic Games/UE_5.8/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "C:/Users/richa/Documents/Unreal Projects/KratosFabTest/KratosFabTest.uproject" -ExecutePythonScript="C:/Users/richa/Documents/Codex/2026-10-22/referenced-chatgpt-conversation-this-is-an/outputs/kratos-fab-nivel1/verify_pack.py" -unattended -nopause -nosplash -NullRHI -stdout -FullStdOutLogOutput
 ```
 
-El informe queda en `KratosFabTest/Saved/kratos-verify.json` salvo que se fije la variable `KRATOS_REPORT`.
+El informe queda en `KratosFabTest/Saved/nomos-verify.json` salvo que se fije la variable `NOMOS_REPORT`.

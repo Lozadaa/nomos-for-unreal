@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Run qa tras ui.cycle: capturas hud-1280x720.png, hud-1280x720-control.png, hud-1920x1080.png y su control; la barra de vida es verde sobre cielo claro y la cifra mide 11 px a 720p.",
-      "expected_output": "Abre las cuatro imágenes, confirma que la UI está comparando con el control, mide contraste y tamaño y rechaza con KRATOS_REVIEW approved:false y dos hallazgos (contraste 2,1:1 bloqueante; cifra 11 px mayor) con resolución, zona, medida y corrección. No edita archivos.",
+      "expected_output": "Abre las cuatro imágenes, confirma que la UI está comparando con el control, mide contraste y tamaño y rechaza con NOMOS_REVIEW approved:false y dos hallazgos (contraste 2,1:1 bloqueante; cifra 11 px mayor) con resolución, zona, medida y corrección. No edita archivos.",
       "files": [
         "references/criterios.md",
         "references/capture-contract.md"

@@ -1,4 +1,4 @@
-# Glifos de Kratos
+# Glifos de Nomos
 
 Corrección del hito 9, 2026-10-23, con CORRECCIÓN 2 de agentes. La leyenda tiene **38 entradas: 30 iconos y 8 pastillas de proveedor**, incluido OpenCode. Antes de la corrección 2 eran 37; originalmente eran 68. Las pastillas identifican proveedores sin agente; los agentes usan monograma circular y nombre corto, según el addendum del brief.
 
@@ -37,7 +37,7 @@ La columna «Dónde aparece» conserva la referencia de la galería; la tabla de
 | `provider/meshy` | `Pastilla` | Meshy | /estilo · Glifos y Arte |
 | `provider/blender` | `Pastilla` | Blender | /estilo · Glifos y Arte |
 | `provider/unreal` | `Pastilla` | Unreal | /estilo · Glifos y Arte |
-| `provider/kratos` | `Pastilla` | Kratos | /estilo · Glifos y Arte |
+| `provider/nomos` | `Pastilla` | Nomos | /estilo · Glifos y Arte |
 | `provider/launcher` | `Pastilla` | Launcher | /estilo · Glifos y Arte |
 | `artifact/model` | `Shapes` | Modelo | /estilo · Glifos |
 | `artifact/texture` | `Image` | Textura | /estilo · Glifos |
@@ -90,7 +90,7 @@ El nombre se calcula en el panel con `agentName(role, area, ordinal)`; no requie
 | `qa` | Tester |
 | `integrador` | Builder |
 | `coordinador` | Lead |
-| `director` | Kratos, sin área |
+| `director` | Nomos, sin área |
 | `desarrollador`, `implementador` | Worker (compatibilidad) |
 | `generador` | Artist (compatibilidad) |
 | Ausente o desconocido | Worker |
@@ -103,7 +103,7 @@ El nombre se calcula en el panel con `agentName(role, area, ordinal)`; no requie
 | Meshy | Me |
 | Blender | Bl |
 | Unreal | Un |
-| Kratos | Kr |
+| Nomos | Kr |
 | Launcher | La |
 
 Ejemplos: `UI Worker`, `UI Master`, `Anim Artist`. Si dos agentes `running` o `waiting` comparten nombre, `assignAgentNames` les asigna ordinal estable en el orden del consumidor: el primero conserva `UI Worker` y el segundo muestra `UI Worker 2`; ambos tienen insignia para distinguir la instancia. Agentes libres o terminados no provocan ni consumen ordinal. La insignia mide 14 px; el avatar, 24 px en fila, 32 px en Chat/detalle y 48 px en Capacidades. `AvatarGroup` muestra tres avatares solapados 8 px, después `+N`, con totales por proveedor y activos reales. Un implementador desconocido conserva su nombre y usa sus dos primeras letras; no se inventa una marca.

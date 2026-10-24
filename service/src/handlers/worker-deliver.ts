@@ -37,7 +37,7 @@ export async function deliver(db: DatabaseSync, orca: Orca, run: Run, treePath: 
   if (!blockedRequest(error) || run.provider !== 'claude' || !orca.terminalCreate) throw error;
   const session = claudeSession(treePath, home);
   try { await orca.terminalClose(handle); } catch { /* ya cerrado: el nuevo lo sustituye igual */ }
-  const next = await orca.terminalCreate(treePath, `kratos-${run.taskId.slice(0, 8)}`,
+  const next = await orca.terminalCreate(treePath, `nomos-${run.taskId.slice(0, 8)}`,
     `${launchCommand('claude', run.metadata.model)}${session ? ` --resume ${session}` : ''} "${line}"`);
   // el terminal nuevo empieza de cero: ni cursor ni huella del anterior
   updateRun(db, run.id, {cursor: undefined, screenFingerprint: undefined, markerBuffer: '', markerFence: ''}, {sessionRef: next});

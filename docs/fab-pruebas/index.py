@@ -1,4 +1,4 @@
-"""Indexador nivel 1 de Kratos (prototipo, solo stdlib): qué assets de Fab ya están en esta máquina.
+"""Indexador nivel 1 de Nomos (prototipo, solo stdlib): qué assets de Fab ya están en esta máquina.
 
 Fuentes: Content/Fab de cada proyecto Unreal, caché del plugin Fab (%TEMP%/FabLibrary o la ruta
 que fije FabSettings en el proyecto), Megascans Library de Quixel Bridge y los metadatos de la

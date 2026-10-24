@@ -11,8 +11,8 @@ import { doctor } from '../../service/src/doctor.ts';
 
 // recorrido del hito 7: QA visual aprobado y la tarea quedó en «revisando» sin ningún comando ni run
 test('atasco: estado activo sin comando pendiente ni run viva → doctor lo marca y se abre una sola Decisión', async t => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-stall-'));
-  const db = openDb(join(dir, 'kratos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-stall-'));
+  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
   const task = createTask(db, {title: 'HUD de vida', area: 'ui'});
   moveTask(db, task.id, 'revisando');
   const later = Date.now() + 11 * 60_000;
@@ -33,8 +33,8 @@ test('atasco: estado activo sin comando pendiente ni run viva → doctor lo marc
 });
 
 test('implementando con la run del responsable caída (envío fallido) y sin comandos también es atasco', async t => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-stall-'));
-  const db = openDb(join(dir, 'kratos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-stall-'));
+  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
   const task = createTask(db, {title: 'HUD de vida', area: 'ui'});
   moveTask(db, task.id, 'implementando');
   assert.deepEqual(stalledTasks(db, Date.now() + 11 * 60_000).map(s => s.state), ['implementando']);

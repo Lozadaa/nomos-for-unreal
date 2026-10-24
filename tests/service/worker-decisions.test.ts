@@ -35,20 +35,20 @@ for(const checkpoint of ['wait','read'] as const) test(`Decisión durante ${chec
     f.ctx.orca.terminalRead=async(...args)=>{const page=await read(...args);decision=question(f);return page;};
   }
   await f.start();
-  assert.equal(f.state().tail.some((line:string)=>line.startsWith('Lee el archivo .kratos-brief')),false);
+  assert.equal(f.state().tail.some((line:string)=>line.startsWith('Lee el archivo .nomos-brief')),false);
   assert.equal(getTask(f.db,f.task.id)!.state,'pendiente');resolveCurrent(f,decision);
 });
 
 test('bloqueo sin Decisión aparecido durante preparación tampoco se borra ni permite despacho',async t=>{
   const f=fixture(t),wait=f.ctx.orca.terminalWaitIdle;
   f.ctx.orca.terminalWaitIdle=async(...args)=>{const ready=await wait(...args);blockTask(f.db,f.task.id,'Revisar bloqueo externo');return ready;};
-  await f.start();assert.equal(f.state().tail.some((line:string)=>line.startsWith('Lee el archivo .kratos-brief')),false);
+  await f.start();assert.equal(f.state().tail.some((line:string)=>line.startsWith('Lee el archivo .nomos-brief')),false);
   assert.equal(getTask(f.db,f.task.id)!.blockedReason,'Revisar bloqueo externo');
 });
 
 test('Decisión entre guardia async y send impide crear inbox y enviar corrección',async t=>{
   const f=fixture(t);await f.start();
-  f.output('KRATOS_DONE {"summary":"Listo","commits":[],"tests":"passed"}');
+  f.output('NOMOS_DONE {"summary":"Listo","commits":[],"tests":"passed"}');
   await f.invoke('worker.poll',{runId:f.run().id,generation:0});const before=f.state().tail.length;
   let decision!:Decision;queueMicrotask(()=>{decision=question(f);});
   await f.invoke('worker.send',{runId:f.run().id,text:'Corregir'});
@@ -59,11 +59,11 @@ for(const delivery of ['brief','inbox'] as const) test(`Decisión durante entreg
   const f=fixture(t);if(delivery==='inbox') await f.start();
   const send=f.ctx.orca.terminalSend;let decision!:Decision;
   f.ctx.orca.terminalSend=async(handle,text)=>{await send(handle,text);
-    if(text.startsWith(`Lee el archivo .kratos-${delivery}`)) decision=question(f);};
+    if(text.startsWith(`Lee el archivo .nomos-${delivery}`)) decision=question(f);};
   if(delivery==='brief') await f.start();else await f.invoke('worker.send',{runId:f.run().id,text:'Nueva instrucción'});
   const linked=getTask(f.db,f.task.id)!.decisionId;assert.ok(linked);
   assert.notEqual(linked,decision.id);assert.equal(read<Decision>(f.db,'decisions',decision.id)!.state,'stale');
-  assert.equal(f.state().tail.filter((line:string)=>line.startsWith(`Lee el archivo .kratos-${delivery}`)).length,1);
+  assert.equal(f.state().tail.filter((line:string)=>line.startsWith(`Lee el archivo .nomos-${delivery}`)).length,1);
   if(delivery==='inbox') assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.message_sent').length,1);
   for(let i=0;i<3;i++) await f.invoke('worker.poll',{runId:f.run().id,generation:f.run().metadata.pollGeneration});
   assert.equal(getTask(f.db,f.task.id)!.decisionId,linked,'poll bloqueado debe mantener ID estable');resolveCurrent(f,decision);
@@ -98,7 +98,7 @@ test('preparación pausada se continúa explícitamente por inbox en la misma se
   assert.equal(initial.metadata.phase,'preparing');assert.equal(initial.metadata.waiting,true);
   await f.invoke('worker.poll',{runId:initial.id,generation:0});assert.equal(f.run().metadata.phase,'preparing');
   resolveCurrent(f,decision);
-  const instruction='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.';
+  const instruction='Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.';
   await f.invoke('worker.send',{runId:initial.id,text:instruction});
   assert.equal(f.run().id,initial.id);assert.equal(f.run().sessionRef,initial.sessionRef);assert.equal(f.tree().id,tree);
   assert.equal(f.run().metadata.phase,'running');assert.equal(f.run().metadata.correctionCount,0);

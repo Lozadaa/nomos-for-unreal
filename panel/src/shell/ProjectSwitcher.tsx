@@ -16,8 +16,8 @@ export function ProjectSwitcher() {
   useEffect(() => {
     if (!others.length || pathname !== '/' || search) return
     try {
-      if (sessionStorage.getItem('kratos.portada')) return
-      sessionStorage.setItem('kratos.portada', '1')
+      if (sessionStorage.getItem('nomos.portada')) return
+      sessionStorage.setItem('nomos.portada', '1')
     } catch { return }
     void navigate('/proyectos')
   }, [others.length, pathname, search, navigate])

@@ -18,8 +18,8 @@ assert.ok(['antes', 'agentes', 'tarea3', 'tarea4', 'tarea5', 'tarea6', 'todas'].
 const before = mode === 'antes'
 const countFile = join(out, `palabras-${before ? 'antes' : 'despues'}.json`)
 if (before) assert.ok(!existsSync(countFile), 'El baseline ya existe; no se sobrescribe una medición anterior.')
-const root = mkdtempSync(join(tmpdir(), 'kratos-hito9-vistas-'))
-const data = join(root, '.kratos')
+const root = mkdtempSync(join(tmpdir(), 'nomos-hito9-vistas-'))
+const data = join(root, '.nomos')
 const stamp = '2026-10-23T16:00:00.000Z'
 const sizes = [[1366, 768], [1920, 1080]] as const
 const views = [
@@ -31,7 +31,7 @@ const views = [
 function seedWorker() {
   const repo = join(root, 'worker')
   mkdirSync(repo)
-  const git = (...args: string[]) => execFileSync('git', ['-C', repo, '-c', 'user.name=Kratos capturas', '-c', 'user.email=capturas@localhost', ...args], { stdio: 'pipe' }).toString().trim()
+  const git = (...args: string[]) => execFileSync('git', ['-C', repo, '-c', 'user.name=Nomos capturas', '-c', 'user.email=capturas@localhost', ...args], { stdio: 'pipe' }).toString().trim()
   git('init', '-q')
   for (const dir of ['Source/Locomocion', 'Config']) mkdirSync(join(repo, dir), { recursive: true })
   writeFileSync(join(repo, 'Source/Locomocion/Salto.cpp'), 'void USalto::Ejecutar()\n{\n  Velocidad = 600.f;\n}\n')
@@ -41,7 +41,7 @@ function seedWorker() {
   const base = git('rev-parse', 'HEAD')
   writeFileSync(join(repo, 'Source/Locomocion/Salto.cpp'), 'void USalto::Ejecutar()\n{\n  Velocidad = 720.f;\n  Coyote = 0.12f;\n}\n')
   writeFileSync(join(repo, 'Config/DefaultGame.ini'), '[Salto]\nAltura=2\n')
-  const db = new DatabaseSync(join(data, 'kratos.db'))
+  const db = new DatabaseSync(join(data, 'nomos.db'))
   try {
     db.prepare("update worktrees set path=?, base_commit=? where id='seed-worktree-01'").run(repo, base)
     db.prepare("update tasks set scope=? where id='seed-task-05'").run(JSON.stringify(['Source/Locomocion']))
@@ -98,7 +98,7 @@ try {
     await post(`/messages/${message.messageId}/reply`, { text: 'Entendido: la divido en diseño, efecto y prueba y se la doy a Codex.' })
     const second = await post('/messages', { text: 'Y que el cráter quede en el suelo unos segundos' })
     // El reloj de captura no cambia el servicio: fijamos las fechas de esta conversación aislada.
-    const chatDb = new DatabaseSync(join(data, 'kratos.db'))
+    const chatDb = new DatabaseSync(join(data, 'nomos.db'))
     try {
       for (const [id, ago] of [[message.messageId, 120_000], [second.messageId, 60_000]] as const) {
         const at = new Date(Date.parse(stamp) - ago).toISOString()
@@ -111,7 +111,7 @@ try {
     for (const [width, height] of sizes) {
       const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce' })
       // Las capturas de vistas no incluyen el tour inicial, que tiene sus E2E propios.
-      await context.addInitScript(() => { localStorage.setItem('kratos.tour.v1', '1') })
+      await context.addInitScript(() => { localStorage.setItem('nomos.tour.v1', '1') })
       const page = await context.newPage()
       const errors: string[] = []
       page.on('pageerror', (error) => errors.push(error.message))
@@ -180,7 +180,7 @@ try {
         for (const name of ['produccion', 'actividad', 'presupuesto', 'capacidades']) {
           await goto(views.find(([view]) => view === name)![1])
           if (name === 'actividad') {
-            const boxes = await page.getByRole('region', { name: 'Actividad por carriles' }).getByRole('button', { name: /^(Mensaje recibido|Kratos respondió)$/ }).evaluateAll((nodes) => nodes.map((node) => {
+            const boxes = await page.getByRole('region', { name: 'Actividad por carriles' }).getByRole('button', { name: /^(Mensaje recibido|Nomos respondió)$/ }).evaluateAll((nodes) => nodes.map((node) => {
               const r = node.getBoundingClientRect(); return { x: r.x, right: r.right, y: r.y, bottom: r.bottom }
             }))
             assert.equal(boxes.length, 3)
@@ -201,7 +201,7 @@ try {
         await goto('/')
         await page.keyboard.press('Control+k')
         await page.getByRole('option', { name: 'Ver guía', exact: true }).click()
-        const guide = page.getByRole('dialog', { name: 'Guía de Kratos' })
+        const guide = page.getByRole('dialog', { name: 'Guía de Nomos' })
         await guide.waitFor()
         for (const target of ['director', 'compositor', 'mapa']) {
           await page.waitForTimeout(200)
@@ -223,6 +223,6 @@ try {
 } finally {
   try { execFileSync(process.execPath, [cli, 'stop', '--data', data], { stdio: 'ignore' }) } catch { /* arranque incompleto */ }
   const target = resolve(root)
-  assert.ok(target.startsWith(resolve(tmpdir()) + sep) && target.split(sep).at(-1)!.startsWith('kratos-hito9-vistas-'))
+  assert.ok(target.startsWith(resolve(tmpdir()) + sep) && target.split(sep).at(-1)!.startsWith('nomos-hito9-vistas-'))
   rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
 }

@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand'
 export interface AgentNamingInput { id: string; role?: string | null; area?: string | null; state: string }
 
 const areas: Record<string, string> = {
@@ -12,7 +13,7 @@ const roles: Record<string, string> = {
 export function agentName(role?: string | null, area?: string | null, ordinal?: number): string {
   const areaName = area && Object.hasOwn(areas, area) ? areas[area] : 'Proyecto'
   const roleName = role && Object.hasOwn(roles, role) ? roles[role] : 'Worker'
-  const base = role === 'director' ? 'Kratos' : `${areaName} ${roleName}`
+  const base = role === 'director' ? BRAND.short : `${areaName} ${roleName}`
   return ordinal !== undefined && Number.isInteger(ordinal) && ordinal > 1 ? `${base} ${ordinal}` : base
 }
 

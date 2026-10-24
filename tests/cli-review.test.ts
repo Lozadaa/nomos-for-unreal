@@ -14,10 +14,10 @@ test('CLI task review ID encola revisión con el implementador terminado',async 
   const task=await api(dataDir,'/tasks',{title:'Revisar',area:'qa',spec:'Existe',acceptance:['Existe'],scope:['Docs']});
   const path=join(dataDir,'review-tree');mkdirSync(path);
   const git=(...args:string[])=>execFileSync('git',['-C',path,...args],{windowsHide:true,stdio:'pipe'}).toString().trim();
-  git('init');git('config','user.name','Kratos test');git('config','user.email','test@example.invalid');
+  git('init');git('config','user.name','Nomos test');git('config','user.email','test@example.invalid');
   git('commit','--allow-empty','-m','Base');
-  const db=openDb(join(dataDir,'kratos.db'));
-  const tree=insert<Worktree>(db,'worktrees',{taskId:task.id,path,branch:'kratos/test',baseCommit:git('rev-parse','HEAD'),state:'active',closedReason:null});
+  const db=openDb(join(dataDir,'nomos.db'));
+  const tree=insert<Worktree>(db,'worktrees',{taskId:task.id,path,branch:'nomos/test',baseCommit:git('rev-parse','HEAD'),state:'active',closedReason:null});
   const run=startRun(db,{taskId:task.id,role:'implementacion',provider:'codex',sessionRef:'term',metadata:{worktreeId:tree.id}});
   finishRun(db,run.id,'done','Terminado');db.prepare("update tasks set state='revisando',worktree_id=? where id=?").run(tree.id,task.id);db.close();
   const result=cli(dataDir,'task','review',task.id);assert.equal(result.status,0,result.stderr);
@@ -29,7 +29,7 @@ test('CLI task review ID encola revisión con el implementador terminado',async 
 test('CLI task check ID encola checks.run con el último implementador terminado',async t=>{
   const {dataDir,port}=await cliFixture(t);assert.equal(cli(dataDir,'start','--port',String(port),'--no-open').status,0);
   const task=await api(dataDir,'/tasks',{title:'HUD',area:'ui',spec:'Barra de vida',acceptance:['check: umg']});
-  const db=openDb(join(dataDir,'kratos.db'));
+  const db=openDb(join(dataDir,'nomos.db'));
   const run=startRun(db,{taskId:task.id,role:'implementacion',provider:'claude'});finishRun(db,run.id,'done','Terminado');db.close();
   const result=cli(dataDir,'task','check',task.id);assert.equal(result.status,0,result.stderr);
   const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(result.stdout).commandId);

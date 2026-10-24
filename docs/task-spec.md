@@ -1,8 +1,8 @@
 # Especificación de tareas para el director
 
-`kratos task create --title "Documentar juego" --area qa --spec-file encargo.md`
+`nomos task create --title "Documentar juego" --area qa --spec-file encargo.md`
 valida el archivo antes de crear la tarea. Sin archivo crea una tarea pendiente.
-`kratos task spec ID --spec-file encargo.md` prepara una tarea existente y conserva su área.
+`nomos task spec ID --spec-file encargo.md` prepara una tarea existente y conserva su área.
 
 Los cinco encabezados siguientes deben aparecer exactamente una vez. Qué y Por qué
 requieren texto; Criterios requiere al menos una entrada numerada y Alcance una ruta.
@@ -47,11 +47,11 @@ completo antiguo aún no observado puede llegar intercalado. El protocolo no lle
 turnId y no garantiza atribución exacta por turno; el envío sí descarta parciales previos.
 
 Para preguntas fuera del encargo: `decision open TASK --file pregunta.json`,
-`decision list --state open`, `decision resolve ID --option answer --by kratos`.
+`decision list --state open`, `decision resolve ID --option answer --by nomos`.
 El JSON contiene `reason`, `evidence:[{kind,ref}]` y
 `options:[{id,label,description}]`. Una pregunta libre usa la opción `answer`,
 «Responder en el chat». Resolver una Decisión no envía respuesta ni autoriza
 continuación automáticamente: el director envía explícitamente el texto aprobado.
 Si el arranque quedó en phase preparing esperando Decisión, se continúa el mismo
-run mediante worker send con «Lee el archivo .kratos-brief.md de esta carpeta y
+run mediante worker send con «Lee el archivo .nomos-brief.md de esta carpeta y
 ejecuta lo que dice.». No se inicia otro worker.

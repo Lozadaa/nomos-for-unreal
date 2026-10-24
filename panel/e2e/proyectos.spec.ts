@@ -8,7 +8,7 @@ let fab: ReturnType<typeof ownService>, game: ReturnType<typeof ownService>
 let token = ''
 test.beforeAll(({ browserName }) => {
   const base = browserName === 'firefox' ? 18770 : 18772
-  const registry = join(tmpdir(), `kratos-e2e-proyectos-${base}-${Date.now()}.json`)
+  const registry = join(tmpdir(), `nomos-e2e-proyectos-${base}-${Date.now()}.json`)
   fab = ownService(base, 'KratosFabTest', registry); game = ownService(base + 1, 'BlockKings', registry)
   token = fab.start(); game.start()
 })
@@ -16,7 +16,7 @@ test.afterAll(() => { fab.dispose(); game.dispose() })
 test.use({ viewport: { width: 1920, height: 1080 } })
 
 test('portada al abrir con varios proyectos; el otro juego se abre sin token en la URL y su cabecera dice su nombre', async ({ page, browserName }) => {
-  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+  await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
   await page.goto(`${fab.origin}/#token=${token}`)
   await expect(page).toHaveURL(/\/proyectos$/)
   const card = page.getByRole('listitem').filter({ hasText: 'BlockKings' })

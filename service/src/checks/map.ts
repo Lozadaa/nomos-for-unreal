@@ -7,7 +7,7 @@ import { animMap } from './animation.ts';
 import { ffmpegOf } from './run.ts';
 import { contactSheet, viewCount, viewsEnv, viewShots } from './views.ts';
 
-/** El mapa de juego que toca el diff. El escenario de animación de Kratos no lo es: lo juega y lo graba la comprobación animation. */
+/** El mapa de juego que toca el diff. El escenario de animación de Nomos no lo es: lo juega y lo graba la comprobación animation. */
 export const gameMap = (files: string[]) => packages(files, f => /\.umap$/i.test(f)).find(p => p !== animMap);
 
 /** El mapa con el que arranca el juego cuando nadie elige otro: `GameDefaultMap` de DefaultEngine.ini o, si no está, el último
@@ -20,11 +20,11 @@ export function defaultMap(projectDir: string, log = ''): string | null {
   return /^GameDefaultMap=(\/Game\/[^\s.]+)/m.exec(section)?.[1] ?? loaded ?? null;
 }
 
-/** Juego a resolución fija (`-game <mapa>`, 10 min como máximo): captura con UI y, si `KRATOS_CONTROL`, sin UI. */
+/** Juego a resolución fija (`-game <mapa>`, 10 min como máximo): captura con UI y, si `NOMOS_CONTROL`, sin UI. */
 export function capture(unreal: UnrealCmd, uproject: string, map: string | undefined, [width, height]: [number, number],
   shot: string, deps: CheckDeps, extra: Record<string, string> = {}) {
-  return unreal.runPython(uproject, join(scripts, 'kratos_pie_capture.py'),
-    {KRATOS_SHOT: shot, KRATOS_WAIT: String(deps.playSeconds ?? 30), ...extra}, 10 * 60_000, {render: {width, height, map}});
+  return unreal.runPython(uproject, join(scripts, 'nomos_pie_capture.py'),
+    {NOMOS_SHOT: shot, NOMOS_WAIT: String(deps.playSeconds ?? 30), ...extra}, 10 * 60_000, {render: {width, height, map}});
 }
 
 type Validation = {ok: boolean; engine?: string; assets: {package: string; errors: string[]}[]};
@@ -34,7 +34,7 @@ type Pie = {ok: boolean; map?: string; errors: string[]; engine?: string};
 export const mapCheck: Executor = async (ctx, {project, files, dir}, deps) => {
   const unreal = unrealOf(ctx, deps);
   const touched = packages(files, f => /\.(uasset|umap)$/i.test(f));
-  const validation = await unreal.runPython(project.uproject, join(scripts, 'kratos_validate.py'), {KRATOS_ASSETS: JSON.stringify(touched)}, 10 * 60_000);
+  const validation = await unreal.runPython(project.uproject, join(scripts, 'nomos_validate.py'), {NOMOS_ASSETS: JSON.stringify(touched)}, 10 * 60_000);
   const report = validation.reportJson as Validation | undefined;
   if (!report) return {result: 'failed', log: validation.log, summary: [`El editor terminó con código ${validation.exitCode} sin el informe de validación`]};
   const broken = report.assets.flatMap(a => a.errors.map(e => `${a.package}: ${e}`));

@@ -32,7 +32,7 @@ const look: Record<Capability['state'], { tone: Tone; text: string; action: stri
 
 const capabilityProvider: Record<string, string> = {
   codex: 'codex', claude: 'claude', opencode: 'opencode', unreal: 'unreal', unreal_mcp: 'unreal',
-  launcher: 'launcher', meshy: 'meshy', blender: 'blender', kratos: 'kratos', metahuman: 'unreal', retarget: 'unreal',
+  launcher: 'launcher', meshy: 'meshy', blender: 'blender', nomos: 'nomos', metahuman: 'unreal', retarget: 'unreal',
 }
 
 /** Se reutiliza la forma del registro, con la etiqueta de la capacidad que se está comprobando. */

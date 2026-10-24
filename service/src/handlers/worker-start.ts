@@ -88,7 +88,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     workerFailure(db,{...payload,runId:run.id,conflicts:currentReservation.conflicts},'lease_conflict');return;
   }
   const suffix=review ? '-review-'+run.id.slice(0,8) : '';
-  const created=await orca.worktreeCreate(repoId,'kratos-'+short+suffix,payload.provider);
+  const created=await orca.worktreeCreate(repoId,'nomos-'+short+suffix,payload.provider);
   transaction(db,()=>{
     run=updateRun(db,run.id,{worktreeId:created.worktreeId},{sessionRef:created.terminalHandle});
     insert<Worktree>(db,'worktrees',{id:created.worktreeId,taskId:task.id,path:created.path,branch:created.branch,
@@ -97,14 +97,14 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   });
   const baseCommit=await git.head(created.path);
   db.prepare('update worktrees set base_commit=?,updated_at=? where id=?').run(baseCommit,new Date().toISOString(),created.worktreeId);
-  await git.renameBranch(created.path,'kratos/'+short+suffix);
+  await git.renameBranch(created.path,'nomos/'+short+suffix);
   const branch=await git.currentBranch(created.path);
   db.prepare('update worktrees set branch=?,updated_at=? where id=?').run(branch,new Date().toISOString(),created.worktreeId);
   const contextFile=join(projectDir,'.agents','ue-project-context.md'),uiFile=join(projectDir,'docs','ui-direction.md');
   // la dirección de arte de la UI (game-ui-art-director) acompaña a todo worker de UI
   const context=[existsSync(contextFile) ? readFileSync(contextFile,'utf8') : '',
     task.area==='ui' && existsSync(uiFile) ? `## Dirección de arte de la UI (docs/ui-direction.md)\n\n${readFileSync(uiFile,'utf8')}` : ''].filter(Boolean).join('\n\n');
-  writeFileSync(join(created.path,'.kratos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
+  writeFileSync(join(created.path,'.nomos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
     {projectContext:context || undefined,continuation:continuationBrief(db,task)}));
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)

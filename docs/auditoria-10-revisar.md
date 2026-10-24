@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-24. Rama `Lozadaa/hito10-panel-revisar` sobre `main@2768cec`. Sin push ni merge.
 Datos: la semilla de capturas (`panel/scripts/capturas-10.ts`, con las vistas reales de KratosFabTest) y una **copia de solo
-lectura** de `.kratos/kratos.db` de Block Kings (24 tareas, 137 artefactos, 200 mensajes), con los comandos pendientes
+lectura** de `.nomos/nomos.db` de Block Kings (24 tareas, 137 artefactos, 200 mensajes), con los comandos pendientes
 marcados como hechos, el director en pausa y Orca fuera del PATH para que el servicio de la copia no tocara nada real.
 El original y la carpeta del juego no se modificaron.
 

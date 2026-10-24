@@ -24,9 +24,9 @@ export class ApiError extends Error {
 function readToken(): string | null {
   try {
     const incoming = new URLSearchParams(location.hash.slice(1)).get('token')
-    if (incoming) sessionStorage.setItem('kratos.token', incoming)
+    if (incoming) sessionStorage.setItem('nomos.token', incoming)
     if (location.hash) history.replaceState(null, '', location.pathname + location.search)
-    return sessionStorage.getItem('kratos.token')
+    return sessionStorage.getItem('nomos.token')
   } catch {
     return null
   }

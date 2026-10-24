@@ -113,7 +113,7 @@ test('solo conflicto limpio permite el siguiente intento automático',t=>{
   assert.deepEqual(rows.map(r=>r.idempotency_key),[`worker.start:${a.id}:4`]);
 });
 test('readConfig valida concurrencia desde dataDir real y conserva otros campos',()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-config-'));
+  const dir=mkdtempSync(join(tmpdir(),'nomos-config-'));
   try {
     writeFileSync(join(dir,'config.json'),JSON.stringify({concurrency:{codex:-1}}));
     assert.throws(()=>readConfig(dir),/invalid_worker_config/);
@@ -133,7 +133,7 @@ test('OpenCode arranca la tarea que lo pide y nunca la que no',t=>{
   const codex=add('Codex disponible',{leases:['Content/HUD.uasset']});
   const available=plan(db,{concurrency:{codex:1,opencode:3}}).find(d=>d.taskId===codex.id)!;
   assert.equal(available.action,'start');assert.equal(available.provider,'codex');
-  const dir=mkdtempSync(join(tmpdir(),'kratos-opencode-'));
+  const dir=mkdtempSync(join(tmpdir(),'nomos-opencode-'));
   try {
     writeFileSync(join(dir,'config.json'),'{"concurrency":{"opencode":3}}');
     assert.equal(readConfig(dir).concurrency?.opencode,3);

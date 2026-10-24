@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 
 vi.mock('@/api', () => {
   class ApiError extends Error {
@@ -31,7 +31,7 @@ type Handler = (path: string, init?: { method?: string; body?: unknown }) => unk
 const serve = (handler: Handler) => mockApi.mockImplementation((async (path: string, init?: { method?: string; body?: unknown }) => handler(path, init)) as typeof api)
 const inRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>)
 let seq = 0
-const event = (type: string, over: Partial<KratosEvent> = {}): KratosEvent => ({
+const event = (type: string, over: Partial<NomosEvent> = {}): NomosEvent => ({
   seq: ++seq, id: `e${seq}`, type, messageId: null, payload: {}, createdAt: new Date(Date.UTC(2026, 9, 23, 10, 0, seq)).toISOString(), ...over,
 })
 const deferred = <T,>() => { let resolve!: (v: T) => void; let reject!: (e: unknown) => void; const promise = new Promise<T>((a, b) => { resolve = a; reject = b }); return { promise, resolve, reject } }
@@ -40,32 +40,32 @@ beforeEach(() => { resetStore(); seq = 0; mockApi.mockReset(); vi.mocked(toasts.
 afterEach(cleanup)
 
 describe('Chat: burbuja optimista', () => {
-  it('muestra «Enviando…», pasa a «Recibido HH:MM» y «Leído por Kratos HH:MM» y la respuesta aparece sin duplicar el mensaje', async () => {
+  it('muestra «Enviando…», pasa a «Recibido HH:MM» y «Leído por Nomos HH:MM» y la respuesta aparece sin duplicar el mensaje', async () => {
     const post = deferred<{ messageId: string }>()
     let listed: unknown[] = []
     serve((path, init) => (path === '/messages' && init?.method === 'POST' ? post.promise : listed))
     render(<Chat />)
-    expect(await screen.findByText('Cuéntale a Kratos qué quieres construir')).toBeInTheDocument()
+    expect(await screen.findByText('Cuéntale a Nomos qué quieres construir')).toBeInTheDocument()
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Mensaje para Kratos'), 'Hola Kratos')
+    await user.type(screen.getByLabelText('Mensaje para Nomos'), 'Hola Nomos')
     await user.click(screen.getByRole('button', { name: 'Enviar' }))
 
     // el servidor aún no ha respondido y la burbuja ya está, con su estado
-    expect(await screen.findByText('Hola Kratos')).toBeInTheDocument()
+    expect(await screen.findByText('Hola Nomos')).toBeInTheDocument()
     expect(screen.getByText('Enviando…', { selector: 'li span' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Mensaje para Kratos')).toHaveValue('')
+    expect(screen.getByLabelText('Mensaje para Nomos')).toHaveValue('')
 
     // hito 10: el chat se vuelve a pedir con cada evento y muestra estados reales con hora
-    const sent = { id: 'm1', text: 'Hola Kratos', createdAt: new Date().toISOString(), state: 'recibido', readAt: null, typingAt: null, repliedAt: null, timedOut: false, replies: [], links: [] }
+    const sent = { id: 'm1', text: 'Hola Nomos', createdAt: new Date().toISOString(), state: 'recibido', readAt: null, typingAt: null, repliedAt: null, timedOut: false, replies: [], links: [] }
     await act(async () => { post.resolve({ messageId: 'm1' }) })
     listed = [sent]
-    act(() => { ingest(event('message.received', { messageId: 'm1', payload: { text: 'Hola Kratos', origin: 'web' } })) })
+    act(() => { ingest(event('message.received', { messageId: 'm1', payload: { text: 'Hola Nomos', origin: 'web' } })) })
     expect(await screen.findByText(/^Recibido \d\d:\d\d$/)).toBeInTheDocument()
-    expect(screen.getAllByText('Hola Kratos')).toHaveLength(1)
+    expect(screen.getAllByText('Hola Nomos')).toHaveLength(1)
     listed = [{ ...sent, state: 'respondido', readAt: sent.createdAt, repliedAt: sent.createdAt, replies: [{ text: 'Hecho, lo preparo', at: sent.createdAt }] }]
     act(() => { ingest(event('message.replied', { messageId: 'm1', payload: { text: 'Hecho, lo preparo' } })) })
     expect(await screen.findByText('Hecho, lo preparo')).toBeInTheDocument()
-    expect(screen.getByText(/^Leído por Kratos \d\d:\d\d$/)).toBeInTheDocument()
+    expect(screen.getByText(/^Leído por Nomos \d\d:\d\d$/)).toBeInTheDocument()
     expect(screen.queryByText(/lo atenderá en breve/)).toBeNull()
   })
 
@@ -74,7 +74,7 @@ describe('Chat: burbuja optimista', () => {
     serve((path, init) => (path === '/messages' && init?.method === 'POST' ? post.promise : []))
     render(<Chat />)
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Mensaje para Kratos'), 'Una sola vez')
+    await user.type(screen.getByLabelText('Mensaje para Nomos'), 'Una sola vez')
     await user.click(screen.getByRole('button', { name: 'Enviar' }))
     await screen.findByText('Una sola vez')
     // el SSE gana la carrera: el servidor ya publicó el evento y el POST todavía no ha vuelto
@@ -88,9 +88,9 @@ describe('Chat: burbuja optimista', () => {
     serve((path, init) => { if (path === '/messages' && init?.method === 'POST') throw new Error('http_500'); return [] })
     render(<Chat />)
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Mensaje para Kratos'), 'Se pierde?')
+    await user.type(screen.getByLabelText('Mensaje para Nomos'), 'Se pierde?')
     await user.click(screen.getByRole('button', { name: 'Enviar' }))
-    await waitFor(() => expect(screen.getByLabelText('Mensaje para Kratos')).toHaveValue('Se pierde?'), { timeout: 2000 })
+    await waitFor(() => expect(screen.getByLabelText('Mensaje para Nomos')).toHaveValue('Se pierde?'), { timeout: 2000 })
     expect(screen.queryByText('Enviando…', { selector: 'li span' })).not.toBeInTheDocument()
     expect(await screen.findByRole('alert')).toHaveTextContent('El servicio falló')
   })
@@ -101,7 +101,7 @@ describe('Actividad: carriles estables', () => {
 
   it('500 eventos: cada evento es un punto con etiqueta y los carriles no recortan', async () => {
     serve((path) => (path === '/tasks' ? [task('t1', 'Definir salto'), task('t2', 'Diseñar HUD')] : []))
-    const sources = ['Kratos', 'Codex', 'Claude Code', 'Meshy']
+    const sources = ['Nomos', 'Codex', 'Claude Code', 'Meshy']
     act(() => { for (let i = 0; i < 500; i++) ingest(event('task.activity', { payload: { source: sources[i % 4], taskId: i % 2 ? 't1' : 't2' } })) })
     const start = performance.now()
     inRouter(<Actividad />)
@@ -116,7 +116,7 @@ describe('Actividad: carriles estables', () => {
     serve((path) => (path === '/tasks' ? [task('t1', 'Definir salto'), task('t2', 'Diseñar HUD')] : []))
     const { refresh } = await import('@/store')
     await act(async () => { await refresh() })
-    act(() => { ingest(event('task.activity', { payload: { source: 'Codex', taskId: 't1' } })); ingest(event('task.activity', { payload: { source: 'Kratos', taskId: 't2' } })) })
+    act(() => { ingest(event('task.activity', { payload: { source: 'Codex', taskId: 't1' } })); ingest(event('task.activity', { payload: { source: 'Nomos', taskId: 't2' } })) })
     inRouter(<Actividad />)
     expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2)
     fireEvent.change(screen.getByRole('combobox', { name: 'Tarea' }), { target: { value: 't1' } })

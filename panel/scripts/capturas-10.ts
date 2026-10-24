@@ -1,6 +1,6 @@
-// Desde panel/, después de npm run build: node scripts/capturas-10.ts <etiqueta> [--datos <carpeta .kratos>]
+// Desde panel/, después de npm run build: node scripts/capturas-10.ts <etiqueta> [--datos <carpeta .nomos>]
 // Las nueve vistas a 1366×768 y 1920×1080 con medidas (ancho útil, palabras, tarjetas por fila) en docs/capturas-10/.
-// Sin --datos: semilla propia + entregas de una comprobación con varias vistas. Con --datos: una COPIA de un .kratos real.
+// Sin --datos: semilla propia + entregas de una comprobación con varias vistas. Con --datos: una COPIA de un .nomos real.
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { chromium } from '@playwright/test'
 import { visibleWords } from './palabras.ts'
 
-process.env.KRATOS_REGISTRY ??= join(tmpdir(), 'kratos-capturas-registro.json')
+process.env.NOMOS_REGISTRY ??= join(tmpdir(), 'nomos-capturas-registro.json')
 const tag = process.argv[2]
 if (!tag) throw new Error('Falta la etiqueta: antes, despues, revision…')
 const arg = (name: string) => process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : null
@@ -20,8 +20,8 @@ if (copyFrom) process.env.PATH = (process.env.PATH ?? '').split(';').filter((dir
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 const docs = resolve(import.meta.dirname, '../../docs')
 const out = join(docs, 'capturas-10')
-const root = mkdtempSync(join(tmpdir(), 'kratos-capturas-10-'))
-const data = join(root, '.kratos')
+const root = mkdtempSync(join(tmpdir(), 'nomos-capturas-10-'))
+const data = join(root, '.nomos')
 const views = [
   ['produccion', '/'], ['actividad', '/actividad'], ['entregas', '/entregas'], ['catalogo', '/catalogo'], ['chat', '/chat'],
   ['decisiones', '/decisiones'], ['presupuesto', '/presupuesto'], ['capacidades', '/capacidades'], ['estilo', '/estilo'],
@@ -43,7 +43,7 @@ function seedEntregas() {
     { severity: 'media', title: 'El salto ignora el coyote time', file: 'Source/Salto.cpp' },
     { severity: 'baja', title: 'Falta la constante en DefaultGame.ini', file: 'Config/DefaultGame.ini' }] }, null, 2))
   writeFileSync(join(dir, 'qa.md'), '# QA visual\n\nVeredicto: aprobado\n\nEl HUD se lee a 1280×720 y 1920×1080.\n')
-  const db = new DatabaseSync(join(data, 'kratos.db'))
+  const db = new DatabaseSync(join(data, 'nomos.db'))
   const now = Date.now()
   const put = db.prepare(`insert into artifacts(id,created_at,updated_at,task_id,run_id,kind,path,preview_path,provenance,license) values(?,?,?,?,null,?,?,?,?,null)`)
   const add = (id: string, kind: string, file: string, provenance: object, preview: string | null = null, ago = 0) => {
@@ -78,7 +78,7 @@ const browser = await chromium.launch()
 try {
   for (const [width, height] of [[1366, 768], [1920, 1080]] as const) {
     const context = await browser.newContext({ viewport: { width, height }, colorScheme: 'dark', reducedMotion: 'reduce' })
-    await context.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+    await context.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
     const page = await context.newPage()
     for (const [name, path] of views) {
       await page.goto(`http://127.0.0.1:${port}${path}#token=${token}`)
@@ -115,7 +115,7 @@ try {
     await context.close()
   }
   const revision = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim()
-  writeFileSync(join(out, `medidas-${tag}.json`), JSON.stringify({ revision, datos: copyFrom ? 'copia de un .kratos real' : 'semilla + entregas de capturas-10', medidas: measures }, null, 2) + '\n')
+  writeFileSync(join(out, `medidas-${tag}.json`), JSON.stringify({ revision, datos: copyFrom ? 'copia de un .nomos real' : 'semilla + entregas de capturas-10', medidas: measures }, null, 2) + '\n')
 } finally {
   await browser.close()
   try { execFileSync(process.execPath, [cli, 'stop', '--data', data], { stdio: 'ignore' }) } catch { /* ya parado */ }

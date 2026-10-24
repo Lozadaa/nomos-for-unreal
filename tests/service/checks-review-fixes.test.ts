@@ -48,7 +48,7 @@ test('Crítico 1: sin ciclo UMG para el commit se encola uno con clave propia au
 test('Importante 2: una comprobación que el diff ya no exige no bloquea la puerta', async () => {
   const f = checksFixture({files: ['Source/Juego/Vida.cpp']});
   try {
-    process.env.KRATOS_FAKE = 'fail';
+    process.env.NOMOS_FAKE = 'fail';
     await f.run();
     assert.equal(rows(f)[0].result, 'failed');
     moveTask(f.db, f.task.id, 'probando');
@@ -64,7 +64,7 @@ test('Importante 3: un asset borrado no se valida como si debiera existir', asyn
   try {
     const {rmSync} = await import('node:fs');
     rmSync(join(f.projectDir, 'Content', 'Maps', 'Viejo.umap'));
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     assert.equal((await f.run()).passed, true);
     const log = rows(f)[0].reportPath!;
     const {readFileSync} = await import('node:fs');
@@ -100,13 +100,13 @@ test('Importante 5: el resumen conserva el titular aunque no diga «error»', ()
 });
 
 test('Importante 6: el script de la captura con espacios en la ruta llega por variable de entorno', async () => {
-  process.env.KRATOS_FAKE = 'ok';
+  process.env.NOMOS_FAKE = 'ok';
   const fake = join(import.meta.dirname, '..', 'fakes', 'unreal-cmd.mjs');
-  const script = 'C:/Archivos de Juan, Pérez/kratos_pie_capture.py';
+  const script = 'C:/Archivos de Juan, Pérez/nomos_pie_capture.py';
   const {mkdtempSync} = await import('node:fs');
   const {tmpdir} = await import('node:os');
-  const shot = join(mkdtempSync(join(tmpdir(), 'kratos-shot-')), 'ui.png');
-  const run = await createUnrealCmd({bin: process.execPath, baseArgs: [fake]}).runPython('C:/J/Juego.uproject', script, {KRATOS_SHOT: shot}, 5000,
+  const shot = join(mkdtempSync(join(tmpdir(), 'nomos-shot-')), 'ui.png');
+  const run = await createUnrealCmd({bin: process.execPath, baseArgs: [fake]}).runPython('C:/J/Juego.uproject', script, {NOMOS_SHOT: shot}, 5000,
     {render: {width: 1280, height: 720}});
   const args = run.reportJson!.args as string[];
   const exec = args.find(a => a.startsWith('-ExecCmds='))!;
@@ -117,7 +117,7 @@ test('Importante 6: el script de la captura con espacios en la ruta llega por va
 test('Importante 7: tras un reinicio, las filas en curso del run reutilizado se vuelven a ejecutar', async () => {
   const f = checksFixture({files: ['Content/Blueprints/BP_Puerta.uasset']});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const command = {id: 'cmd-r'};
     const run = startRun(f.db, {taskId: f.task.id, role: 'qa', provider: 'unreal', metadata: {commandId: command.id}});
     recordTestRun(f.db, {taskId: f.task.id, runId: run.id, checkId: 'blueprint', result: 'running', commit: COMMIT});

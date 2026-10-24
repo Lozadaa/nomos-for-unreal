@@ -1,10 +1,10 @@
-# Plan de desarrollo de Kratos · v2 (diseño, skills y pipeline completo)
+# Plan de desarrollo de Nomos · v2 (diseño, skills y pipeline completo)
 
-Revisión del plan del 22 de octubre de 2026 (`kratos-unreal-ai-plan.md`). Conserva la arquitectura, roles, ciclo de tareas e integraciones de v1 y añade lo que faltaba:
+Revisión del plan del 22 de octubre de 2026 (`nomos-unreal-ai-plan.md`). Conserva la arquitectura, roles, ciclo de tareas e integraciones de v1 y añade lo que faltaba:
 
 - el diseño del panel como fase con entregables y puertas de calidad;
 - el stack de skills y herramientas de **todo el pipeline** (panel web, editor Unreal, gameplay, arte 3D, personajes y animación, mundo, VFX, audio, UI/UX de videojuegos, QA, build y entrega), con lo que ya tienes instalado separado de lo que hay que instalar o desarrollar;
-- el enrutado de skills por rol de Kratos;
+- el enrutado de skills por rol de Nomos;
 - un módulo de catálogo de assets con la política «buscar antes de generar», la política de autonomía, y ajustes de seguridad, presupuesto, decisiones y datos semilla.
 
 Lo que no se menciona aquí sigue como en v1. Todo es plan, no implementación probada. Las cifras de popularidad de skills varían según el directorio consultado y no se citan como dato.
@@ -13,8 +13,8 @@ Lo que no se menciona aquí sigue como en v1. Todo es plan, no implementación p
 
 Lo que está bien y se mantiene:
 
-- La experiencia de uso (invocar `/kratos`, director persistente, panel como lugar de operación) es coherente con el patrón del dojo ya probado (`serve.py` + `vigila.py` + Monitor rearmado).
-- DONE exige evidencia y cierre de recursos; Kratos no concede DONE por el mensaje final de un worker. Es la decisión más importante del plan.
+- La experiencia de uso (invocar `/nomos`, director persistente, panel como lugar de operación) es coherente con el patrón del dojo ya probado (`serve.py` + `vigila.py` + Monitor rearmado).
+- DONE exige evidencia y cierre de recursos; Nomos no concede DONE por el mensaje final de un worker. Es la decisión más importante del plan.
 - Idempotencia, outbox, reconciliación antes de reintentar trabajos pagos y retención propia de assets de Meshy: cubre los fallos caros.
 - Paralelismo específico de Unreal (reservas por asset, un escritor por editor, cola de PIE/importación) es realista.
 - Hitos ordenados por riesgo y catorce pruebas de aceptación verificables.
@@ -27,7 +27,7 @@ Lo que falta y motiva v2:
 4. Faltan vistas que la propia lógica exige: estado del director, bandeja de decisiones, presupuesto, capacidades, catálogo.
 5. El servicio HTTP local no define autenticación.
 6. El panel no puede diseñarse ni probarse sin Unreal, Meshy y Codex funcionando: hace falta una producción semilla.
-7. Componentes sin decisión (Kanban, carriles, visor GLB, chat) y skill `/kratos` sin estructura ni criterio de calidad.
+7. Componentes sin decisión (Kanban, carriles, visor GLB, chat) y skill `/nomos` sin estructura ni criterio de calidad.
 
 ## 1. Qué cambia respecto a v1
 
@@ -42,7 +42,7 @@ Lo que falta y motiva v2:
 | Datos | «Datos de prueba» | `seed` determinista | Diseñar y probar sin integraciones |
 | Componentes | A componer | §2.5 cerrado | Menos código y dependencias |
 | Unreal MCP | «Capacidades del editor mediante MCP» | Un solo MCP: el oficial de Epic; alternativas evaluadas y no adoptadas | Evitar herramientas duplicadas |
-| Skill Kratos | Comandos listados | Estructura tipo dojo + skillsmith ≥ 95 | Nacer con la calidad del dojo |
+| Skill Nomos | Comandos listados | Estructura tipo dojo + skillsmith ≥ 95 | Nacer con la calidad del dojo |
 
 ## 2. Diseño del panel como fase
 
@@ -66,7 +66,7 @@ Un archivo `theme.ts` mostrado en `/estilo`: `colorPrimary`, `colorBgLayout`, `c
 |---|---|---|
 | Franja del director (siempre visible) | Servicio · listener · última recepción confirmada · trabajo en curso; Pausar/Reanudar | Conectado, escuchando, trabajando, listener expirado (rearmando), desconectado |
 | Producción (Kanban) | 8 columnas de v1; tarjeta con responsable, dependencias, run, worktree, skills cargadas, última actividad, pruebas | Vacío, bloqueada, esperando decisión, Cerrando con fallo |
-| Actividad (carriles) | Kratos, Codex, Claude Code, Meshy, Blender, Unreal, builds; filtro por tarea/run; causa → efecto | Vacío, sin resultados, hueco por desconexión |
+| Actividad (carriles) | Nomos, Codex, Claude Code, Meshy, Blender, Unreal, builds; filtro por tarea/run; causa → efecto | Vacío, sin resultados, hueco por desconexión |
 | Entregas (galería) | Modelos, texturas, capturas, vídeos, antes/después, builds; visor GLB | Job en progreso, enlace vencido con copia propia, importación fallida |
 | Catálogo (nueva) | Assets propios e indexados: origen, estado, licencia, miniatura, compatibilidad; «Preparar para Unreal» crea tarea | Sin indexar, indexando, licencia desconocida, instalado en proyecto |
 | Chat + detalle de tarea | Chat central; Drawer con Resumen, Chat, Cambios, Pruebas, Assets, Timeline; «Pedir cambios al responsable» | No confirmado, pendiente, continuación tras DONE |
@@ -104,18 +104,18 @@ Dos o tres direcciones HTML (tablero + franja + tarjeta abierta + catálogo) com
 
 ## 3. Skills y herramientas de todo el pipeline
 
-Criterios: adopción amplia, repositorio público con licencia leída, y aportación distinta entre sí. Procedimiento de instalación: el del catálogo del jam (`docs/third-party-skills.md`): copia de inspección, revisión fijada, carpeta completa, `LICENSE.upstream`, sin ejecutar instaladores sin leerlos. Las skills del panel van al repositorio de Kratos; las de producción, al repositorio de cada juego (o al workspace de integración de Kratos). No se instalan todas a la vez: cada hito activa las de su etapa.
+Criterios: adopción amplia, repositorio público con licencia leída, y aportación distinta entre sí. Procedimiento de instalación: el del catálogo del jam (`docs/third-party-skills.md`): copia de inspección, revisión fijada, carpeta completa, `LICENSE.upstream`, sin ejecutar instaladores sin leerlos. Las skills del panel van al repositorio de Nomos; las de producción, al repositorio de cada juego (o al workspace de integración de Nomos). No se instalan todas a la vez: cada hito activa las de su etapa.
 
 Estados: **instalado** (ya en `~/.claude/skills` o como plugin en tu equipo), **instalar** (existe, fijar revisión), **desarrollar** (propuesta propia), **evaluado, no adoptado**, **no verificado**.
 
-### 3.1 Panel web de Kratos (diseño y UI)
+### 3.1 Panel web de Nomos (diseño y UI)
 
 | Skill | Fuente | Para qué | Estado | Cuándo |
 |---|---|---|---|---|
 | frontend-design | Anthropic, plugin oficial | Dirección estética inicial; evita los looks genéricos de IA | Instalado | 1a |
 | ui-ux-pro-max | davila7 | Paletas, pares tipográficos, patrones de dashboard | Instalado | 1a |
 | frontend-design-studio | Local | Del brief a páginas con identidad consistente | Instalado | 1a-1b |
-| Impeccable | pbakaus/impeccable, Apache 2.0 | `init`, `shape`, `critique`, `audit`, `polish`, `harden`, `onboard`, `clarify`, `animate` | Instalar: `npx impeccable install` en la raíz del repo de Kratos | Desde 1b |
+| Impeccable | pbakaus/impeccable, Apache 2.0 | `init`, `shape`, `critique`, `audit`, `polish`, `harden`, `onboard`, `clarify`, `animate` | Instalar: `npx impeccable install` en la raíz del repo de Nomos | Desde 1b |
 | web-design-guidelines | vercel-labs/agent-skills | Auditoría de accesibilidad/UX/UI (descarga reglas de GitHub en cada uso) | Instalar: `npx skills add vercel-labs/agent-skills --skill web-design-guidelines --agent claude-code` | Cada puerta |
 | antd (oficial) | ant-design/antd-skill, MIT | API y tokens de antd v6 sin red; `ant-design` cubre Ant Design X v2 | Instalar: `npx skills add ant-design/antd-skill` | Desde 1b |
 | emilkowalski/skills | Emil Kowalski, MIT | `emil-design-eng`, `animate`, `find-animation-opportunities`, `review-animations`, `break-ui` | Adoptado en Noovo; instalar igual: `npx skills@latest add emilkowalski/skills` | 7 |
@@ -126,7 +126,7 @@ Estados: **instalado** (ya en `~/.claude/skills` o como plugin en tu equipo), **
 | dataviz | Built-in | Si Presupuesto o Actividad llegan a necesitar gráficos | Disponible | Solo si §2.5 se revisa |
 | Figma MCP | Oficial | Conservar la maqueta elegida | Conectado | 1a, opcional |
 | superpowers | Anthropic plugin | brainstorming → writing-plans → TDD → verification | Instalado | Todo |
-| skillsmith | `npx @lozadaa/skillsmith` | Calidad de la skill `/kratos` | Lo usaste en el dojo | Antes de 2 y al cerrar |
+| skillsmith | `npx @lozadaa/skillsmith` | Calidad de la skill `/nomos` | Lo usaste en el dojo | Antes de 2 y al cerrar |
 
 Descartadas: Taste y Hallmark (landing pages), `canvas-design`/`algorithmic-art`, `ui-skills` (solapa con ui-ux-pro-max y antd-skill). Si el panel queda soso, `/impeccable bolder` antes que otra skill.
 
@@ -158,7 +158,7 @@ Descartadas: Taste y Hallmark (landing pages), `canvas-design`/`algorithmic-art`
 | Meshy MCP oficial | `@meshy-ai/meshy-mcp-server` (meshy-dev/meshy-mcp-server) | `meshy_text_to_3d`, `meshy_image_to_3d`, `meshy_remesh`, `meshy_retexture`, `meshy_rig`, `meshy_animate`, text-to-motion, `meshy_list_tasks`, `meshy_cancel_task`, `meshy_download_model` (24 herramientas) | Instalar; `MESHY_API_KEY` en el servicio, no en el navegador | Devuelve task id; el adaptador de v1 §8 reconcilia con `meshy_get_task_status`. Retención de 3 días: copiar siempre |
 | Blender MCP | Conectado en tu equipo | Ejecutar las skills de Blender | Conectado | — |
 | Pack Blender | Local: blender-director, blender-modeler, retopology, uv-workflow, texture-workflow, materials, asset-optimization, lod-pipeline, collision-proxy, export-pipeline, unreal-export, qa-review, lookdev, rendering, lighting, sculpting, hard-surface, prop-artist, character-artist, creature-artist, vehicle-artist, environment-artist, vegetation-artist, set-dressing, scene-assembly, geometry-nodes, procedural-modeling, physics-sim, cloth-sim, hair-groom, rigging, animation, vfx-fx, compositing, camera-cinematography | Preparar lo que llega de Meshy/Fab/CC0: escala, pivote, LOD, UCX, materiales, FBX para Unreal; QA con capturas | Instalado | `blender-director` enruta al resto; `unreal-export` es la salida estándar |
-| Estilos y moods | Local: lowpoly-style, stylized-style, hand-painted-style, pixel-art-style, realistic-style, isometric-style, cartoon-style, anime-style, voxel-style, retro-8bit/16bit, psx-horror-style y ~25 más; genre-* | Dirección artística por juego; el brief del juego fija uno y Kratos lo pasa a cada worker de arte | Instalado | Consistencia: un estilo por workspace, en `ue-project-context` |
+| Estilos y moods | Local: lowpoly-style, stylized-style, hand-painted-style, pixel-art-style, realistic-style, isometric-style, cartoon-style, anime-style, voxel-style, retro-8bit/16bit, psx-horror-style y ~25 más; genre-* | Dirección artística por juego; el brief del juego fija uno y Nomos lo pasa a cada worker de arte | Instalado | Consistencia: un estilo por workspace, en `ue-project-context` |
 | ue-asset-intake | Propuesta del jam | Procedencia, licencia, escala, colisión, presupuesto de polígonos | Desarrollar (esqueleto existe) | Se convierte en el contrato de «Preparar para Unreal» del Catálogo |
 | ue-materials-rendering | quodsoler | Materiales e instancias en Unreal | Instalado | — |
 | Substance 3D Sampler, ComfyUI | Adobe / comunidad | Texturas y concept art con API | Evaluado, fase posterior | Solo si el estilo del juego lo exige; ComfyUI tiene API HTTP |
@@ -186,7 +186,7 @@ Fuentes de assets (se indexan en el Catálogo, §5.6):
 | MetaHuman: toolset `MetaHumanGenerator` + Character Python API | Epic (en tu UE 5.8.3: plugins MetaHumanCharacter, Animator, Crowd, LiveLink y el toolset) | El toolset ya expone create, set_body_shape, set_skin_tone, set_eye_color, begin/end_edit y finalize; la Python API (`MetaHumanCharacterEditorSubsystem`, scripts de ejemplo en `Engine/Plugins/MetaHuman/MetaHumanCharacter/Content/Python/`) cubre esculpir, conformar y auto-rig | Instalado con el motor; toolset propio con `create-toolset` solo para lo que el oficial no cubra | Gap conocido en 5.8.0 (`RemoveBodyRig` no expuesto; comprobar en tu 5.8.3). Partes del flujo dependen de servicios en la nube de Epic |
 | MetaHuman Animator | Epic | Facial y diálogos | Fase posterior | Python/Blueprints |
 | DeepMotion | API REST bajo solicitud | Vídeo → animación | Evaluado, fase posterior | Conector propio cuando haya acceso |
-| Cascadeur, Rokoko Vision | Herramientas de escritorio | Pulir ataques; captura con cámara | Fuera de automatización: paso manual documentado | Kratos crea la tarea y espera el archivo |
+| Cascadeur, Rokoko Vision | Herramientas de escritorio | Pulir ataques; captura con cámara | Fuera de automatización: paso manual documentado | Nomos crea la tarea y espera el archivo |
 
 ### 3.6 Mundo, VFX y audio
 
@@ -232,7 +232,7 @@ Ciclo obligatorio de toda tarea de UI (lo verifica el coordinador, no el worker)
 
 No verificado: el pack «Unreal Engine Skills de Buckley Builds (62 skills, Ultra Dynamic Sky/Weather)» no aparece en ninguna fuente consultada; no se adopta hasta tener repositorio y licencia.
 
-## 4. Enrutado de skills por rol de Kratos
+## 4. Enrutado de skills por rol de Nomos
 
 `start_worker` lleva el campo `skills` (lista que el worker carga al arrancar en su worktree) y `style` (estilo artístico del workspace). Capacidades muestra qué skills tiene disponible cada workspace; el primer evento del worker confirma las cargadas.
 
@@ -248,7 +248,7 @@ No verificado: el pack «Unreal Engine Skills de Buckley Builds (62 skills, Ultr
 | QA Unreal | ue-testing-debugging, ue-visual-qa, ue-test-package, unreal-packaging | Informe por commit, mapa, configuración |
 | Revisor | code-review, superpowers:requesting-code-review, architect-review en cambios de arquitectura | Observaciones ligadas a una revisión |
 | Alcance (game jam) | ue-jam-director, game-jam | Brief, recortes y siguiente entrega jugable |
-| Panel de Kratos | §3.1 según la puerta | §2.6 |
+| Panel de Nomos | §3.1 según la puerta | §2.6 |
 
 ## 5. Ajustes de arquitectura
 
@@ -258,23 +258,23 @@ Escucha solo en `127.0.0.1`; token aleatorio por arranque que la skill pasa una 
 
 ### 5.2 Presupuesto como entidad
 
-`Budget` por workspace y por tarea (créditos Meshy, tokens por proveedor, créditos ElevenLabs, minutos de build) y `Spend` atómico por run/job. `request_asset_job` y `start_worker` comprueban antes de ejecutar; agotado, Kratos crea una Decisión.
+`Budget` por workspace y por tarea (créditos Meshy, tokens por proveedor, créditos ElevenLabs, minutos de build) y `Spend` atómico por run/job. `request_asset_job` y `start_worker` comprueban antes de ejecutar; agotado, Nomos crea una Decisión.
 
 ### 5.3 Decisión como entidad
 
-`Decision` con tarea, motivo, evidencia, opciones propuestas, elegida, quién y cuándo. Caduca si cambia el contexto (nuevo commit, job terminado) y Kratos la regenera. Las alternativas creativas («te presento tres candidatos») también son Decisiones: con miniaturas en la bandeja.
+`Decision` con tarea, motivo, evidencia, opciones propuestas, elegida, quién y cuándo. Caduca si cambia el contexto (nuevo commit, job terminado) y Nomos la regenera. Las alternativas creativas («te presento tres candidatos») también son Decisiones: con miniaturas en la bandeja.
 
 ### 5.4 Producción semilla
 
-`kratos seed`: workspace de demo con 12 tareas en todas las columnas, tres runs, un job Meshy simulado, 30 entradas de catálogo con licencias variadas, una Decisión pendiente y una hora de timeline. Determinista; base de `/estilo` y de los e2e del panel.
+`nomos seed`: workspace de demo con 12 tareas en todas las columnas, tres runs, un job Meshy simulado, 30 entradas de catálogo con licencias variadas, una Decisión pendiente y una hora de timeline. Determinista; base de `/estilo` y de los e2e del panel.
 
-### 5.5 Estructura de la skill `/kratos`
+### 5.5 Estructura de la skill `/nomos`
 
 Como el dojo: `SKILL.md` (≤ 400 líneas, tabla de argumentos `estado`, `reanudar`, `pausar`, `cerrar`), `scripts/` (`serve`, `vigila` con latido + tail de la bandeja, `seed`), `references/` (contrato de eventos, contrato de herramientas, puertas de calidad, enrutado §4), `evals/` con tres casos. skillsmith ≥ 95 antes de hito 2.
 
 ### 5.6 Catálogo de assets y extracción desde Fab
 
-Requisito tuyo del 2026-10-22: «En el FAB tengo muchos assets, tiene que poder extraerlos de allí e integrarlos en Unreal». El «Game Asset Hub» del contexto se integra como vista y módulo de Kratos, no como aplicación aparte: mismo servicio, misma SQLite, misma autenticación.
+Requisito tuyo del 2026-10-22: «En el FAB tengo muchos assets, tiene que poder extraerlos de allí e integrarlos en Unreal». El «Game Asset Hub» del contexto se integra como vista y módulo de Nomos, no como aplicación aparte: mismo servicio, misma SQLite, misma autenticación.
 
 Lo observado en tu equipo el 2026-10-22:
 
@@ -286,19 +286,19 @@ Lo observado en tu equipo el 2026-10-22:
 
 Entidades: `AssetSource` (Fab, Megascans, Poly Haven, ambientCG, Kenney, Quaternius, Sketchfab, 3D Asset Server, Freesound, Meshy generado, Blender preparado), `CatalogEntry` (nombre, categoría, descripción, origen y URL, `fab_uid` y `entitlement_uid`, estado adquirido/descargado/en caché/importado, proyectos donde está, formatos descargados, versión y compatibilidad UE, licencia y restricciones con `is_ai_forbidden`, miniatura, ruta local, archivos, etiquetas, esqueleto/animaciones si aplica) y `AssetUse` (qué tarea lo usó y en qué commit).
 
-Tres niveles de extracción, de más a menos oficial. Capacidades muestra cuál está activo y Kratos nunca promete un nivel que no lo esté:
+Tres niveles de extracción, de más a menos oficial. Capacidades muestra cuál está activo y Nomos nunca promete un nivel que no lo esté:
 
 | Nivel | Qué cubre | Mecanismo | Automatización |
 |---|---|---|---|
-| 1. Oficial, sin GUI | Todo lo que ya pasó por tu máquina: `Content/Fab` de cualquier proyecto, zips de la caché del plugin, Megascans Library, y los metadatos de toda tu biblioteca (`listings_v1.db`) | Indexador del servicio más un toolset Kratos en Python, registrado como los de Epic con `toolset_registry.tool_call`, que lista la caché con `FFabAssetsCache`, importa un zip cacheado o un FBX/GLB con `FFabGenericImporter::ImportAsset` o con `import_asset` del EditorToolset, y copia o migra `Content/Fab/<pack>` entre proyectos de la misma versión; después `SemanticSearchToolset` para buscar dentro del proyecto | Total |
-| 2. Oficial, GUI asistida | Assets comprados que nunca descargaste: la URL firmada solo la genera el frontend de Fab con tu sesión | (a) Kratos abre el listing en la pestaña Fab del editor (sesión iniciada con `Fab.Login`) o en el Launcher y pulsa «Add to project» por automatización de GUI (Computer Use u Orca); (b) si falla, cola «Descargas pendientes» en el Catálogo con botón que abre el listing y un detector que continúa solo al aparecer el pack en `Content/Fab` o en la caché; (c) para formatos de intercambio, receptor TCP del servicio para la exportación «Custom (socket port)» del Launcher, seguido de importación Interchange por MCP | Alta; el clic puede ser tuyo o del agente |
+| 1. Oficial, sin GUI | Todo lo que ya pasó por tu máquina: `Content/Fab` de cualquier proyecto, zips de la caché del plugin, Megascans Library, y los metadatos de toda tu biblioteca (`listings_v1.db`) | Indexador del servicio más un toolset Nomos en Python, registrado como los de Epic con `toolset_registry.tool_call`, que lista la caché con `FFabAssetsCache`, importa un zip cacheado o un FBX/GLB con `FFabGenericImporter::ImportAsset` o con `import_asset` del EditorToolset, y copia o migra `Content/Fab/<pack>` entre proyectos de la misma versión; después `SemanticSearchToolset` para buscar dentro del proyecto | Total |
+| 2. Oficial, GUI asistida | Assets comprados que nunca descargaste: la URL firmada solo la genera el frontend de Fab con tu sesión | (a) Nomos abre el listing en la pestaña Fab del editor (sesión iniciada con `Fab.Login`) o en el Launcher y pulsa «Add to project» por automatización de GUI (Computer Use u Orca); (b) si falla, cola «Descargas pendientes» en el Catálogo con botón que abre el listing y un detector que continúa solo al aparecer el pack en `Content/Fab` o en la caché; (c) para formatos de intercambio, receptor TCP del servicio para la exportación «Custom (socket port)» del Launcher, seguido de importación Interchange por MCP | Alta; el clic puede ser tuyo o del agente |
 | 3. No oficial, opcional | Listar y descargar packs UE nativos sin GUI | `ue-asset-cli` (MIT, PyPI 0.1.1 de 2024, reimplementación de Allar/ue-mp-downloader; código de autenticación de tu cuenta obtenido en epicgames.com/id y token en el keyring del sistema; declarado «Linux-compatible», sin verificar en Windows) como adaptador aislado del servicio. Puede romperse con cambios de Epic y es ajeno a su API pública | Total, solo si lo activas tú en Capacidades tras una Decisión; nunca cookies del navegador ni tokens copiados a mano |
 
 Evaluado y descartado: threenative-asset-mcp («Fab MCP»: sin licencia, rutas `/i/*` no documentadas y convierte los packs a GLB en vez de integrarlos en Unreal); inyectar JavaScript en el navegador embebido del plugin o reutilizar `GetAuthToken()` contra fab.com (privado y frágil).
 
-Indexación: escáner de `Content/` de cada proyecto (metadatos de `.uasset` por Python o Unreal MCP), caché del plugin, Megascans Library, `listings_v1.db`, y consulta por API de las fuentes CC0. Búsqueda con SQLite FTS5 sobre nombre, descripción y etiquetas; las descripciones naturales («cinco personajes de fantasía estilizados con esqueleto») las traduce Kratos a filtros. Embeddings solo si FTS no basta.
+Indexación: escáner de `Content/` de cada proyecto (metadatos de `.uasset` por Python o Unreal MCP), caché del plugin, Megascans Library, `listings_v1.db`, y consulta por API de las fuentes CC0. Búsqueda con SQLite FTS5 sobre nombre, descripción y etiquetas; las descripciones naturales («cinco personajes de fantasía estilizados con esqueleto») las traduce Nomos a filtros. Embeddings solo si FTS no basta.
 
-Política de Kratos ante una necesidad de asset, en este orden y visible en la Decisión:
+Política de Nomos ante una necesidad de asset, en este orden y visible en la Decisión:
 
 1. Catálogo propio: tu Fab ya descargado o en caché, generados y preparados anteriormente.
 2. Tu Fab no descargado, por el nivel 2 o el 3 que esté activo.
@@ -310,13 +310,13 @@ Política de Kratos ante una necesidad de asset, en este orden y visible en la D
 
 Comprobado el 2026-10-22 (prototipo en `outputs/kratos-fab-nivel1/`, informe `informe-nivel1.md`): el nivel 1 funciona de extremo a extremo. El indexador stdlib encontró 4 packs en 2 proyectos y 2 assets Megascans; un pack copiado de CrazyPadel a un proyecto nuevo creado sin el editor cargó al 100 % en `UnrealEditor-Cmd -ExecutePythonScript -NullRHI` en 10 s, con 0 dependencias faltantes. La caché del plugin es `FabSettings.CacheDirectoryPath`, por defecto `%TEMP%\FabLibrary`, y hoy no existe: tus packs vinieron de importaciones GLB, que no dejan zip. Ningún toolset del MCP ni el plugin Fab exponen herramientas de Fab: el MCP cubre importar, buscar y mover dentro del proyecto, no extraer de la biblioteca. La pelota de tenis mide 2 m: `ue-asset-intake` debe verificar escala en toda importación Fab.
 
-Nivel 2, comprobado el 2026-10-22 con Computer use (informe en `outputs/kratos-fab-nivel1/informe-nivel2.md`): el esquema `com.epicgames.launcher://ue/fab` abre la portada de Fab en el Launcher, pero la tienda embebida con Mi biblioteca es el elemento «Fab» del menú lateral (un clic, log `GoToUrl('[fab]')`). Con acceso de escritorio solo al Launcher, «Advanced Cel Shader Lite» (gratuito, formato UE, no descargado) entró en `KratosFabTest` con 5 clics (Fab → My Library → «+» → proyecto → Add to Project) y unos 8 s para 43,8 MB; el log confirma con `HandleTaskComplete AlertCode=[ok]` y `verify_pack.py` (ahora con `KRATOS_ROOT`) cargó 12/12 assets sin dependencias faltantes en 11 s. Hechos que cambian el diseño: (a) `listings_v1.db` no es un catálogo: recorrer Mi biblioteca entera (109 productos) no escribe nada; solo «Add to project» añade una fila mínima (uid, título, miniatura, `download_meta` con ruta a `VaultCache` y tamaño, `listing_acquisition`), con `entitlement_uid`, categoría y descripción vacíos, así que el detector de packs nuevos debe vigilar `VaultCache\*\data\Content\*` y el mtime de la base, y el inventario completo sigue dependiendo de la web embebida; (b) el pack cae en `Content\<CarpetaDelVendedor>` (aquí `AdvancedCelShader`), no en `Content\Fab`, y puede traer carpetas compartidas (`StarterContent`, 21 archivos) que el Launcher copia encima sin preguntar: añadir siempre a un proyecto cuarentena vacío y migrar por nivel 1; (c) si el asset no declara la versión del proyecto (este iba de 4.20 a 5.4) el diálogo dice «No compatible user projects found» y hacen falta «Show all projects» y elegir la versión más alta en «Select Version»: cuatro clics más y un aviso de compatibilidad en la Decisión. `index.py` indexa ya `launcher_packs` y `launcher_listings.downloads`.
+Nivel 2, comprobado el 2026-10-22 con Computer use (informe en `outputs/kratos-fab-nivel1/informe-nivel2.md`): el esquema `com.epicgames.launcher://ue/fab` abre la portada de Fab en el Launcher, pero la tienda embebida con Mi biblioteca es el elemento «Fab» del menú lateral (un clic, log `GoToUrl('[fab]')`). Con acceso de escritorio solo al Launcher, «Advanced Cel Shader Lite» (gratuito, formato UE, no descargado) entró en `KratosFabTest` con 5 clics (Fab → My Library → «+» → proyecto → Add to Project) y unos 8 s para 43,8 MB; el log confirma con `HandleTaskComplete AlertCode=[ok]` y `verify_pack.py` (ahora con `NOMOS_ROOT`) cargó 12/12 assets sin dependencias faltantes en 11 s. Hechos que cambian el diseño: (a) `listings_v1.db` no es un catálogo: recorrer Mi biblioteca entera (109 productos) no escribe nada; solo «Add to project» añade una fila mínima (uid, título, miniatura, `download_meta` con ruta a `VaultCache` y tamaño, `listing_acquisition`), con `entitlement_uid`, categoría y descripción vacíos, así que el detector de packs nuevos debe vigilar `VaultCache\*\data\Content\*` y el mtime de la base, y el inventario completo sigue dependiendo de la web embebida; (b) el pack cae en `Content\<CarpetaDelVendedor>` (aquí `AdvancedCelShader`), no en `Content\Fab`, y puede traer carpetas compartidas (`StarterContent`, 21 archivos) que el Launcher copia encima sin preguntar: añadir siempre a un proyecto cuarentena vacío y migrar por nivel 1; (c) si el asset no declara la versión del proyecto (este iba de 4.20 a 5.4) el diálogo dice «No compatible user projects found» y hacen falta «Show all projects» y elegir la versión más alta en «Select Version»: cuatro clics más y un aviso de compatibilidad en la Decisión. `index.py` indexa ya `launcher_packs` y `launcher_listings.downloads`.
 
 Pendiente de comprobar en hito 4: nivel 2 con un pack que incluya C++ o plugins (versión fuera de rango); detección automática del fin de copia por log en vez de captura; si `FFabMyLibraryContentSource` expone los listados propios a Python o TEDS; si `ue-asset-cli` funciona en Windows.
 
 ### 5.7 Política de autonomía
 
-Kratos y sus workers actúan sin preguntar para: buscar en el catálogo y fuentes CC0, programar, importar lo ya licenciado, probar, capturar, compilar, crear worktrees y commits. Pasa por Decisión: comprar, gastar por encima del presupuesto de la tarea, borrar assets del catálogo o worktrees con cambios, modificar sistemas marcados críticos en la configuración del workspace, publicar o enviar a una jam, y toda elección creativa entre alternativas.
+Nomos y sus workers actúan sin preguntar para: buscar en el catálogo y fuentes CC0, programar, importar lo ya licenciado, probar, capturar, compilar, crear worktrees y commits. Pasa por Decisión: comprar, gastar por encima del presupuesto de la tarea, borrar assets del catálogo o worktrees con cambios, modificar sistemas marcados críticos en la configuración del workspace, publicar o enviar a una jam, y toda elección creativa entre alternativas.
 
 ### 5.8 Versión del motor
 
@@ -329,9 +329,9 @@ Observado: UE 5.8.3 instalado, la misma versión que declaran las skills de quod
 | 0. Prueba de escucha | Skill mínima, servicio con token, página de intercambio | Una invocación conecta la sesión original; ida/vuelta y recuperación; 401 sin token | Ninguna |
 | 1a. Diseño | Brief, `theme.ts`, inventario §2.3, maquetas comparadas, `docs/diseno-visual.md`, `/estilo` | Legible a 1366×768 con barra lateral y 1920×1080; todos los estados de §2.3 dibujados | Auditoría Vercel + `/impeccable critique` |
 | 1b. Base persistente y shell | Arranque idempotente, SQLite con outbox, `seed`, shell con las 10 vistas | Reiniciar conserva datos; el shell entero funciona con `seed` | §2.6; capturas `docs/capturas-1b/` |
-| 2. Kratos y un worker real | Crear tarea, Codex en worktree, eventos y chat reales; `ue-project-context` del workspace | Petición → tarea → cambios → corrección al mismo responsable | Formulario cabe en 1366×768 |
+| 2. Nomos y un worker real | Crear tarea, Codex en worktree, eventos y chat reales; `ue-project-context` del workspace | Petición → tarea → cambios → corrección al mismo responsable | Formulario cabe en 1366×768 |
 | 3. Varios workers y skills | Claude hijo, dependencias, revisión, reservas, enrutado §4 en `start_worker` | Paralelismo y exclusión comprobados; Capacidades muestra skills por workspace | Tarjeta bloqueada y Decisión probadas |
-| 4. Catálogo y extracción Fab | Indexación (`listings_v1.db`, `Content/Fab` de los diez proyectos, caché del plugin, Megascans), toolset Kratos de importación, cola asistida y detector, receptor socket del Launcher, política §5.6, Meshy MCP, Blender, galería con `<model-viewer>`, Presupuesto | Un pack ya en caché o en otro proyecto se importa a un proyecto nuevo sin GUI; uno no descargado entra por nivel 2 y el detector continúa solo; una necesidad recorre Fab propio → CC0 → Meshy con Decisiones; gasto visible | Catálogo y galería auditados |
+| 4. Catálogo y extracción Fab | Indexación (`listings_v1.db`, `Content/Fab` de los diez proyectos, caché del plugin, Megascans), toolset Nomos de importación, cola asistida y detector, receptor socket del Launcher, política §5.6, Meshy MCP, Blender, galería con `<model-viewer>`, Presupuesto | Un pack ya en caché o en otro proyecto se importa a un proyecto nuevo sin GUI; uno no descargado entra por nivel 2 y el detector continúa solo; una necesidad recorre Fab propio → CC0 → Meshy con Decisiones; gasto visible | Catálogo y galería auditados |
 | 5. Unreal, UI y QA | Unreal MCP oficial comprobado; cambio de gameplay real; bucle UMG §3.7 con `ue-visual-qa`; capturas; build | Una petición produce un cambio real en Unreal con evidencia; una pantalla UMG pasa el ciclo completo | Entregas muestra capturas con metadatos |
 | 5b. Personajes y animación | Meshy rig/animate → retarget en Unreal; toolset MetaHuman si 5.8+ | Un personaje animado reproducido en PIE con captura; MetaHuman solo si Capacidades lo marca disponible | Comparación de candidatos en Decisiones |
 | 6. Integración y cierre | Verificación integrada, preservación, retirada de worktrees, continuación tras DONE | DONE deja commits e historial; continuación con atribución | Columna Cerrando con fallo probada |
@@ -342,22 +342,22 @@ Observado: UE 5.8.3 instalado, la misma versión que declaran las skills de quod
 ## 7. Pruebas de aceptación añadidas (continúan v1)
 
 15. Petición sin token → 401; token de un arranque anterior → 401.
-16. `kratos seed` deja el panel entero navegable sin Unreal, Meshy ni Codex; los e2e corren sobre la semilla.
+16. `nomos seed` deja el panel entero navegable sin Unreal, Meshy ni Codex; los e2e corren sobre la semilla.
 17. A 1366×768 con barra lateral, el formulario de nueva tarea muestra título, primera fila y acción principal sin scroll; ningún desplegable cortado.
 18. Cada vista tiene sus estados reproducibles desde `/estilo` y pasa `web-design-guidelines` sin errores de accesibilidad.
 19. Agotar el presupuesto Meshy no lanza el job y crea una Decisión con el gasto.
-20. Resolver una Decisión queda registrado y Kratos continúa sin repetir contexto.
-21. La franja distingue «listener activo» de «Kratos confirmó recepción».
+20. Resolver una Decisión queda registrado y Nomos continúa sin repetir contexto.
+21. La franja distingue «listener activo» de «Nomos confirmó recepción».
 22. `start_worker` con una tarea UMG carga las skills de §4 y el worker las reporta en su primer evento.
 23. El visor GLB abre un modelo de la semilla y uno de Meshy con la misma interacción.
 24. Kanban, Drawer y Catálogo recorribles con teclado y foco visible.
-25. `/kratos` pasa skillsmith ≥ 95 y sus tres evals.
+25. `/nomos` pasa skillsmith ≥ 95 y sus tres evals.
 26. «Necesito cinco personajes de fantasía estilizados con esqueleto» devuelve primero candidatos del catálogo propio, luego CC0; Meshy solo tras Decisión o dentro de presupuesto.
 27. Toda entrada del catálogo muestra licencia; importar una de licencia desconocida crea una Decisión en vez de importar.
 28. Una pantalla UMG no se declara terminada sin captura en PIE con la UI visible e informe de `ue-visual-qa`; el coordinador rechaza el cierre sin ella.
 29. Capacidades muestra un único MCP de Unreal; configurar otro se marca como conflicto.
 30. Con motor anterior a 5.8, Capacidades marca MetaHuman ausente y ninguna tarea lo promete.
-31. Un asset de Fab presente en otro proyecto o en la caché del plugin se importa al proyecto objetivo por el toolset sin abrir la pestaña Fab, y queda en el Catálogo enlazado a su listing. (La parte de copia y verificación sin GUI quedó demostrada el 2026-10-22 con el prototipo de `kratos-fab-nivel1`; falta el enlace al listing porque `listings_v1.db` está vacía.)
+31. Un asset de Fab presente en otro proyecto o en la caché del plugin se importa al proyecto objetivo por el toolset sin abrir la pestaña Fab, y queda en el Catálogo enlazado a su listing. (La parte de copia y verificación sin GUI quedó demostrada el 2026-10-22 con el prototipo de `nomos-fab-nivel1`; falta el enlace al listing porque `listings_v1.db` está vacía.)
 32. Un asset comprado y no descargado aparece en «Descargas pendientes»; tras pulsar «Add to project» (el agente o tú) el detector lo registra e importa sin intervención adicional.
 33. El Catálogo muestra toda la biblioteca a partir de `listings_v1.db` aunque nada esté descargado, con `is_ai_forbidden` visible; un asset con esa marca no puede enviarse a Meshy.
 34. Una exportación «Custom (socket port)» del Launcher llega al receptor del servicio y termina importada por Interchange con su entrada de catálogo.
@@ -367,7 +367,7 @@ Observado: UE 5.8.3 instalado, la misma versión que declaran las skills de quod
 
 Dos hilos en paralelo desde el primer día:
 
-- Riesgo técnico (0 → 1b → 2 → 3): **invocar skill → abrir panel con token → enviar petición → despertar Kratos → crear tarea → worker en worktree → resultado → corrección**.
+- Riesgo técnico (0 → 1b → 2 → 3): **invocar skill → abrir panel con token → enviar petición → despertar Nomos → crear tarea → worker en worktree → resultado → corrección**.
 - Diseño (1a): brief → tokens → maquetas → elección → `/estilo` sobre la semilla.
 
 Se juntan en 1b. Después el catálogo con la política de assets (4), el cambio real en Unreal con el bucle de UI (5), personajes y animación (5b), cierre (6) y acabado (7). Para una game jam concreta, el orden mínimo es 0, 1b sin pulir, 2, 4 solo catálogo local, 5 y 7 solo empaquetado; el resto después de la jam.
@@ -376,13 +376,13 @@ Se juntan en 1b. Después el catálogo con la política de assets (4), el cambio
 
 - Arrastrar y soltar en el Kanban; modo oscuro (tokens preparados); Storybook; librería de gráficos, Gantt, terminal embebido; sincronización continua con Figma; multiusuario y más hosts/GPU.
 - Un segundo MCP de Unreal (Flopperam/Aura, sam-david): duplican herramientas y complican el diagnóstico.
-- Cookies del navegador, tokens copiados a mano o reimplementar endpoints internos de Fab dentro de Kratos: nunca. El único camino no oficial es el adaptador opcional `ue-asset-cli` del nivel 3, apagado por defecto.
+- Cookies del navegador, tokens copiados a mano o reimplementar endpoints internos de Fab dentro de Nomos: nunca. El único camino no oficial es el adaptador opcional `ue-asset-cli` del nivel 3, apagado por defecto.
 - Houdini Engine (PCG cubre v1), Suno/AIVA y FMOD (música por biblioteca con licencia), Convai y NVIDIA ACE (enemigos con State Trees deterministas), DeepMotion (hasta tener acceso a su API), Cascadeur y Rokoko (pasos manuales documentados), Gauntlet (hito 7+), ComfyUI y Substance (solo si el estilo lo exige), MetaHuman Animator.
 - Skills no verificadas (Buckley Builds) y colecciones generalistas (Jeffallan game-developer).
 
 ## Fuentes
 
-- Plan v1 `kratos-unreal-ai-plan.md`, notas `work/*.md` y catálogo `unreal-game-jam/docs/third-party-skills.md` (ZIP de outputs, con revisiones fijadas de Epic, quodsoler, maystudios, ibrews, gamedev-skills).
+- Plan v1 `nomos-unreal-ai-plan.md`, notas `work/*.md` y catálogo `unreal-game-jam/docs/third-party-skills.md` (ZIP de outputs, con revisiones fijadas de Epic, quodsoler, maystudios, ibrews, gamedev-skills).
 - Contexto del ecosistema pegado por el usuario el 2026-10-22 (Fab, Meshy, MetaHuman, animación, 12 sistemas, estrategia de jam, investigación de skills). Las afirmaciones no verificadas se marcan como tales.
 - Decisiones de Noovo reutilizadas: notas de Second Brain del 2026-10-19 y 2026-10-20.
 - Fab en el Launcher (lotes, ubicación de descarga, socket port): https://dev.epicgames.com/documentation/en-us/fab/exporting-assets-from-fab-in-launcher.

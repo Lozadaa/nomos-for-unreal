@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { KratosEvent, Task, TaskDetail } from '@/lib/tasks'
+import type { NomosEvent, Task, TaskDetail } from '@/lib/tasks'
 
 vi.mock('@/api', () => {
   class ApiError extends Error {
@@ -18,7 +18,7 @@ import { ChangesTab, WorkerChatTab } from './TaskTabs'
 
 const mockApi = vi.mocked(api)
 let seq = 0
-const event = (type: string, payload: Record<string, unknown> = {}): KratosEvent => ({
+const event = (type: string, payload: Record<string, unknown> = {}): NomosEvent => ({
   seq: ++seq, id: `e${seq}`, type, messageId: null, payload, createdAt: new Date(Date.UTC(2026, 9, 23, 10, 0, seq)).toISOString(),
 })
 const task = { id: 't1', title: 'Cámara', scope: ['Source/Cam'] } as unknown as Task

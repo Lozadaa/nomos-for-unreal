@@ -30,7 +30,7 @@ test('tabla §4: implementación, habilidades, assets, animación, mundo, QA y a
   assert.deepEqual(skillsForRole('desconocido','desconocida'),[]);
 });
 test('installedSkills enumera solo SKILL.md locales por fuente y nombre deterministas',t=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-skills-'));
+  const dir=mkdtempSync(join(tmpdir(),'nomos-skills-'));
   t.after(()=>rmSync(dir,{recursive:true,force:true}));
   const add=(source:string,name:string,file='SKILL.md')=>{
     const folder=join(dir,source,'skills',name);mkdirSync(folder,{recursive:true});

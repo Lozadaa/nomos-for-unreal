@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Tarea ui: «Añade un HUD con barra de vida que baje al pulsar H» en un proyecto Blueprint de UE 5.8.3, con docs/ui-direction.md.",
-      "expected_output": "Lee ui-direction, detecta que no hay Source/, elige la vía C++ (widget que construye el árbol en código) porque Python no puede añadir widgets, añade módulo, Build.cs con UMG, widget, controlador con BindKey H y GameMode en DefaultEngine.ini, compila con Build.bat y termina con KRATOS_DONE sin declarar aprobada la UI.",
+      "expected_output": "Lee ui-direction, detecta que no hay Source/, elige la vía C++ (widget que construye el árbol en código) porque Python no puede añadir widgets, añade módulo, Build.cs con UMG, widget, controlador con BindKey H y GameMode en DefaultEngine.ini, compila con Build.bat y termina con NOMOS_DONE sin declarar aprobada la UI.",
       "files": [
         "references/hud-cpp.md",
         "references/capturas.md"
@@ -13,7 +13,7 @@
     {
       "id": 2,
       "prompt": "Corrección de QA: «1280×720: la cifra de vida mide 11 px, mínimo 14 px» sobre el HUD existente.",
-      "expected_output": "Corrige el tamaño con anclajes y tokens de la dirección (no posición absoluta), comprueba las dos resoluciones y valores extremos, vuelve a compilar y responde KRATOS_DONE en el mismo run; no reabre el diseño ni cambia la paleta.",
+      "expected_output": "Corrige el tamaño con anclajes y tokens de la dirección (no posición absoluta), comprueba las dos resoluciones y valores extremos, vuelve a compilar y responde NOMOS_DONE en el mismo run; no reabre el diseño ni cambia la paleta.",
       "files": [
         "references/capturas.md"
       ]

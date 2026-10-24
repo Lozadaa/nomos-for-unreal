@@ -23,7 +23,7 @@ export type CheckDeps = {
   /** ffmpeg para el vídeo de la comprobación animation (hito 5b); null = no está. */
   ffmpeg?: (ctx: WorkerContext) => Ffmpeg | null;
 };
-/** Vida del ejecutable: `killed` = Kratos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
+/** Vida del ejecutable: `killed` = Nomos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
 export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};
 export type CheckInput = {task: Task; run: Run; implementer: Run; project: Project; files: string[]; worktree: string};
 export type Outcome = {
@@ -63,7 +63,7 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
     const message = error instanceof Error ? error.message : String(error);
     const log = (error as {log?: string}).log ?? '';
     outcome = message === 'unreal_missing'
-      ? {result: 'unavailable', log, summary: [`Motor de Unreal no encontrado: revisa unrealPath en .kratos/config.json`]}
+      ? {result: 'unavailable', log, summary: [`Motor de Unreal no encontrado: revisa unrealPath en .nomos/config.json`]}
       : message === 'unreal_timeout'
         ? {result: 'failed', log, summary: ['Tiempo máximo agotado: se cerró el editor', ...log.split(/\r?\n/).filter(l => /error/i.test(l))]}
         : {result: 'failed', log, summary: [`Error al ejecutar la comprobación: ${message}`]};

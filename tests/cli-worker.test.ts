@@ -52,7 +52,7 @@ test('CLI workers/runs y decisiones transportan texto literal y exponen comandos
   const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(started.stdout).commandId);
   assert.equal(command.idempotencyKey,'worker.start:'+task.id+':3');
   assert.deepEqual(command.payload,{taskId:task.id,provider:'claude',role:'implementacion',skills:['tdd','qa'],attempt:3});
-  const db=openDb(join(dataDir,'kratos.db'));const run=startRun(db,{taskId:task.id,provider:'codex',role:'implementacion'});
+  const db=openDb(join(dataDir,'nomos.db'));const run=startRun(db,{taskId:task.id,provider:'codex',role:'implementacion'});
   const event=appendEvent(db,'worker.output',null,{taskId:task.id,runId:run.id,lines:['hola']});db.close();
   const text='Corrige "texto"\n$(literal) 🎾',file=join(dataDir,'send.md');writeFileSync(file,text);
   const send=cli(dataDir,'worker','send',run.id,'--file',file,'--idempotency-key','correction-1');assert.equal(send.status,0,send.stderr);
@@ -68,7 +68,7 @@ test('CLI workers/runs y decisiones transportan texto literal y exponen comandos
   const decisionFile=join(dataDir,'decision.json');writeFileSync(decisionFile,JSON.stringify({reason:'¿Color?',evidence:[],options:[{id:'answer',label:'Responder en el chat',description:'Texto libre'}]}));
   const opened=cli(dataDir,'decision','open',task.id,'--file',decisionFile);assert.equal(opened.status,0,opened.stderr);
   const decision=JSON.parse(opened.stdout);assert.equal(JSON.parse(cli(dataDir,'decision','list','--state','open').stdout)[0].id,decision.id);
-  const resolved=cli(dataDir,'decision','resolve',decision.id,'--option','answer','--by','kratos');assert.equal(resolved.status,0,resolved.stderr);
+  const resolved=cli(dataDir,'decision','resolve',decision.id,'--option','answer','--by','nomos');assert.equal(resolved.status,0,resolved.stderr);
   assert.equal(JSON.parse(resolved.stdout).state,'resolved');
 });
 

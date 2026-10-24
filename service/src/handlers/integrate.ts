@@ -68,7 +68,7 @@ function afterConflict(ctx: WorkerContext, task: Task, run: Run, decision: Decis
   if (decision.chosenOptionId === resolveOption.id) {
     const implementer = implementerOf(ctx, task);
     enqueue(ctx.db, 'worker.send', {runId: implementer.id, text: `${decision.reason}.\nIntegra la rama objetivo en tu rama, resuelve el conflicto sin perder `
-      + `ninguno de los dos lados (en binarios, pregunta antes de elegir versión), commitea y termina con KRATOS_DONE.`}, `integrate.resolve:${decision.id}`);
+      + `ninguno de los dos lados (en binarios, pregunta antes de elegir versión), commitea y termina con NOMOS_DONE.`}, `integrate.resolve:${decision.id}`);
     finishRun(ctx.db, run.id, 'cancelled', 'Conflicto devuelto al responsable');
     return {returned: true};
   }
@@ -88,7 +88,7 @@ function localFilesBack(ctx: WorkerContext, task: Task, run: Run, files: string[
   const reason = `Archivos locales del usuario en el commit: ${files.join(', ')}`;
   enqueue(ctx.db, 'worker.send', {runId: implementerOf(ctx, task).id, text: `${reason}.\nEstán sin seguir a propósito en el checkout del usuario `
     + `(pueden tener secretos) y no van en tus commits. Sácalos con git rm --cached <archivo> sin borrarlos del disco, consigue lo mismo `
-    + `sin ellos si hace falta, commitea y termina con KRATOS_DONE.`}, `integrate.local:${run.id}`);
+    + `sin ellos si hace falta, commitea y termina con NOMOS_DONE.`}, `integrate.local:${run.id}`);
   appendEvent(ctx.db, 'integration.failed', null, {taskId: task.id, runId: run.id, reason});
   finishRun(ctx.db, run.id, 'cancelled', reason);
   return {returned: true};
@@ -101,7 +101,7 @@ export const integrateRun: Handler = async (command, ctx) => {
   const tree = task.worktreeId ? read<Worktree>(ctx.db, 'worktrees', task.worktreeId) : undefined;
   if (!tree) throw new Error('invalid_integration_target');
   if (!liveRun(ctx, command) && (task.state !== 'integrando' || task.reviewApproved !== 1)) throw new Error('invalid_transition');
-  let {run} = commandRun(ctx, command, {title: `Integrar ${task.title}`, provider: 'kratos', role: 'integrador', taskId: task.id});
+  let {run} = commandRun(ctx, command, {title: `Integrar ${task.title}`, provider: 'nomos', role: 'integrador', taskId: task.id});
   const decision = commandDecision(ctx, task, command);
   if (decision?.state === 'open') { release(ctx.db, run.id); return {deferred: true, reason: `Esperando decisión: ${decision.reason}`}; }
   if (decision?.state === 'resolved' && !isLfsDecision(decision)) return afterConflict(ctx, task, run, decision);
@@ -147,7 +147,7 @@ export const integrateRun: Handler = async (command, ctx) => {
     // hito 7: un archivo sin seguir del usuario (p. ej. Config con secretos) no se arregla reintentando: sale del commit del responsable
     const local = localFiles(error);
     if (local.length) return localFilesBack(ctx, task, run, local);
-    // la rama objetivo avanzó por fuera de Kratos (o el checkout del usuario tiene cambios): se rehace sobre la nueva punta
+    // la rama objetivo avanzó por fuera de Nomos (o el checkout del usuario tiene cambios): se rehace sobre la nueva punta
     const reason = `No se pudo avanzar ${ws.branch}: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`;
     appendEvent(ctx.db, 'integration.retry', null, {taskId: task.id, runId: run.id, reason});
     return {deferred: true, reason};

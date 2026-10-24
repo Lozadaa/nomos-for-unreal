@@ -1,5 +1,5 @@
 // Precarga de `npm test`: los servicios que arrancan las pruebas apuntan a un registro de proyectos temporal,
-// nunca al de la máquina (%LOCALAPPDATA%\kratos\projects.json).
+// nunca al de la máquina (%LOCALAPPDATA%\nomos\projects.json).
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-process.env.KRATOS_REGISTRY ??= join(tmpdir(), `kratos-registro-pruebas-${process.pid}.json`);
+process.env.NOMOS_REGISTRY ??= join(tmpdir(), `nomos-registro-pruebas-${process.pid}.json`);

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Tarea ui en KratosFabTest (AdvancedCelShader, StarterContent, mapa Sample) sin docs/ui-direction.md: «Añade un HUD con barra de vida».",
-      "expected_output": "Lee Content (packs, mapa Sample, materiales cel), usa una captura de Kratos si existe y escribe docs/ui-direction.md con las ocho secciones de la plantilla, hex y contraste medido por par (texto ≥ 4,5:1), tamaños a 1080p y 720p, estados con cambio no solo de color y el ejemplo de la barra de vida. Commit solo de ese archivo; no crea widgets.",
+      "expected_output": "Lee Content (packs, mapa Sample, materiales cel), usa una captura de Nomos si existe y escribe docs/ui-direction.md con las ocho secciones de la plantilla, hex y contraste medido por par (texto ≥ 4,5:1), tamaños a 1080p y 720p, estados con cambio no solo de color y el ejemplo de la barra de vida. Commit solo de ese archivo; no crea widgets.",
       "files": [
         "references/plantilla.md",
         "references/leer-estilo.md"

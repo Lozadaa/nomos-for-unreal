@@ -20,8 +20,8 @@ function stopCli(dataDir: string) {
 }
 
 test('CLI stop espera drenaje real mayor que dos segundos con health vivo hasta terminar handler',async()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-cli-drain-'));
-  const db=openDb(join(dir,'kratos.db'));enqueue(db,'hold',{},'hold');db.close();
+  const dir=mkdtempSync(join(tmpdir(),'nomos-cli-drain-'));
+  const db=openDb(join(dir,'nomos.db'));enqueue(db,'hold',{},'hold');db.close();
   let entered=false,release!:()=>void,finished=false;
   const gate=new Promise<void>(accept=>{release=accept;});
   const info=await start({dataDir:dir,port:0,runner:{handlers:{hold:async(_,ctx)=>{
@@ -37,7 +37,7 @@ test('CLI stop espera drenaje real mayor que dos segundos con health vivo hasta 
     assert.doesNotMatch(cli.output().stdout,/DETENIDO/);
     release();assert.equal(await cli.done,0,cli.output().stderr);
     assert.equal(finished,true);assert.equal(await isAlive(info),false);assert.equal(readServiceInfo(dir),null);
-    const reopened=openDb(join(dir,'kratos.db'));
+    const reopened=openDb(join(dir,'nomos.db'));
     try {assert.equal(reopened.prepare('select session from director').get()!.session,'finished');} finally {reopened.close();}
   } finally {
     release();await cli?.done;
@@ -47,7 +47,7 @@ test('CLI stop espera drenaje real mayor que dos segundos con health vivo hasta 
 });
 
 test('CLI no borra service.json ni anuncia detenido cuando health cae antes de barrera del servidor',async()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-cli-barrier-')),file=join(dir,'service.json');
+  const dir=mkdtempSync(join(tmpdir(),'nomos-cli-barrier-')),file=join(dir,'service.json');
   let closed=false,retire!:()=>void;
   const barrier=new Promise<void>(accept=>{retire=accept;});
   const server=createServer((req,res)=>{

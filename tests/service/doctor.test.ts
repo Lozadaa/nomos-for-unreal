@@ -27,8 +27,8 @@ test('comprobación real por capacidad: Node, Orca (abre si está cerrado), Git,
 });
 
 test('el resultado guardado gana a la detección, con fecha; Orca roto lleva la acción «Abrir Orca»', () => {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-doctor-')), dataDir = join(root, '.kratos'); mkdirSync(dataDir);
-  const db = openDb(join(dataDir, 'kratos.db'));
+  const root = mkdtempSync(join(tmpdir(), 'nomos-doctor-')), dataDir = join(root, '.nomos'); mkdirSync(dataDir);
+  const db = openDb(join(dataDir, 'nomos.db'));
   try {
     saveCheck(db, 'git', {state: 'comprobado', detail: 'git version 2.50'}, new Date('2026-10-23T10:00:00Z'));
     saveCheck(db, 'orca', {state: 'roto', detail: 'Orca no está abierto'});
@@ -42,9 +42,9 @@ test('el resultado guardado gana a la detección, con fecha; Orca roto lleva la 
   } finally { db.close(); rmSync(root, {recursive: true, force: true}); }
 });
 
-test('kratos doctor: tabla con capacidades, servicio sin mostrar el token y carriles con su último latido', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-doctor-')), dataDir = join(root, '.kratos'); mkdirSync(dataDir);
-  const db = openDb(join(dataDir, 'kratos.db'));
+test('nomos doctor: tabla con capacidades, servicio sin mostrar el token y carriles con su último latido', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'nomos-doctor-')), dataDir = join(root, '.nomos'); mkdirSync(dataDir);
+  const db = openDb(join(dataDir, 'nomos.db'));
   try {
     enqueue(db, 'checks.run', {}, 'build'); claim(db, 'runner:1:x', 'long');
     const rows = await doctor(dataDir, db, {orca: orca(false)});
@@ -62,8 +62,8 @@ test('kratos doctor: tabla con capacidades, servicio sin mostrar el token y carr
 });
 
 test('GET /doctor y POST /capabilities/:id/check exigen token; la comprobación queda guardada', async t => {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-doctor-')), dataDir = join(root, '.kratos'); mkdirSync(dataDir);
-  const db = openDb(join(dataDir, 'kratos.db')), server = createServer(db, 'token', 'service/web', dataDir);
+  const root = mkdtempSync(join(tmpdir(), 'nomos-doctor-')), dataDir = join(root, '.nomos'); mkdirSync(dataDir);
+  const db = openDb(join(dataDir, 'nomos.db')), server = createServer(db, 'token', 'service/web', dataDir);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); db.close(); rmSync(root, {recursive: true, force: true}); });
   const base = `http://127.0.0.1:${(server.address() as {port: number}).port}`, auth = {Authorization: 'Bearer token'};

@@ -6,6 +6,7 @@ import {
   ListChecks, Lock, Mountain, Package, PackageCheck, PersonStanding,
   PlugZap, Radio, Shapes, TestTube2, WifiOff,
 } from 'lucide-react'
+import { BRAND, legacyProvider } from '@/lib/brand'
 
 export type GlyphKind = 'area' | 'taskState' | 'directorState' | 'provider' | 'artifact'
 export type PresentationKind = GlyphKind | 'role' | 'event' | 'source'
@@ -40,7 +41,7 @@ export const glyphs = {
   },
   provider: {
     codex: provider('Codex', 'info'), claude: provider('Claude', 'warning'), opencode: provider('OpenCode', 'success'), meshy: provider('Meshy', 'success'),
-    blender: provider('Blender', 'warning'), unreal: provider('Unreal'), kratos: provider('Kratos', 'primary'), launcher: provider('Launcher', 'info'),
+    blender: provider('Blender', 'warning'), unreal: provider('Unreal'), nomos: provider(BRAND.short, 'primary'), launcher: provider('Launcher', 'info'),
   },
   artifact: {
     model: spec(Shapes, 'Modelo'), texture: spec(Image, 'Textura'), screenshot: spec(Camera, 'Captura'),
@@ -81,6 +82,7 @@ function eventEntity(value: string, providerValue?: string): GlyphSpec {
 }
 
 export function glyphFor(kind: PresentationKind, value: string, providerValue?: string): GlyphSpec {
+  if (kind === 'provider') value = legacyProvider(value)
   if (kind === 'event') return eventEntity(value, providerValue)
   if (kind === 'role') return text(ownLabel(roleLabels, value))
   if (kind === 'source') {

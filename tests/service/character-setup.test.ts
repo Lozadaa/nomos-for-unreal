@@ -29,7 +29,7 @@ function setup(ffmpeg: typeof fakeFfmpeg | null = fakeFfmpeg) {
 test('MetaHuman con el clip retargeteado: comprobación animation en verde con capturas, vídeo e informes con nombre', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const result = await f.run();
     assert.equal(result.passed, true, JSON.stringify(result));
     const [row] = f.tests();
@@ -44,7 +44,7 @@ test('MetaHuman con el clip retargeteado: comprobación animation en verde con c
     const video = listArtifacts(f.db, {taskId: f.task.id, kind: 'video'})[0];
     assert.match(readFileSync(video.path, 'utf8'), /12 fotogramas/);
     assert.match(video.previewPath!, /1280x720-50\.png$/, 'la miniatura del vídeo es el fotograma del 50 %');
-    const spec = JSON.parse(readFileSync(join(f.projectDir, 'kratos-personaje.json'), 'utf8'));
+    const spec = JSON.parse(readFileSync(join(f.projectDir, 'nomos-personaje.json'), 'utf8'));
     assert.deepEqual(spec, {mesh: hero, animations: [clip], targetSkeleton: 'metahuman'});
     assert.equal(getTask(f.db, f.task.id)!.waitReason, null);
     assert.deepEqual(listLeases(f.db), [], 'la reserva del editor se libera');
@@ -54,7 +54,7 @@ test('MetaHuman con el clip retargeteado: comprobación animation en verde con c
 test('Review Focus 1: cadenas principales sin mapear → Decisión «Retarget manual» con guion y la tarea no avanza', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'critical';
+    process.env.NOMOS_FAKE = 'critical';
     const result = await f.run();
     assert.equal(result.passed, false);
     const [decision] = listDecisions(f.db, 'open');
@@ -70,7 +70,7 @@ test('Review Focus 1: cadenas principales sin mapear → Decisión «Retarget ma
 test('Review Focus 9: vídeo estático → la comprobación falla con «la animación no se reproduce»', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'static';
+    process.env.NOMOS_FAKE = 'static';
     const result = await f.run();
     assert.equal(result.passed, false);
     assert.equal(f.tests()[0].result, 'failed');
@@ -83,7 +83,7 @@ test('Review Focus 9: vídeo estático → la comprobación falla con «la anima
 test('deformación fuera de rango a mitad del clip: falla y bloquea con el instante y el hueso', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'deform';
+    process.env.NOMOS_FAKE = 'deform';
     assert.equal((await f.run()).passed, false);
     assert.match(getTask(f.db, f.task.id)!.blockedReason!, /50 %.*head/);
   } finally { f.close(); }
@@ -93,7 +93,7 @@ test('Review Focus 10: malla estirada hacia la raíz o prendas sin seguir al cue
   for (const [mode, text] of [['stretch', /malla estirada hacia la raíz: pelvis a 0/], ['clothes', /prendas sin seguir al cuerpo: Torso/]] as const) {
     const f = setup();
     try {
-      process.env.KRATOS_FAKE = mode;
+      process.env.NOMOS_FAKE = mode;
       assert.equal((await f.run()).passed, false, mode);
       assert.match(getTask(f.db, f.task.id)!.blockedReason!, text);
     } finally { f.close(); }
@@ -103,7 +103,7 @@ test('Review Focus 10: malla estirada hacia la raíz o prendas sin seguir al cue
 test('el vídeo junta la cámara frontal y la lateral en un solo MP4 (hstack)', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     await f.run();
     const video = listArtifacts(f.db, {taskId: f.task.id, kind: 'video'})[0];
     assert.match(readFileSync(video.path, 'utf8'), /hstack/);
@@ -114,10 +114,10 @@ test('el vídeo junta la cámara frontal y la lateral en un solo MP4 (hstack)', 
 test('un character.setup en verde tras uno roto quita el bloqueo «Animación rota» que puso el anterior', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'deform';
+    process.env.NOMOS_FAKE = 'deform';
     await f.run({}, 'roto');
     assert.match(getTask(f.db, f.task.id)!.blockedReason!, /^Animación rota/);
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     assert.equal((await f.run({}, 'bien')).passed, true);
     assert.equal(getTask(f.db, f.task.id)!.blockedReason, null);
   } finally { f.close(); }
@@ -126,10 +126,10 @@ test('un character.setup en verde tras uno roto quita el bloqueo «Animación ro
 test('un clip nuevo de Cascadeur (newClip) abre su Decisión de aprobación solo cuando la comprobación animation pasa', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'deform';
+    process.env.NOMOS_FAKE = 'deform';
     await f.run({newClip: true}, 'roto');
     assert.equal(listDecisions(f.db, 'open').length, 0, 'roto: ni se pregunta');
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     await f.run({newClip: true}, 'bien');
     const [decision] = listDecisions(f.db, 'open');
     assert.match(decision.reason, /^Clip nuevo de Cascadeur: AM_ComboAttack/);
@@ -140,7 +140,7 @@ test('un clip nuevo de Cascadeur (newClip) abre su Decisión de aprobación solo
 test('sin ffmpeg: fotogramas en un zip con nombre y el resumen lo dice; nunca un vídeo inventado', async () => {
   const f = setup(null);
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     assert.equal((await f.run()).passed, true);
     assert.equal(listArtifacts(f.db, {taskId: f.task.id, kind: 'video'}).length, 0);
     assert.ok(f.labels().includes('Animación · fotogramas 1280×720 · AM_ComboAttack'));
@@ -176,7 +176,7 @@ test('malla aún sin migrar con la migración en cola: diferido «Esperando migr
     assert.match(waiting.reason, /Esperando migración/);
     f.db.prepare("update commands set state='done'").run();
     await assert.rejects(f.run({mesh: '/Game/MetaHumans/Emory/BP_Emory'}, 'otra'), /character_mesh_missing/);
-    assert.ok(!existsSync(join(f.projectDir, 'kratos-personaje.json')));
+    assert.ok(!existsSync(join(f.projectDir, 'nomos-personaje.json')));
   } finally { f.close(); }
 });
 

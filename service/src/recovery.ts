@@ -18,7 +18,7 @@ export const uncertainCause = 'orca: resultado incierto tras reinicio';
 
 /** Runs propios de la orden (pruebas, integración): terminan como fallidos, sueltan reservas y sus pruebas en curso fallan. */
 export function closeRuns(db: DatabaseSync, commandId: string, cause: string): void {
-  const runs = db.prepare(`select id from runs where state='running' and provider in ('unreal','kratos')
+  const runs = db.prepare(`select id from runs where state='running' and provider in ('unreal','nomos')
     and json_extract(metadata,'$.commandId')=?`).all(commandId).map(r => r.id as string);
   for (const id of runs) {
     for (const row of filtered<TestRun>(db, 'test_runs', {runId: id, result: 'running'})) updateTestRun(db, row.id, {result: 'failed'});

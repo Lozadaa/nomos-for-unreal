@@ -66,7 +66,7 @@ test('task.continue con Orca cerrado se difiere y conserva la hija creada', asyn
   for (const state of ['implementando', 'revisando', 'probando'] as const) moveTask(f.db, f.task.id, state);
   f.db.prepare("update tasks set state='done' where id=?").run(f.task.id);
   const now = new Date().toISOString();
-  f.db.prepare("insert into worktrees(id,created_at,updated_at,task_id,path,branch,base_commit,state) values('w1',?,?,?,?,'kratos/x','','active')")
+  f.db.prepare("insert into worktrees(id,created_at,updated_at,task_id,path,branch,base_commit,state) values('w1',?,?,?,?,'nomos/x','','active')")
     .run(now, now, f.task.id, f.projectDir);
   f.db.prepare(`insert into runs(id,created_at,updated_at,task_id,role,provider,session_ref,attempt,state,started_at,skills,metadata)
     values('r1',?,?,?,'programmer','codex','term_fake',1,'done',?,'[]','{"worktreeId":"w1"}')`).run(now, now, f.task.id, now);

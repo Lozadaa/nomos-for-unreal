@@ -35,7 +35,7 @@ Formato `archivo:línea`. Líneas del HTML generado tras las correcciones.
 | Tarjetas `<article tabindex=0>` sin rol ni acción | `design/maquetas/a/index.html:133` | Corregido: son enlaces (`<a class="tcard" href="#t-…">`) |
 | Placeholders sin «…» y sin ejemplo | `design/maquetas/a/index.html:312` | Corregido |
 | Campos sin `name` ni `autocomplete` | formulario «Nueva petición», campos de `estilo.html` | Corregido (`autocomplete="off"`, `type="search"`) |
-| Estado de carga sin «…» | `design/estilo.html:142` | Corregido: «Enviando a Kratos…» |
+| Estado de carga sin «…» | `design/estilo.html:142` | Corregido: «Enviando a Nomos…» |
 | Unidades sin espacio duro («89,9 MB», «4 s», «3 min», «720 px») | copy de las dos páginas | Corregido en los textos visibles |
 | Sin `:active` en botones | `design/componentes.css` | Corregido |
 | Sin `prefers-reduced-motion` global | `design/componentes.css:208` | Corregido (solo había uno para el spinner) |
@@ -66,7 +66,7 @@ Método: `⚠️ DEGRADED: sin detector (Assessment B no ejecutado)`.
 | P1 | El panel de detalle tapa el contenido (3) | **Corregido en parte**: desde 1600 px reserva su ancho (a 1920 se ve el catálogo entero junto al panel). A 1366 sigue superponiéndose; la regla lo documenta y quedan dos columnas legibles |
 | P2 | La atención está dispersa y los contadores no se pueden pulsar (3) | **Corregido**: contadores = enlaces a la tarjeta; la tarjeta marcada lleva la antigüedad («Bloqueada · 9 min») y la causa al pasar el cursor |
 | P3 | Iconos repetidos con significados distintos (2) | **Corregido en parte**: en el catálogo, texto plano en lo habitual y etiqueta solo en excepciones; el matraz de las pruebas desaparece de la tarjeta. Se mantienen familias de significado (ban = bloqueado o prohibido; help = por decidir o por saber). La miniatura con inicial es un marcador hasta tener imágenes reales |
-| P4 | Jerga en primer plano (2) | **Corregido en parte**: ejecución, espacio de trabajo y habilidades pasan a «Detalles técnicos» plegado. No se cambia «Kratos atendiendo N mensajes», «Última recepción confirmada» ni «Indexar ahora»: el copy lo fija el plan y el hito 0 |
+| P4 | Jerga en primer plano (2) | **Corregido en parte**: ejecución, espacio de trabajo y habilidades pasan a «Detalles técnicos» plegado. No se cambia «Nomos atendiendo N mensajes», «Última recepción confirmada» ni «Indexar ahora»: el copy lo fija el plan y el hito 0 |
 | P5 | Escala sin adaptar a 1920: tablero pequeño y espacio vacío (2) | **Pendiente (1b)**: escala responsive del tablero y tamaños de letra |
 
 Menores y señales por persona:
@@ -98,7 +98,7 @@ Orden de la guía: cuestiones funcionales primero, luego jerarquía y sistema, l
 | Pregunta | Resultado | Nota |
 |---|---|---|
 | ¿Se sabe qué página es? | Sí | Título, ítem activo de la barra y nombre del espacio de trabajo |
-| ¿La acción principal es obvia? | Sí | «Nueva petición» es el único primario; con el panel abierto aparece otra primaria («Enviar a Kratos» solo en el formulario) |
+| ¿La acción principal es obvia? | Sí | «Nueva petición» es el único primario; con el panel abierto aparece otra primaria («Enviar a Nomos» solo en el formulario) |
 | ¿La navegación es clara? | Sí | Indicador «estás aquí»; nueve destinos |
 | ¿Se encuentra la búsqueda? | **No del todo** | Hay búsqueda en el catálogo; la global llega con `Ctrl+K` (hito 7). Severidad 2, pendiente |
 | ¿El sistema muestra lo que pasa? | Sí | Franja, estados con texto, cargas con motivo |
@@ -129,7 +129,7 @@ Calculado en `tests/tokens.test.ts` (7 pruebas del archivo en verde): texto, sec
 
 - Sin desbordamiento horizontal de la página.
 - Franja del director: borde inferior a 64 px; el panel de detalle empieza en 64 px (no la tapa).
-- Formulario «Nueva petición» (panel): título, primer campo y botón «Enviar a Kratos» visibles sin desplazar (el botón termina a 756 px de 768); el cuerpo no desplaza; cada campo reserva 18 px de ayuda o error.
+- Formulario «Nueva petición» (panel): título, primer campo y botón «Enviar a Nomos» visibles sin desplazar (el botón termina a 756 px de 768); el cuerpo no desplaza; cada campo reserva 18 px de ayuda o error.
 - Tablero y catálogo caben sin desplazar la página; el tablero se desplaza en horizontal dentro de su región.
 - Nombre con emoji (`Raqueta Nude_Tennis_Racket_🎾`): elipsis, sin romper la columna.
 
@@ -155,8 +155,8 @@ Observaciones menores que se dejan anotadas (no bloquean el hito):
 - El tablero a 1366 no da ninguna pista de que «Cerrando» y «Hecha» existen más a la derecha.
 - La franja «En pausa» de `/estilo` usa la clase de «escuchando» (verde).
 - `.help` no admite errores largos (una línea con elipsis).
-- La ayuda de los campos no está enlazada con `aria-describedby`; el `aria-label` de las tarjetas oculta «responsable · pruebas» al lector; «Enviar a Kratos» está fuera de un `<form>`.
-- En `/estilo`: enlaces `href="#cerrar"` y `href="#"` sin destino; el panel vacío muestra `r-0151 · ws/…` en primer plano; todos los botones en carga dicen «Enviando a Kratos…».
-- «Kratos atendiendo N mensajes» dará «1 mensajes» (copy fijado por el hito 0; resolver el plural en 1b).
+- La ayuda de los campos no está enlazada con `aria-describedby`; el `aria-label` de las tarjetas oculta «responsable · pruebas» al lector; «Enviar a Nomos» está fuera de un `<form>`.
+- En `/estilo`: enlaces `href="#cerrar"` y `href="#"` sin destino; el panel vacío muestra `r-0151 · ws/…` en primer plano; todos los botones en carga dicen «Enviando a Nomos…».
+- «Nomos atendiendo N mensajes» dará «1 mensajes» (copy fijado por el hito 0; resolver el plural en 1b).
 - `contrast()` y `mix()` no admiten hex de 3 dígitos ni con alfa.
 - `opacity` y `gap` en px siguen sueltos en `componentes.css` (el escáner no los vigila).

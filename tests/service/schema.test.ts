@@ -18,7 +18,7 @@ test("openDb crea las diez tablas de producción en memoria", () => {
 });
 
 test("openDb permite reabrir el mismo archivo sin perder datos", () => {
-  const dir = mkdtempSync(join(tmpdir(), "kratos-schema-"));
+  const dir = mkdtempSync(join(tmpdir(), "nomos-schema-"));
   try {
     const path = join(dir, "test.sqlite");
     const first = openDb(path);

@@ -14,7 +14,7 @@ import type { WorkerContext } from '../../service/src/runner.ts';
 import type { Command } from '../../service/src/model.ts';
 import * as fs from 'node:fs';
 
-const temp = () => mkdtempSync(join(tmpdir(), 'kratos-mcp-'));
+const temp = () => mkdtempSync(join(tmpdir(), 'nomos-mcp-'));
 
 test('unreal_mcp_conflict: dos servidores «unreal» entre .mcp.json, settings y ~/.claude.json del juego', t => {
   const game = temp(), home = temp();
@@ -33,9 +33,9 @@ test('unreal_mcp_conflict: dos servidores «unreal» entre .mcp.json, settings y
 });
 
 test('GET /editors: libre por defecto y «ocupado por» con la reserva editor/<proyecto>', async t => {
-  const root = temp(), dataDir = join(root, '.kratos'); mkdirSync(dataDir);
+  const root = temp(), dataDir = join(root, '.nomos'); mkdirSync(dataDir);
   writeFileSync(join(root, 'KratosFabTest.uproject'), '{}');
-  const db = openDb(join(dataDir, 'kratos.db')), server = createServer(db, 'token', 'service/web', dataDir);
+  const db = openDb(join(dataDir, 'nomos.db')), server = createServer(db, 'token', 'service/web', dataDir);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); db.close(); rmSync(root, {recursive: true, force: true}); });
   const get = async (path: string, auth = true) => fetch(`http://127.0.0.1:${(server.address() as any).port}${path}`,

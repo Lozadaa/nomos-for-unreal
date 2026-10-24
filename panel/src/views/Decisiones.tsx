@@ -16,6 +16,7 @@ import { providerLabel, shortId, type Decision } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { patchTask, useStore } from '@/store'
 import { truncateWords } from '@/visual/text-budget'
+import { BRAND } from '@/lib/brand'
 
 const typing = (el: Element | null) => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
 
@@ -70,7 +71,7 @@ export function Decisiones() {
   }
 
   const option = current?.options.find((o) => o.id === (justChosen ?? current.chosenOptionId))
-  const owner = providerLabel[task?.assigneeProvider ?? ''] ?? 'Kratos'
+  const owner = providerLabel[task?.assigneeProvider ?? ''] ?? BRAND.short
   const successor = current && current.state === 'stale' ? open.find((d) => d.taskId === current.taskId) : undefined
 
   return (
@@ -120,7 +121,7 @@ export function Decisiones() {
             )}
             {current.state === 'stale' && (
               <div className="flex flex-col items-start gap-2">
-                <p role="status" className="text-sm">Esta decisión caducó porque cambió el contexto. Kratos la prepara de nuevo.</p>
+                <p role="status" className="text-sm">Esta decisión caducó porque cambió el contexto. {BRAND.short} la prepara de nuevo.</p>
                 {successor && <Button variant="outline" size="sm" onClick={() => void animateUpdate(() => flushSync(() => select(successor.id)))}>Ver la nueva</Button>}
               </div>
             )}

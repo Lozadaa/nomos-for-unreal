@@ -18,9 +18,9 @@ test('revisor Claude de Codex mantiene identidad independiente, espera permiso y
   assert.equal(run.metadata.review?.implementerRunId,f.implementer.id);
   assert.notEqual(run.sessionRef,f.implementer.sessionRef);assert.notEqual(f.reviewTree().path,f.implementerTree.path);
   assert.equal(requireTask(f.db,f.task.id).worktreeId,f.implementerTree.id);
-  assert.match(readFileSync(join(f.reviewTree().path,'.kratos-brief.md'),'utf8'),/primera línea.*KRATOS_SKILLS/);
+  assert.match(readFileSync(join(f.reviewTree().path,'.nomos-brief.md'),'utf8'),/primera línea.*NOMOS_SKILLS/);
   await f.poll();assert.equal(f.reviewer().metadata.waiting,true);
-  f.output('⏺ salida informativa','KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  f.output('⏺ salida informativa','NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(f.reviewer().state,'done');assert.equal(f.current().state,'done');
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,1);
   const started=listEvents(f.db,0).find(e=>e.type==='review.started')!;

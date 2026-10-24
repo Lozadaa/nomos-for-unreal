@@ -22,7 +22,7 @@ test('filas nuevas conservan scope y metadata con defaults compatibles', () => {
 });
 
 test('migra DB anterior dos veces preservando semilla, mensajes, eventos, comandos y budget.scope escalar',()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-migrate-')),file=join(dir,'old.db');
+  const dir=mkdtempSync(join(tmpdir(),'nomos-migrate-')),file=join(dir,'old.db');
   let db=openDb(file);
   try {
     seed(db);createMessage(db,'Conservar','web');enqueue(db,'legacy',{},'legacy');

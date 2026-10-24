@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { start, readServiceInfo, isAlive } from "../service/src/server.ts";
 
 function directory(t: test.TestContext) {
-  const dataDir = mkdtempSync(join(tmpdir(), "kratos-start-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "nomos-start-"));
   t.after(async () => {
     const info = readServiceInfo(dataDir);
     if (info && await isAlive(info)) await stop(info.port, info.token);

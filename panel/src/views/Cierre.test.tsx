@@ -34,11 +34,11 @@ describe('cierre en el panel', () => {
 
   it('atribución por rol con avatar y nombre corto', () => {
     render(<Attribution task={task({ attribution: {
-      verifico: [{ runId: 'r3', provider: 'kratos', agentName: 'UI Builder', at: '' }],
+      verifico: [{ runId: 'r3', provider: 'nomos', agentName: 'UI Builder', at: '' }],
       implemento: [{ runId: 'r1', provider: 'claude', agentName: 'UI Worker', at: '' }],
     } })} />)
     const rows = screen.getAllByRole('listitem').map((li) => li.textContent)
-    expect(rows).toEqual(['ImplementóClUI Worker', 'VerificóKrUI Builder'])
+    expect(rows).toEqual(['ImplementóClUI Worker', 'VerificóNoUI Builder'])
     expect(screen.getByRole('img', { name: 'UI Worker · Claude' })).toBeInTheDocument()
   })
 

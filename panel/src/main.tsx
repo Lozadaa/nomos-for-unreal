@@ -20,9 +20,9 @@ navigator.serviceWorker?.register('/sw.js').catch(() => undefined)
  *  propio servicio, que solo lo da a su mismo origen. api.ts lee el token al cargarse: App se importa después. */
 async function session(): Promise<void> {
   try {
-    if (new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('kratos.token')) return
+    if (new URLSearchParams(location.hash.slice(1)).get('token') || sessionStorage.getItem('nomos.token')) return
     const response = await fetch('/session', { cache: 'no-store' })
-    if (response.ok) sessionStorage.setItem('kratos.token', ((await response.json()) as { token: string }).token)
+    if (response.ok) sessionStorage.setItem('nomos.token', ((await response.json()) as { token: string }).token)
   } catch { /* sin sesión: el panel lo dice como siempre */ }
 }
 

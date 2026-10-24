@@ -1,12 +1,12 @@
-# Kratos · Hito 3 «varios workers, dependencias, revisión y reservas» · Plan de implementación
+# Nomos · Hito 3 «varios workers, dependencias, revisión y reservas» · Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > Refinado el 2026-10-23 con el código real del hito 2 delante (rama `hito2-worker`). Las firmas de la sección «Contratos reales del hito 2» son las que existen; si al despachar este plan alguna cambió en `main`, se actualiza aquí primero.
 
-**Goal:** Que Kratos reparta trabajo entre varios workers a la vez (Codex y Claude Code), respete dependencias entre tareas, pase cada resultado por un revisor distinto del implementador, y garantice exclusión sobre recursos compartidos de Unreal (`.uasset`, `.umap`, widgets, esqueletos) mediante reservas; y que cada worker arranque con las skills que su rol exige, visibles en Capacidades.
+**Goal:** Que Nomos reparta trabajo entre varios workers a la vez (Codex y Claude Code), respete dependencias entre tareas, pase cada resultado por un revisor distinto del implementador, y garantice exclusión sobre recursos compartidos de Unreal (`.uasset`, `.umap`, widgets, esqueletos) mediante reservas; y que cada worker arranque con las skills que su rol exige, visibles en Capacidades.
 
-**Architecture:** Un planificador en el servicio (`scheduler.ts`), llamado por el ejecutor existente (`startRunner`) cada 5 s, decide qué tareas `preparada` pueden arrancar (dependencias satisfechas, reservas libres, concurrencia por proveedor) y encola `worker.start` con la misma `idempotency_key` que ya usa la ruta `/tasks/:id/worker`; el arranque de workers Claude Code reutiliza `workerStart` con un comando de lanzamiento por proveedor; el rol `revisor` es un run más sobre la misma tarea con brief de revisión y marcador `KRATOS_REVIEW`; las reservas (`leases`) se piden por ruta de asset en `workerStart` y se liberan en `run.finished`, `worker.stop` y `workerFailure`. El enrutado de skills por rol (plan v2 §4) se materializa en `skills.ts`, en el brief y en el campo `skills` del run.
+**Architecture:** Un planificador en el servicio (`scheduler.ts`), llamado por el ejecutor existente (`startRunner`) cada 5 s, decide qué tareas `preparada` pueden arrancar (dependencias satisfechas, reservas libres, concurrencia por proveedor) y encola `worker.start` con la misma `idempotency_key` que ya usa la ruta `/tasks/:id/worker`; el arranque de workers Claude Code reutiliza `workerStart` con un comando de lanzamiento por proveedor; el rol `revisor` es un run más sobre la misma tarea con brief de revisión y marcador `NOMOS_REVIEW`; las reservas (`leases`) se piden por ruta de asset en `workerStart` y se liberan en `run.finished`, `worker.stop` y `workerFailure`. El enrutado de skills por rol (plan v2 §4) se materializa en `skills.ts`, en el brief y en el campo `skills` del run.
 
 **Tech Stack:** El del hito 2: Node ≥ 25 sin dependencias, `node:sqlite` con `migrations.ts`, `node:test`. Claude Code como worker por Orca: `worktreeCreate(repoId, name, 'claude')` y después `terminalSend(handle, 'claude --model sonnet --dangerously-skip-permissions')` (en este equipo Orca no lanza bien los agentes por sí mismo; el hito 2 ya hace lo equivalente con `codex --yolo --no-daemon`).
 
@@ -16,9 +16,9 @@
 
 - `service/src/adapters/orca.ts`: `createOrca(opts): Orca` con `repoAdd(path)`, `worktreeCreate(repoId, name, agent: 'codex'|'claude') → {worktreeId, path, branch, terminalHandle}`, `terminalWaitIdle(handle, timeoutMs)`, `terminalIsIdle(handle)`, `terminalSend(handle, text)`, `terminalRead(handle, cursor?) → TerminalPage {text, cursor, …}`, `worktreeRemove(worktreeId, force?)`; `OrcaError(code)`.
 - `service/src/runner.ts`: `WorkerContext = {db, orca, git, dataDir, projectDir}`, `Handler = (command, context) => Promise<object|void>`, `startRunner(db, handlers, opts)`.
-- `service/src/handlers/`: `createWorkerHandlers()` registra `worker.start|poll|send|stop`; `worker-start.ts` (`workerStart`), `worker-poll.ts` (`workerPoll`, marcadores `KRATOS_DONE`/`KRATOS_ASK` por `worker-markers.ts`: `streamMarkers`, `screenMarkers`), `worker-send.ts` (`workerSend`, `workerStop`), `worker-failure.ts` (`workerFailure(db, payload, cause)`), `worker-policy.ts` (`workerPolicy`, `decisionGate`, `normalizedPaths`), `worker-decisions.ts` (`dispatchGuard`, `dispatchBlocked`, `pauseForDecision`).
+- `service/src/handlers/`: `createWorkerHandlers()` registra `worker.start|poll|send|stop`; `worker-start.ts` (`workerStart`), `worker-poll.ts` (`workerPoll`, marcadores `NOMOS_DONE`/`NOMOS_ASK` por `worker-markers.ts`: `streamMarkers`, `screenMarkers`), `worker-send.ts` (`workerSend`, `workerStop`), `worker-failure.ts` (`workerFailure(db, payload, cause)`), `worker-policy.ts` (`workerPolicy`, `decisionGate`, `normalizedPaths`), `worker-decisions.ts` (`dispatchGuard`, `dispatchBlocked`, `pauseForDecision`).
 - `service/src/commands.ts`: `enqueue(db, type, payload, idempotencyKey, {notBefore?})`, `claim`, `complete`, `fail(db, id, error, {retry?})`; columna `not_before`.
-- `service/src/brief.ts`: plantilla del encargo (`.kratos-brief.md`); `skills/kratos/references/brief-worker.md` y `ciclo-tarea.md`.
+- `service/src/brief.ts`: plantilla del encargo (`.nomos-brief.md`); `skills/nomos/references/brief-worker.md` y `ciclo-tarea.md`.
 - `service/src/model.ts`: `Task` con `dependsOn: string[]`, `worktreeId`, `budgetId`, `scope: string[]`; `Run` con `skills: string[]` y `metadata: RunMetadata` (`phase`, `waiting`, `question`, `cursor`, `correctionCount`, `lastLines`, `uncertain`…); `repo/worker.ts`: `requireRun`, `updateRun`, `runTree`, `queuePoll`.
 - Rutas: `POST /tasks/:id/spec`, `POST /tasks/:id/worker` (`idempotency_key = worker.start:<taskId>:<attempt>`), `GET /runs/:id`, `GET /runs/:id/output?since=`, `GET /runs/:id/diff`, `POST /runs/:id/message`, `POST /runs/:id/stop`. CLI del director en `cli-director.ts` (grupos `task`, `worker`, `run`, `decision`).
 - Eventos ya emitidos: `task.created|spec|moved|blocked|activity`, `run.started|finished|output|diff`, `worker.start|poll|send|stop|output|output_gap|waiting|message_sent`, `command.failed|recovered`.
@@ -27,10 +27,10 @@
 ## Global Constraints
 
 - Un escritor por instancia de editor y una cola para importación, guardado, PIE y capturas (plan v1 §7): aún no hay editor (hito 5), pero las reservas ya cubren `Content/**/*.uasset|*.umap` y se reutilizan después.
-- Concurrencia por defecto en `.kratos/config.json`: `{"codex": 2, "claude": 1}`; configurable; Capacidades la muestra.
-- Las skills de cada rol son las de la tabla §4 del plan v2; el brief incluye la lista y «carga estas skills antes de empezar»; el worker confirma con `KRATOS_SKILLS ["…"]` en su primera salida; si falta alguna, evento `worker.skills_missing` sin bloquear.
+- Concurrencia por defecto en `.nomos/config.json`: `{"codex": 2, "claude": 1}`; configurable; Capacidades la muestra.
+- Las skills de cada rol son las de la tabla §4 del plan v2; el brief incluye la lista y «carga estas skills antes de empezar»; el worker confirma con `NOMOS_SKILLS ["…"]` en su primera salida; si falta alguna, evento `worker.skills_missing` sin bloquear.
 - El revisor nunca es el mismo run; con dos proveedores disponibles, tampoco el mismo proveedor; si solo hay uno, run nuevo con brief de revisión y `same_provider: true` en el evento.
-- Todo lo del hito 2 sigue: brief por archivo, `KRATOS_DONE`, idempotencia por `attempt`, Decisión al tercer ciclo, `workerPolicy` y `decisionGate` antes de cualquier arranque.
+- Todo lo del hito 2 sigue: brief por archivo, `NOMOS_DONE`, idempotencia por `attempt`, Decisión al tercer ciclo, `workerPolicy` y `decisionGate` antes de cualquier arranque.
 - Archivos ≤ 200 líneas, cero dependencias, LF, copy en español, `npm test` en verde por tarea, un commit por tarea, sin push ni merge.
 
 ## Review Focus
@@ -51,10 +51,10 @@
 | `service/src/leases.ts` | `acquire`, `release`, `holders`, `listLeases`, `conflicts` |
 | `service/src/scheduler.ts` | `plan`, `tick` |
 | `service/src/handlers/worker-launch.ts` | Comando de lanzamiento por proveedor y detección de prompt de permiso |
-| `service/src/handlers/review.ts` | `review.start`, `review.poll` con `KRATOS_REVIEW` |
+| `service/src/handlers/review.ts` | `review.start`, `review.poll` con `NOMOS_REVIEW` |
 | `service/src/skills.ts` | `skillsForRole`, `installedSkills` |
 | `service/src/routes/leases.ts`; Modify `routes/task-worker.ts`, `routes/tasks.ts`, `routes/capabilities.ts` | `POST /tasks/:id/depends`, `POST /tasks/:id/leases`, `GET /leases`, `POST /tasks/:id/review`; `GET /capabilities` con `skills` y `concurrency` |
-| `skills/kratos/SKILL.md`, `references/brief-revisor.md`, `evals/06-dos-tareas-un-widget.md` | «Repartir» |
+| `skills/nomos/SKILL.md`, `references/brief-revisor.md`, `evals/06-dos-tareas-un-widget.md` | «Repartir» |
 | `panel/src/views/Capacidades.tsx`, `components/TaskRow.tsx` | Skills y concurrencia; badges «Esperando reserva» y «Depende de» (en este hito solo si el agente del panel está libre; si no, queda para la integración siguiente) |
 | `tests/service/{leases,scheduler,launch,review,skills}.test.ts` | Pruebas con el `orca` falso de `tests/fakes/orca.ts` |
 
@@ -76,28 +76,28 @@
 
 ### Task 3: Revisión como run
 
-**Interfaces:** `POST /tasks/:id/review` → `enqueue(db, 'review.start', {taskId, implementerRunId}, 'review.start:' + taskId + ':' + implementerRunId)`. Brief de revisión (`references/brief-revisor.md`): criterios de aceptación, `git.diff` del worktree adjunto en `<worktree>/.kratos-review/diff.patch`, instrucción de terminar con `KRATOS_REVIEW {"approved": bool, "findings": [{"file","line","severity","note"}]}`; `worker-markers.ts` gana el marcador `REVIEW`. `review.poll` reutiliza `workerPoll` con `role: 'revisor'`; al cerrar: artefacto `report` con los findings, evento `review.finished`; aprobado → `tasks.review_approved = 1` y, si `task.acceptance` declara comprobaciones ejecutables (prefijo `check:`), `moveTask(probando)`; si no, queda `revisando`; rechazado → `enqueue('worker.send', {runId: implementerRunId, text: findings formateados})` y `moveTask(implementando)`.
+**Interfaces:** `POST /tasks/:id/review` → `enqueue(db, 'review.start', {taskId, implementerRunId}, 'review.start:' + taskId + ':' + implementerRunId)`. Brief de revisión (`references/brief-revisor.md`): criterios de aceptación, `git.diff` del worktree adjunto en `<worktree>/.nomos-review/diff.patch`, instrucción de terminar con `NOMOS_REVIEW {"approved": bool, "findings": [{"file","line","severity","note"}]}`; `worker-markers.ts` gana el marcador `REVIEW`. `review.poll` reutiliza `workerPoll` con `role: 'revisor'`; al cerrar: artefacto `report` con los findings, evento `review.finished`; aprobado → `tasks.review_approved = 1` y, si `task.acceptance` declara comprobaciones ejecutables (prefijo `check:`), `moveTask(probando)`; si no, queda `revisando`; rechazado → `enqueue('worker.send', {runId: implementerRunId, text: findings formateados})` y `moveTask(implementando)`.
 
-- [ ] Pruebas: Review Focus 3; rechazado reenvía findings al run implementador; `KRATOS_REVIEW` mal formado → `worker.waiting` con la línea.
+- [ ] Pruebas: Review Focus 3; rechazado reenvía findings al run implementador; `NOMOS_REVIEW` mal formado → `worker.waiting` con la línea.
 - [ ] Implementar; commit `feat: revisión como run independiente`.
 
 ### Task 4: Worker Claude Code
 
-**Interfaces:** `handlers/worker-launch.ts`: `launchCommand(provider): string` (`codex --yolo --no-daemon` | `claude --model sonnet --dangerously-skip-permissions`), `readyPattern(provider): RegExp` (`Ask Codex` | `bypass permissions|Try "`), `permissionPrompt(provider, lines): string | null` (Claude: `Do you want to|Allow|\(y/n\)`). `workerStart` usa `launchCommand`/`readyPattern` según `payload.provider`; `workerPoll` llama a `permissionPrompt` y, si hay coincidencia, emite `worker.waiting` con la línea (Review Focus 4). El brief para Claude añade la lista de skills a cargar y «responde `KRATOS_SKILLS […]` en tu primera línea».
+**Interfaces:** `handlers/worker-launch.ts`: `launchCommand(provider): string` (`codex --yolo --no-daemon` | `claude --model sonnet --dangerously-skip-permissions`), `readyPattern(provider): RegExp` (`Ask Codex` | `bypass permissions|Try "`), `permissionPrompt(provider, lines): string | null` (Claude: `Do you want to|Allow|\(y/n\)`). `workerStart` usa `launchCommand`/`readyPattern` según `payload.provider`; `workerPoll` llama a `permissionPrompt` y, si hay coincidencia, emite `worker.waiting` con la línea (Review Focus 4). El brief para Claude añade la lista de skills a cargar y «responde `NOMOS_SKILLS […]` en tu primera línea».
 
-- [ ] Pruebas con `tests/fakes/orca.ts` (ampliar el falso con un modo `claude` cuyo búfer muestra `bypass permissions` y luego un prompt de permiso): arranque, detección de permiso, `KRATOS_DONE`.
+- [ ] Pruebas con `tests/fakes/orca.ts` (ampliar el falso con un modo `claude` cuyo búfer muestra `bypass permissions` y luego un prompt de permiso): arranque, detección de permiso, `NOMOS_DONE`.
 - [ ] Implementar; commit `feat: worker Claude Code`.
 
 ### Task 5: Skills por rol y Capacidades
 
-**Interfaces:** `skillsForRole(role: string, area: string): string[]` con la tabla §4 del plan v2; `installedSkills(workspaceDir): {name, path, source: 'claude'|'agents'}[]` (lee `.claude/skills/*/SKILL.md` y `.agents/skills/*/SKILL.md`); `GET /capabilities` añade `skills` y `concurrency`; el brief incluye la lista; `workerPoll` detecta `KRATOS_SKILLS [...]` y emite `worker.skills_missing` con la diferencia.
+**Interfaces:** `skillsForRole(role: string, area: string): string[]` con la tabla §4 del plan v2; `installedSkills(workspaceDir): {name, path, source: 'claude'|'agents'}[]` (lee `.claude/skills/*/SKILL.md` y `.agents/skills/*/SKILL.md`); `GET /capabilities` añade `skills` y `concurrency`; el brief incluye la lista; `workerPoll` detecta `NOMOS_SKILLS [...]` y emite `worker.skills_missing` con la diferencia.
 
 - [ ] Pruebas: `skillsForRole('ui', 'ui')` contiene `ue-ui-umg-slate` y `game-ui-design`; `installedSkills` sobre un directorio temporal con dos skills; prueba 22 del plan v2.
 - [ ] Implementar; commit `feat: skills por rol y capacidades del workspace`.
 
 ### Task 6: La skill reparte y aceptación
 
-- [ ] `SKILL.md` sección «Repartir»: una petición puede convertirse en varias tareas con `dependsOn`; cada tarea declara `leases` y `scope`; Kratos pide revisión (`kratos task review <id>`) al llegar `run.finished` y espera `review.finished`; eval `06-dos-tareas-un-widget.md`. skillsmith ≥ 95.
+- [ ] `SKILL.md` sección «Repartir»: una petición puede convertirse en varias tareas con `dependsOn`; cada tarea declara `leases` y `scope`; Nomos pide revisión (`nomos task review <id>`) al llegar `run.finished` y espera `review.finished`; eval `06-dos-tareas-un-widget.md`. skillsmith ≥ 95.
 - [ ] Aceptación real en `KratosFabTest` (ya es repositorio Git desde el hito 2): dos peticiones que declaran la misma ruta `Content/UI/WBP_HUD.uasset`: solo una arranca, la otra muestra la espera; al terminar la primera arranca la segunda; una revisión por Claude de lo que implementó Codex. `docs/aceptacion-hito3.md`; commit.
 
 ---

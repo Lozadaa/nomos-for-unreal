@@ -8,9 +8,9 @@ const touch = (file: string, data: string | Buffer = '') => { mkdirSync(join(fil
 
 /** Réplica mínima de este equipo según docs/fab-pruebas (informe nivel 2): 5 packs Fab, 1 pack del Launcher, 2 Megascans. */
 export function fabFixture() {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-fab-'));
+  const root = mkdtempSync(join(tmpdir(), 'nomos-fab-'));
   const projectsDir = join(root, 'Unreal Projects'), vaultDir = join(root, 'VaultCache');
-  const megascansDir = join(root, 'Megascans', 'UAssets'), dataDir = join(root, '.kratos');
+  const megascansDir = join(root, 'Megascans', 'UAssets'), dataDir = join(root, '.nomos');
   const project = (name: string, packs: string[], launcher: string[] = []) => {
     touch(join(projectsDir, name, `${name}.uproject`), '{"EngineAssociation":"5.8"}');
     for (const pack of packs) touch(join(projectsDir, name, 'Content', 'Fab', pack, 'scene.uasset'), 'x');

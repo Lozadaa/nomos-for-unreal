@@ -3,11 +3,11 @@ import { createHash } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { gameSkills } from '../skills-install.ts';
+import { legacyLocalPaths } from '../legacy.ts';
 import { gitLfs, type GitLfs } from './git-lfs.ts';
 export type GitRun = (dir: string, args: string[], diff?: boolean, timeoutMs?: number) => Promise<string>;
 export type Git = GitLfs & {
-  isRepo(dir: string): Promise<boolean>; currentBranch(dir: string): Promise<string>;
-  excludeLocal(dir: string): Promise<void>;
+  isRepo(dir: string): Promise<boolean>; currentBranch(dir: string): Promise<string>; excludeLocal(dir: string): Promise<void>;
   head(dir: string): Promise<string>; renameBranch(dir: string, name: string): Promise<void>;
   diff(dir: string, base: string): Promise<{stat: string; patch: string; fingerprint?:string}>;
   log(dir: string, base: string): Promise<{sha: string; subject: string}[]>;
@@ -38,10 +38,10 @@ export function createGit(): Git {
     child.on('error',reject);
     child.on('close',code => {clearTimeout(timer); code === 0 || diff && code === 1 ? accept(stdout) : reject(new Error(stderr || `git: ${code}`));});
   });
-  const local = (path: string) => /^(\.kratos(?:\/|$)|\.kratos-brief\.md$|\.kratos-inbox(?:\/|$)|\.kratos-review(?:\/|$))/.test(path);
+  const localPaths = ['.nomos', '.nomos-brief.md', '.nomos-inbox', '.nomos-review', ...legacyLocalPaths], paths = ['--', '.', ...localPaths.map(name => ':!/' + name)];
+  const local = (path: string) => localPaths.some(name => path === name || path.startsWith(name + '/'));
   // hito 7: lo que Unreal genera al compilar o empaquetar no es trabajo del worker ni entra en la revisión
   const generated = (path: string) => /^(Build|Saved|Intermediate|DerivedDataCache|Binaries)\//.test(path);
-  const paths = ['--', '.', ':!/.kratos', ':!/.kratos-brief.md', ':!/.kratos-inbox', ':!/.kratos-review'];
   return {
     async isRepo(dir) {
       try {
@@ -57,7 +57,7 @@ export function createGit(): Git {
       const common=resolve(dir,(await run(dir,['rev-parse','--git-common-dir'])).trim());
       mkdirSync(join(common,'info'),{recursive:true});
       const file=join(common,'info','exclude'),old=existsSync(file) ? readFileSync(file,'utf8') : '';
-      const patterns=['/.kratos-brief.md','/opencode.json','/.kratos-inbox/','/.kratos-review/',
+      const patterns=['/.nomos-brief.md','/opencode.json','/.nomos-inbox/','/.nomos-review/',
         ...gameSkills.map(name=>`/.claude/skills/${name}/`)];
       writeFileSync(file,old+'\n'+patterns.filter(p=>!old.split(/\r?\n/).includes(p)).join('\n')+'\n');
     },
@@ -159,9 +159,9 @@ export function createGit(): Git {
       if(!owner) { await run(repoDir,['update-ref',`refs/heads/${branch}`,commit,expected]); return; }
       const dir=owner.split(/\r?\n/)[0].slice('worktree '.length),ff=()=>run(dir,['merge','--ff-only',commit]);
       try { await ff(); return; } catch(error) {
-        // hito 7: lo del checkout byte a byte igual a lo que llega (asset que Kratos migró sin versionar, la línea de LiveLink
+        // hito 7: lo del checkout byte a byte igual a lo que llega (asset que Nomos migró sin versionar, la línea de LiveLink
         // ya puesta) se sustituye; lo distinto (Config con secretos del usuario) no se toca y el rechazo sigue, ya solo con eso
-        // la lista la calcula Kratos: git trunca su mensaje a 4 KB y con cientos de archivos corta rutas a medias
+        // la lista la calcula Nomos: git trunca su mensaje a 4 KB y con cientos de archivos corta rutas a medias
         if(!/would be overwritten by merge/.test(error instanceof Error ? error.message : String(error))) throw error;
         const z=(out:string)=>out.split('\0').filter(Boolean);
         const incoming=new Set(z(await run(dir,['diff','--name-only','-z','--no-renames','--diff-filter=ACMRT','HEAD',commit])));

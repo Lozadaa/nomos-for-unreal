@@ -1,6 +1,6 @@
 # Contrato de captura
 
-Cada captura que revisas viene de `ui.cycle` de Kratos y lleva, en el brief y en la procedencia
+Cada captura que revisas viene de `ui.cycle` de Nomos y lleva, en el brief y en la procedencia
 del artefacto: tarea, run implementador, commit, versión del motor, mapa, resolución, método y fecha.
 
 ## Matriz
@@ -17,7 +17,7 @@ Añade mando, ultrapanorámico u otros idiomas solo si la tarea los declara sopo
 - El juego corre con `-game -windowed -ResX -ResY -ForceRes` desde el editor del proyecto.
 - Espera a que haya un `UserWidget` en el viewport, pausa y captura con `Shot showui`.
 - La captura de control oculta los widgets en el mismo fotograma pausado: solo cambia la UI.
-- Kratos compara ambas antes de llamarte; si difieren menos del 0,5 % no llegas a revisarlas.
+- Nomos compara ambas antes de llamarte; si difieren menos del 0,5 % no llegas a revisarlas.
 
 ## Lo que una captura no prueba
 
@@ -26,5 +26,5 @@ comprueba en el recorrido del implementador; tú revisas cómo se ve en el estad
 
 ## Comparar con una referencia
 
-Si hay capturas aprobadas anteriores en `.kratos/artifacts`, mismas resolución y mapa: compara
+Si hay capturas aprobadas anteriores en `.nomos/artifacts`, mismas resolución y mapa: compara
 y señala cambios no pedidos. No actualices referencias para ocultar diferencias.

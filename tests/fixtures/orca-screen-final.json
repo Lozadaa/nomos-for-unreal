@@ -4,7 +4,7 @@
   "nextCursor": "2",
   "source": "screen",
   "tail": [
-    "• KRATOS_DONE {\"summary\":\"README en español y script creados. Pruebas RED/GREEN superadas: salida única «Versión del",
+    "• NOMOS_DONE {\"summary\":\"README en español y script creados. Pruebas RED/GREEN superadas: salida única «Versión del",
     "  motor: 5.8», exit 0 y ejecución desde carpeta externa. Solo los dos archivos permitidos; árbol limpio.\",\"commits\":",
     "  [\"603f13a3584e1aa3b4bdceb46cd17596c267c86a\",\"e60b7f4d01ac85bb44b782c239f50420535324f2\"],\"tests\":\"passed\"}",
     "» Ask Codex to do anything"

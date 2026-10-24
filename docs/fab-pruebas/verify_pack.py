@@ -1,11 +1,11 @@
 """Se ejecuta DENTRO del editor sin GUI (UnrealEditor-Cmd -ExecutePythonScript): comprueba que un pack
 Fab copiado a Content/Fab carga, resuelve todas sus dependencias y describe sus mallas.
 
-Escribe un JSON en la ruta de la variable de entorno KRATOS_REPORT (o Saved/kratos-verify.json).
+Escribe un JSON en la ruta de la variable de entorno NOMOS_REPORT (o Saved/nomos-verify.json).
 """
 import json, os, unreal
 
-ROOT = os.environ.get("KRATOS_ROOT", "/Game/Fab")  # p. ej. /Game/AdvancedCelShader para packs del Launcher
+ROOT = os.environ.get("NOMOS_ROOT", "/Game/Fab")  # p. ej. /Game/AdvancedCelShader para packs del Launcher
 ALLOWED_PREFIXES = (ROOT + "/", "/Engine/", "/Fab/", "/Interchange/", "/InterchangeAssets/", "/Script/")
 registry = unreal.AssetRegistryHelpers.get_asset_registry()
 registry.scan_paths_synchronous([ROOT], True)
@@ -40,7 +40,7 @@ for data in registry.get_assets_by_path(ROOT, recursive=True):
 
 report["ok"] = bool(report["assets"]) and not report["errors"] and not report["missing_dependencies"] \
     and all(a.get("loaded") for a in report["assets"])
-out = os.environ.get("KRATOS_REPORT") or os.path.join(unreal.Paths.project_saved_dir(), "kratos-verify.json")
+out = os.environ.get("NOMOS_REPORT") or os.path.join(unreal.Paths.project_saved_dir(), "nomos-verify.json")
 with open(out, "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2, ensure_ascii=False)
-unreal.log(f"KRATOS_VERIFY ok={report['ok']} assets={len(report['assets'])} report={out}")
+unreal.log(f"NOMOS_VERIFY ok={report['ok']} assets={len(report['assets'])} report={out}")

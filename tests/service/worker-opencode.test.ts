@@ -9,7 +9,7 @@ import { listEvents } from '../../service/src/store.ts';
 import { listDecisions } from '../../service/src/repo/decisions.ts';
 import { plan } from '../../service/src/scheduler.ts';
 
-const brief='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.';
+const brief='Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.';
 const setup=(t:any,config:object={},env:Record<string,string>={})=>{
   const f=fixture(t,env);writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({concurrency:{opencode:1},...config}));return f;
 };
@@ -19,12 +19,12 @@ const poll=(f:ReturnType<typeof fixture>)=>f.invoke('worker.poll',{runId:f.run()
 test('OpenCode arranca con el brief en el comando, modelo fijado y opencode.json fuera de Git',async t=>{
   const f=setup(t);await start(f);const run=f.run(),short=f.task.id.slice(0,8);
   assert.equal(run.provider,'opencode');assert.equal(run.metadata.model,'opencode/beam-free');
-  assert.deepEqual(f.state().tail,[`opencode run --auto --model opencode/beam-free --title kratos-${short} ${brief}`],
+  assert.deepEqual(f.state().tail,[`opencode run --auto --model opencode/beam-free --title nomos-${short} ${brief}`],
     'una sola orden: el brief viaja en ella y no se reenvía');
   assert.equal(JSON.parse(readFileSync(join(f.tree().path,'opencode.json'),'utf8')).model,'opencode/beam-free');
   assert.equal(execFileSync('git',['-C',f.tree().path,'status','--porcelain'],{encoding:'utf8'}),'','opencode.json y el brief no ensucian el árbol');
   assert.equal(requireTask(f.db,f.task.id).state,'implementando');
-  f.output('KRATOS_DONE {"summary":"Docs listas","commits":[],"tests":"none"}');await poll(f);
+  f.output('NOMOS_DONE {"summary":"Docs listas","commits":[],"tests":"none"}');await poll(f);
   assert.equal(f.run().state,'done');assert.equal(requireTask(f.db,f.task.id).state,'revisando');
 });
 test('opencodeModel de config.json decide el modelo del comando y del árbol',async t=>{
@@ -50,8 +50,8 @@ test(`OpenCode que no puede arrancar falla limpio y la tarea pasa a Claude sin D
 });
 test('la corrección a OpenCode continúa su sesión con opencode run --continue',async t=>{
   const f=setup(t);await start(f);
-  f.output('KRATOS_DONE {"summary":"Docs listas","commits":[],"tests":"none"}');await poll(f);
+  f.output('NOMOS_DONE {"summary":"Docs listas","commits":[],"tests":"none"}');await poll(f);
   await f.invoke('worker.send',{runId:f.run().id,text:'Corrige el título'});
-  assert.match(f.state().tail.at(-1),/^opencode run --continue --auto --model opencode\/beam-free Lee el archivo \.kratos-inbox\/[0-9a-f-]+\.md y ejecuta lo que dice\.$/);
+  assert.match(f.state().tail.at(-1),/^opencode run --continue --auto --model opencode\/beam-free Lee el archivo \.nomos-inbox\/[0-9a-f-]+\.md y ejecuta lo que dice\.$/);
   assert.equal(f.run().state,'running');assert.equal(f.run().metadata.correctionCount,1);
 });

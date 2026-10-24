@@ -10,8 +10,8 @@ import { chromium } from '@playwright/test'
 
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 const out = resolve(import.meta.dirname, '../../docs/capturas-6')
-const root = mkdtempSync(join(tmpdir(), 'kratos-hito6-'))
-const data = join(root, '.kratos')
+const root = mkdtempSync(join(tmpdir(), 'nomos-hito6-'))
+const data = join(root, '.nomos')
 const server = createServer()
 await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok))
 const port = String((server.address() as { port: number }).port)
@@ -47,6 +47,6 @@ try {
 } finally {
   try { execFileSync(process.execPath, [cli, 'stop', '--data', data], { stdio: 'ignore' }) } catch { /* puede no haber arrancado */ }
   const target = resolve(root)
-  assert.ok(target.startsWith(resolve(tmpdir()) + sep) && target.split(sep).at(-1)!.startsWith('kratos-hito6-'))
+  assert.ok(target.startsWith(resolve(tmpdir()) + sep) && target.split(sep).at(-1)!.startsWith('nomos-hito6-'))
   rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
 }

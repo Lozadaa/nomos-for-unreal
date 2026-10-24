@@ -6,9 +6,9 @@ test.describe.configure({ mode: 'serial' })
 let service: ReturnType<typeof ownService>
 test.beforeAll(({ browserName }) => { service = ownService(browserName === 'firefox' ? 18794 : 18793) })
 test.afterAll(() => service.dispose())
-test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1')) })
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
-test('kratos stop/start: el panel lo dice, el token viejo deja de valer y al reabrir no hay duplicados', async ({ page }) => {
+test('nomos stop/start: el panel lo dice, el token viejo deja de valer y al reabrir no hay duplicados', async ({ page }) => {
   const first = service.start()
   await page.goto(service.url(first))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
@@ -24,7 +24,7 @@ test('kratos stop/start: el panel lo dice, el token viejo deja de valer y al rea
   expect((await page.request.get(`${service.origin}/status`, auth(first))).status()).toBe(401)
   await expect(page.getByText(/Sesión caducada/)).toBeVisible({ timeout: 15_000 })
 
-  // solo cambia el hash: hace falta recargar para que el panel lea el token nuevo (como al abrirlo de nuevo desde Kratos)
+  // solo cambia el hash: hace falta recargar para que el panel lea el token nuevo (como al abrirlo de nuevo desde Nomos)
   await page.goto(service.url(second))
   await page.reload()
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()

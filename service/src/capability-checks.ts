@@ -5,12 +5,12 @@ import { detectCapabilities, type Capability } from './repo/capabilities.ts';
 
 export type CheckResult = {state: 'ausente' | 'comprobado' | 'roto'; detail: string};
 
-/** `detectCapabilities` lee `.kratos/config.json`; aquí esa ruta apunta al `config.json` del servicio. */
+/** `detectCapabilities` lee `.nomos/config.json`; aquí esa ruta apunta al `config.json` del servicio. */
 export function configFs(dataDir: string | undefined) {
   return {
     existsSync: fs.existsSync,
     readFileSync: (path: string, encoding: any) => {
-      if (path === '.kratos/config.json') {
+      if (path === '.nomos/config.json') {
         if (!dataDir) throw new Error('missing_config');
         return fs.readFileSync(join(dataDir, 'config.json'), encoding);
       }

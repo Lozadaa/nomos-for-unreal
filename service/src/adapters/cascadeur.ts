@@ -5,7 +5,7 @@ import { quote, runLogged } from './process.ts';
 /** Ejecutable de Cascadeur; en pruebas, node con el Cascadeur falso en `baseArgs`. */
 export type Cascadeur = {bin: string; baseArgs?: string[]};
 export const defaultCascadeur = 'C:\\Program Files\\Cascadeur\\cascadeur.exe';
-/** Comandos de Kratos para Cascadeur (`kratos_job.py`): se importan desde aquí, sin copiarlos a Program Files. */
+/** Comandos de Nomos para Cascadeur (`nomos_job.py`): se importan desde aquí, sin copiarlos a Program Files. */
 export const cascadeurScripts = join(import.meta.dirname, '..', '..', 'cascadeur');
 
 export function findCascadeur(configured?: unknown): Cascadeur | null {
@@ -14,10 +14,10 @@ export function findCascadeur(configured?: unknown): Cascadeur | null {
 }
 
 /**
- * Job de Kratos sin ventana: `cascadeur.exe --run-python-code` (comprobado en 2026.2.3: corre con la plataforma
+ * Job de Nomos sin ventana: `cascadeur.exe --run-python-code` (comprobado en 2026.2.3: corre con la plataforma
  * `qoffscreen`, `csc` disponible, y Cascadeur se cierra al terminar). El resultado lo escribe el job en su `report`.
  */
 export function runJob(c: Cascadeur, jobFile: string, timeoutMs = 10 * 60_000) {
-  const code = `import sys; sys.path.insert(0, r'${cascadeurScripts}'); import kratos_job; kratos_job.main(r'${jobFile}')`;
+  const code = `import sys; sys.path.insert(0, r'${cascadeurScripts}'); import nomos_job; nomos_job.main(r'${jobFile}')`;
   return runLogged(c.bin, [...(c.baseArgs ?? []), '--run-python-code', code].map(quote), {timeoutMs});
 }

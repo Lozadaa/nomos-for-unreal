@@ -49,4 +49,4 @@ La galería completa necesita desplazamiento vertical a 1366×768; la captura de
 
 ## Límites de entrega
 
-Los cambios afectan únicamente a `panel/src/visual/**`, al script de capturas en panel y a esta documentación/evidencia. No se han modificado service/, skills/, tests/ de raíz ni otras vistas. El archivo local .kratos-brief.md queda fuera de los commits. No hay push ni merge.
+Los cambios afectan únicamente a `panel/src/visual/**`, al script de capturas en panel y a esta documentación/evidencia. No se han modificado service/, skills/, tests/ de raíz ni otras vistas. El archivo local .nomos-brief.md queda fuera de los commits. No hay push ni merge.

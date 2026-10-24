@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 
 vi.mock('@/api', () => ({ api: vi.fn(async () => []), token: null, ApiError: class extends Error {} }))
 vi.mock('@/hooks/useRuns', () => ({ useRuns: () => [{ id: 'r-oc', provider: 'opencode' }] }))
@@ -9,7 +9,7 @@ import { ingest, resetStore } from '@/store'
 import { Actividad } from './Actividad'
 
 let seq = 0
-const event = (type: string, payload: Record<string, unknown> = {}, createdAt = '2026-10-23T10:30:00Z'): KratosEvent => ({ seq: ++seq, id: `e${seq}`, type, payload, createdAt, messageId: null })
+const event = (type: string, payload: Record<string, unknown> = {}, createdAt = '2026-10-23T10:30:00Z'): NomosEvent => ({ seq: ++seq, id: `e${seq}`, type, payload, createdAt, messageId: null })
 const mount = () => render(<MemoryRouter><Actividad /></MemoryRouter>)
 
 beforeEach(() => { resetStore(); seq = 0 })
@@ -29,14 +29,14 @@ describe('Actividad visual', () => {
     expect(within(timeline).getByText('Mensaje', { selector: 'span' })).toBeInTheDocument()
     const chart = screen.getByRole('region', { name: 'Actividad por hora' })
     expect(within(chart).getAllByRole('img')).toHaveLength(8)
-    for (const lane of ['Kratos', 'Codex', 'Claude Code', 'OpenCode', 'Meshy', 'Blender', 'Unreal', 'Compilaciones']) expect(within(chart).getByText(lane, { selector: 'li' })).toBeInTheDocument()
+    for (const lane of ['Nomos', 'Codex', 'Claude Code', 'OpenCode', 'Meshy', 'Blender', 'Unreal', 'Compilaciones']) expect(within(chart).getByText(lane, { selector: 'li' })).toBeInTheDocument()
     expect(chart).toHaveTextContent('24 h')
   })
 
-  it('conserva los 500 puntos de Kratos y declara el límite de la ventana recibida', () => {
+  it('conserva los 500 puntos de Nomos y declara el límite de la ventana recibida', () => {
     act(() => { for (let i = 0; i < 500; i++) ingest(event('task.activity', {}, '2026-10-23T10:30:00Z')) })
     mount()
-    const lane = screen.getByRole('group', { name: 'Kratos' })
+    const lane = screen.getByRole('group', { name: 'Nomos' })
     const first = within(lane).getAllByRole('button', { pressed: false })[1]
     expect(within(lane).getAllByRole('button', { pressed: false })).toHaveLength(500)
     // un racimo compacto se ve como un recuento, no como 500 puntos
@@ -58,7 +58,7 @@ describe('Actividad visual', () => {
       ingest(event('reply.published'))
     })
     mount()
-    const lane = screen.getByRole('group', { name: 'Kratos' })
+    const lane = screen.getByRole('group', { name: 'Nomos' })
     const points = within(lane).getAllByRole('button', { pressed: false })
     expect(points.map((point) => point.getAttribute('data-track'))).toEqual(['0', '1', '2'])
     expect(lane.querySelectorAll('[data-dense-marker]')).toHaveLength(0)

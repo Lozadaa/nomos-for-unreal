@@ -29,14 +29,14 @@ for(const change of ['diff','HEAD']) test(`nuevo contenido ${change} permite rev
   };
   const commandId=await request();await launch(commandId);const first=f.reviewer();
   if(change==='diff') writeFileSync(join(f.implementerTree.path,'resultado.md'),'Contenido nuevo\n');
-  f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   if(change==='HEAD') execFileSync('git',['-C',f.implementerTree.path,'commit','--allow-empty','-m','Nueva cabecera'],{windowsHide:true});
   assert.equal(await request(),commandId);
   assert.equal(read<Command>(f.db,'commands',commandId)!.state,'pending');
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
   await launch(commandId);assert.notEqual(f.reviewer().id,first.id);
   assert.notEqual(f.reviewer().metadata.review?.generation,first.metadata.review?.generation);
-  f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,1);
   assert.equal(await request(),commandId);assert.equal(read<Command>(f.db,'commands',commandId)!.state,'done');
 });

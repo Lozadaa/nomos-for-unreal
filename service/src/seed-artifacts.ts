@@ -6,7 +6,7 @@ import type { Writer } from './seed-data.ts';
 function triangleGlb(): Buffer {
   const binary = Buffer.alloc(36);
   [0,0,0,1,0,0,0,1,0].forEach((value,i) => binary.writeFloatLE(value,i*4));
-  const document = {asset:{version:'2.0',generator:'Kratos semilla'},scene:0,
+  const document = {asset:{version:'2.0',generator:'Nomos semilla'},scene:0,
     scenes:[{nodes:[0]}],nodes:[{mesh:0}],meshes:[{primitives:[{attributes:{POSITION:0}}]}],
     buffers:[{byteLength:36}],bufferViews:[{buffer:0,byteOffset:0,byteLength:36,target:34962}],
     accessors:[{bufferView:0,componentType:5126,count:3,type:'VEC3',min:[0,0,0],max:[1,1,0]}]};

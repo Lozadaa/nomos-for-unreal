@@ -36,7 +36,7 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         cascadeurPath?: string;
     } = {};
     try {
-        const value = JSON.parse(fs.readFileSync('.kratos/config.json', 'utf8'));
+        const value = JSON.parse(fs.readFileSync('.nomos/config.json', 'utf8'));
         if (value && typeof value === 'object')
             config = value;
     }

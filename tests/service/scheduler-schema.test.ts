@@ -12,7 +12,7 @@ import { startRun,finishRun } from '../../service/src/repo/runs.ts';
 import { enqueue } from '../../service/src/commands.ts';
 
 test('migración reconoce OpenCode y conserva campos rowid metadata e idempotencia al reabrir',()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-provider-schema-')),file=join(dir,'db.sqlite');
+  const dir=mkdtempSync(join(tmpdir(),'nomos-provider-schema-')),file=join(dir,'db.sqlite');
   let db=new DatabaseSync(file);
   try {
     applySchema(db);migrateWorker(db);migrateLeases(db);migrateLanes(db);

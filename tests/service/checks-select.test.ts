@@ -32,7 +32,7 @@ test('hito 5b: personajes y animaciones exigen animation, entre asset y map', ()
   for (const file of ['Content/Characters/Mannequins/Meshes/SKM_Manny_Simple.uasset', 'Content/Variant_Combat/Anims/AM_ComboAttack.uasset',
     'Content/Anims/A_Salto.uasset', 'Content/Juego/ABP_Heroe.uasset', 'Content/Juego/BS_Andar.uasset', 'Content/Juego/MM_Idle.uasset',
     'Content/Rigs/IK_Heroe.uasset', 'Content/Rigs/RTG_Heroe.uasset', 'Content/Juego/SK_Heroe.uasset', 'Content/Animations/Golpe.uasset',
-    'kratos-personaje.json'])
+    'nomos-personaje.json'])
     assert.deepEqual(selectChecks([file]), ['animation'], file);
   assert.deepEqual(selectChecks(['Content/Props/SM_Caja.uasset', 'Content/Maps/Nivel1.umap', 'Content/Anims/AM_Golpe.uasset', 'Source/A.cpp']),
     ['cpp', 'asset', 'animation', 'map']);

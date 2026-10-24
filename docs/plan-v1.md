@@ -1,20 +1,20 @@
-# Plan de desarrollo de Kratos para Unreal Engine
+# Plan de desarrollo de Nomos para Unreal Engine
 
 Plan propuesto · 22 de octubre de 2026
 
-Kratos será una skill de Claude Code y un panel web de producción para desarrollar videojuegos en Unreal Engine mediante IA. La conversación de Claude donde se invoque la skill será el director: recibirá peticiones, dividirá el trabajo y levantará agentes, worktrees, generación de assets, revisiones y pruebas. El panel hará visible ese proceso y conservará sus resultados.
+Nomos será una skill de Claude Code y un panel web de producción para desarrollar videojuegos en Unreal Engine mediante IA. La conversación de Claude donde se invoque la skill será el director: recibirá peticiones, dividirá el trabajo y levantará agentes, worktrees, generación de assets, revisiones y pruebas. El panel hará visible ese proceso y conservará sus resultados.
 
 El producto estará dedicado a Unreal Engine y será reutilizable entre distintos juegos. Este plan define el desarrollo; todavía no constituye una implementación o integración probada.
 
 ## 1. Experiencia de uso acordada
 
-1. Abrir Claude Code en la carpeta de un juego Unreal e invocar la skill. Nombre propuesto: `/kratos`.
+1. Abrir Claude Code en la carpeta de un juego Unreal e invocar la skill. Nombre propuesto: `/nomos`.
 2. La skill identifica el `.uproject` y repositorio, recupera el estado de producción, inicia o conecta los servicios locales y abre la web.
-3. Esa sesión de Claude queda registrada como Kratos y arma la escucha de eventos.
-4. El usuario escribe una petición en el chat central del panel. Kratos la convierte en tareas con criterios de aceptación, dependencias y responsables.
-5. Kratos levanta workers de Codex o Claude Code en worktrees, solicita trabajos a Meshy/Blender y coordina el editor de Unreal.
+3. Esa sesión de Claude queda registrada como Nomos y arma la escucha de eventos.
+4. El usuario escribe una petición en el chat central del panel. Nomos la convierte en tareas con criterios de aceptación, dependencias y responsables.
+5. Nomos levanta workers de Codex o Claude Code en worktrees, solicita trabajos a Meshy/Blender y coordina el editor de Unreal.
 6. El usuario ve tablero, timeline, conversaciones, cambios, assets y pruebas mientras se producen.
-7. Kratos gestiona las correcciones con el responsable original. Una tarea termina cuando sus resultados están integrados y verificados y los worktrees temporales que tenga asignados se han cerrado.
+7. Nomos gestiona las correcciones con el responsable original. Una tarea termina cuando sus resultados están integrados y verificados y los worktrees temporales que tenga asignados se han cerrado.
 8. Otra petición sobre ese resultado conserva la atribución y el contexto, aunque requiera crear un nuevo worktree.
 
 La sesión del director es persistente y queda separada del ciclo temporal de cada worker. El panel es el lugar principal para operar; Claude Code sirve como punto de entrada y conversación que dirige la producción.
@@ -23,9 +23,9 @@ La sesión del director es persistente y queda separada del ciclo temporal de ca
 
 ```text
 Claude Code existente
-  └─ skill /kratos
+  └─ skill /nomos
        ├─ bootstrap: comprobar, iniciar, recuperar, abrir
-       └─ Kratos: conversación central y dirección
+       └─ Nomos: conversación central y dirección
             ▲                                  │
             │ eventos confirmados              │ comandos tipados
             │                                  ▼
@@ -42,37 +42,37 @@ Panel Ant Design ◄── SSE ────────┤─ evidencias, sesion
 
 La primera versión será una web local con un servicio en el equipo que ejecuta Unreal. Ese servicio tendrá acceso controlado a Git, procesos, archivos y herramientas. Las claves permanecerán en el servicio y el almacenamiento seguro del sistema, fuera del navegador y de los worktrees.
 
-El navegador enviará peticiones y recibirá eventos. El coordinador administrará los recursos y verificará los cambios de estado. Kratos decidirá qué trabajo ejecutar a través de herramientas con contratos definidos.
+El navegador enviará peticiones y recibirá eventos. El coordinador administrará los recursos y verificará los cambios de estado. Nomos decidirá qué trabajo ejecutar a través de herramientas con contratos definidos.
 
 ## 3. Skill y escucha basadas en el patrón de dojo
 
-La referencia es la experiencia observada en `/dojo`: arranque de servidor, vigilante, eventos persistentes y presencia visible. Kratos tendrá su propio paquete y sus propios datos; no requiere modificar el dojo.
+La referencia es la experiencia observada en `/dojo`: arranque de servidor, vigilante, eventos persistentes y presencia visible. Nomos tendrá su propio paquete y sus propios datos; no requiere modificar el dojo.
 
 Para el primer prototipo se usará `Monitor` con un lector local de la bandeja. La documentación de Claude Code permite recibir líneas del proceso en la sesión abierta; sus monitores tienen duración limitada, requieren rearme y su disponibilidad depende del entorno. En Windows debe comprobarse Git Bash. Fuente: [Monitor de Claude Code](https://code.claude.com/docs/en/tools#monitor-tool).
 
 Contrato de recepción propuesto:
 
 1. La web registra la petición en almacenamiento durable y obtiene `messageId`.
-2. El lector entrega el evento a la misma sesión de Kratos desde el último cursor confirmado.
-3. Kratos confirma recepción y registra las acciones que va a iniciar.
+2. El lector entrega el evento a la misma sesión de Nomos desde el último cursor confirmado.
+3. Nomos confirma recepción y registra las acciones que va a iniciar.
 4. El coordinador ejecuta los comandos de manera idempotente.
-5. Kratos publica la respuesta asociada a la petición; la web la recibe por SSE.
+5. Nomos publica la respuesta asociada a la petición; la web la recibe por SSE.
 
 Confirmar recepción no significa terminar la petición. El evento mantiene estado de ejecución hasta que su respuesta o sus tareas asociadas queden persistidas. La recuperación conserva pendientes y evita crear workers o trabajos pagos por duplicado.
 
-La interfaz distinguirá servicio activo, listener activo, última recepción confirmada por Kratos y trabajo en curso. El latido de un proceso lector no basta para afirmar que el director está atendiendo.
+La interfaz distinguirá servicio activo, listener activo, última recepción confirmada por Nomos y trabajo en curso. El latido de un proceso lector no basta para afirmar que el director está atendiendo.
 
-Mientras el modo Kratos siga activo y la sesión permanezca abierta, Kratos rearma el monitor al expirar y recupera pendientes, también cuando espera nuevas peticiones sin tareas en curso. Si falla el rearme, la web muestra desconexión y conserva pendientes. Al cerrar Claude, el panel muestra al director desconectado. Los trabajos ya aceptados pueden conservar su estado y evidencias; las decisiones nuevas quedan pendientes hasta recuperar al director.
+Mientras el modo Nomos siga activo y la sesión permanezca abierta, Nomos rearma el monitor al expirar y recupera pendientes, también cuando espera nuevas peticiones sin tareas en curso. Si falla el rearme, la web muestra desconexión y conserva pendientes. Al cerrar Claude, el panel muestra al director desconectado. Los trabajos ya aceptados pueden conservar su estado y evidencias; las decisiones nuevas quedan pendientes hasta recuperar al director.
 
 Una segunda vía podrá utilizar [Claude Code Channels](https://code.claude.com/docs/en/channels). Su estado actual es research preview y un canal propio requiere habilitación de arranque; la skill no debe asumir que puede activarlo retrospectivamente en cualquier sesión. Los hooks se usarán para telemetría y políticas, no como sustituto del canal de entrada.
 
-Interfaz de skill propuesta: `/kratos`, `/kratos estado`, `/kratos reanudar`, `/kratos pausar` y `/kratos cerrar`. Pausar detiene nuevos despachos y mantiene el canal disponible para recibir instrucciones; cerrar termina la escucha de forma explícita y preserva el estado. El arranque será idempotente: otra invocación se conecta al entorno existente y evita duplicar servicios o directores.
+Interfaz de skill propuesta: `/nomos`, `/nomos estado`, `/nomos reanudar`, `/nomos pausar` y `/nomos cerrar`. Pausar detiene nuevos despachos y mantiene el canal disponible para recibir instrucciones; cerrar termina la escucha de forma explícita y preserva el estado. El arranque será idempotente: otra invocación se conecta al entorno existente y evita duplicar servicios o directores.
 
 ## 4. Roles y responsabilidades
 
 | Rol | Responsabilidad | Evidencia que entrega |
 |---|---|---|
-| Kratos | Entender peticiones, crear tareas, asignar, supervisar y solicitar correcciones | Plan, decisiones, relaciones entre tareas y resumen verificable |
+| Nomos | Entender peticiones, crear tareas, asignar, supervisar y solicitar correcciones | Plan, decisiones, relaciones entre tareas y resumen verificable |
 | Worker de implementación | C++, Blueprints, UMG, sistemas y correcciones dentro de su alcance | Commits, archivos afectados y resultado de comprobaciones |
 | Worker de arte | Coordinar Meshy/Blender, preparar y revisar assets | Modelos, versiones, procedencia, parámetros y previews |
 | Revisor | Contrastar resultado con criterios y cambios | Observaciones vinculadas a una revisión concreta |
@@ -82,7 +82,7 @@ Interfaz de skill propuesta: `/kratos`, `/kratos estado`, `/kratos reanudar`, `/
 
 Los roles se asignan por tarea y capacidad. Codex y Claude Code pueden ocupar distintos roles; la interfaz conserva proveedor, modelo, sesión e intento reales.
 
-Kratos no concede DONE por el mensaje final de un worker. Solicita el cierre al coordinador, que exige evidencia y condiciones comprobables.
+Nomos no concede DONE por el mensaje final de un worker. Solicita el cierre al coordinador, que exige evidencia y condiciones comprobables.
 
 ## 5. Panel con Ant Design claro
 
@@ -96,7 +96,7 @@ Filtros de Unreal: Gameplay, UI/UMG, escenarios, assets, animación, audio, QA y
 
 ### Actividad
 
-Timeline cronológica con carriles para Kratos, Codex, Claude Code, Meshy, Blender, Unreal y builds. Relaciona petición, asignación, herramientas, cambios, pruebas y resultado. El usuario puede filtrar una tarea o ejecución y ver qué evento originó el siguiente.
+Timeline cronológica con carriles para Nomos, Codex, Claude Code, Meshy, Blender, Unreal y builds. Relaciona petición, asignación, herramientas, cambios, pruebas y resultado. El usuario puede filtrar una tarea o ejecución y ver qué evento originó el siguiente.
 
 El componente Timeline de Ant Design cubre secuencias de actividad. El tablero y los carriles temporales se compondrán específicamente; no se presupone un componente Kanban o Gantt nativo. Fuente: [Timeline](https://ant.design/components/timeline/).
 
@@ -106,7 +106,7 @@ Galería con modelos 3D, texturas, capturas, vídeos, comparaciones antes/despu�
 
 ### Chat y detalle de tarea
 
-El chat central de Kratos estará siempre accesible. Abrir una tarjeta muestra un panel amplio con Resumen, Chat, Cambios, Pruebas, Assets y Timeline. La acción «Pedir cambios al responsable» conserva la relación con la tarea original y Kratos coordina su continuación.
+El chat central de Nomos estará siempre accesible. Abrir una tarjeta muestra un panel amplio con Resumen, Chat, Cambios, Pruebas, Assets y Timeline. La acción «Pedir cambios al responsable» conserva la relación con la tarea original y Nomos coordina su continuación.
 
 Los mensajes web y los de la sesión inicial usan IDs y orígenes diferenciados para evitar ecos. Se mostrarán planes resumidos, acciones observables y resultados. Las conversaciones y llamadas a herramientas podrán atribuirse a cada worker y subagente.
 
@@ -138,13 +138,13 @@ El cierre requiere:
 6. Procesos propios detenidos y recursos liberados.
 7. Eliminación de los worktrees asignados que correspondan a la ejecución, una vez limpios; sin usar borrado forzado para ocultar cambios pendientes. Una tarea puramente remota no necesita crear un worktree para poder cerrarse.
 
-Mientras se hace la limpieza, la tarjeta permanece en Cerrando. Si falla, muestra el motivo y conserva la recuperación. DONE implica que los worktrees temporales asociados ya se retiraron, cuando los haya. El workspace de integración y la conversación de Kratos tienen un ciclo propio.
+Mientras se hace la limpieza, la tarjeta permanece en Cerrando. Si falla, muestra el motivo y conserva la recuperación. DONE implica que los worktrees temporales asociados ya se retiraron, cuando los haya. El workspace de integración y la conversación de Nomos tienen un ciclo propio.
 
 Git protege por defecto la eliminación de worktrees con cambios o archivos no registrados. El coordinador respetará ese comportamiento. Fuente: [git worktree](https://git-scm.com/docs/git-worktree.html).
 
 ### Pedir cambios después de DONE
 
-La tarea conserva quién implementó, quién revisó y qué se probó. Kratos crea una continuación o reabre el trabajo, reconstruye un worktree sobre la versión integrada vigente y recupera el contexto. Reanuda la sesión del proveedor cuando sea compatible; si no, entrega a una sesión nueva el historial útil y las referencias necesarias.
+La tarea conserva quién implementó, quién revisó y qué se probó. Nomos crea una continuación o reabre el trabajo, reconstruye un worktree sobre la versión integrada vigente y recupera el contexto. Reanuda la sesión del proveedor cuando sea compatible; si no, entrega a una sesión nueva el historial útil y las referencias necesarias.
 
 La continuidad depende de datos preservados y archivos recuperables. Un ID de sesión aislado no sustituye su almacenamiento. El proceso anterior puede haber terminado sin que se pierda la responsabilidad del trabajo.
 
@@ -204,7 +204,7 @@ Entidades principales: DevelopmentWorkspace, Request, Task, AgentIdentity, Conve
 
 La atribución debe distinguir «implementó», «revisó», «generó», «integró» y «verificó». Una misma tarea puede tener varios intentos y responsables por rol.
 
-Herramientas propuestas para Kratos:
+Herramientas propuestas para Nomos:
 
 - `create_task`: especificación, aceptación, dependencias y recursos.
 - `start_worker`: tarea, rol, proveedor, modelo, base e historial a recuperar.
@@ -217,7 +217,7 @@ Herramientas propuestas para Kratos:
 - `ack_event` y `publish_reply`: recepción y respuesta del director.
 - `control_run`: interrupción/cancelación compatibles con el proveedor.
 
-Son nombres del contrato de Kratos que habrá que implementar; no herramientas ya disponibles por escribir el plan.
+Son nombres del contrato de Nomos que habrá que implementar; no herramientas ya disponibles por escribir el plan.
 
 Los eventos incluirán versión, ID único, secuencia, fecha, origen, tarea, run, relación padre/hijo, correlación y causa. Ejemplos propios: `task.created`, `worker.started`, `message.received`, `tool.completed`, `artifact.created`, `test.failed`, `integration.completed`, `workspace.closed` y `task.done`.
 
@@ -238,7 +238,7 @@ Persistir cada comando antes de ejecutarlo y usar IDs idempotentes. Reconectar e
 
 Ante una creación remota de resultado incierto, reconciliar antes de reintentar. La deduplicación local no garantiza ejecución única en un proveedor externo; no repetir a ciegas una generación que podría haberse cobrado.
 
-Separar fallo de conexión, ejecución fallida, cancelación solicitada y cancelación confirmada. Una capacidad ausente se muestra como tal. Limitar ciclos de corrección, presupuesto y concurrencia; cuando se agoten, Kratos presenta el bloqueo con evidencia.
+Separar fallo de conexión, ejecución fallida, cancelación solicitada y cancelación confirmada. Una capacidad ausente se muestra como tal. Limitar ciclos de corrección, presupuesto y concurrencia; cuando se agoten, Nomos presenta el bloqueo con evidencia.
 
 ## 12. Desarrollo por hitos
 
@@ -246,7 +246,7 @@ Separar fallo de conexión, ejecución fallida, cancelación solicitada y cancel
 |---|---|---|
 | 0. Prueba de escucha | Skill mínima, servicio y página de intercambio | Una sola invocación conecta la sesión original; ida/vuelta y recuperación verificadas |
 | 1. Base persistente y diseño | Arranque idempotente, estado durable y shell Ant Design | Reiniciar conserva datos; maqueta de tablero/chat/timeline validada; datos de prueba identificados |
-| 2. Kratos y un worker real | Crear tarea, levantar Codex en worktree y ver eventos/chat | Petición → tarea → cambios → corrección al mismo responsable, sin pasos manuales de despacho |
+| 2. Nomos y un worker real | Crear tarea, levantar Codex en worktree y ver eventos/chat | Petición → tarea → cambios → corrección al mismo responsable, sin pasos manuales de despacho |
 | 3. Varios workers | Claude hijo, dependencias, revisión y reservas | Paralelismo de tareas independientes y exclusión comprobada sobre recursos compartidos |
 | 4. Producción de assets | Meshy/Blender, galería y archivos propios | Generación y preparación trazables, progreso real y continuidad tras desconexión |
 | 5. Unreal y QA | Puente comprobado, importación, comportamiento, capturas y build | Una petición produce un cambio real en Unreal con evidencia del resultado |
@@ -255,15 +255,15 @@ Separar fallo de conexión, ejecución fallida, cancelación solicitada y cancel
 
 Los hitos se ordenan por riesgo y dependencia. El diseño visual se desarrolla desde el hito 1 y se consolida mientras entran las integraciones; no se difiere toda la interfaz hasta el final.
 
-El primer MVP completo comprende los hitos 0 a 7: skill, Kratos central, dos proveedores de agentes, tablero, chat, timeline, assets, Unreal, pruebas y worktrees con cierre seguro. Funciones posteriores: más hosts/GPU, colaboración multiusuario, streaming continuo del editor, comparación 3D avanzada y cadenas extensas de rigging/animación.
+El primer MVP completo comprende los hitos 0 a 7: skill, Nomos central, dos proveedores de agentes, tablero, chat, timeline, assets, Unreal, pruebas y worktrees con cierre seguro. Funciones posteriores: más hosts/GPU, colaboración multiusuario, streaming continuo del editor, comparación 3D avanzada y cadenas extensas de rigging/animación.
 
 ## 13. Pruebas de aceptación de la plataforma
 
-1. Invocar `/kratos` dos veces deja una sola instancia de servicio y un único director propietario.
+1. Invocar `/nomos` dos veces deja una sola instancia de servicio y un único director propietario.
 2. Un mensaje de la web llega a la sesión original, se confirma y recibe respuesta sin invocación manual adicional.
 3. Expirar el vigilante, reconectar o reiniciar el servicio conserva pendientes y no duplica tareas.
-4. Cerrar Claude cambia el estado visible de Kratos y conserva la bandeja.
-5. Kratos crea tareas hijas, workers y worktrees con atribución trazable.
+4. Cerrar Claude cambia el estado visible de Nomos y conserva la bandeja.
+5. Nomos crea tareas hijas, workers y worktrees con atribución trazable.
 6. Dos workers solicitan el mismo widget: sólo uno consigue escritura y el otro muestra su espera.
 7. Una tarea que declara implementación lista pero falla pruebas permanece fuera de DONE y vuelve al responsable.
 8. Cada captura, modelo y prueba identifica su ejecución y la revisión evaluada.
@@ -276,6 +276,6 @@ El primer MVP completo comprende los hitos 0 a 7: skill, Kratos central, dos pro
 
 ## 14. Orden de la primera implementación
 
-Empezar por el recorrido pequeño que concentra el mayor riesgo: **invocar skill → abrir panel → enviar petición → despertar Kratos → crear una tarea → levantar un worker en worktree → recibir un resultado → pedirle una corrección**.
+Empezar por el recorrido pequeño que concentra el mayor riesgo: **invocar skill → abrir panel → enviar petición → despertar Nomos → crear una tarea → levantar un worker en worktree → recibir un resultado → pedirle una corrección**.
 
 Después incorporar un asset y una prueba real de Unreal, y completar integración/cierre. El avance se medirá por estos recorridos verificables y por la calidad de los resultados visibles.

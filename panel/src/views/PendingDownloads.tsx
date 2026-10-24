@@ -2,12 +2,13 @@ import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { useAction } from '@/feel/useAction'
 import { useResource } from '@/hooks/useResource'
+import { BRAND } from '@/lib/brand'
 
 export interface PendingDownload { id: string; entryId: string; name: string | null; state: string; instructions: string; requestedAt: string }
 
 function Row({ download }: { download: PendingDownload }) {
   const check = useAction(() => api(`/downloads/${encodeURIComponent(download.id)}/check`, { method: 'POST', body: {} }), {
-    success: () => ({ title: 'Comprobando la descarga', description: 'Kratos mira el Launcher ahora.' }),
+    success: () => ({ title: 'Comprobando la descarga', description: `${BRAND.short} mira el Launcher ahora.` }),
   })
   return <li className="flex flex-wrap items-center gap-3 py-2">
     <div className="min-w-0 flex-1">

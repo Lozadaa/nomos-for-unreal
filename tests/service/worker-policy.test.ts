@@ -38,7 +38,7 @@ test('budget finito requiere autorización por ejecución y no crea Spend fictic
   const f=fixture(t);ensureBudget(f.db,'workspace','game',{tokens:1000,meshyCredits:0});
   await f.start();const decision=listDecisions(f.db,'open')[0];assert.ok(decision);
   assert.equal(f.run(),undefined);resolveDecision(f.db,decision.id,'approve','director');await f.start();
-  f.output('KRATOS_DONE {"summary":"Listo","commits":[],"tests":"passed"}');
+  f.output('NOMOS_DONE {"summary":"Listo","commits":[],"tests":"passed"}');
   await f.invoke('worker.poll',{runId:f.run().id,generation:0});
   const before=f.state().tail.length;await f.invoke('worker.send',{runId:f.run().id,text:'Corregir'});
   assert.equal(f.state().tail.length,before);assert.equal(listDecisions(f.db,'open').length,1);

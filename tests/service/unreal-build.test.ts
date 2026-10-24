@@ -13,7 +13,7 @@ const uproject = 'C:/Unreal Projects/Juego Prueba/Juego.uproject';
 const build = {bin: process.execPath, baseArgs: [fakeBuild]};
 
 test('render quita -NullRHI y fija la resolución; sin render el modo por lotes no cambia', async () => {
-  process.env.KRATOS_FAKE = 'ok';
+  process.env.NOMOS_FAKE = 'ok';
   const cmd = createUnrealCmd({bin: process.execPath, baseArgs: [fakeCmd]});
   const batch = (await cmd.runPython(uproject, 'x.py')).reportJson!.args as string[];
   assert.ok(batch.includes('-NullRHI'));
@@ -24,7 +24,7 @@ test('render quita -NullRHI y fija la resolución; sin render el modo por lotes 
 });
 
 test('el tiempo agotado conserva el log en el error', async () => {
-  process.env.KRATOS_FAKE = 'hang';
+  process.env.NOMOS_FAKE = 'hang';
   const cmd = createUnrealCmd({bin: process.execPath, baseArgs: [fakeCmd]});
   const error = await cmd.runPython(uproject, 'x.py', {}, 1000).catch(e => e);
   assert.equal(error.message, 'unreal_timeout');
@@ -32,7 +32,7 @@ test('el tiempo agotado conserva el log en el error', async () => {
 });
 
 test('engineVersion lee Build.version del motor sin arrancar el editor; sin archivo, null', () => {
-  const engine = mkdtempSync(join(tmpdir(), 'kratos-engine-'));
+  const engine = mkdtempSync(join(tmpdir(), 'nomos-engine-'));
   try {
     mkdirSync(join(engine, 'Build'), {recursive: true});
     writeFileSync(join(engine, 'Build', 'Build.version'), JSON.stringify({MajorVersion: 5, MinorVersion: 8, PatchVersion: 3}));
@@ -42,12 +42,12 @@ test('engineVersion lee Build.version del motor sin arrancar el editor; sin arch
 });
 
 test('buildEditorTarget: éxito, y fallo con las líneas de error separadas del log completo', async () => {
-  process.env.KRATOS_FAKE = 'ok';
+  process.env.NOMOS_FAKE = 'ok';
   const ok = await buildEditorTarget(uproject, build);
   assert.equal(ok.ok, true);
   assert.match(ok.log, /JuegoEditor Win64 Development/);
   assert.ok(ok.log.includes(`-Project=${uproject}`));
-  process.env.KRATOS_FAKE = 'fail';
+  process.env.NOMOS_FAKE = 'fail';
   const failed = await buildEditorTarget(uproject, build);
   assert.equal(failed.ok, false);
   assert.equal(failed.errors.length, 400);
@@ -56,19 +56,19 @@ test('buildEditorTarget: éxito, y fallo con las líneas de error separadas del 
 });
 
 test('buildEditorTarget respeta el tiempo máximo y mata el proceso', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-build-hang-')), pidFile = join(dir, 'pid');
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-build-hang-')), pidFile = join(dir, 'pid');
   try {
-    process.env.KRATOS_FAKE = 'hang'; process.env.KRATOS_FAKE_PID = pidFile;
+    process.env.NOMOS_FAKE = 'hang'; process.env.NOMOS_FAKE_PID = pidFile;
     await assert.rejects(buildEditorTarget(uproject, {...build, timeoutMs: 1000}), /unreal_timeout/);
     const pid = Number(readFileSync(pidFile, 'utf8'));
     await waitFor(() => { try { process.kill(pid, 0); return false; } catch { return true; } }, 5000);
-  } finally { delete process.env.KRATOS_FAKE_PID; rmSync(dir, {recursive: true, force: true}); }
+  } finally { delete process.env.NOMOS_FAKE_PID; rmSync(dir, {recursive: true, force: true}); }
 });
 
 test('buildCookRun empaqueta en outDir y devuelve el ejecutable; sin motor, unreal_missing', async () => {
-  const out = mkdtempSync(join(tmpdir(), 'kratos-cook-'));
+  const out = mkdtempSync(join(tmpdir(), 'nomos-cook-'));
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const result = await buildCookRun(uproject, out, build);
     assert.equal(result.ok, true);
     assert.equal(result.exePath, join(out, 'Windows', 'Juego.exe'));

@@ -1,4 +1,4 @@
-# Kratos · Hito 1b «base persistente y shell del panel» · Plan de implementación
+# Nomos · Hito 1b «base persistente y shell del panel» · Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -6,20 +6,20 @@
 
 **Goal:** Que el panel completo (franja del director y las diez vistas) funcione sobre una producción semilla determinista, con el modelo de datos del plan v2 persistido en SQLite y una bandeja de comandos (outbox) idempotente, sin necesitar Unreal, Meshy ni Codex.
 
-**Architecture:** El servicio del hito 0 crece con las tablas del modelo (`tasks`, `runs`, `worktrees`, `decisions`, `budgets`, `spends`, `artifacts`, `test_runs`, `catalog_entries`, `commands`) y rutas de lectura; `kratos seed` rellena una producción de demostración; el panel es una SPA React + Ant Design construida con Vite a `panel/dist/` y servida por el propio servicio en `/`, leyendo el tema desde `design/tokens.json` del hito 1a. La página de intercambio del hito 0 pasa a ser la vista Chat.
+**Architecture:** El servicio del hito 0 crece con las tablas del modelo (`tasks`, `runs`, `worktrees`, `decisions`, `budgets`, `spends`, `artifacts`, `test_runs`, `catalog_entries`, `commands`) y rutas de lectura; `nomos seed` rellena una producción de demostración; el panel es una SPA React + Ant Design construida con Vite a `panel/dist/` y servida por el propio servicio en `/`, leyendo el tema desde `design/tokens.json` del hito 1a. La página de intercambio del hito 0 pasa a ser la vista Chat.
 
 **Tech Stack:** Servicio: Node ≥ 25 sin dependencias (como el hito 0). Panel: `panel/` con Vite, React 19, TypeScript, `antd` v6, `@ant-design/x` v2 (solo si compila con la versión fijada de antd; si no, chat propio), `@google/model-viewer` (visor GLB), Vitest + Testing Library para lógica de vista. Dependencias de producción solo en `panel/`.
 
-**Spec:** `docs/plan-v2.md` §2.3 (vistas y estados), §2.5 (decisiones de componente), §5.2-5.4 (presupuesto, decisión, semilla), §10 del plan v1 (entidades), hito 1b de §6, pruebas 16, 18 y 24 de §7. Entradas del hito 1a: `design/tokens.json`, `docs/diseno-visual.md`, `docs/diseno/estados.md` (copy), `design/estilo.html`. Entradas del hito 0: `service/src/*`, rutas y eventos de `skills/kratos/references/contrato-eventos.md`.
+**Spec:** `docs/plan-v2.md` §2.3 (vistas y estados), §2.5 (decisiones de componente), §5.2-5.4 (presupuesto, decisión, semilla), §10 del plan v1 (entidades), hito 1b de §6, pruebas 16, 18 y 24 de §7. Entradas del hito 1a: `design/tokens.json`, `docs/diseno-visual.md`, `docs/diseno/estados.md` (copy), `design/estilo.html`. Entradas del hito 0: `service/src/*`, rutas y eventos de `skills/nomos/references/contrato-eventos.md`.
 
 ## Global Constraints
 
 - El hito 0 y el 1a están fusionados en `main` antes de empezar; este plan no modifica sus contratos, los extiende.
-- Arranque cotidiano sin servidor de desarrollo: `kratos start` sirve `panel/dist/` ya construido; `npm run build` en `panel/` lo regenera. Vite dev solo para programar.
+- Arranque cotidiano sin servidor de desarrollo: `nomos start` sirve `panel/dist/` ya construido; `npm run build` en `panel/` lo regenera. Vite dev solo para programar.
 - El tema de Ant Design se deriva de `design/tokens.json` por código (`panel/src/theme.ts`); ningún color ni sombra escrito a mano en componentes. Copy de la interfaz tomado de `docs/diseno/estados.md`.
 - Kanban sin arrastrar y soltar; carriles de Actividad con CSS grid; logs en `Drawer` monoespaciado; visor GLB con `<model-viewer>`; gráficos con cifras y `Progress`; `Ctrl+K` queda para el hito 7.
 - Toda ruta nueva exige el token del hito 0; respuestas JSON `charset=utf-8`; 401 sin token.
-- `kratos seed` es determinista (misma salida siempre; fechas relativas a un instante fijo `2026-10-22T20:00:00Z`) y se niega a correr sobre una base con tareas salvo `--force`.
+- `nomos seed` es determinista (misma salida siempre; fechas relativas a un instante fijo `2026-10-22T20:00:00Z`) y se niega a correr sobre una base con tareas salvo `--force`.
 - Pruebas: servicio con `node:test`; panel con `vitest` y `tsc --noEmit`; capturas a 1366×768 con barra lateral abierta y 1920×1080 en `docs/capturas-1b/` para cada vista; `npm test` en la raíz ejecuta ambos.
 - Puertas de diseño del plan v2 §2.6 al cerrar: auditoría `web-design-guidelines`, `/impeccable critique` y `polish`, `ux-heuristics`, teclado y foco. Resultado en `docs/auditoria-1b-cierre.md`.
 
@@ -51,7 +51,7 @@
 Entidades mínimas (columnas; todas con `id TEXT PK`, `created_at`, `updated_at`):
 
 - `tasks`: `title`, `spec` (texto), `acceptance` (JSON lista), `state` (uno de `pendiente|preparada|implementando|revisando|probando|integrando|cerrando|done`), `blocked_reason` (nulo o texto), `decision_id` (nulo o id), `area` (`gameplay|ui|escenarios|assets|animacion|audio|qa|builds`), `assignee_role`, `assignee_provider`, `parent_task_id`, `depends_on` (JSON lista), `worktree_id`, `budget_id`.
-- `runs`: `task_id`, `role`, `provider` (`codex|claude|meshy|blender|unreal|kratos`), `model`, `session_ref`, `attempt`, `state` (`running|done|failed|cancelled`), `started_at`, `finished_at`, `summary`, `skills` (JSON lista).
+- `runs`: `task_id`, `role`, `provider` (`codex|claude|meshy|blender|unreal|nomos`), `model`, `session_ref`, `attempt`, `state` (`running|done|failed|cancelled`), `started_at`, `finished_at`, `summary`, `skills` (JSON lista).
 - `worktrees`: `task_id`, `path`, `branch`, `base_commit`, `state` (`active|closing|closed`), `closed_reason`.
 - `decisions`: `task_id`, `reason`, `evidence` (JSON lista de `{kind, ref}`), `options` (JSON lista `{id, label, description}`), `chosen_option_id`, `resolved_by`, `resolved_at`, `context_hash`, `state` (`open|resolved|stale`).
 - `budgets`: `scope` (`workspace|task`), `scope_id`, `meshy_credits`, `elevenlabs_credits`, `tokens`, `build_minutes`. `spends`: `budget_id`, `run_id`, `kind`, `amount`, `note`.
@@ -91,7 +91,7 @@ Entidades mínimas (columnas; todas con `id TEXT PK`, `created_at`, `updated_at`
 - budget: `ensureBudget(db, scope, scopeId, limits)`, `spend(db, budgetId, runId, kind, amount, note)` (lanza `Error("budget_exceeded")` y abre una Decisión si se supera), `budgetSummary(db, scope, scopeId): {limits, spent, remaining}`.
 - artifacts: `addArtifact(db, input)` (`artifact.created`), `listArtifacts(db, filter?)`; test_runs: `recordTestRun(db, input)`.
 - catalog: `upsertEntry(db, input)`, `searchCatalog(db, q: string, filter?)` con FTS5 (`create virtual table catalog_fts using fts5(name, description, tags, content='catalog_entries', content_rowid='rowid')`), `listCatalog(db, filter?)`.
-- capabilities: `detectCapabilities(env = process.env, fs = node:fs): Capability[]` con `{id, label, state: 'ausente'|'detectado'|'comprobado'|'roto', detail}` para: `node` (versión ≥ 25), `unreal` (existe `C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe` o la ruta de `.kratos/config.json`), `unreal_mcp` (plugins `ModelContextProtocol` y `AllToolsets` en el motor), `fab_plugin`, `launcher` (ejecutable del Launcher), `meshy` (`MESHY_API_KEY` presente), `blender` (ejecutable en PATH o config), `git`. En este hito solo `ausente|detectado`; `comprobado` llega cuando cada adaptador se pruebe.
+- capabilities: `detectCapabilities(env = process.env, fs = node:fs): Capability[]` con `{id, label, state: 'ausente'|'detectado'|'comprobado'|'roto', detail}` para: `node` (versión ≥ 25), `unreal` (existe `C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe` o la ruta de `.nomos/config.json`), `unreal_mcp` (plugins `ModelContextProtocol` y `AllToolsets` en el motor), `fab_plugin`, `launcher` (ejecutable del Launcher), `meshy` (`MESHY_API_KEY` presente), `blender` (ejecutable en PATH o config), `git`. En este hito solo `ausente|detectado`; `comprobado` llega cuando cada adaptador se pruebe.
 
 - [ ] Pruebas por módulo con los casos de Review Focus 3 (`decision_stale`) y `budget_exceeded` abre Decisión; `moveTask` a `done` desde `implementando` lanza `Error("invalid_transition")`; `searchCatalog("personaje fantasía")` encuentra por descripción.
 - [ ] Implementar; `npm test`; commit por módulo o uno `feat: repositorios de tareas, runs, decisiones, presupuesto, artefactos, catálogo y capacidades`.
@@ -102,7 +102,7 @@ Entidades mínimas (columnas; todas con `id TEXT PK`, `created_at`, `updated_at`
 
 **Interfaces:** `seed(db, opts?: {force?: boolean, now?: Date}): {tasks: number, runs: number, events: number, catalog: number}`; lanza `Error("not_empty")` si hay tareas y no `force`.
 
-Contenido fijo: 12 tareas (una por área al menos; reparto: dos en `pendiente`, dos en `preparada`, dos en `implementando`, dos en `revisando`, una en `probando`, una en `integrando`, una en `cerrando` con `blocked_reason: "No se pudo retirar el worktree: archivos sin registrar"` y una en `done`; una de las de `preparada` está `bloqueada` por la decisión abierta «Elegir personaje base: 3 candidatos del catálogo»), 3 runs (`codex` implementando, `claude` revisando, `meshy` generando con `state: running`), 1 worktree activo, 2 presupuestos (workspace y la tarea de Meshy, con 60 % gastado), 30 entradas de catálogo (incluye «Advanced Cel Shader Lite», «Free_Tennisball», «Nude_Tennis_Racket_🎾», dos MetaHuman de Megascans, una con `license: null`, una `ai_forbidden: 1`, una con nombre de 60 caracteres), 4 artefactos (modelo GLB de ejemplo copiado a `.kratos/artifacts/`, dos capturas, un informe), 2 test_runs (`passed`, `failed`), 60 eventos repartidos en la hora anterior a `now` con carriles Kratos/Codex/Claude Code/Meshy/Blender/Unreal/builds.
+Contenido fijo: 12 tareas (una por área al menos; reparto: dos en `pendiente`, dos en `preparada`, dos en `implementando`, dos en `revisando`, una en `probando`, una en `integrando`, una en `cerrando` con `blocked_reason: "No se pudo retirar el worktree: archivos sin registrar"` y una en `done`; una de las de `preparada` está `bloqueada` por la decisión abierta «Elegir personaje base: 3 candidatos del catálogo»), 3 runs (`codex` implementando, `claude` revisando, `meshy` generando con `state: running`), 1 worktree activo, 2 presupuestos (workspace y la tarea de Meshy, con 60 % gastado), 30 entradas de catálogo (incluye «Advanced Cel Shader Lite», «Free_Tennisball», «Nude_Tennis_Racket_🎾», dos MetaHuman de Megascans, una con `license: null`, una `ai_forbidden: 1`, una con nombre de 60 caracteres), 4 artefactos (modelo GLB de ejemplo copiado a `.nomos/artifacts/`, dos capturas, un informe), 2 test_runs (`passed`, `failed`), 60 eventos repartidos en la hora anterior a `now` con carriles Nomos/Codex/Claude Code/Meshy/Blender/Unreal/builds.
 
 - [ ] Pruebas: dos `seed` sobre bases distintas producen los mismos ids y títulos (determinismo: ids `seed-task-01`…); `seed` sin `force` sobre base poblada lanza `not_empty`; cuentas exactas.
 - [ ] Implementar; `npm test`; commit `feat: producción semilla determinista`.
@@ -111,7 +111,7 @@ Contenido fijo: 12 tareas (una por área al menos; reparto: dos en `pendiente`, 
 
 **Files:** Create `service/src/routes/{tasks,decisions,budget,artifacts,catalog,capabilities,commands}.ts`; Modify `server.ts` (registro); Test `tests/service/routes.test.ts`.
 
-**Interfaces (todas con token):** `GET /tasks?area=&state=`, `GET /tasks/:id` → `{task, runs, events, artifacts, testRuns, decision}`, `POST /tasks` `{title, spec, area, acceptance[]}` → 201 (en este hito solo crea en `pendiente`; Kratos la tomará en el hito 2), `GET /decisions?state=`, `POST /decisions/:id/resolve` `{optionId, by}` → 200 o `409 decision_stale`, `GET /budget?scope=&scopeId=`, `GET /artifacts?taskId=`, `GET /artifacts/:id/file` (sirve el archivo con `Content-Type` por extensión; solo rutas dentro de `.kratos/artifacts/`), `GET /catalog?q=&source=&state=`, `GET /capabilities`, `GET /commands?state=`, `POST /seed` `{force?}` → 201 cuentas.
+**Interfaces (todas con token):** `GET /tasks?area=&state=`, `GET /tasks/:id` → `{task, runs, events, artifacts, testRuns, decision}`, `POST /tasks` `{title, spec, area, acceptance[]}` → 201 (en este hito solo crea en `pendiente`; Nomos la tomará en el hito 2), `GET /decisions?state=`, `POST /decisions/:id/resolve` `{optionId, by}` → 200 o `409 decision_stale`, `GET /budget?scope=&scopeId=`, `GET /artifacts?taskId=`, `GET /artifacts/:id/file` (sirve el archivo con `Content-Type` por extensión; solo rutas dentro de `.nomos/artifacts/`), `GET /catalog?q=&source=&state=`, `GET /capabilities`, `GET /commands?state=`, `POST /seed` `{force?}` → 201 cuentas.
 
 - [ ] Pruebas: cada ruta 401 sin token; `GET /tasks/:id` compone las partes; `POST /decisions/:id/resolve` con hash viejo → 409; `GET /artifacts/:id/file` rechaza `..` (400); `GET /catalog?q=tenis` devuelve 2.
 - [ ] Implementar; `npm test`; commit `feat: rutas del modelo de producción`.
@@ -134,7 +134,7 @@ Contenido fijo: 12 tareas (una por área al menos; reparto: dos en `pendiente`, 
 
 **Files:** Create `panel/src/App.tsx`, `panel/src/components/{DirectorBar,Sidebar,TaskCard,TaskDrawer,NewRequestForm}.tsx`, `panel/src/views/{Produccion,Chat}.tsx`.
 
-Fijado: barra lateral 248 px colapsable a 64 px (`Ctrl+B`) con las 9 vistas más `/estilo` en desarrollo; cabecera 64 px con título de la vista y la franja del director (los 5 estados y copy de `estados.md`, con icono además de color); Kanban de 8 columnas con `Card`, tarjeta con responsable, proveedor, dependencias, run, worktree, última actividad y estado de pruebas, badges `bloqueada` y `decisión`; `TaskDrawer` de 720 px con pestañas Resumen · Chat · Pruebas · Assets · Timeline (Cambios llega con el hito 2) y acción «Pedir cambios al responsable» deshabilitada con tooltip «Disponible cuando haya workers»; `NewRequestForm` en `Modal` con título, descripción y área, que cabe en 1366×768; vista Chat = página de intercambio del hito 0 en React (mensajes, estados `Enviado`/`Recibido por Kratos`/respuesta).
+Fijado: barra lateral 248 px colapsable a 64 px (`Ctrl+B`) con las 9 vistas más `/estilo` en desarrollo; cabecera 64 px con título de la vista y la franja del director (los 5 estados y copy de `estados.md`, con icono además de color); Kanban de 8 columnas con `Card`, tarjeta con responsable, proveedor, dependencias, run, worktree, última actividad y estado de pruebas, badges `bloqueada` y `decisión`; `TaskDrawer` de 720 px con pestañas Resumen · Chat · Pruebas · Assets · Timeline (Cambios llega con el hito 2) y acción «Pedir cambios al responsable» deshabilitada con tooltip «Disponible cuando haya workers»; `NewRequestForm` en `Modal` con título, descripción y área, que cabe en 1366×768; vista Chat = página de intercambio del hito 0 en React (mensajes, estados `Enviado`/`Recibido por Nomos`/respuesta).
 
 - [ ] Pruebas Vitest: `DirectorBar` muestra el copy correcto para cada `Status`; `TaskCard` muestra badge «Decisión pendiente» cuando `decision_id`; `NewRequestForm` no envía con título vacío.
 - [ ] Capturas con el navegador integrado a 1366×768 (barra abierta) y 1920×1080: `produccion-1366.png`, `produccion-drawer-1366.png`, `nueva-peticion-1366.png`, `chat-1366.png`, y sus `-1920`. Comprobar Review Focus 4.
@@ -144,7 +144,7 @@ Fijado: barra lateral 248 px colapsable a 64 px (`Ctrl+B`) con las 9 vistas más
 
 **Files:** Create `panel/src/views/{Actividad,Decisiones,Presupuesto,Capacidades}.tsx`, `panel/src/components/{Lanes,DecisionCard}.tsx`.
 
-Fijado: Actividad con grid CSS de 7 carriles (Kratos, Codex, Claude Code, Meshy, Blender, Unreal, builds) × tiempo, eventos como `Tag` clicables que abren el Drawer de su tarea, filtro por tarea/run, y «qué evento originó el siguiente» mostrando `correlation` al pasar el ratón; Decisiones como lista de `DecisionCard` con evidencia (miniaturas si son capturas) y botones por opción → `POST /decisions/:id/resolve`, estado `stale` con botón «Regenerar» deshabilitado hasta el hito 2; Presupuesto con tres cifras y `Progress` por presupuesto; Capacidades como tabla `id · estado · detalle` con los 4 estados.
+Fijado: Actividad con grid CSS de 7 carriles (Nomos, Codex, Claude Code, Meshy, Blender, Unreal, builds) × tiempo, eventos como `Tag` clicables que abren el Drawer de su tarea, filtro por tarea/run, y «qué evento originó el siguiente» mostrando `correlation` al pasar el ratón; Decisiones como lista de `DecisionCard` con evidencia (miniaturas si son capturas) y botones por opción → `POST /decisions/:id/resolve`, estado `stale` con botón «Regenerar» deshabilitado hasta el hito 2; Presupuesto con tres cifras y `Progress` por presupuesto; Capacidades como tabla `id · estado · detalle` con los 4 estados.
 
 - [ ] Pruebas Vitest: `Lanes` coloca un evento en el carril de su `source`; `DecisionCard` deshabilita opciones cuando `state !== 'open'`; resolver con 409 muestra «Esta decisión caducó: el contexto cambió».
 - [ ] Capturas de las cuatro vistas a ambas resoluciones.
@@ -162,7 +162,7 @@ Fijado: Entregas como galería (`Image.PreviewGroup` para capturas, `<model-view
 
 ### Task 10: Cierre del hito
 
-- [ ] Integrar `kratos start` con el panel: tras arrancar, abre `http://127.0.0.1:8780/#token=…` y la SPA carga Producción; `kratos seed` desde la CLI deja el panel entero navegable (prueba 16).
+- [ ] Integrar `nomos start` con el panel: tras arrancar, abre `http://127.0.0.1:8780/#token=…` y la SPA carga Producción; `nomos seed` desde la CLI deja el panel entero navegable (prueba 16).
 - [ ] Puertas §2.6: auditoría `web-design-guidelines` sobre `panel/src`, `/impeccable critique` y `polish` sobre Producción y Catálogo, `ux-heuristics` Quick Diagnostic, recorrido con teclado (prueba 24) y foco visible. Corregir y recapturar.
 - [ ] Escribir `docs/auditoria-1b-cierre.md` (puertas, hallazgos, corregidos, pendientes, capturas) y la tabla de estado del hito en `docs/estado-entregas.md`.
 - [ ] `npm test` y `npm run build` en verde; commit `docs: cierre del hito 1b`.

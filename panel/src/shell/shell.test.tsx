@@ -20,11 +20,11 @@ describe('DirectorDot', () => {
   })
 
   it.each([
-    ['escuchando', 'Kratos escuchando', 'bg-success', true],
+    ['escuchando', 'Nomos escuchando', 'bg-success', true],
     ['vigilanteCaido', 'Vigilante caído', 'bg-warning', false],
     ['desconectado', 'Servicio desconectado', 'bg-error', false],
-    ['esperando', 'Esperando a Kratos', 'bg-neutral', false],
-    ['atendiendo', 'Kratos atendiendo', 'bg-info', false],
+    ['esperando', 'Esperando a Nomos', 'bg-neutral', false],
+    ['atendiendo', 'Nomos atendiendo', 'bg-info', false],
   ] as const)('%s muestra texto y color de estado', (state, text, color, pulses) => {
     render(<DirectorDot state={state} />)
     expect(screen.getByText(text)).toBeInTheDocument()

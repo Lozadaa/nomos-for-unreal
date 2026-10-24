@@ -10,7 +10,7 @@ type Row = {uid: string; title: string | null; entitlement: string | null; aiFor
 /** `listings_v1.db` del Launcher: se copia a una carpeta temporal y se abre en solo lectura; nunca se toca el original. */
 export function scan(config: AssetConfig): CatalogEntryInput[] {
   if (!existsSync(config.listingsDb)) return [];
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-listings-')), copy = join(dir, 'listings_v1.db');
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-listings-')), copy = join(dir, 'listings_v1.db');
   try {
     copyFileSync(config.listingsDb, copy);
     const db = new DatabaseSync(copy, {readOnly: true});

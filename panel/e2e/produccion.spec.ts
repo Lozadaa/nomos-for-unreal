@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const url = () => process.env.KRATOS_URL!
+const url = () => process.env.NOMOS_URL!
 
 // Estos casos verifican Producción; la primera visita se cubre en visual.spec.ts.
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+  await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
 })
 
 /** Cuenta las llamadas a startViewTransition sin cambiar su comportamiento. */

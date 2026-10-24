@@ -1,13 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { projectInfo } from './project-root.ts';
+import { dbFile, legacyRegistry } from './legacy.ts';
 
-/** Carpeta base del registro de proyectos de esta máquina (una sola constante: el renombre del producto cambia solo esto). */
-export const REGISTRY_DIR_NAME = 'kratos';
-/** `%LOCALAPPDATA%\kratos\projects.json`; `KRATOS_REGISTRY` lo cambia (pruebas, varios usuarios). */
-export const registryFile = () => process.env.KRATOS_REGISTRY ?? join(process.env.LOCALAPPDATA ?? join(homedir(), '.local', 'share'), REGISTRY_DIR_NAME, 'projects.json');
+/** `%LOCALAPPDATA%\nomos\projects.json` (copiado del registro anterior al renombrado la primera vez); `NOMOS_REGISTRY` lo cambia (pruebas, varios usuarios). */
+export const registryFile = () => legacyRegistry();
 
 export type Entry = {name: string; dir: string; dataDir: string; port: number; pid: number; startedAt: string};
 export type ProjectCard = {name: string; dir: string; port: number; alive: boolean; current: boolean;
@@ -39,7 +37,7 @@ export function unregister(dataDir: string, pid = process.pid): void {
 
 /** Lo que la portada enseña de cada proyecto, leído en solo lectura de su propia base: tareas vivas, Decisiones y si hay captura. */
 function summary(dataDir: string): Pick<ProjectCard, 'liveTasks' | 'openDecisions' | 'hasCapture'> {
-  const file = join(dataDir, 'kratos.db');
+  const file = dbFile(dataDir);
   if (!existsSync(file)) return {};
   const db = new DatabaseSync(file, {readOnly: true});
   try {
@@ -59,8 +57,8 @@ function latestCapture(db: DatabaseSync, dataDir: string): string | null {
 /** La última captura de un proyecto registrado (para la portada); null si no hay. */
 export function projectCapture(port: number): string | null {
   const entry = read().find(e => e.port === port && alive(e.pid));
-  if (!entry || !existsSync(join(entry.dataDir, 'kratos.db'))) return null;
-  const db = new DatabaseSync(join(entry.dataDir, 'kratos.db'), {readOnly: true});
+  if (!entry || !existsSync(dbFile(entry.dataDir))) return null;
+  const db = new DatabaseSync(dbFile(entry.dataDir), {readOnly: true});
   try { return latestCapture(db, entry.dataDir); } catch { return null; } finally { db.close(); }
 }
 

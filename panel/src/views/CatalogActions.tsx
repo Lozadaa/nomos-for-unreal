@@ -44,7 +44,7 @@ export function MigrateButton({ entryId, name, project }: { entryId: string; nam
   </TooltipTrigger><TooltipContent role="tooltip">{hint}</TooltipContent></Tooltip>
 }
 
-/** Nivel 2: el pack está en tu biblioteca de Fab pero no en disco; Kratos abre el Launcher y vigila su llegada. */
+/** Nivel 2: el pack está en tu biblioteca de Fab pero no en disco; Nomos abre el Launcher y vigila su llegada. */
 export function DownloadButton({ entryId, name }: { entryId: string; name: string }) {
   const [requested, setRequested] = useState(false)
   const download = useAction(() => sendCommand('asset.request_download', { entryId }, minuteKey(`download:${entryId}`)), {

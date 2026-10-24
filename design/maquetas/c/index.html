@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kratos · C · Actividad protagonista</title>
+<title>Nomos · C · Actividad protagonista</title>
 <meta name="direction" content="Carriles de actividad arriba, tablero compacto debajo, franja del director integrada en la cabecera">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,7 +67,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
 <i id="cerrar" hidden></i><i id="nueva-peticion" hidden></i>
 
 <aside class="sidebar" aria-label="Barra lateral">
-  <div class="brand"><span class="brand-mark" aria-hidden="true">K</span><span class="side-text">Kratos</span></div>
+  <div class="brand"><span class="brand-mark" aria-hidden="true">K</span><span class="side-text">Nomos</span></div>
   <nav class="nav" aria-label="Vistas">
     <a href="#" aria-current="page"><svg class="ico " aria-hidden="true"><use href="#i-kanban"/></svg><span class="side-text">Producción</span></a>
     <a href="#"><svg class="ico " aria-hidden="true"><use href="#i-activity"/></svg><span class="side-text">Actividad</span></a>
@@ -84,10 +84,10 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
 </aside>
 <main>
   
-<header class="director k-director-atendiendo" aria-label="Estado de Kratos">
+<header class="director k-director-atendiendo" aria-label="Estado de Nomos">
   <h1>Producción</h1><span class="director-mark"><svg class="ico " aria-hidden="true"><use href="#i-gear"/></svg></span>
   <div class="director-main">
-    <p class="director-title ell" role="status">Kratos atendiendo 3 mensajes</p>
+    <p class="director-title ell" role="status">Nomos atendiendo 3 mensajes</p>
     <p class="director-sub ell">Ahora: Habilidad Meteorito · recepción confirmada hace 4 s</p>
   </div>
   <div class="director-meta">
@@ -104,7 +104,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
     <section class="panel timeline" aria-labelledby="h-act">
       <div class="panel-head"><h2 id="h-act">Actividad de la última hora</h2><span class="muted">14:00 a 15:00</span></div>
       <div role="table" aria-label="Carriles de actividad">
-      <div class="lane-row" role="row"><span class="lane-name ell">Kratos</span><div class="lane-track"><span class="ev chip tone-neutral" style="grid-column:2 / 5" title="Divide la petición en 4 tareas"><span class="ell">Divide la petición en 4 tareas</span></span><span class="ev chip tone-neutral" style="grid-column:16 / 19" title="Responde sobre el shader"><span class="ell">Responde sobre el shader</span></span><span class="ev chip tone-primary" style="grid-column:27 / 31" title="Atiende 3 mensajes"><span class="ell">Atiende 3 mensajes</span></span></div></div>
+      <div class="lane-row" role="row"><span class="lane-name ell">Nomos</span><div class="lane-track"><span class="ev chip tone-neutral" style="grid-column:2 / 5" title="Divide la petición en 4 tareas"><span class="ell">Divide la petición en 4 tareas</span></span><span class="ev chip tone-neutral" style="grid-column:16 / 19" title="Responde sobre el shader"><span class="ell">Responde sobre el shader</span></span><span class="ev chip tone-primary" style="grid-column:27 / 31" title="Atiende 3 mensajes"><span class="ell">Atiende 3 mensajes</span></span></div></div>
       <div class="lane-row" role="row"><span class="lane-name ell">Codex</span><div class="lane-track"><span class="ev chip tone-primary" style="grid-column:6 / 18" title="HUD de vida y maná"><span class="ell">HUD de vida y maná</span></span><span class="ev chip tone-primary" style="grid-column:21 / 27" title="Enemigo patrulla · pruebas"><span class="ell">Enemigo patrulla · pruebas</span></span></div></div>
       <div class="lane-row" role="row"><span class="lane-name ell">Claude Code</span><div class="lane-track"><span class="ev chip tone-primary" style="grid-column:7 / 21" title="Cámara en tercera persona"><span class="ell">Cámara en tercera persona</span></span><span class="ev chip tone-error" style="grid-column:23 / 27" title="Habilidad Meteorito · bloqueada"><span class="ell">Habilidad Meteorito · bloqueada</span></span></div></div>
       <div class="lane-row" role="row"><span class="lane-name ell">Meshy</span><div class="lane-track"><span class="ev chip tone-info" style="grid-column:11 / 16" title="Generando modelo de meteorito"><span class="ell">Generando modelo de meteorito</span></span></div></div>
@@ -275,7 +275,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
   <div class="drawer-body" role="tabpanel" id="p-resumen" aria-labelledby="t-resumen" tabindex="0">
     <section class="callout tone-warning" aria-label="Decisión pendiente"><svg class="ico " aria-hidden="true"><use href="#i-help"/></svg>
       <div style="display:grid;gap:var(--k-space-2);flex:1;min-width:0">
-        <p><b>Kratos necesita tu decisión.</b> ¿Qué shader usamos para el pack?</p>
+        <p><b>Nomos necesita tu decisión.</b> ¿Qué shader usamos para el pack?</p>
         <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Advanced Cel Shader Lite</b><span class="muted">Ya está en tu biblioteca de Fab.</span></div><button class="btn btn-sm" type="button">Elegir</button></div>
         <div class="opt"><div style="flex:1;min-width:0"><b class="ell" style="display:block">Material propio</b><span class="muted">Tarda unas 2 horas más.</span></div><button class="btn btn-sm" type="button">Elegir</button></div>
         <p class="help" style="height:auto">Se registra tu elección y Codex continúa. Podrás deshacerla unos segundos.</p>
@@ -294,7 +294,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
     <section>
       <h3 style="font-size:var(--k-size-sm);margin-bottom:var(--k-space-1)">Qué pasó hasta ahora</h3>
       <ol class="kv" style="grid-template-columns:max-content 1fr">
-        <li style="display:contents"><span class="mono subtle">14:02</span><span>Kratos creó la tarea desde tu petición.</span></li>
+        <li style="display:contents"><span class="mono subtle">14:02</span><span>Nomos creó la tarea desde tu petición.</span></li>
         <li style="display:contents"><span class="mono subtle">14:05</span><span>Codex indexó el pack (89,9&nbsp;MB) en cuarentena.</span></li>
         <li style="display:contents"><span class="mono subtle">14:11</span><span>Codex pidió una decisión sobre el shader.</span></li>
       </ol>
@@ -307,7 +307,7 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
   <div class="drawer-head">
     <div style="min-width:0;flex:1">
       <h2>Nueva petición</h2>
-      <p class="muted">Kratos la convierte en tareas y las reparte.</p>
+      <p class="muted">Nomos la convierte en tareas y las reparte.</p>
     </div>
     <a class="btn btn-ghost btn-sm" href="#cerrar" title="Cerrar"><span class="sr">Cerrar</span><svg class="ico " aria-hidden="true"><use href="#i-close"/></svg></a>
   </div>
@@ -315,12 +315,12 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
     <div class="field">
       <label for="p-texto">¿Qué quieres construir?</label>
       <textarea class="textarea" id="p-texto" rows="3" name="peticion" autocomplete="off" placeholder="Por ejemplo: una habilidad de meteorito con área de daño…"></textarea>
-      <p class="help">Una frase basta. Kratos pregunta si falta algo.</p>
+      <p class="help">Una frase basta. Nomos pregunta si falta algo.</p>
     </div>
     <div class="grid2">
       <div class="field">
         <label for="p-resp">Responsable</label>
-        <div class="select-wrap"><select class="input" id="p-resp" name="responsable" autocomplete="off"><option>Que Kratos decida</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div>
+        <div class="select-wrap"><select class="input" id="p-resp" name="responsable" autocomplete="off"><option>Que Nomos decida</option><option>Codex</option><option>Claude Code</option></select><svg class="ico " aria-hidden="true"><use href="#i-chevron"/></svg></div>
         <p class="help">Quien hará los cambios.</p>
       </div>
       <div class="field">
@@ -332,10 +332,10 @@ main { display: grid; grid-template-rows: var(--k-layout-header) 1fr; min-width:
     <div class="field">
       <label for="p-asset">Asset de partida (opcional)</label>
       <div class="search"><input class="input" id="p-asset" name="asset" type="search" autocomplete="off" placeholder="Busca en el catálogo…" /><svg class="ico " aria-hidden="true"><use href="#i-search"/></svg></div>
-      <p class="help">Kratos busca aquí antes de generar uno nuevo.</p>
+      <p class="help">Nomos busca aquí antes de generar uno nuevo.</p>
     </div>
   </form>
-  <div class="drawer-foot"><a class="btn" href="#cerrar">Cancelar</a><button class="btn btn-primary" type="button">Enviar a Kratos</button></div>
+  <div class="drawer-foot"><a class="btn" href="#cerrar">Cancelar</a><button class="btn btn-primary" type="button">Enviar a Nomos</button></div>
 </aside>
 </body>
 </html>

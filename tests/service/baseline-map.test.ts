@@ -23,7 +23,7 @@ const game = (log: string[], image = png()) => async (exe: string): Promise<Laun
 const ini = '[/Script/EngineSettings.GameMapsSettings]\nEditorStartupMap=/Game/Esquina/Mapas/L_Gym.L_Gym\nGameDefaultMap=/Game/Esquina/Mapas/L_Lookdev.L_Lookdev\n';
 const setup = (log: string[] = [], withIni = true) => {
   const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: game(log)}});
-  process.env.KRATOS_FAKE = 'ok';
+  process.env.NOMOS_FAKE = 'ok';
   if (withIni) writeFileSync(join(f.projectDir, 'Config', 'DefaultEngine.ini'), ini);
   return f;
 };

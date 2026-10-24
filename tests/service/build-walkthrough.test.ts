@@ -26,7 +26,7 @@ const game = (run: Partial<Launch>, image?: Buffer, calls: string[][] = []) => a
   if (image) { mkdirSync(join(saved, 'Screenshots', 'Windows'), {recursive: true}); writeFileSync(join(saved, 'Screenshots', 'Windows', 'HighresScreenshot00000.png'), image); }
   return {exitCode: null, seconds: 30, killed: true, ...run};
 };
-const env = () => { process.env.KRATOS_FAKE = 'ok'; };
+const env = () => { process.env.NOMOS_FAKE = 'ok'; };
 
 test('el recorrido guionado entra al mapa, hace tres acciones por consola, espera a estabilizar y captura', () => {
   const args = walkthroughArgs({map: '/Game/Mapas/Prueba', commands: ['stat fps', 'stat unit', 'r.VSync 0'], tracefile: 'C:/con espacio/traza.utrace'});

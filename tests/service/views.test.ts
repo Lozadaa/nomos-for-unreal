@@ -12,7 +12,7 @@ const shots = (f: ReturnType<typeof checksFixture>) => listArtifacts(f.db, {task
 
 test('map: cuatro vistas (jugador + 3/4 izquierda, 3/4 derecha y picado) y la hoja de contactos 2×2', async () => {
   const f = checksFixture({files: ['Content/Maps/Nivel1.umap'], deps: {ffmpeg}});
-  process.env.KRATOS_FAKE = 'ok';
+  process.env.NOMOS_FAKE = 'ok';
   try {
     assert.equal((await f.run()).passed, true);
     const list = shots(f);
@@ -29,7 +29,7 @@ test('map: cuatro vistas (jugador + 3/4 izquierda, 3/4 derecha y picado) y la ho
 
 test('checks.views = 1 recupera el comportamiento anterior: solo la vista del jugador y sin hoja', async () => {
   const f = checksFixture({files: ['Content/Maps/Nivel1.umap'], deps: {ffmpeg}});
-  process.env.KRATOS_FAKE = 'ok';
+  process.env.NOMOS_FAKE = 'ok';
   try {
     writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({checks: {views: 1}}));
     assert.equal((await f.run()).passed, true);
@@ -41,17 +41,17 @@ test('checks.views = 1 recupera el comportamiento anterior: solo la vista del ju
 
 test('si el editor pasa de 90 s en las vistas extra, se entregan las que haya y se anota en el resumen', async () => {
   const f = checksFixture({files: ['Content/Maps/Nivel1.umap'], deps: {ffmpeg}});
-  process.env.KRATOS_FAKE = 'views_slow';
+  process.env.NOMOS_FAKE = 'views_slow';
   try {
     assert.equal((await f.run()).passed, true);
     assert.deepEqual(shots(f).filter(a => prov(a).view).map(a => prov(a).view).sort(), ['left', 'player']);
     assert.match(f.events('test.passed').at(-1)!.summary, /Vistas extra cortadas a los 90 s: 1 de 3/);
-  } finally { f.close(); process.env.KRATOS_FAKE = 'ok'; }
+  } finally { f.close(); process.env.NOMOS_FAKE = 'ok'; }
 });
 
 test('build: la vista del ejecutable juzga la regresión; las tres del rig salen del editor en el mismo mapa', async () => {
   const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {ffmpeg}});
-  process.env.KRATOS_FAKE = 'ok';
+  process.env.NOMOS_FAKE = 'ok';
   try {
     writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({walkthrough: {map: '/Game/Maps/Nivel1'}}));
     assert.equal((await f.run()).passed, true);

@@ -1,4 +1,4 @@
-# Kratos · Hito 6 «integración y cierre» · Plan de implementación
+# Nomos · Hito 6 «integración y cierre» · Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -19,11 +19,11 @@
 - **Reservas**: `acquire(db, runId, taskId, paths)` / `release(db, runId)`; `normalizedPaths` rechaza `:`, por lo que la cola de integración se reserva con **`integration/<NombreProyecto>`**.
 - **Git** `adapters/git.ts`: `isRepo, currentBranch, excludeLocal, head, renameBranch, diff(dir, base) → {stat, patch}, log(dir, base)`; `run(dir, args)` interno. Se añaden `merge(dir, branch, {noFf: true}) → {ok, conflicts: string[]}`, `conflictKinds(dir) → {text: string[], binary: string[]}` (por `git diff --numstat` con `-` en binarios), `abortMerge(dir)`, `worktreeAdd(repoDir, path, branch)`, `worktreeRemove(repoDir, path)` (sin `--force`; falla si hay cambios), `status(dir) → {clean: boolean, files: string[]}`.
 - **Orca** `adapters/orca.ts`: `repoAdd, worktreeCreate, terminalWaitIdle, terminalIsIdle, terminalSend, terminalRead, worktreeRemove(worktreeId, force=false)`; `tests/fakes/orca.ts` con modo claude. Se añade `terminalClose(handle)` (CLI `orca terminal close --terminal <h> --json`) y `terminalAlive(handle)` (un `terminalRead` que falla = muerto).
-- **Bandeja y runner**: `enqueue`, handlers que devuelven `{deferred, reason}` para esperar; `commandRun(ctx, command, {...})` de `handlers/asset-run.ts` para crear el run de una orden sin modelo (`provider: 'kratos'`, `role: 'integrador'`); `createXHandlers()` combinados en `server.ts`.
+- **Bandeja y runner**: `enqueue`, handlers que devuelven `{deferred, reason}` para esperar; `commandRun(ctx, command, {...})` de `handlers/asset-run.ts` para crear el run de una orden sin modelo (`provider: 'nomos'`, `role: 'integrador'`); `createXHandlers()` combinados en `server.ts`.
 - **Comprobaciones (hito 5)**: `checks.run {taskId, runId, files?}` y `selectChecks(files)`; `TestRun` por `recordTestRun`.
 - **Director**: `POST /director/pause|resume` escribe `director.paused` y emite `director.paused|resumed`; `scheduler.tick` **no lo consulta todavía**.
 - **Eventos del worker**: `worker.output` (líneas), `worker.message_sent`, `worker.waiting`, `run.*`, `task.*`, `lease.*`, `review.*`, `test.*`, `command.*`; `GET /runs/:id/output?since=` devuelve la salida; los eventos viven en la tabla `events` (cursor `seq`).
-- **Skill y CLI**: `skills/kratos/scripts/kratos.ts` con `task create|show|review`, `worker start|send|stop`, `run diff|output`, `decision list|open|resolve`, `asset …`; `SKILL.md` secciones «Dirigir», «Repartir», «Assets» (y «Pruebas y UI» del hito 5).
+- **Skill y CLI**: `skills/nomos/scripts/nomos.ts` con `task create|show|review`, `worker start|send|stop`, `run diff|output`, `decision list|open|resolve`, `asset …`; `SKILL.md` secciones «Dirigir», «Repartir», «Assets» (y «Pruebas y UI» del hito 5).
 - **Panel**: `Produccion.tsx` agrupa por estado con `StageStepper`; `TaskSheet.tsx` + `TaskTabs.tsx` (Resumen, Chat, Cambios, Pruebas, Assets, Línea de tiempo); el botón «Pedir cambios al responsable» existe en la pestaña Chat y llama `POST /runs/:id/message`.
 
 ## Global Constraints
@@ -34,7 +34,7 @@
 - Preservación antes que retirada: la carpeta de archivo se escribe y se verifica (recuento de archivos y hash SHA-256 por archivo en `manifest.json`) antes del `rm` (prueba 11).
 - Las tareas sin worktree (assets remotos) cierran por el mismo `finalize.run` saltando las condiciones de worktree.
 - Atribución: `implemento`, `reviso`, `genero`, `integro`, `verifico` → `task.attribution = {rol: [{runId, provider, agentName, at}]}`; el panel la muestra con los avatares del hito 9.
-- Lo demás, como los hitos anteriores: cero dependencias npm en el servicio; TypeScript borrable; archivos de ≤ 200 líneas; `127.0.0.1` y token; copy en español; LF; `npm test`, `npm run test:panel`, `npm run build` y Playwright en verde por commit; sin push ni merge; `.kratos-brief.md` fuera de los commits.
+- Lo demás, como los hitos anteriores: cero dependencias npm en el servicio; TypeScript borrable; archivos de ≤ 200 líneas; `127.0.0.1` y token; copy en español; LF; `npm test`, `npm run test:panel`, `npm run build` y Playwright en verde por commit; sin push ni merge; `.nomos-brief.md` fuera de los commits.
 
 ## Review Focus
 
@@ -63,7 +63,7 @@
 | `service/src/repo/tasks.ts` (ampliar), `migrations.ts` (`migrateClosing`) | guardas `integrando → cerrando`, `cerrando → done`; columnas `attribution`, `archive_path` |
 | `service/src/routes/tasks.ts` (ampliar) | `POST /tasks/:id/integrate`, `POST /tasks/:id/finalize`, `POST /tasks/:id/continue`, `GET /tasks/:id/archive` (índice) y `GET /tasks/:id/archive/:file` |
 | `service/src/routes/commands.ts` (ampliar) | validadores `integrate.run`, `finalize.run`, `task.continue` |
-| `skills/kratos/scripts/kratos.ts`, `SKILL.md` («Cerrar»), `references/cierre.md`, `evals/10-cierre.md`, `11-continuacion.md` | `task integrate|finalize|continue`, `pausar|reanudar` |
+| `skills/nomos/scripts/nomos.ts`, `SKILL.md` («Cerrar»), `references/cierre.md`, `evals/10-cierre.md`, `11-continuacion.md` | `task integrate|finalize|continue`, `pausar|reanudar` |
 | `panel/src/views/Produccion.tsx`, `TaskSheet.tsx`, `TaskTabs.tsx`, `shell/Header.tsx` | Grupo «Cerrando» con motivo y acción; atribución con avatares; pestaña Archivo; «Pedir cambios» en tareas `done`; «Pausado» |
 | `tests/service/{git-merge,integrate,finalize,archive,continue,scheduler-paused}.test.ts` | Pruebas con repos Git temporales y el Orca falso |
 
@@ -76,7 +76,7 @@
 **Interfaces:**
 - `git.merge(dir, branch, {noFf: true}) → {ok: true, commit} | {ok: false, conflicts}`; `conflictKinds(dir)`; `abortMerge(dir)`; `worktreeAdd(repoDir, path, branch)`; `status(dir)`.
 - `integrationWorkspace(ctx, project)`: `<dataDir>/integration/<name>`; si no existe, `git worktree add <path> <targetBranch>`; si existe, `git checkout <targetBranch>` + `git merge --ff-only` del repo principal si procede. Nunca se borra.
-- `integrate.run {taskId, runId}`: exige `task.state === 'integrando'` y `reviewApproved === 1`; run de la orden con `commandRun(ctx, cmd, {title: 'Integrar <título>', provider: 'kratos', role: 'integrador'})` reutilizando `task` (no crea tarea nueva: `commandRun` admite `taskId` explícito, añadir esa opción); reserva `integration/<proyecto>` (`deferred` si ocupada; Review Focus 5); en el workspace: `fetch` implícito (mismo repo), `merge --no-ff <worktree.branch>`; conflicto en texto → `abortMerge` + Decisión «Resolver en el worktree / Descartar la integración» con el `diff3` de cada archivo; conflicto binario → `abortMerge` + Decisión (Review Focus 1); si `git.head(workspace)` antes del merge ≠ `worktree.baseCommit` → `enqueue('checks.run', {taskId, runId, files: diff integrado})` y espera (`deferred` hasta `test.*` final; si falla, `moveTask(probando)` con motivo); éxito → evento `integration.completed {commit}`, `attribute(db, task, 'integro', run)`, `moveTask(cerrando, 'Integrado en <rama>@<commit>')`, `release`.
+- `integrate.run {taskId, runId}`: exige `task.state === 'integrando'` y `reviewApproved === 1`; run de la orden con `commandRun(ctx, cmd, {title: 'Integrar <título>', provider: 'nomos', role: 'integrador'})` reutilizando `task` (no crea tarea nueva: `commandRun` admite `taskId` explícito, añadir esa opción); reserva `integration/<proyecto>` (`deferred` si ocupada; Review Focus 5); en el workspace: `fetch` implícito (mismo repo), `merge --no-ff <worktree.branch>`; conflicto en texto → `abortMerge` + Decisión «Resolver en el worktree / Descartar la integración» con el `diff3` de cada archivo; conflicto binario → `abortMerge` + Decisión (Review Focus 1); si `git.head(workspace)` antes del merge ≠ `worktree.baseCommit` → `enqueue('checks.run', {taskId, runId, files: diff integrado})` y espera (`deferred` hasta `test.*` final; si falla, `moveTask(probando)` con motivo); éxito → evento `integration.completed {commit}`, `attribute(db, task, 'integro', run)`, `moveTask(cerrando, 'Integrado en <rama>@<commit>')`, `release`.
 - Rutas: `POST /tasks/:id/integrate` encola con clave `integrate:<taskId>:<runId>`; validador en `POST /commands`.
 
 - [ ] Pruebas con repos Git temporales (crear repo, rama de worktree con commits, rama objetivo): merge limpio; conflicto de texto → Decisión y `abortMerge` deja el workspace limpio; conflicto binario (archivo `.uasset` con bytes) → Decisión con shas; base cambiada → `checks.run` encolado; dos integraciones → la segunda `deferred`; estados y eventos.
@@ -97,7 +97,7 @@
 
 ### Task 3: Continuación después de DONE
 
-**Files:** Create `service/src/handlers/continue.ts`; Modify `service/src/routes/tasks.ts`, `routes/commands.ts`, `handlers/worker-start.ts` (contexto de continuación en el brief), `skills/kratos/references/brief-worker.md` (sección opcional «Continuación»); Test `tests/service/continue.test.ts`.
+**Files:** Create `service/src/handlers/continue.ts`; Modify `service/src/routes/tasks.ts`, `routes/commands.ts`, `handlers/worker-start.ts` (contexto de continuación en el brief), `skills/nomos/references/brief-worker.md` (sección opcional «Continuación»); Test `tests/service/continue.test.ts`.
 
 **Interfaces:**
 - `POST /tasks/:id/continue {text}` (tarea `done`) → `task.continue {taskId, text}`: crea tarea hija (`parentTaskId`, `title: 'Ajuste: <título>'`, `spec` = texto + referencia al archivo, `acceptance` heredada, `area`, `scope`, `leases`, `attribution` copiada), estado `preparada`; si el run implementador original tiene `sessionRef` y `terminalAlive` → `worker.send` al terminal con el texto y `metadata.continuationOf`; si no → el planificador arranca un run nuevo (`attempt + 1`) cuyo brief incluye `resumen.md` y `diff-final.patch` del archivo (Review Focus 2). Evento `task.continued {parentTaskId, taskId, reused: boolean}`.
@@ -108,12 +108,12 @@
 
 ### Task 4: Skill, panel, pausa y aceptación
 
-**Files:** Modify `service/src/scheduler.ts`, `skills/kratos/scripts/kratos.ts`, `skills/kratos/SKILL.md`; Create `skills/kratos/references/cierre.md`, `skills/kratos/evals/{10-cierre,11-continuacion}.md`; Modify `panel/src/views/Produccion.tsx`, `TaskSheet.tsx`, `TaskTabs.tsx`, `shell/Header.tsx`; Create `docs/aceptacion-hito6.md`; Modify `docs/estado-entregas.md`; Test `tests/service/scheduler-paused.test.ts`, `panel/src/views/Cierre.test.tsx`.
+**Files:** Modify `service/src/scheduler.ts`, `skills/nomos/scripts/nomos.ts`, `skills/nomos/SKILL.md`; Create `skills/nomos/references/cierre.md`, `skills/nomos/evals/{10-cierre,11-continuacion}.md`; Modify `panel/src/views/Produccion.tsx`, `TaskSheet.tsx`, `TaskTabs.tsx`, `shell/Header.tsx`; Create `docs/aceptacion-hito6.md`; Modify `docs/estado-entregas.md`; Test `tests/service/scheduler-paused.test.ts`, `panel/src/views/Cierre.test.tsx`.
 
-- `scheduler.tick`: si `director.paused`, no encola `worker.start` (las tareas quedan `preparada` con `waitReason: 'Director en pausa'`); evento `scheduler.paused` una vez por pausa (Review Focus 6). `kratos pausar|reanudar` llama a las rutas; `/kratos pausar` en la skill.
-- Skill `SKILL.md` sección «Cerrar» (≤ 12 líneas que remiten a `references/cierre.md`): tras `review.finished` aprobado y `probando` en verde, `kratos task integrate <id>`; ante `integration.completed`, `kratos task finalize <id>`; ante `task.closing_blocked`, leer el motivo y abrir/atender la Decisión; Kratos **nunca** concede DONE él mismo; «ajusta esto» sobre una tarea `done` → `kratos task continue <id> --file`.
+- `scheduler.tick`: si `director.paused`, no encola `worker.start` (las tareas quedan `preparada` con `waitReason: 'Director en pausa'`); evento `scheduler.paused` una vez por pausa (Review Focus 6). `nomos pausar|reanudar` llama a las rutas; `/nomos pausar` en la skill.
+- Skill `SKILL.md` sección «Cerrar» (≤ 12 líneas que remiten a `references/cierre.md`): tras `review.finished` aprobado y `probando` en verde, `nomos task integrate <id>`; ante `integration.completed`, `nomos task finalize <id>`; ante `task.closing_blocked`, leer el motivo y abrir/atender la Decisión; Nomos **nunca** concede DONE él mismo; «ajusta esto» sobre una tarea `done` → `nomos task continue <id> --file`.
 - Panel: grupo «Cerrando» con el motivo (`waitReason`) y la acción que corresponde (Decisión en línea o «Reintentar cierre» → `POST /tasks/:id/finalize`, `useAction`); `TaskSheet` muestra la atribución por rol con `AgentAvatar` + nombre corto; pestaña «Archivo» (lista del manifest con enlaces; solo en `done`); franja del director muestra «Pausado» con el glifo `directorState/esperando` y el botón Reanudar (ya existe).
-- Aceptación real en `KratosFabTest` con workers Claude: una tarea completa hasta `done` (implementación → revisión → pruebas → integración → cierre); comprobar `orca worktree list` sin el temporal, `<dataDir>/archive/<task>/` completo y verificado, pestaña Archivo; «ajusta esto» sobre la tarea `done` → continuación con el terminal vivo y, matando el terminal, con run nuevo; conflicto binario provocado con un `.uasset` tocado en la rama objetivo → Decisión; `/kratos pausar` detiene un arranque. Pruebas 10-13 del plan v1 y 20 del v2.
+- Aceptación real en `KratosFabTest` con workers Claude: una tarea completa hasta `done` (implementación → revisión → pruebas → integración → cierre); comprobar `orca worktree list` sin el temporal, `<dataDir>/archive/<task>/` completo y verificado, pestaña Archivo; «ajusta esto» sobre la tarea `done` → continuación con el terminal vivo y, matando el terminal, con run nuevo; conflicto binario provocado con un `.uasset` tocado en la rama objetivo → Decisión; `/nomos pausar` detiene un arranque. Pruebas 10-13 del plan v1 y 20 del v2.
 - [ ] `docs/aceptacion-hito6.md` con comandos, seqs y capturas en `docs/capturas-6/`; commit `docs: cierre del hito 6, integración y cierre`.
 
 ---
@@ -122,4 +122,4 @@
 
 - Cobertura: plan v1 §6 (siete condiciones, Cerrando, continuación) → Tareas 2-3; §10 `integrate_task`/`finalize_task` → Tareas 1-2; hito 6 criterios → Tarea 4; pruebas 10-13, 20; la pausa del director (pendiente desde el hito 3) → Tarea 4.
 - Review Focus 1, 5 → Tarea 1; 2 → Tarea 3; 3, 4 → Tarea 2; 6 → Tarea 4.
-- Diferencias respecto a la versión anterior y por qué: reserva `integration/<proyecto>` por `normalizedPaths`; el integrador y el finalizador son runs `provider: 'kratos'` creados con `commandRun` en vez de un «rol integrador» nuevo; los procesos vivos se resuelven cerrando el terminal por Orca y comprobando `worktree remove` sin force, en lugar de recorrer árboles de procesos; la atribución usa la misma regla de nombres que el panel.
+- Diferencias respecto a la versión anterior y por qué: reserva `integration/<proyecto>` por `normalizedPaths`; el integrador y el finalizador son runs `provider: 'nomos'` creados con `commandRun` en vez de un «rol integrador» nuevo; los procesos vivos se resuelven cerrando el terminal por Orca y comprobando `worktree remove` sin force, en lugar de recorrer árboles de procesos; la atribución usa la misma regla de nombres que el panel.

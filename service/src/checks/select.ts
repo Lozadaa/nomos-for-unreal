@@ -1,9 +1,10 @@
+import { legacySpecFile } from '../legacy.ts';
 export type CheckId = 'cpp' | 'blueprint' | 'asset' | 'animation' | 'map' | 'umg' | 'build';
 /** Orden de ejecución: compilar antes de abrir el editor; empaquetar, al final y solo si se pide. */
 export const checkOrder: CheckId[] = ['cpp', 'blueprint', 'asset', 'animation', 'map', 'umg', 'build'];
 /** Hito 5b: mallas con esqueleto, clips, Animation Blueprints, IK Rigs y retargeters, carpetas de personajes y la ficha del personaje. */
 const animated = (file: string, name: string) => /^(SK|SKM|ABP|AM|A|BS|MM|IK|RTG)_/i.test(name) && /\.uasset$/i.test(file)
-  || /(^|\/)Content\/(.+\/)?(Anims|Animations|Characters)\//i.test(file) && /\.uasset$/i.test(file) || name === 'kratos-personaje.json';
+  || /(^|\/)Content\/(.+\/)?(Anims|Animations|Characters)\//i.test(file) && /\.uasset$/i.test(file) || name === 'nomos-personaje.json' || name === legacySpecFile;
 
 const slash = (path: string) => path.replaceAll('\\', '/');
 

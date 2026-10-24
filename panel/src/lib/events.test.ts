@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { KratosEvent } from './tasks'
+import type { NomosEvent } from './tasks'
 import { eventPresentation, eventProvider, hourlyActivity, laneOf, placeEvents } from './events'
 
-const event = (type: string, payload: Record<string, unknown> = {}, at = '2026-10-23T10:30:00Z'): KratosEvent => ({ seq: 1, id: 'e1', type, payload, createdAt: at, messageId: null })
+const event = (type: string, payload: Record<string, unknown> = {}, at = '2026-10-23T10:30:00Z'): NomosEvent => ({ seq: 1, id: 'e1', type, payload, createdAt: at, messageId: null })
 
 describe('Fuente y glifo de los eventos', () => {
   it('usa el estado declarado del evento de tarea y conserva la entidad neutral si falta', () => {
@@ -22,7 +22,7 @@ describe('Fuente y glifo de los eventos', () => {
     expect(laneOf(event('task.activity', { source: 'builds' }))).toBe('Compilaciones')
     expect(eventProvider(event('run.finished', { taskId: 't1' }))).toBeUndefined()
     expect(eventPresentation(event('run.finished', { taskId: 't1' }))).toEqual({ kind: 'event', value: 'run.finished' })
-    expect(laneOf(event('task.activity'))).toBe('Kratos')
+    expect(laneOf(event('task.activity'))).toBe('Nomos')
   })
 
   it('mantiene los mensajes, respuestas y descargas como texto corto del registro', () => {

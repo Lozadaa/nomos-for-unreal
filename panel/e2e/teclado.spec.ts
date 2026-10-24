@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 
 // Prueba 24 (plan v2): Producción, detalle, Catálogo y Decisiones se recorren con teclado y el foco se ve.
-const url = () => process.env.KRATOS_URL!
-test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1')) })
+const url = () => process.env.NOMOS_URL!
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
 /** El elemento con foco tiene un contorno o anillo visible (no `outline: none` sin sombra). */
 const focusVisible = (page: Page) => page.evaluate(() => {

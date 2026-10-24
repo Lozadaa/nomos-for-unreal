@@ -10,6 +10,7 @@ import { useAction } from '@/feel/useAction'
 import { useAfter } from '@/hooks/time'
 import { useResource } from '@/hooks/useResource'
 import { Ring } from '@/visual/art/Ring'
+import { BRAND } from '@/lib/brand'
 
 type Metric = 'meshyCredits' | 'elevenlabsCredits' | 'tokens' | 'buildMinutes'
 interface Summary { scope: 'workspace' | 'task'; scopeId: string; limits: Record<Metric, number | null>; spent: Record<Metric, number>; remaining: Record<Metric, number | null> }
@@ -59,7 +60,7 @@ export function Meter({ name, unit, spent, limit, save }: { name: string; unit: 
       {limit === null ? (
         <div className="flex flex-col gap-1">
           <p className="text-sm">Sin límite definido</p>
-          <p className="text-xs text-muted-foreground">Kratos no se detendrá por gasto.</p>
+          <p className="text-xs text-muted-foreground">{BRAND.short} no se detendrá por gasto.</p>
           {save && <LimitEditor name={name} limit={limit} exhausted={false} save={save} />}
         </div>
       ) : (
@@ -68,7 +69,7 @@ export function Meter({ name, unit, spent, limit, save }: { name: string; unit: 
             <Ring value={limit === 0 ? 1 : spent} max={limit === 0 ? 1 : limit} size={64} />
           </div>
           <p className="text-sm">{exhausted ? `${name} · límite agotado` : `${name} · ${fmt(spent)} de ${fmt(limit)} ${unit}`}</p>
-          {exhausted && <p className="text-xs text-muted-foreground">Kratos te pedirá una decisión antes de seguir.</p>}
+          {exhausted && <p className="text-xs text-muted-foreground">{BRAND.short} te pedirá una decisión antes de seguir.</p>}
           {save && <LimitEditor name={name} limit={limit} exhausted={exhausted} save={save} />}
         </div>
       )}

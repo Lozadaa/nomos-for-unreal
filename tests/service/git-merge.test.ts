@@ -22,7 +22,7 @@ test('merge --no-ff limpio en un workspace separado y la rama avanza en el check
     assert.ok(existsSync(join(repo.dir, 'Source', 'Vida.cpp')), 'el checkout del usuario queda al día');
     assert.equal(await git.contains(repo.dir, 'master', commit), true);
     assert.equal(await git.branchExists(repo.dir, tree.branch), true);
-    assert.equal(await git.branchExists(repo.dir, 'kratos/nada'), false);
+    assert.equal(await git.branchExists(repo.dir, 'nomos/nada'), false);
   } finally { repo.close(); }
 });
 
@@ -62,12 +62,12 @@ test('conflicto binario (.uasset): shas de cada lado y nada se resuelve', async 
   } finally { repo.close(); }
 });
 
-test('status ve cambios sin registrar e ignora los locales de Kratos; worktreeRemove sin force se niega con cambios', async () => {
+test('status ve cambios sin registrar e ignora los locales de Nomos; worktreeRemove sin force se niega con cambios', async () => {
   const repo = gameRepo(), git = createGit();
   try {
     const tree = repo.tree('sucio', {'a.txt': 'a\n'});
     await git.excludeLocal(tree.path);
-    writeFileSync(join(tree.path, '.kratos-brief.md'), 'brief');
+    writeFileSync(join(tree.path, '.nomos-brief.md'), 'brief');
     assert.equal((await git.status(tree.path)).clean, true);
     writeFileSync(join(tree.path, 'b.txt'), 'b\n');
     assert.deepEqual(await git.status(tree.path), {clean: false, files: ['b.txt']});
@@ -126,12 +126,12 @@ test('hito 5b: discard deja como en HEAD lo que tocó un lote de pruebas (mapa r
   const repo = gameRepo(), git = createGit();
   try {
     const tree = repo.tree('heroe', {'Content/Kratos/Maps/AnimTest.umap': 'MAPA'});
-    writeFileSync(join(tree.path, 'Content', 'Kratos', 'Maps', 'AnimTest.umap'), 'MAPA RE-GUARDADO');
+    writeFileSync(join(tree.path, 'Content/Kratos/Maps/AnimTest.umap'), 'MAPA RE-GUARDADO');
     mkdirSync(join(tree.path, 'Build', 'Windows'), {recursive: true});
     writeFileSync(join(tree.path, 'Build', 'Windows', 'Juego.exe'), 'exe');
-    writeFileSync(join(tree.path, 'Content', 'Kratos', 'Clip2.uasset'), 'clip');
+    writeFileSync(join(tree.path, 'Content/Kratos/Clip2.uasset'), 'clip');
     await git.discard(tree.path, (await git.status(tree.path)).files);
     assert.deepEqual(await git.status(tree.path), {clean: true, files: []});
-    assert.equal(readFileSync(join(tree.path, 'Content', 'Kratos', 'Maps', 'AnimTest.umap'), 'utf8'), 'MAPA');
+    assert.equal(readFileSync(join(tree.path, 'Content/Kratos/Maps/AnimTest.umap'), 'utf8'), 'MAPA');
   } finally { repo.close(); }
 });

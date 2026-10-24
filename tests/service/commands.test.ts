@@ -95,7 +95,7 @@ test('done no admite eventos terminales duplicados y rollback conserva estado', 
 });
 
 test('dos workers compiten por un comando en conexiones SQLite independientes', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-commands-'));
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-commands-'));
   const file = join(dir, 'db.sqlite');
   const db = openDb(file);
   const gate = new SharedArrayBuffer(4);

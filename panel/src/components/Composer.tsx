@@ -9,10 +9,11 @@ import { addOptimistic, confirmOptimistic } from '@/store'
 import { areaLabel, areas, type Area, type Task } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { AreaPictogram } from '@/visual/art/AreaPictogram'
+import { BRAND } from '@/lib/brand'
 
 const empty = { title: '', spec: '', area: 'gameplay' as Area }
 
-/** Una línea que se expande en el sitio: título → descripción → área → «Enviar a Kratos». Sin modal. */
+/** Una línea que se expande en el sitio: título → descripción → área → «Enviar a Nomos». Sin modal. */
 export function Composer({ autoFocus = false, isVisible, onHidden }: {
   autoFocus?: boolean
   /** ¿la tarea nueva se verá con los filtros actuales? Si no, el éxito deja un toast con «Ver». */
@@ -74,7 +75,7 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
         ref={title}
         value={draft.title}
         onChange={(e) => { setDraft({ ...draft, title: e.target.value }); setMissing(false) }}
-        placeholder="Pídele algo a Kratos…" name="titulo" autoComplete="off"
+        placeholder={`Pídele algo a ${BRAND.short}…`} name="titulo" autoComplete="off"
         aria-label="Título de la petición"
         aria-invalid={missing || undefined}
         aria-describedby={missing ? 'composer-missing' : undefined}
@@ -109,7 +110,7 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
             {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
             <span className="ml-auto hidden text-xs text-muted-foreground sm:inline"><kbd className="font-mono">Ctrl</kbd>+<kbd className="font-mono">Enter</kbd></span>
             <Button type="submit" size="sm" disabled={send.pending} aria-busy={send.pending}>
-              {send.pending ? 'Enviando…' : 'Enviar a Kratos'}
+              {send.pending ? 'Enviando…' : `Enviar a ${BRAND.short}`}
             </Button>
           </div>
         </div>

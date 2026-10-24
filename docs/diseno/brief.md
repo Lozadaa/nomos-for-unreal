@@ -1,4 +1,4 @@
-# Brief del panel de Kratos
+# Brief del panel de Nomos
 
 ## Propósito
 

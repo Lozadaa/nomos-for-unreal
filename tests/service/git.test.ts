@@ -6,9 +6,9 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createGit } from '../../service/src/adapters/git.ts';
 export function repository(t: any) {
-  const dir=mkdtempSync(join(tmpdir(),'kratos-git-'));
+  const dir=mkdtempSync(join(tmpdir(),'nomos-git-'));
   const git=(...args:string[]) => execFileSync('git',['-C',dir,...args],{encoding:'utf8',windowsHide:true});
-  git('init');git('config','core.autocrlf','false');git('config','user.name','Kratos test');git('config','user.email','test@example.invalid');
+  git('init');git('config','core.autocrlf','false');git('config','user.name','Nomos test');git('config','user.email','test@example.invalid');
   writeFileSync(join(dir,'tracked.txt'),'antes\n');git('add','.');git('commit','-m','Base');
   t.after(()=>rmSync(dir,{recursive:true,force:true,maxRetries:3}));
   return {dir,git};
@@ -22,13 +22,13 @@ test('Git exige raíz exacta y muestra diferencias committeadas, pendientes, nue
   writeFileSync(join(dir,'tracked.txt'),'pendiente\n');writeFileSync(join(dir,'new.txt'),'nueva\n');
   writeFileSync(join(dir,'tracked-binary.bin'),Buffer.from([0,2,3]));
   writeFileSync(join(dir,'binary.bin'),Buffer.from([0,1,2,3]));
-  writeFileSync(join(dir,'.kratos-brief.md'),'secreto local');mkdirSync(join(dir,'.kratos-inbox'));writeFileSync(join(dir,'.kratos-inbox','a.md'),'local');
+  writeFileSync(join(dir,'.nomos-brief.md'),'secreto local');mkdirSync(join(dir,'.nomos-inbox'));writeFileSync(join(dir,'.nomos-inbox','a.md'),'local');
   const diff=await adapter.diff(dir,base);
   assert.match(diff.patch,/pendiente/);assert.match(diff.patch,/nueva/);assert.match(diff.stat,/binary.bin/);
   assert.match(diff.stat,/tracked-binary.bin/);
-  assert.doesNotMatch(diff.patch,/secreto local|GIT binary patch|Binary files|binary\.bin|\.kratos-inbox/);
+  assert.doesNotMatch(diff.patch,/secreto local|GIT binary patch|Binary files|binary\.bin|\.nomos-inbox/);
   assert.equal((await adapter.log(dir,base))[0].subject,'Cambio');
-  await adapter.renameBranch(dir,'kratos/test');assert.equal(await adapter.currentBranch(dir),'kratos/test');
+  await adapter.renameBranch(dir,'nomos/test');assert.equal(await adapter.currentBranch(dir),'nomos/test');
   assert.equal(await adapter.head(dir),git('rev-parse','HEAD').trim());
 });
 

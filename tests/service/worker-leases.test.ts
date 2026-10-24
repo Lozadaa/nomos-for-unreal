@@ -41,7 +41,7 @@ test('dos tareas del mismo asset solo arrancan un worker; stop libera y permite 
   const stopped=requireTask(f.db,f.task.id);
   assert.equal(stopped.state,'preparada');assert.equal(stopped.blockedReason,null);
   assert.match(stopped.waitReason!,/reconciliar/i);assert.equal(stopped.worktreeId,f.tree().id);
-  assert.ok(existsSync(join(f.tree().path,'.kratos-brief.md')));
+  assert.ok(existsSync(join(f.tree().path,'.nomos-brief.md')));
   writeFileSync(f.file,JSON.stringify({...f.state(),treePath:join(f.dir,'second tree')}));
   await start();assert.equal(f.state().creates,2);
   assert.equal(filtered<Run>(f.db,'runs',{taskId:second.id}).length,2);
@@ -50,7 +50,7 @@ test('dos tareas del mismo asset solo arrancan un worker; stop libera y permite 
 
 test('DONE libera; corrección conflictiva conserva run terminado y no envía hasta recuperar reserva',async t=>{
   const f=fixture(t);reserve(f);await f.start();const run=f.run();
-  f.output('KRATOS_DONE {"summary":"Listo","commits":["abc"],"tests":"passed"}');
+  f.output('NOMOS_DONE {"summary":"Listo","commits":["abc"],"tests":"passed"}');
   await f.invoke('worker.poll',{runId:run.id,generation:0});assert.deepEqual(listLeases(f.db),[]);
   acquire(f.db,'other-run','other-task',[path]);const before=f.state().tail.length;
   await f.invoke('worker.send',{runId:run.id,text:'Corregir HUD'});

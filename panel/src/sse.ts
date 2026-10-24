@@ -1,20 +1,20 @@
 import { markUnauthorized, token } from './api'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 
 export interface Live { close: () => void }
 
 /** Un bloque SSE (`id:`, `event:`, `data:`) → el evento del servicio, o null si es un comentario o está incompleto. */
-export function parseBlock(block: string): KratosEvent | null {
+export function parseBlock(block: string): NomosEvent | null {
   const data = block.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n')
   if (!data) return null
-  try { return JSON.parse(data) as KratosEvent } catch { return null }
+  try { return JSON.parse(data) as NomosEvent } catch { return null }
 }
 
 /**
  * Suscripción al /events del servicio con fetch: lleva el token en la cabecera (no en la URL) y recibe todos los tipos de evento,
  * incluidos los que añadan hitos posteriores, sin tener que listarlos. Reconecta con espera creciente y reenvía Last-Event-ID.
  */
-export function connectEvents(onEvent: (e: KratosEvent) => void, onState: (live: boolean) => void): Live {
+export function connectEvents(onEvent: (e: NomosEvent) => void, onState: (live: boolean) => void): Live {
   if (typeof fetch === 'undefined' || typeof TextDecoderStream === 'undefined') return { close() {} }
   const abort = new AbortController()
   let closed = false

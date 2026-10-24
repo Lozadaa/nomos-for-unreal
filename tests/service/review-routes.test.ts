@@ -15,7 +15,7 @@ async function setup(t:any) {
   const f=await fixture();t.after(f.close);
   const path=join(f.dir,'tree');mkdirSync(path);
   const git=(...args:string[])=>execFileSync('git',['-C',path,...args],{windowsHide:true,stdio:'pipe'}).toString().trim();
-  git('init');git('config','user.name','Kratos test');git('config','user.email','test@example.invalid');
+  git('init');git('config','user.name','Nomos test');git('config','user.email','test@example.invalid');
   git('commit','--allow-empty','-m','Base');
   const task=createTask(f.db,{title:'Revisar',area:'qa',spec:'Crear README',acceptance:['Existe'],scope:['Docs'],state:'revisando'});
   const tree=insert<Worktree>(f.db,'worktrees',{taskId:task.id,path,branch:'test',baseCommit:git('rev-parse','HEAD'),state:'active',closedReason:null});

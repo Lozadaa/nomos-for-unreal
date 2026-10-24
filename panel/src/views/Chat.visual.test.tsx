@@ -13,15 +13,15 @@ beforeEach(() => { resetStore(); vi.mocked(api).mockReset() })
 afterEach(cleanup)
 
 describe('Chat visual', () => {
-  it('identifica cada emisor: «Tú» y el avatar de Kratos con su nombre y la hora relativa', async () => {
+  it('identifica cada emisor: «Tú» y el avatar de Nomos con su nombre y la hora relativa', async () => {
     vi.mocked(api).mockResolvedValue([{ id: 'm1', text: 'Construye la escena', createdAt: at, state: 'respondido', readAt: at, typingAt: null, repliedAt: at,
       timedOut: false, replies: [{ text: 'Empiezo a prepararla', at }], links: [] }])
     render(<TooltipProvider><Chat /></TooltipProvider>)
     const userBubble = (await screen.findByText('Construye la escena')).closest('li')!
     expect(within(userBubble).getByText('Tú')).toBeInTheDocument()
-    const kratosBubble = screen.getByText('Empiezo a prepararla').closest('li')!
-    expect(within(kratosBubble).getByText('Kratos')).toBeInTheDocument()
-    expect(within(kratosBubble).getByRole('img', { name: /Kratos/ })).toBeInTheDocument()
-    expect(within(kratosBubble).getByText('2 min')).toBeInTheDocument()
+    const nomosBubble = screen.getByText('Empiezo a prepararla').closest('li')!
+    expect(within(nomosBubble).getByText('Nomos')).toBeInTheDocument()
+    expect(within(nomosBubble).getByRole('img', { name: /Nomos/ })).toBeInTheDocument()
+    expect(within(nomosBubble).getByText('2 min')).toBeInTheDocument()
   })
 })

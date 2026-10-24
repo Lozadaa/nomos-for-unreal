@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { KratosEvent, Run, Task } from '@/lib/tasks'
+import type { NomosEvent, Run, Task } from '@/lib/tasks'
 
 vi.mock('@/api', () => ({ api: vi.fn() }))
 vi.mock('@/feel/toasts', () => ({ toasts: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
@@ -12,7 +12,7 @@ import { Capacidades } from './Capacidades'
 
 const mockApi = vi.mocked(api)
 let seq = 0
-const event = (type: string, payload: Record<string, unknown>): KratosEvent => ({ seq: ++seq, id: `e-${seq}`, type, messageId: null, payload, createdAt: '2026-10-23T10:00:00.000Z' })
+const event = (type: string, payload: Record<string, unknown>): NomosEvent => ({ seq: ++seq, id: `e-${seq}`, type, messageId: null, payload, createdAt: '2026-10-23T10:00:00.000Z' })
 const task = (id: string, area: Task['area'] = 'ui'): Task => ({
   id, area, title: id, state: 'implementando', blockedReason: null, decisionId: null,
   createdAt: '', updatedAt: '', spec: '', acceptance: [], assigneeRole: 'implementacion', assigneeProvider: 'codex',

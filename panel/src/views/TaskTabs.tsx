@@ -10,6 +10,7 @@ import { useStore } from '@/store'
 import { parseDiffStat } from '@/lib/parseDiffStat'
 import { DiffBars } from '@/visual/art/DiffBars'
 import { ContinueTask } from './ContinueTask'
+import { BRAND } from '@/lib/brand'
 
 type Resource<T> = { state: 'loading' } | { state: 'ok'; data: T } | { state: 'unavailable' } | { state: 'error'; message: string }
 
@@ -71,7 +72,7 @@ export function WorkerChatTab({ detail }: { detail: TaskDetail }) {
     () => api(`/runs/${encodeURIComponent(run!.id)}/message`, { method: 'POST', body: { text: draft.current } }),
     { optimistic: () => { draft.current = text; setSent((s) => [...s, text]); setText(''); return () => { setSent((s) => s.slice(0, -1)); setText(draft.current) } } },
   )
-  if (!run) return <Empty title="Esta tarea aún no tiene una ejecución" hint="Cuando Kratos asigne un worker, su conversación aparece aquí." />
+  if (!run) return <Empty title="Esta tarea aún no tiene una ejecución" hint={`Cuando ${BRAND.short} asigne un worker, su conversación aparece aquí.`} />
   if (output.state === 'unavailable') return waitingForWorkers
   const batches = output.state === 'ok' ? output.data.filter((e) => e.payload.lines?.length) : []
   const corrections = events.filter((e) => e.type === 'worker.message_sent' && e.payload.runId === run.id)
@@ -96,7 +97,7 @@ export function WorkerChatTab({ detail }: { detail: TaskDetail }) {
         {corrections.map((e) => (
           <li key={e.seq} className="flex gap-3 text-xs text-info">
             <time dateTime={e.createdAt} className="w-16 shrink-0 font-mono">{clock(e.createdAt)}</time>
-            <span>Kratos envió una corrección al worker</span>
+            <span>{BRAND.short} envió una corrección al worker</span>
           </li>
         ))}
         {sent.map((m, i) => <li key={`s${i}`} className="text-xs whitespace-pre-wrap text-info">Tú: {m}</li>)}

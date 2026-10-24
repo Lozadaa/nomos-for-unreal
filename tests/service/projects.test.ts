@@ -14,18 +14,18 @@ import { token } from '../helpers.ts';
 
 /** Dos juegos en carpetas propias y un registro temporal: nunca el de la máquina. */
 function machine(t: TestContext) {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-proyectos-'));
-  process.env.KRATOS_REGISTRY = join(root, 'registro', 'projects.json');
+  const root = mkdtempSync(join(tmpdir(), 'nomos-proyectos-'));
+  process.env.NOMOS_REGISTRY = join(root, 'registro', 'projects.json');
   const game = (name: string) => {
-    const dir = join(root, name), data = join(dir, '.kratos');
+    const dir = join(root, name), data = join(dir, '.nomos');
     mkdirSync(data, {recursive: true}); writeFileSync(join(dir, `${name}.uproject`), '{}');
     return data;
   };
-  t.after(() => { delete process.env.KRATOS_REGISTRY; rmSync(root, {recursive: true, force: true}); });
+  t.after(() => { delete process.env.NOMOS_REGISTRY; rmSync(root, {recursive: true, force: true}); });
   return {root, game};
 }
 
-test('registro: kratos start apunta nombre del .uproject, carpeta, puerto y pid; stop lo quita; un pid muerto caduca; nunca el token', t => {
+test('registro: nomos start apunta nombre del .uproject, carpeta, puerto y pid; stop lo quita; un pid muerto caduca; nunca el token', t => {
   const {game} = machine(t);
   const blockKings = game('BlockKings'), fab = game('KratosFabTest');
   register(fab, 8780, 999_999_999);
@@ -43,13 +43,13 @@ test('registro: kratos start apunta nombre del .uproject, carpeta, puerto y pid;
 test('GET /projects: tareas vivas y Decisiones abiertas de cada juego, sin tokens; GET /session solo para el propio origen', async t => {
   const {game} = machine(t);
   const blockKings = game('BlockKings'), fab = game('KratosFabTest');
-  const other = openDb(join(fab, 'kratos.db'));
+  const other = openDb(join(fab, 'nomos.db'));
   const hud = createTask(other, {title: 'HUD', area: 'ui', state: 'implementando'});
   mkdirSync(join(fab, 'artifacts'), {recursive: true}); writeFileSync(join(fab, 'artifacts', 'captura.png'), 'png');
   addArtifact(other, {taskId: hud.id, runId: null, kind: 'screenshot', path: 'captura.png', provenance: {}, previewPath: null}); other.close();
   register(fab, 8780);
-  const db = openDb(join(blockKings, 'kratos.db'));
-  const web = mkdtempSync(join(tmpdir(), 'kratos-web-')); writeFileSync(join(web, 'index.html'), '<!doctype html>');
+  const db = openDb(join(blockKings, 'nomos.db'));
+  const web = mkdtempSync(join(tmpdir(), 'nomos-web-')); writeFileSync(join(web, 'index.html'), '<!doctype html>');
   const server = createServer(db, token, web, blockKings);
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   // las pruebas de este archivo cierran el servicio antes de que machine() borre las carpetas (los after van en orden)

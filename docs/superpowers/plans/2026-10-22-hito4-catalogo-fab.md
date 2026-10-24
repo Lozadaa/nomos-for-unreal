@@ -1,4 +1,4 @@
-# Kratos · Hito 4 «catálogo y extracción Fab, Meshy y Blender» · Plan de implementación
+# Nomos · Hito 4 «catálogo y extracción Fab, Meshy y Blender» · Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -6,7 +6,7 @@
 
 > **CORRECCIÓN 2026-10-23 (Meshy, manda sobre la Tarea 5).** El usuario decidió: «No haremos animaciones en meshy just hard surface pawns». Meshy se usa **solo para piezas hard surface** (props, vehículos, armas, piezas mecánicas, pawns rígidos) por `text-to-3d`, `image-to-3d` y `remesh`; **no hay `rig` ni `animate`** en el adaptador ni en el handler (`kind ∈ text|image|remesh`; cualquier otro valor → `meshy_kind_not_allowed`), y nunca se generan personajes ni formas orgánicas: eso sale del catálogo (Fab, MetaHuman, packs con esqueleto). La política de `references/assets.md` lo dice con esas palabras y la aceptación (4) genera un prop hard surface, no un personaje. El hito 5b (personajes y animación) queda **pausado** por decisión del usuario.
 
-**Goal:** Que Kratos sepa qué assets ya tienes, los lleve a cualquier proyecto Unreal sin volver a descargarlos, consiga los que compraste y nunca bajaste con la menor intervención posible, y solo genere con Meshy cuando el catálogo no sirva; todo dentro de presupuesto y con licencia registrada.
+**Goal:** Que Nomos sepa qué assets ya tienes, los lleve a cualquier proyecto Unreal sin volver a descargarlos, consiga los que compraste y nunca bajaste con la menor intervención posible, y solo genere con Meshy cuando el catálogo no sirva; todo dentro de presupuesto y con licencia registrada.
 
 **Architecture:** Un indexador en el servicio (puerto de `docs/fab-pruebas/index.py`) alimenta `catalog_entries` desde `Content/<pack>` y `Content/Fab` de cada proyecto, la caché de packs del Launcher (`VaultCache/<AppName>/data/Content`), la caché del plugin Fab (`%TEMP%\FabLibrary`, zips por AssetId), Megascans Library y los metadatos de `listings_v1.db` (leída desde una copia). Tres niveles de extracción (plan v2 §5.6): nivel 1 copia packs ya presentes al proyecto y los verifica con el editor sin GUI (puerto de `verify_pack.py`); nivel 2 abre el Launcher, da las instrucciones exactas y detecta la llegada del pack por log y por VaultCache; nivel 3 (`ue-asset-cli`) apagado por defecto y solo documentado. Meshy entra por su API REST con `fetch` como run `provider: 'meshy'` con presupuesto; Blender lo usa el worker de arte con el pack de skills ya instalado. **Todo trabajo de asset es un comando de la bandeja** (`enqueue` + handler), nunca una llamada síncrona desde la ruta.
 
@@ -25,7 +25,7 @@
 - **Artefactos**: `addArtifact(db, {taskId, runId?, kind, path, previewPath?, provenance, license})` y `GET /artifacts/:id/file` sirve solo dentro de `<dataDir>/artifacts` con `Content-Security-Policy: sandbox`. El panel carga archivos con `useArtifactSrc` (service worker que convierte `?token=` en cabecera).
 - **Configuración** `service/src/config.ts`: `readConfig(dataDir)` lee `<dataDir>/config.json`, valida `concurrency` y devuelve el resto tal cual. Claves nuevas de este hito (todas opcionales): `projectsDir` (defecto `~/Documents/Unreal Projects`), `quarantineProject` (ruta a la carpeta del proyecto cuarentena; defecto `<projectsDir>/KratosFabTest` si existe), `unrealPath` y `blenderPath` (ya las lee `repo/capabilities.ts`), `megascansDir` (defecto `~/Documents/Megascans Library/Downloaded/UAssets`), `launcherLogPath` (defecto `%LOCALAPPDATA%\EpicGamesLauncher\Saved\Logs\EpicGamesLauncher.log`), `assetCli: {enabled: false}`.
 - **Decisiones**: `openDecision(db, {taskId, reason, evidence, options})` en `repo/decisions.ts`; `decisionGate(ctx, task, kind, reason, content, options?, canApprove?)` en `handlers/worker-policy.ts` para puertas con hash de contexto.
-- **Eventos**: `appendEvent(db, type, messageId, payload)` en `store.ts`. El panel refresca recursos por prefijo de evento (`useResource('/catalog', /^catalog\./)`), y la skill los recibe por `kratos vigila --types`.
+- **Eventos**: `appendEvent(db, type, messageId, payload)` en `store.ts`. El panel refresca recursos por prefijo de evento (`useResource('/catalog', /^catalog\./)`), y la skill los recibe por `nomos vigila --types`.
 - **Panel**: `panel/src/views/Catalogo.tsx` ya tiene tarjeta con `Preparar` → `POST /commands {type:'catalog.prepare'}`; `catalogThumbnailUrl` solo acepta URLs del mismo origen que empiezan por `/`; pastilla de fuente con `<Glyph kind="source">`; `AreaPictogram` como marcador. `Entregas.tsx` ya muestra GLB con `<model-viewer>`.
 
 ## Global Constraints
@@ -36,7 +36,7 @@
 - `aiForbidden = 1` bloquea usar la entrada como entrada de Meshy image-to-3D o de cualquier generación (prueba 33): el handler rechaza con `asset_ai_forbidden`.
 - Toda importación pasa por una tarea de arte con el contrato `ue-asset-intake` (escala, pivote, colisión, materiales, licencia); licencia desconocida → Decisión (prueba 27).
 - Los packs del Launcher se añaden siempre al **proyecto cuarentena** y de ahí se migran por nivel 1 al juego (informe nivel 2: `StarterContent` y carpetas no predecibles).
-- Verificación sin GUI obligatoria tras cada migración: `verifyPack` con `KRATOS_ROOT` y `KRATOS_REPORT`; `ok: false` deja la tarea en `probando` fallida, no en `revisando`.
+- Verificación sin GUI obligatoria tras cada migración: `verifyPack` con `NOMOS_ROOT` y `NOMOS_REPORT`; `ok: false` deja la tarea en `probando` fallida, no en `revisando`.
 - Un solo editor por proyecto y operación: migraciones y verificaciones reservan `editor/<proyecto>`; si está tomada, el handler devuelve `{deferred: true, reason}` y el ejecutor reintenta a los 5 s.
 - Lo demás, como los hitos anteriores: cero dependencias npm en el servicio; TypeScript borrable; archivos de ≤ 200 líneas; `127.0.0.1` y token en toda ruta nueva; copy en español; LF; `npm test`, `npm run test:panel`, `npm run build` y Playwright en verde en cada commit; sin push ni merge.
 
@@ -59,7 +59,7 @@
 | `service/src/catalog/sources/{projects,launcherVault,fabCache,megascans,listings}.ts` | Una fuente por archivo: `scan(config) → CatalogEntryInput[]` |
 | `service/src/catalog/paths.ts` | Rutas por defecto (projectsDir, VaultCache, FabLibrary, Megascans, log del Launcher) y lectura de `config.json` |
 | `service/src/adapters/unreal-cmd.ts` | `createUnrealCmd({bin?, baseArgs?, timeoutMs?})` → `runPython`, `verifyPack`, `importFile` |
-| `service/unreal/kratos_verify.py`, `service/unreal/kratos_import.py` | Puerto de `verify_pack.py` e importación con `AssetImportTask` |
+| `service/unreal/nomos_verify.py`, `service/unreal/nomos_import.py` | Puerto de `verify_pack.py` e importación con `AssetImportTask` |
 | `service/src/handlers/asset.ts` + `asset-*.ts` | `createAssetHandlers()`: `asset.index`, `asset.migrate`, `asset.prepare`, `asset.request_download`, `asset.detect`, `asset.meshy_generate`, `asset.meshy_poll` |
 | `service/src/adapters/launcher.ts` | `openFab()`, `tailLog(path, since)`, `parseCompletion(lines)` |
 | `service/src/adapters/meshy.ts` | REST con `fetch`: `textTo3d`, `imageTo3d`, `remesh`, `rig`, `animate`, `getTask`, `listTasks`, `download`, `balance` |
@@ -67,7 +67,7 @@
 | `service/src/routes/catalog.ts` (ampliar) | `GET /catalog/:id`, `GET /catalog/:id/thumbnail`, `GET /downloads` |
 | `service/src/migrations.ts` (ampliar) | `migrateAssets`: tabla `downloads` y columna `catalog_entries.verified_engine` |
 | `panel/src/views/{Catalogo,Entregas}.tsx`, `shell/CommandMenu.tsx`, `views/Actividad.tsx` | Indexar ahora, Migrar, Preparar, Descargas pendientes, miniaturas reales, Regenerar; eje de horas en Actividad |
-| `skills/kratos/references/assets.md`, `SKILL.md` sección «Assets», `evals/07-*.md`, `08-*.md` | Política y niveles para la skill |
+| `skills/nomos/references/assets.md`, `SKILL.md` sección «Assets», `evals/07-*.md`, `08-*.md` | Política y niveles para la skill |
 | `tests/service/{indexer,unreal-cmd,asset-*,launcher,meshy}.test.ts`, `tests/fakes/{unreal-cmd.mjs,meshy-server.ts}`, `tests/fixtures/fab/*` | Pruebas con fixtures (carpetas temporales con `.uasset` vacíos, JSON y líneas de log reales de `docs/fab-pruebas`) |
 
 ---
@@ -87,15 +87,15 @@
 
 ### Task 2: Editor sin GUI como adaptador
 
-**Files:** Create `service/src/adapters/unreal-cmd.ts`, `service/unreal/kratos_verify.py`, `service/unreal/kratos_import.py`, `tests/fakes/unreal-cmd.mjs`; Modify `service/src/runner.ts` (generalizar `deferred`); Test `tests/service/unreal-cmd.test.ts`, `tests/service/runner-deferred.test.ts`.
+**Files:** Create `service/src/adapters/unreal-cmd.ts`, `service/unreal/nomos_verify.py`, `service/unreal/nomos_import.py`, `tests/fakes/unreal-cmd.mjs`; Modify `service/src/runner.ts` (generalizar `deferred`); Test `tests/service/unreal-cmd.test.ts`, `tests/service/runner-deferred.test.ts`.
 
 **Interfaces:**
-- `createUnrealCmd(opts: {bin?: string; baseArgs?: string[]; timeoutMs?: number}) → {runPython, verifyPack, importFile}`. `bin` por defecto = `config.unrealPath` o `C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe` (la misma ruta que `repo/capabilities.ts`); en pruebas, `bin = process.execPath` y `baseArgs = [tests/fakes/unreal-cmd.mjs]`, que escribe el JSON de `KRATOS_REPORT` y sale con el código pedido por `KRATOS_FAKE`.
+- `createUnrealCmd(opts: {bin?: string; baseArgs?: string[]; timeoutMs?: number}) → {runPython, verifyPack, importFile}`. `bin` por defecto = `config.unrealPath` o `C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe` (la misma ruta que `repo/capabilities.ts`); en pruebas, `bin = process.execPath` y `baseArgs = [tests/fakes/unreal-cmd.mjs]`, que escribe el JSON de `NOMOS_REPORT` y sale con el código pedido por `NOMOS_FAKE`.
 - `runPython(uproject, script, env, timeoutMs = 180_000) → {exitCode, log, reportJson?}`: argumentos `<uproject> -ExecutePythonScript=<script> -unattended -nopause -nosplash -NullRHI -stdout -FullStdOutLogOutput`, `PYTHONUTF8=1` en el entorno, `windowsHide`, mata el proceso al agotar el tiempo (`unreal_timeout`); sin ejecutable → `Error('unreal_missing')`.
 - `verifyPack(uproject, root) → VerifyReport` (puerto fiel de `verify_pack.py`, campos `ok, assets[], missing_dependencies[], external_dependencies[], errors[]`, más `engine` leído de `unreal.SystemLibrary.get_engine_version()`); `importFile(uproject, sourceFile, destFolder, name) → {assets: string[]}` con `AssetImportTask` (`automated = true`, `save = true`).
 - `runner.ts`: cualquier handler que devuelva `{deferred: true, reason: string}` difiere el comando (hoy solo `worker.start`/`review.start`).
 
-- [ ] Pruebas: parseo del informe con el ejecutable falso; tiempo máximo (`KRATOS_FAKE=hang` → `unreal_timeout` y proceso muerto); `unreal_missing`; `runner` difiere un handler `asset.*` que devuelve `deferred`. Prueba real una vez sobre `KratosFabTest` (`verifyPack` del pack `AdvancedCelShader`, ~10 s) y su salida en `docs/aceptacion-hito4.md`.
+- [ ] Pruebas: parseo del informe con el ejecutable falso; tiempo máximo (`NOMOS_FAKE=hang` → `unreal_timeout` y proceso muerto); `unreal_missing`; `runner` difiere un handler `asset.*` que devuelve `deferred`. Prueba real una vez sobre `KratosFabTest` (`verifyPack` del pack `AdvancedCelShader`, ~10 s) y su salida en `docs/aceptacion-hito4.md`.
 - [ ] Commit `feat: editor sin GUI como adaptador`.
 
 ### Task 3: Nivel 1: migrar y preparar
@@ -119,7 +119,7 @@
 - `launcher.openFab()`: `spawn('cmd', ['/c','start','','com.epicgames.launcher://ue/fab'])` con `windowsHide`; `tailLog(path, sinceBytes) → {lines, offset}`; `parseCompletion(lines) → {done: boolean, appName?: string}` buscando `HandleTaskComplete AlertCode=[ok]` y el nombre del pack en las líneas `LogFabViewModel`/`FCommunityPortalVaultCacheInstall` (fixtures copiadas de `informe-nivel2.md`).
 - `asset.request_download {entryId, targetProject?}`: crea `Download` (`pending`), abre el Launcher, emite `download.requested {downloadId, entryId, instructions}` con el texto exacto: «Fab › My Library › busca "<título>" › + en la tarjeta › elige el proyecto <cuarentena> › Add to Project; si dice "No compatible user projects", Show all projects y elige 5.4», y encola `asset.detect {downloadId}` con `notBefore` +5 s.
 - `asset.detect {downloadId}`: compara una foto de `VaultCache/*/data/Content/*` y el mtime de `listings_v1.db` con la anterior guardada en `downloads.detail`, y lee el log desde el offset guardado; cierra cuando `parseCompletion` da `done` o cuando hay carpeta nueva y 30 s sin cambios (Review Focus 3); entonces indexa (`indexAll`), encola `asset.migrate` desde la cuarentena al proyecto destino y emite `download.completed`; si no ha terminado, devuelve `{deferred: true, reason: 'Esperando al Launcher'}` (el ejecutor reintenta cada 5 s) hasta 20 minutos → `download.timeout` y Decisión «Reintentar / Cancelar».
-- Panel: bloque «Descargas pendientes» arriba del catálogo con las instrucciones, el estado y un botón «Ya lo añadí» que solo acelera el siguiente `asset.detect` (`notBefore` ahora). La skill: con Computer use, Kratos da los clics él mismo siguiendo `references/assets.md`; sin él, deja la cola al usuario.
+- Panel: bloque «Descargas pendientes» arriba del catálogo con las instrucciones, el estado y un botón «Ya lo añadí» que solo acelera el siguiente `asset.detect` (`notBefore` ahora). La skill: con Computer use, Nomos da los clics él mismo siguiendo `references/assets.md`; sin él, deja la cola al usuario.
 
 - [ ] Pruebas con fixtures del log real: cierra con `AlertCode=[ok]`; no cierra con solo `StarterContent`; cierra por 30 s sin cambios con carpeta nueva (reloj inyectado); timeout → Decisión; `GET /downloads` lista por estado.
 - [ ] Commit `feat: descargas asistidas de Fab (nivel 2)`.
@@ -140,9 +140,9 @@
 
 ### Task 6: La skill busca antes de generar; panel y cierre
 
-**Files:** Modify `skills/kratos/SKILL.md` (sección «Assets»), Create `skills/kratos/references/assets.md`, `skills/kratos/evals/07-cinco-personajes.md`, `08-licencia-desconocida.md`; Modify `panel/src/views/Actividad.tsx`, `docs/estado-entregas.md`; Create `docs/aceptacion-hito4.md`.
+**Files:** Modify `skills/nomos/SKILL.md` (sección «Assets»), Create `skills/nomos/references/assets.md`, `skills/nomos/evals/07-cinco-personajes.md`, `08-licencia-desconocida.md`; Modify `panel/src/views/Actividad.tsx`, `docs/estado-entregas.md`; Create `docs/aceptacion-hito4.md`.
 
-- `references/assets.md`: la política en orden, qué Decisión abre cada paso, el guion de nivel 2 (5 clics + 4 de versión), cuándo entra el worker de arte (`blender-director`, `unreal-export`, `qa-review`, `ue-asset-intake`), y qué comandos envía la skill (`kratos asset index|migrate|prepare|download|generate` como envoltorios de `POST /commands` en `scripts/kratos.ts`). `SKILL.md` ≤ 10 líneas nuevas que remiten a la referencia. skillsmith ≥ 95.
+- `references/assets.md`: la política en orden, qué Decisión abre cada paso, el guion de nivel 2 (5 clics + 4 de versión), cuándo entra el worker de arte (`blender-director`, `unreal-export`, `qa-review`, `ue-asset-intake`), y qué comandos envía la skill (`nomos asset index|migrate|prepare|download|generate` como envoltorios de `POST /commands` en `scripts/nomos.ts`). `SKILL.md` ≤ 10 líneas nuevas que remiten a la referencia. skillsmith ≥ 95.
 - Panel, ajuste pendiente del hito 9: la vista Actividad gana un **eje de horas** visible bajo los carriles (una marca por hora, etiqueta cada 3 h en Geist Mono 11 px) y los racimos de eventos compactos muestran un **recuento** («×6») en vez de una fila de puntos; la prueba visual existente se amplía.
 - Aceptación real (con workers **Claude**, nunca Codex): (1) «Necesito cinco personajes de fantasía estilizados con esqueleto» → la skill lista candidatos del catálogo antes de proponer Meshy (prueba 26); (2) migrar «Advanced Cel Shader Lite» desde `KratosFabTest` al juego sin GUI con `verifyPack` real (prueba 31) y el aviso de versión; (3) una descarga por nivel 2 con el detector real (prueba 32; si no hay asset pendiente de bajar, documentar con un pack gratuito pequeño); (4) una generación Meshy `preview` dentro de presupuesto y una `refine` fuera que abre Decisión (prueba 19; si falta `MESHY_API_KEY`, ejecutar contra el servidor falso y decirlo); (5) licencia desconocida → Decisión (prueba 27). Todo en `docs/aceptacion-hito4.md` con comandos, salidas y capturas en `docs/capturas-4/`.
 - [ ] Commit `docs: cierre del hito 4, catálogo y extracción`.

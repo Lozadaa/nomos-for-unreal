@@ -6,7 +6,7 @@ vi.mock('@/shell/useStatus', () => ({ useStatus: () => null }))
 vi.mock('@/store', () => ({ startLive: () => () => {}, useStore: (pick: (s: { tasks: never[]; events: never[] }) => unknown) => pick({ tasks: [], events: [] }) }))
 import { Layout } from '@/shell/Layout'
 
-const key = 'kratos.tour.v1'
+const key = 'nomos.tour.v1'
 beforeEach(() => {
   const values = new Map<string, string>()
   vi.stubGlobal('localStorage', {
@@ -28,9 +28,9 @@ function mount() {
 
 it('la primera visita recorre director, compositor y mapa y no repite la guía al montar', async () => {
   const view = mount()
-  const guide = await screen.findByRole('dialog', { name: 'Guía de Kratos' })
+  const guide = await screen.findByRole('dialog', { name: 'Guía de Nomos' })
   expect(guide).toHaveAttribute('data-tour-target', 'director')
-  expect(within(guide).getByText('Aquí ves si Kratos escucha')).toBeVisible()
+  expect(within(guide).getByText('Aquí ves si Nomos escucha')).toBeVisible()
   fireEvent.click(within(guide).getByRole('button', { name: 'Siguiente' }))
   await waitFor(() => expect(guide).toHaveAttribute('data-tour-target', 'composer'))
   expect(within(guide).getByText('Pide algo aquí')).toBeVisible()
@@ -47,7 +47,7 @@ it('la primera visita recorre director, compositor y mapa y no repite la guía a
 
 it('Esc descarta la guía desde el primer paso y recuerda la visita', async () => {
   mount()
-  const guide = await screen.findByRole('dialog', { name: 'Guía de Kratos' })
+  const guide = await screen.findByRole('dialog', { name: 'Guía de Nomos' })
   fireEvent.keyDown(guide, { key: 'Escape' })
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   expect(localStorage.getItem(key)).toBe('1')
@@ -86,7 +86,7 @@ it('la paleta permite abrir Leyenda y repetir Ver guía después de la primera v
   await waitFor(() => expect(from).toHaveFocus())
   fireEvent.keyDown(from, { key: 'k', ctrlKey: true })
   fireEvent.click(await screen.findByText('Ver guía', { selector: '[cmdk-item]' }))
-  expect(await screen.findByRole('dialog', { name: 'Guía de Kratos' })).toBeVisible()
+  expect(await screen.findByRole('dialog', { name: 'Guía de Nomos' })).toBeVisible()
 })
 
 it('Leyenda desde Buscar devuelve el foco a Buscar al cerrar', async () => {

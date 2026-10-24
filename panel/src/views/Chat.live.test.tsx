@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 
 vi.mock('@/api', () => ({ token: null, api: vi.fn(), ApiError: class extends Error { status = 0 } }))
 import { api } from '@/api'
@@ -17,7 +17,7 @@ const message = (over: Message = {}): Message => ({ id: 'm1', text: 'Crea tres t
   repliedAt: null, timedOut: false, replies: [], links: [], ...over })
 let seq = 0
 const live = (type: string, payload: Record<string, unknown> = {}) => act(() => {
-  ingest({ seq: ++seq, id: `e${seq}`, type, messageId: 'm1', payload, createdAt: new Date().toISOString() } as KratosEvent)
+  ingest({ seq: ++seq, id: `e${seq}`, type, messageId: 'm1', payload, createdAt: new Date().toISOString() } as NomosEvent)
 })
 const show = () => render(<MemoryRouter><TooltipProvider><Chat /></TooltipProvider></MemoryRouter>)
 
@@ -25,7 +25,7 @@ beforeEach(() => { resetStore(); seq = 0; vi.mocked(api).mockReset() })
 afterEach(cleanup)
 
 describe('Chat en vivo (hito 10, Tarea 6)', () => {
-  it('estados reales con hora: Recibido → Leído por Kratos → escribiendo → respuesta, sin recargar', async () => {
+  it('estados reales con hora: Recibido → Leído por Nomos → escribiendo → respuesta, sin recargar', async () => {
     const sent = message()
     vi.mocked(api).mockResolvedValue([sent])
     show()
@@ -36,27 +36,27 @@ describe('Chat en vivo (hito 10, Tarea 6)', () => {
     const readAt = at(20_000)
     vi.mocked(api).mockResolvedValue([message({ state: 'leido', readAt })])
     live('message.read')
-    expect(await within(bubble).findByText(`Leído por Kratos ${hhmm(readAt)}`)).toBeInTheDocument()
+    expect(await within(bubble).findByText(`Leído por Nomos ${hhmm(readAt)}`)).toBeInTheDocument()
 
     vi.mocked(api).mockResolvedValue([message({ state: 'respondiendo', readAt, typingAt: at(5000) })])
     live('director.typing', { messageId: 'm1', since: at(5000) })
-    const typing = await screen.findByRole('status', { name: 'Kratos está escribiendo…' })
-    expect(within(typing).getByRole('img', { name: /Kratos/ })).toBeInTheDocument()
+    const typing = await screen.findByRole('status', { name: 'Nomos está escribiendo…' })
+    expect(within(typing).getByRole('img', { name: /Nomos/ })).toBeInTheDocument()
     expect(typing.querySelectorAll('[data-dot]')).toHaveLength(3)
     for (const dot of typing.querySelectorAll('[data-dot]')) expect(dot).toHaveClass('motion-reduce:animate-none')
 
     vi.mocked(api).mockResolvedValue([message({ state: 'respondido', readAt, typingAt: at(5000), repliedAt: at(0), replies: [{ text: 'Entendido: creo 3 tareas…', at: at(0) }] })])
     live('message.replied', { text: 'Entendido: creo 3 tareas…' })
     expect(await screen.findByText('Entendido: creo 3 tareas…')).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByRole('status', { name: 'Kratos está escribiendo…' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('status', { name: 'Nomos está escribiendo…' })).toBeNull())
   })
 
   it('60 s sin acuse: aviso ámbar honesto; tiempo agotado escribiendo: «sigue trabajando»', async () => {
     vi.mocked(api).mockResolvedValue([message({ createdAt: at(61_000) }), message({ id: 'm2', text: 'otra', state: 'leido', readAt: at(200_000), createdAt: at(220_000), timedOut: true })])
     show()
-    const late = await screen.findByText('Kratos no ha leído tu mensaje todavía')
+    const late = await screen.findByText('Nomos no ha leído tu mensaje todavía')
     expect(late).toHaveClass('text-warning')
-    expect(screen.getByText('Kratos sigue trabajando en tu mensaje')).toBeInTheDocument()
+    expect(screen.getByText('Nomos sigue trabajando en tu mensaje')).toBeInTheDocument()
   })
 
   it('lo creado por el mensaje aparece como tarjetas bajo la respuesta, con título y estado, sin uuids; respuestas en Markdown', async () => {
@@ -82,6 +82,6 @@ describe('Chat en vivo (hito 10, Tarea 6)', () => {
     show()
     const cards = await screen.findByRole('list', { name: 'Creado a partir de tu mensaje' })
     expect(within(cards).getByRole('link', { name: /^J1\.6 Reacción al golpe/ })).toBeInTheDocument()
-    expect(screen.getByRole('status', { name: 'Kratos está escribiendo…' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Nomos está escribiendo…' })).toBeInTheDocument()
   })
 })

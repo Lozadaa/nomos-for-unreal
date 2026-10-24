@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
-import type { KratosEvent, Run } from '@/lib/tasks'
+import type { NomosEvent, Run } from '@/lib/tasks'
 
 vi.mock('@/api', () => ({ api: vi.fn() }))
 
@@ -15,7 +15,7 @@ const run = (id: string, state: Run['state'] = 'running', waiting = false): Live
 })
 const response = (id: string, state: Run['state'] = 'running', waiting = false) => ({ run: run(id, state), latestStatus: { waiting } })
 let seq = 0
-const event = (type: string, runId?: unknown): KratosEvent => ({
+const event = (type: string, runId?: unknown): NomosEvent => ({
   seq: ++seq, id: `e${seq}`, type, messageId: null, payload: { runId }, createdAt: '2026-10-23T10:00:00.000Z',
 })
 const runCalls = () => mockApi.mock.calls.filter(([path]) => path.startsWith('/runs/'))

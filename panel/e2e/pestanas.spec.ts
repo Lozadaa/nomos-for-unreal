@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-const url = (path: string) => process.env.KRATOS_URL!.replace('/#', `${path}#`)
-test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1')) })
+const url = (path: string) => process.env.NOMOS_URL!.replace('/#', `${path}#`)
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
 // Hito 10 · corrección de Fable: el subrayado de la pestaña activa estaba bajo «Catálogo» con la vista Chat abierta.
 for (const width of [1024, 1366, 1920]) {
