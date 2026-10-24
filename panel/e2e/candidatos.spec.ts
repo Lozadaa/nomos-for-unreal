@@ -9,7 +9,7 @@ import { ownService } from './own-service'
 let service: ReturnType<typeof ownService>, token = ''
 test.beforeAll(({ browserName }) => {
   service = ownService(browserName === 'firefox' ? 18798 : 18797)
-  const db = new DatabaseSync(join(service.data, 'kratos.db'))
+  const db = new DatabaseSync(join(service.data, 'nomos.db'))
   for (const [id, shot] of [['seed-catalog-04', 'captura-01.png'], ['seed-catalog-05', 'captura-02.png'], ['seed-catalog-06', null]] as const)
     db.prepare("update catalog_entries set category='metahuman-preset', thumbnail_path=? where id=?").run(shot && join(service.data, 'artifacts', shot), id)
   db.close()
@@ -19,7 +19,7 @@ test.afterAll(() => service.dispose())
 const url = () => service.url(token)
 const call = (page: Page, path: string, data?: unknown) =>
   page.request.fetch(service.origin + path, { method: data ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}` }, data })
-test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1')) })
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
 type Decision = { id: string; taskId: string; state: string; options: { label: string }[] }
 

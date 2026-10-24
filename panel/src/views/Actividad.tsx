@@ -6,7 +6,7 @@ import { useFresh } from '@/hooks/fresh'
 import { useParam } from '@/hooks/useParam'
 import { useRuns } from '@/hooks/useRuns'
 import { clusters, eventPresentation, eventText, hourlyActivity, hourTicks, laneOf, lanes, placeEvents } from '@/lib/events'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
 import { Glyph } from '@/visual/Glyph'
@@ -43,7 +43,7 @@ export function Actividad() {
   const num = (t: number | string) => (((typeof t === 'string' ? Date.parse(t) : t) - min) / (max - min)) * 100
   const pct = (t: number | string) => `${num(t)}%`
   const byLane = useMemo(() => {
-    const grouped = new Map(lanes.map((lane) => [lane, [] as KratosEvent[]]))
+    const grouped = new Map(lanes.map((lane) => [lane, [] as NomosEvent[]]))
     for (const event of visible) grouped.get(laneOf(event, providers))!.push(event)
     return lanes.map((lane) => {
       const items = grouped.get(lane)!
@@ -58,7 +58,7 @@ export function Actividad() {
   const hourly = useMemo(() => hourlyActivity(visible, providers), [visible, providers])
   const detail = visible.find((e) => e.seq === selected)
 
-  const label = (e: KratosEvent) => `${eventText(e, providers)}${titleOf(e.payload.taskId) ? ` · ${titleOf(e.payload.taskId)}` : ''}`
+  const label = (e: NomosEvent) => `${eventText(e, providers)}${titleOf(e.payload.taskId) ? ` · ${titleOf(e.payload.taskId)}` : ''}`
   const cause = detail ? events.find((e) => e.id === detail.payload.correlation) : undefined
   const effects = detail ? events.filter((e) => e.payload.correlation === detail.id) : []
   const filter = (id: string) => void animateUpdate(() => { setSelected(null); return setTaskId(id) })
@@ -141,7 +141,7 @@ export function Actividad() {
 }
 
 /** Un evento del carril. Memoizado: un evento nuevo no vuelve a pintar los 500 anteriores salvo que el eje los desplace. */
-const Dot = memo(function Dot({ e, kind, value, track, compact, clustered, p, text, selected, isFresh, onSelect }: { e: KratosEvent; kind: PresentationKind; value: string; track: number; compact: boolean; clustered: boolean; p: number; text: string; selected: boolean; isFresh: boolean; onSelect: (seq: number) => void }) {
+const Dot = memo(function Dot({ e, kind, value, track, compact, clustered, p, text, selected, isFresh, onSelect }: { e: NomosEvent; kind: PresentationKind; value: string; track: number; compact: boolean; clustered: boolean; p: number; text: string; selected: boolean; isFresh: boolean; onSelect: (seq: number) => void }) {
   return (
     <button
       type="button"

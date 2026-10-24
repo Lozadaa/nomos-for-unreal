@@ -4,7 +4,7 @@ import { Glyph } from './Glyph'
 import { AgentAvatar } from './art/AgentAvatar'
 
 it('identifica proveedores con texto único y punto de token sin geometría', () => {
-  for (const [value, label] of Object.entries({ codex: 'Codex', claude: 'Claude', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', kratos: 'Kratos', launcher: 'Launcher', desconocido: 'desconocido' })) {
+  for (const [value, label] of Object.entries({ codex: 'Codex', claude: 'Claude', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', nomos: 'Nomos', launcher: 'Launcher', desconocido: 'desconocido' })) {
     const { container, unmount } = render(<Glyph kind="provider" value={value} size={30} showLabel />)
     const pill = screen.getByRole('img', { name: label })
     expect(pill).toHaveTextContent(label)

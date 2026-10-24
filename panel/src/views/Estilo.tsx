@@ -14,6 +14,7 @@ import { durations } from '@/feel/motion'
 import type { Task, Tone } from '@/lib/tasks'
 import { GlyphLegend } from '@/visual/Glyph'
 import { ArtGallery } from '@/visual/ArtGallery'
+import { BRAND } from '@/lib/brand'
 
 const sections = [
   ['glifos', 'Glifos'], ['arte', 'Arte'],
@@ -173,7 +174,7 @@ export function Estilo() {
             <Button variant="outline" size="sm" onClick={() => toasts.success({ title: 'Petición enviada', description: 'Está fuera de los filtros activos.', action: { label: 'Ver', onClick: () => undefined } })}>Éxito con «Ver»</Button>
             <Button variant="outline" size="sm" onClick={() => toasts.error({ title: 'No se pudo completar la acción', description: 'Sin conexión con el servicio.', action: { label: 'Reintentar', onClick: () => undefined } })}>Error con «Reintentar»</Button>
             <Button variant="outline" size="sm" onClick={() => toasts.error({ title: 'Esta decisión ya no está vigente', description: 'Cambió mientras la mirabas.', action: { label: 'Recargar decisión', onClick: () => undefined } })}>Decisión caducada</Button>
-            <Button variant="outline" size="sm" onClick={() => toasts.info({ title: 'Kratos está atendiendo 3 mensajes' })}>Información</Button>
+            <Button variant="outline" size="sm" onClick={() => toasts.info({ title: `${BRAND.short} está atendiendo 3 mensajes` })}>Información</Button>
           </div>
         </Section>
       </div>

@@ -1,28 +1,29 @@
-import { providerLabel, stageLabel, stages, type KratosEvent } from './tasks'
+import { providerLabel, stageLabel, stages, type NomosEvent } from './tasks'
 import type { PresentationKind } from '@/visual/glyphs'
+import { BRAND, legacyProvider } from '@/lib/brand'
 
-export const lanes = ['Kratos', 'Codex', 'Claude Code', 'OpenCode', 'Meshy', 'Blender', 'Unreal', 'Compilaciones'] as const
+export const lanes = [BRAND.short, 'Codex', 'Claude Code', 'OpenCode', 'Meshy', 'Blender', 'Unreal', 'Compilaciones'] as const
 export type Lane = (typeof lanes)[number]
 type Providers = ReadonlyMap<string, string>
-const sourceProviders: Record<string, string> = { kratos: 'kratos', codex: 'codex', claude: 'claude', 'claude code': 'claude', opencode: 'opencode', meshy: 'meshy', blender: 'blender', unreal: 'unreal', compilaciones: 'launcher', builds: 'launcher', launcher: 'launcher' }
-const providerLanes: Record<string, Lane> = { kratos: 'Kratos', codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', launcher: 'Compilaciones' }
+const sourceProviders: Record<string, string> = { nomos: 'nomos', codex: 'codex', claude: 'claude', 'claude code': 'claude', opencode: 'opencode', meshy: 'meshy', blender: 'blender', unreal: 'unreal', compilaciones: 'launcher', builds: 'launcher', launcher: 'launcher' }
+const providerLanes: Record<string, Lane> = { nomos: BRAND.short, codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', launcher: 'Compilaciones' }
 
 /** Proveedor declarado por el evento o comprobado para su ejecución; nunca se toma del responsable de la tarea. */
-export function eventProvider(e: KratosEvent, providers?: Providers): string | undefined {
-  if (typeof e.payload.provider === 'string' && e.payload.provider.trim()) return e.payload.provider.trim().toLowerCase()
-  const source = typeof e.payload.source === 'string' ? e.payload.source.trim().toLowerCase() : ''
+export function eventProvider(e: NomosEvent, providers?: Providers): string | undefined {
+  if (typeof e.payload.provider === 'string' && e.payload.provider.trim()) return legacyProvider(e.payload.provider.trim().toLowerCase())
+  const source = legacyProvider(typeof e.payload.source === 'string' ? e.payload.source.trim().toLowerCase() : '')
   if (Object.hasOwn(sourceProviders, source)) return sourceProviders[source]
   return typeof e.payload.runId === 'string' ? providers?.get(e.payload.runId) : undefined
 }
 
-/** Carril de un evento: la fuente que declara (semilla, workers) o, si no, quien lo provoca; por defecto, Kratos. */
-export function laneOf(e: KratosEvent, providers?: Providers): Lane {
+/** Carril de un evento: la fuente que declara (semilla, workers) o, si no, quien lo provoca; por defecto, Nomos. */
+export function laneOf(e: NomosEvent, providers?: Providers): Lane {
   const provider = eventProvider(e, providers)
-  return provider && Object.hasOwn(providerLanes, provider) ? providerLanes[provider] : 'Kratos'
+  return provider && Object.hasOwn(providerLanes, provider) ? providerLanes[provider] : BRAND.short
 }
 
 /** Usa el estado del evento cuando existe; la entidad neutral del registro evita inventar estados actuales. */
-export function eventPresentation(e: KratosEvent, providers?: Providers): { kind: PresentationKind; value: string } {
+export function eventPresentation(e: NomosEvent, providers?: Providers): { kind: PresentationKind; value: string } {
   const family = e.type.split('.')[0]
   if (family === 'task') {
     if (e.type === 'task.blocked') return { kind: 'taskState', value: 'bloqueada' }
@@ -85,7 +86,7 @@ export function hourTicks(min: number, max: number): { time: number; label: stri
 }
 
 /** Últimas 24 horas de la ventana recibida, ancladas al último evento válido; los ceros no garantizan cobertura. */
-export function hourlyActivity(events: readonly KratosEvent[], providers?: Providers): { start: number; end: number; lanes: { label: Lane; values: number[] }[] } {
+export function hourlyActivity(events: readonly NomosEvent[], providers?: Providers): { start: number; end: number; lanes: { label: Lane; values: number[] }[] } {
   let latest = -Infinity
   for (const event of events) { const time = Date.parse(event.createdAt); if (Number.isFinite(time)) latest = Math.max(latest, time) }
   const end = (Math.floor((Number.isFinite(latest) ? latest : Date.now()) / HOUR) + 1) * HOUR
@@ -98,13 +99,13 @@ export function hourlyActivity(events: readonly KratosEvent[], providers?: Provi
   return { start, end, lanes: lanes.map((label) => ({ label, values: series.get(label)! })) }
 }
 
-export function eventText(e: KratosEvent, providers?: Providers): string {
+export function eventText(e: NomosEvent, providers?: Providers): string {
   const p = e.payload
   const stage = (value: unknown) => stageLabel[value as keyof typeof stageLabel] ?? String(value ?? '')
   const provider = eventProvider(e, providers)
   switch (e.type) {
     case 'task.created': return 'Tarea creada'
-    case 'task.activity': return `Actividad de ${String(p.source ?? 'Kratos')}`
+    case 'task.activity': return `Actividad de ${String(p.source ?? BRAND.short)}`
     case 'task.moved': return `${p.from ? `Pasó de ${stage(p.from)} a` : 'Pasó a'} ${stage(p.state ?? p.to)}${p.reason ? ` · ${String(p.reason)}` : ''}`
     case 'task.blocked': return `Bloqueada: ${String(p.reason)}`
     case 'decision.opened': return `Se pidió una decisión: ${String(p.reason)}`
@@ -113,12 +114,12 @@ export function eventText(e: KratosEvent, providers?: Providers): string {
     case 'run.finished': return `Ejecución terminada (${String(p.state)})${p.summary ? ` · ${String(p.summary)}` : ''}`
     case 'artifact.created': return 'Nuevo asset'
     case 'message.received': return 'Mensaje recibido'
-    case 'message.acked': case 'message.read': return 'Kratos leyó el mensaje'
-    case 'director.typing': return 'Kratos empezó a responder'
-    case 'director.typing_timeout': return 'Kratos sigue trabajando en el mensaje'
-    case 'reply.published': case 'message.replied': return 'Kratos respondió'
-    case 'director.started': return 'Kratos empezó a escuchar'
-    case 'director.stopped': return 'Kratos dejó de escuchar'
+    case 'message.acked': case 'message.read': return `${BRAND.short} leyó el mensaje`
+    case 'director.typing': return `${BRAND.short} empezó a responder`
+    case 'director.typing_timeout': return `${BRAND.short} sigue trabajando en el mensaje`
+    case 'reply.published': case 'message.replied': return `${BRAND.short} respondió`
+    case 'director.started': return `${BRAND.short} empezó a escuchar`
+    case 'director.stopped': return `${BRAND.short} dejó de escuchar`
     default: return e.type
   }
 }

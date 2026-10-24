@@ -8,7 +8,7 @@ const expected = {
   area: ['gameplay', 'ui', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'],
   taskState: ['pendiente', 'preparada', 'implementando', 'revisando', 'probando', 'integrando', 'cerrando', 'done', 'bloqueada', 'decision'],
   directorState: ['esperando', 'escuchando', 'atendiendo', 'vigilanteCaido', 'desconectado'],
-  provider: ['codex', 'claude', 'opencode', 'meshy', 'blender', 'unreal', 'kratos', 'launcher'],
+  provider: ['codex', 'claude', 'opencode', 'meshy', 'blender', 'unreal', 'nomos', 'launcher'],
   artifact: ['model', 'texture', 'screenshot', 'video', 'build', 'report', 'diff'],
 } satisfies Record<GlyphKind, string[]>
 

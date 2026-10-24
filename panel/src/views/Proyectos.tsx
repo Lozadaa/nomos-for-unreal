@@ -44,7 +44,8 @@ export function Proyectos() {
   const { data, error } = useResource<Project[]>('/projects')
   if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron leer los proyectos. {humanError(new Error(error))}</p>
   return (
-    <section aria-label={`Proyectos con ${BRAND.short}`} className="flex flex-col gap-4">
+    <section aria-label={`Proyectos con ${BRAND.long}`} className="flex flex-col gap-4">
+      <p className="text-lg font-semibold tracking-tight">{BRAND.long}</p>
       <h2 className="text-sm font-medium">Proyectos en este equipo</h2>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">{(data ?? []).map((p) => <Card key={`${p.port}-${p.name}`} p={p} />)}</ul>
     </section>

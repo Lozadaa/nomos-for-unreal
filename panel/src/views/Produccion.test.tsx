@@ -75,7 +75,7 @@ describe('Producción: lista viva', () => {
     await mount()
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('Título de la petición'), 'Habilidad Meteorito')
-    await user.click(screen.getByRole('button', { name: 'Enviar a Kratos' }))
+    await user.click(screen.getByRole('button', { name: 'Enviar a Nomos' }))
 
     // el servidor todavía no ha respondido: la fila ya está, pendiente y marcada como temporal
     const temp = await screen.findByRole('button', { name: /Habilidad Meteorito/ })
@@ -99,7 +99,7 @@ describe('Producción: lista viva', () => {
     await mount()
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('Título de la petición'), 'Se rechaza')
-    await user.click(screen.getByRole('button', { name: 'Enviar a Kratos' }))
+    await user.click(screen.getByRole('button', { name: 'Enviar a Nomos' }))
     await waitFor(() => expect(screen.queryByRole('button', { name: /Se rechaza/ })).not.toBeInTheDocument(), { timeout: 2000 })
     expect(screen.getByLabelText('Título de la petición')).toHaveValue('Se rechaza')
     expect(await screen.findByText(/El servicio no aceptó los datos/, { selector: '[role="alert"]' })).toBeInTheDocument()
@@ -107,7 +107,7 @@ describe('Producción: lista viva', () => {
 
   it('no envía una petición sin título y lo dice junto al campo', async () => {
     await mount()
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar a Kratos' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar a Nomos' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Escribe un título')
     expect(mockApi.mock.calls.some(([, init]) => (init as { method?: string } | undefined)?.method === 'POST')).toBe(false)
   })
@@ -134,7 +134,7 @@ describe('Producción: lista viva', () => {
   it('con la producción vacía invita a escribir la primera petición', async () => {
     server = []
     await mount()
-    expect(screen.getByText('Escribe la primera petición a Kratos')).toBeInTheDocument()
+    expect(screen.getByText('Escribe la primera petición a Nomos')).toBeInTheDocument()
   })
 
   it('una tarea bloqueada o en espera de decisión lo dice en texto, no solo en color', async () => {

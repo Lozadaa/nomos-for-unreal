@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button'
 import { withViewTransition } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
 import './help.css'
+import { BRAND } from '@/lib/brand'
 
-export const tourKey = 'kratos.tour.v1'
+export const tourKey = 'nomos.tour.v1'
 export function needsTour() {
   try { return !localStorage.getItem(tourKey) } catch { return true }
 }
 
 const steps = [
-  { target: 'director', text: 'Aquí ves si Kratos escucha' },
+  { target: 'director', text: `Aquí ves si ${BRAND.short} escucha` },
   { target: 'composer', text: 'Pide algo aquí' },
   { target: 'map', text: 'Así avanza el trabajo' },
 ] as const
@@ -63,7 +64,7 @@ export function Tour({ onClose }: { onClose: () => void }) {
             ? previousFocus.current : anchor.querySelector<HTMLElement>('input,button,[tabindex]') ?? document.getElementById('contenido')}
           className="flex w-80 max-w-[calc(100vw-3rem)] flex-col gap-3 rounded-lg border border-strong bg-popover p-4 text-popover-foreground outline-none">
           <div className="flex items-center justify-between gap-4">
-            <Popover.Title className="text-sm font-medium">Guía de Kratos</Popover.Title>
+            <Popover.Title className="text-sm font-medium">Guía de {BRAND.short}</Popover.Title>
             <span className="font-mono text-xs text-muted-foreground" aria-label={`Paso ${step + 1} de 3`}>{step + 1} / 3</span>
           </div>
           <Popover.Description className="text-sm" aria-live="polite">{current.text}</Popover.Description>

@@ -1,5 +1,5 @@
 // Desde panel/, después del build y con el servicio de aceptación vivo:
-//   node scripts/capturas-6.ts "<juego>/.kratos-hito6" <tareaHecha> [vista…]
+//   node scripts/capturas-6.ts "<juego>/.nomos-hito6" <tareaHecha> [vista…]
 // Captura Producción, la ficha de una tarea hecha (Resumen y Archivo) y Entregas a 1366 y 1920 con datos reales.
 import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync } from 'node:fs'

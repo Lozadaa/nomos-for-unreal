@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router'
-import type { KratosEvent, Task } from '@/lib/tasks'
+import type { NomosEvent, Task } from '@/lib/tasks'
 
 vi.mock('@/api', () => {
   class ApiError extends Error {
@@ -30,7 +30,7 @@ const task = (id: string, over: Partial<Task> = {}): Task => ({
   blockedReason: null, decisionId: null, area: 'gameplay', assigneeRole: null, assigneeProvider: null, parentTaskId: null, dependsOn: [], worktreeId: null, budgetId: null, ...over,
 })
 let seq = 0
-const event = (type: string): KratosEvent => ({ seq: ++seq, id: `e${seq}`, type, messageId: null, payload: {}, createdAt: new Date().toISOString() })
+const event = (type: string): NomosEvent => ({ seq: ++seq, id: `e${seq}`, type, messageId: null, payload: {}, createdAt: new Date().toISOString() })
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 beforeEach(() => { resetStore(); seq = 0; mockApi.mockReset(); delete (document as unknown as Record<string, unknown>).startViewTransition; delete (document as unknown as Record<string, unknown>).activeViewTransition })

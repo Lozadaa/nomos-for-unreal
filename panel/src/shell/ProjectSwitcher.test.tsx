@@ -19,7 +19,7 @@ afterEach(cleanup)
 describe('Selector de proyectos en la cabecera (hito 10)', () => {
   it('con más de un proyecto: los demás juegos abren su panel y «Todos los proyectos» la portada', async () => {
     vi.mocked(api).mockResolvedValue(two)
-    sessionStorage.setItem('kratos.portada', '1')
+    sessionStorage.setItem('nomos.portada', '1')
     show()
     await userEvent.click(await screen.findByRole('button', { name: 'Cambiar de proyecto' }))
     expect(await screen.findByRole('menuitem', { name: 'BlockKings' })).toHaveAttribute('href', 'http://127.0.0.1:51234/')

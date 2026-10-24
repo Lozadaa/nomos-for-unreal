@@ -9,8 +9,8 @@ import { chromium } from '@playwright/test'
 
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 const out = resolve(import.meta.dirname, '../../docs/capturas-7')
-const root = mkdtempSync(join(tmpdir(), 'kratos-capturas-7-'))
-const data = join(root, '.kratos'), port = '18797'
+const root = mkdtempSync(join(tmpdir(), 'nomos-capturas-7-'))
+const data = join(root, '.nomos'), port = '18797'
 const views = [
   ['produccion', '/'], ['detalle', '/?tarea=seed-task-04'], ['chat', '/chat'], ['actividad', '/actividad'], ['entregas', '/entregas'],
   ['catalogo', '/catalogo'], ['decisiones', '/decisiones'], ['presupuesto', '/presupuesto'], ['capacidades', '/capacidades'], ['estilo', '/estilo'],
@@ -19,7 +19,7 @@ const views = [
 writeFileSync(join(root, 'CrazyPadel.uproject'), '{}')
 execFileSync(process.execPath, [cli, 'seed', '--data', data], { stdio: 'ignore' })
 // estados del hito 7 visibles en la semilla: una espera de reserva y un arranque diferido porque Orca está cerrado
-const db = new DatabaseSync(join(data, 'kratos.db'))
+const db = new DatabaseSync(join(data, 'nomos.db'))
 db.prepare("update tasks set wait_reason='Esperando reserva: WBP_Vida.uasset (tarea seed-task-02)' where id='seed-task-03'").run()
 const now = new Date().toISOString()
 db.prepare(`insert into commands(id,created_at,updated_at,type,payload,idempotency_key,state,attempts,error,lane,not_before)
@@ -33,7 +33,7 @@ const browser = await chromium.launch()
 try {
   for (const [width, height] of [[1366, 768], [1920, 1080]] as const) {
     const context = await browser.newContext({ viewport: { width, height }, colorScheme: 'dark', reducedMotion: 'reduce' })
-    await context.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+    await context.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
     const page = await context.newPage()
     for (const [name, path] of views) {
       const [pathname, search = ''] = path.split('?')

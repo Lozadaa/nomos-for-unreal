@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 
 // Corrección 3 del usuario: un clic en un asset lo abre grande en el centro para verlo a detalle.
-const url = () => process.env.KRATOS_URL!
+const url = () => process.env.NOMOS_URL!
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+  await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
 })
 
 /** El cuadro del visor ocupa al menos el 60 % del ancho y del alto de la ventana. */

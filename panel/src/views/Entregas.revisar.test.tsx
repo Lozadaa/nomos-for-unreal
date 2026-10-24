@@ -111,7 +111,7 @@ describe('Entregas para mirar (hito 10)', () => {
   })
 
   it('nombre derivado: nunca log.txt, review-<uuid> ni rutas; la etiqueta del servicio manda', () => {
-    expect(artifactName(a('x', 'report', 'C:/k/.kratos/artifacts/tests/u1/log.txt', { check: 'cpp' }))).toBe('Compilación C++ · registro')
+    expect(artifactName(a('x', 'report', 'C:/k/.nomos/artifacts/tests/u1/log.txt', { check: 'cpp' }))).toBe('Compilación C++ · registro')
     expect(artifactName(a('x', 'screenshot', 's.png', { check: 'umg', resolution: '1280x720' }))).toBe('Captura UMG 1280×720')
     expect(artifactName(a('x', 'report', 'review-6cb4.json', { approved: true }))).toBe('Revisión · informe')
     expect(artifactName(a('x', 'report', 'r.json', { label: 'QA visual · informe' }))).toBe('QA visual · informe')

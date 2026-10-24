@@ -9,6 +9,7 @@ import { humanError } from '@/lib/errors'
 import type { Artifact, TaskDetail, TestRun } from '@/lib/tasks'
 import { Glyph } from '@/visual/Glyph'
 import { glyphFor } from '@/visual/glyphs'
+import { BRAND } from '@/lib/brand'
 
 const checkLabel: Record<string, string> = {
   cpp: 'C++', blueprint: 'Blueprint', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', none: 'Sin Unreal',
@@ -46,7 +47,7 @@ export function TestsTab({ detail, decisionCard }: { detail: TaskDetail; decisio
       {!detail.testRuns.length ? (
         <div className="flex flex-col items-start gap-2 py-6">
           <p className="text-sm font-medium">Esta tarea aún no tiene pruebas</p>
-          <p className="text-sm text-muted-foreground">Kratos las lanza al aprobar la revisión; también puedes lanzarlas aquí.</p>
+          <p className="text-sm text-muted-foreground">{BRAND.short} las lanza al aprobar la revisión; también puedes lanzarlas aquí.</p>
         </div>
       ) : (
         <table aria-label="Pruebas" className="w-full text-sm">

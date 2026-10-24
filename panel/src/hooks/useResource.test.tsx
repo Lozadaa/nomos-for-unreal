@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 
 vi.mock('@/api', () => ({ api: vi.fn() }))
 import { api } from '@/api'
@@ -8,7 +8,7 @@ import { ingest, resetStore } from '@/store'
 import { useResource } from './useResource'
 
 let seq = 0
-const event = (type: string): KratosEvent => ({ seq: ++seq, id: `e${seq}`, type, messageId: null, payload: {}, createdAt: '' })
+const event = (type: string): NomosEvent => ({ seq: ++seq, id: `e${seq}`, type, messageId: null, payload: {}, createdAt: '' })
 
 beforeEach(() => { resetStore(); seq = 0; vi.mocked(api).mockReset() })
 afterEach(cleanup)

@@ -12,7 +12,7 @@ describe('nombres cortos de agentes', () => {
     for (const [role, name] of Object.entries({ implementacion: 'Worker', revisor: 'Master', arte: 'Artist', qa: 'Tester', integrador: 'Builder', coordinador: 'Lead', desarrollador: 'Worker', implementador: 'Worker', generador: 'Artist' })) {
       expect(agentName(role, 'ui')).toBe(`UI ${name}`)
     }
-    expect(agentName('director', 'ui')).toBe('Kratos')
+    expect(agentName('director', 'ui')).toBe('Nomos')
     expect(agentName('desconocido', 'ui')).toBe('UI Worker')
     expect(agentName(undefined, undefined)).toBe('Proyecto Worker')
     expect(agentName('constructor', 'constructor')).toBe('Proyecto Worker')
@@ -21,7 +21,7 @@ describe('nombres cortos de agentes', () => {
   it('añade al texto solo un ordinal mayor que uno', () => {
     expect(agentName('implementacion', 'ui', 1)).toBe('UI Worker')
     expect(agentName('implementacion', 'ui', 2)).toBe('UI Worker 2')
-    expect(agentName('director', 'ui', 2)).toBe('Kratos 2')
+    expect(agentName('director', 'ui', 2)).toBe('Nomos 2')
   })
 
   it('numera solo nombres duplicados en running/waiting, sin contar terminados ni libres', () => {

@@ -9,8 +9,8 @@ import { chromium } from '@playwright/test'
 
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 const out = resolve(import.meta.dirname, '../../docs/capturas-9')
-const root = mkdtempSync(join(tmpdir(), 'kratos-hito9b-'))
-const data = join(root, '.kratos')
+const root = mkdtempSync(join(tmpdir(), 'nomos-hito9b-'))
+const data = join(root, '.nomos')
 const server = createServer()
 await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok))
 const port = String((server.address() as { port: number }).port)
@@ -53,6 +53,6 @@ try {
   try { execFileSync(process.execPath, [cli, 'stop', '--data', data], { stdio: 'ignore' }) } catch { /* puede no haber arrancado */ }
   // El único directorio recursivo es el temporal creado por esta ejecución.
   const target = resolve(root)
-  assert.ok(target.startsWith(resolve(tmpdir()) + sep) && target.split(sep).at(-1)!.startsWith('kratos-hito9b-'))
+  assert.ok(target.startsWith(resolve(tmpdir()) + sep) && target.split(sep).at(-1)!.startsWith('nomos-hito9b-'))
   rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
 }

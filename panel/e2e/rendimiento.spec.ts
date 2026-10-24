@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-const url = () => process.env.KRATOS_URL!
+const url = () => process.env.NOMOS_URL!
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+  await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
 })
 const token = () => new URLSearchParams(new URL(url()).hash.slice(1)).get('token')!
 
@@ -21,8 +21,8 @@ test('Actividad con 500 eventos: frames largos al pintar y al llegar un evento n
     new PerformanceObserver((l) => { for (const e of l.getEntries()) w.__laf.push(e.duration) }).observe({ type: 'long-animation-frame', buffered: true } as PerformanceObserverInit)
   })
   await page.goto(url().replace('/#', '/actividad#'))
-  await expect(page.getByRole('group', { name: 'Kratos' })).toBeVisible()
-  await expect.poll(() => page.getByRole('group', { name: 'Kratos' }).getByRole('button').count()).toBeGreaterThan(400)
+  await expect(page.getByRole('group', { name: 'Nomos' })).toBeVisible()
+  await expect.poll(() => page.getByRole('group', { name: 'Nomos' }).getByRole('button').count()).toBeGreaterThan(400)
   await page.waitForTimeout(500)
   const carga = await page.evaluate(() => { const w = window as unknown as { __laf: number[] }; const v = [...w.__laf]; w.__laf.length = 0; return v })
 

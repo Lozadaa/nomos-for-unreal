@@ -1,5 +1,5 @@
 // Desde la raíz, con el servicio de aceptación vivo (lo llama scripts/aceptacion-hito12.ps1):
-//   node panel/scripts/capturas-12.ts "<juego>/.kratos-hito12"
+//   node panel/scripts/capturas-12.ts "<juego>/.nomos-hito12"
 // Captura Producción a 1920 con el run de OpenCode visible.
 import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync } from 'node:fs'

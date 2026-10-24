@@ -20,7 +20,7 @@ let workerSeeded = false
 function seedWorker() {
   if (workerSeeded) return
   workerSeeded = true
-  const repo = mkdtempSync(join(tmpdir(), 'kratos-captura-repo-'))
+  const repo = mkdtempSync(join(tmpdir(), 'nomos-captura-repo-'))
   const git = (...args: string[]) => execFileSync('git', ['-C', repo, '-c', 'user.name=k', '-c', 'user.email=k@k', ...args], { stdio: 'pipe' }).toString().trim()
   git('init', '-q')
   for (const dir of ['Source/Locomocion', 'Config']) mkdirSync(join(repo, dir), { recursive: true })
@@ -30,7 +30,7 @@ function seedWorker() {
   const base = git('rev-parse', 'HEAD')
   writeFileSync(join(repo, 'Source/Locomocion/Salto.cpp'), ['void USalto::Ejecutar()', '{', '  Velocidad = 720.f;', '  Coyote = 0.12f;', '}', ''].join('\n'))
   writeFileSync(join(repo, 'Config/DefaultGame.ini'), ['[Salto]', 'Altura=2', ''].join('\n'))
-  const db = new DatabaseSync(join(process.env.KRATOS_DATA!, 'kratos.db'))
+  const db = new DatabaseSync(join(process.env.NOMOS_DATA!, 'nomos.db'))
   db.prepare("update worktrees set path=?, base_commit=? where id='seed-worktree-01'").run(repo, base)
   db.prepare("update tasks set scope=? where id='seed-task-05'").run(JSON.stringify(['Source/Locomocion']))
   const at = (n: number) => new Date(Date.now() - (600 - n * 20) * 1000).toISOString()
@@ -45,7 +45,7 @@ function seedWorker() {
 
 const settle = (page: Page) => page.waitForTimeout(450)
 const goto = async (page: Page, path: string) => {
-  await page.goto(process.env.KRATOS_URL!.replace('/#', `${path}#`))
+  await page.goto(process.env.NOMOS_URL!.replace('/#', `${path}#`))
   await page.waitForSelector('main')
   await settle(page)
 }
@@ -64,8 +64,8 @@ export const shots: Record<string, Shot[]> = {
   tarea5: [
     { name: 'chat', run: async (p) => {
       // una conversación real: un mensaje confirmado con respuesta y otro todavía sin confirmar
-      const token = new URLSearchParams(new URL(process.env.KRATOS_URL!).hash.slice(1)).get('token')!
-      const origin = new URL(process.env.KRATOS_URL!).origin
+      const token = new URLSearchParams(new URL(process.env.NOMOS_URL!).hash.slice(1)).get('token')!
+      const origin = new URL(process.env.NOMOS_URL!).origin
       const call = async (path: string, data: unknown) => (await p.request.post(origin + path, { headers: { Authorization: `Bearer ${token}` }, data })).json()
       if (!chatSeeded) {
         const first = await call('/messages', { text: 'Quiero una habilidad Meteorito para el mago' })

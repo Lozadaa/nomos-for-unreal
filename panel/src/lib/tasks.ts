@@ -1,3 +1,4 @@
+import { BRAND } from '@/lib/brand'
 export const stages = ['pendiente', 'preparada', 'implementando', 'revisando', 'probando', 'integrando', 'cerrando', 'done'] as const
 export type Stage = (typeof stages)[number]
 
@@ -14,7 +15,7 @@ export const areaLabel: Record<Area, string> = {
 }
 
 export const providerLabel: Record<string, string> = {
-  codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', kratos: 'Kratos', launcher: 'Launcher',
+  codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', nomos: BRAND.short, launcher: 'Launcher',
 }
 
 export interface Task {
@@ -75,14 +76,14 @@ export interface Artifact {
   previewPath?: string | null; provenance?: Record<string, unknown>
 }
 
-export interface KratosEvent {
+export interface NomosEvent {
   seq: number; id: string; type: string; messageId: string | null; payload: Record<string, unknown>; createdAt: string
 }
 
 export interface TaskDetail {
   task: Task
   runs: Run[]
-  events: KratosEvent[]
+  events: NomosEvent[]
   artifacts: Artifact[]
   testRuns: TestRun[]
   decision: Decision | null

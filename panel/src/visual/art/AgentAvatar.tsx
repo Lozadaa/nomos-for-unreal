@@ -1,5 +1,6 @@
 import { memo, type CSSProperties } from 'react'
 import { glyphFor } from '../glyphs'
+import { legacyProvider } from '@/lib/brand'
 
 export type AgentAvatarState = 'running' | 'waiting' | 'idle'
 export interface AgentAvatarProps {
@@ -15,7 +16,7 @@ export interface AgentAvatarProps {
 }
 
 const monograms: Record<string, string> = {
-  codex: 'Cx', claude: 'Cl', opencode: 'Oc', meshy: 'Me', blender: 'Bl', unreal: 'Un', kratos: 'Kr', launcher: 'La',
+  codex: 'Cx', claude: 'Cl', opencode: 'Oc', meshy: 'Me', blender: 'Bl', unreal: 'Un', nomos: 'No', launcher: 'La',
 }
 
 /** Tooltip del agente: proveedor, modelo Claude (workerModel) y skills confirmadas. */
@@ -29,6 +30,7 @@ export const AgentAvatar = memo(function AgentAvatar({ provider, name, size = 24
   const spec = glyphFor('provider', provider)
   const color = spec.tone === 'primary' ? 'var(--vbg-color-primary)' : `var(--k-${spec.tone})`
   const badge = state !== 'idle' && ordinal !== undefined && Number.isInteger(ordinal) && ordinal >= 1
+  provider = legacyProvider(provider)
   const monogram = Object.hasOwn(monograms, provider) ? monograms[provider] : (provider.slice(0, 1).toUpperCase() + provider.slice(1, 2).toLowerCase())
   return <span role="img" aria-label={name ? `${name} · ${spec.label}` : spec.label} title={agentTitle(provider, model, skills)}
     data-provider={provider} data-state={state} className="k-agent-avatar"

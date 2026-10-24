@@ -45,7 +45,7 @@ async function session(rate: number) {
         .observe({ type: 'long-animation-frame', buffered: true } as PerformanceObserverInit)
     } catch { /* sin long-animation-frame */ }
   })
-  const base = process.env.KRATOS_URL!
+  const base = process.env.NOMOS_URL!
   const goto = async (path: string) => { await page.goto(base.replace('/#', `${path}#`)); await page.waitForSelector('main'); await page.waitForTimeout(600); await drain(page) }
   const results: Record<string, { n: number; median: number; p75: number; max: number; longFrames: number; worstFrame: number; repeticionesConFrameLargo: number[] }> = {}
   const record = (name: string, runs: { inp: number; frames: Frame[] }[]) => {
@@ -84,13 +84,13 @@ async function session(rate: number) {
   }
   record('filtrar por etapa', runs)
 
-  // 4 · enviar una petición (el clic en «Enviar a Kratos»; el servidor responde de verdad)
+  // 4 · enviar una petición (el clic en «Enviar a Nomos»; el servidor responde de verdad)
   await goto('/')
   runs = []
   for (let i = 0; i < N; i++) {
     await page.getByLabel('Título de la petición').fill(`Petición de medición ${i}`)
     await drain(page)
-    await page.getByRole('button', { name: 'Enviar a Kratos' }).click()
+    await page.getByRole('button', { name: 'Enviar a Nomos' }).click()
     runs.push(await drain(page))
   }
   record('enviar una petición', runs)

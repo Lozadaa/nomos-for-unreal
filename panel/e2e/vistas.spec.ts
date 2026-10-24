@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const url = () => process.env.KRATOS_URL!
+const url = () => process.env.NOMOS_URL!
 
 // Estos casos verifican vistas y acciones; la guía tiene sus propios E2E.
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+  await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
 })
 const token = () => new URLSearchParams(new URL(url()).hash.slice(1)).get('token')!
 const origin = () => new URL(url()).origin
@@ -48,17 +48,17 @@ test('Producción se actualiza en vivo por SSE: una tarea creada fuera del panel
   await expect(page.getByRole('button', { name: /Creada desde fuera/ })).toBeVisible()
 })
 
-test('Chat: el mensaje enviado aparece al instante, pasa a «Recibido» y la respuesta de Kratos llega en vivo', async ({ page, browserName }) => {
+test('Chat: el mensaje enviado aparece al instante, pasa a «Recibido» y la respuesta de Nomos llega en vivo', async ({ page, browserName }) => {
   const text = `Hola desde el panel (${browserName})`
   await page.goto(url().replace('/#', '/chat#'))
   const posted = page.waitForResponse((r) => r.url().endsWith('/messages') && r.request().method() === 'POST')
-  await page.getByLabel('Mensaje para Kratos').fill(text)
+  await page.getByLabel('Mensaje para Nomos').fill(text)
   await page.getByRole('button', { name: 'Enviar' }).click()
   await expect(page.getByText(text)).toBeVisible()
   const { messageId } = await (await posted).json()
   // hito 10: estado real con hora, nunca «lo atenderá en breve»
   await expect(page.locator('li', { hasText: text }).getByText(/^Recibido \d\d:\d\d$/)).toBeVisible()
-  // Kratos (la sesión de Claude) confirma y responde por la API del servicio
+  // Nomos (la sesión de Claude) confirma y responde por la API del servicio
   await call(page, `/messages/${messageId}/reply`, { text: 'Entendido, lo preparo' })
   await expect(page.getByText('Entendido, lo preparo')).toBeVisible()
 })

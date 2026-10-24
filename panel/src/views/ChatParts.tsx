@@ -22,12 +22,12 @@ export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('es-ES', {
 export const unreadAfterMs = 60_000
 
 export function Bubble({ text, at, from, fresh, taskTitle, children }: {
-  text: string; at?: string; from: 'tu' | 'kratos'; fresh: boolean; taskTitle?: (id: string) => string | undefined; children?: React.ReactNode
+  text: string; at?: string; from: 'tu' | 'nomos'; fresh: boolean; taskTitle?: (id: string) => string | undefined; children?: React.ReactNode
 }) {
   return (
     <li className={cn('flex min-w-0 flex-col gap-1', fresh && 'animate-in duration-(--k-dur-standard) ease-k fade-in slide-in-from-bottom-1 motion-reduce:animate-none', from === 'tu' ? 'items-end' : 'items-start')}>
       <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-        {from === 'kratos' ? <><AgentAvatar id="kratos" provider="kratos" name={BRAND.short} size={32} /><span>{BRAND.short}</span></> : <span>Tú</span>}
+        {from === 'nomos' ? <><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} /><span>{BRAND.short}</span></> : <span>Tú</span>}
         {at && <time dateTime={at} title={relativeTime(at)}>{relativeTime(at).replace(/^hace /, '')}</time>}
       </span>
       <Markdown text={text} taskTitle={taskTitle} className={cn('max-w-[85%] min-w-0 rounded-lg border px-3 py-2 text-sm', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')} />
@@ -49,7 +49,7 @@ export function MessageStatus({ m, now }: { m: ChatMessage; now: number }) {
 export function Typing() {
   return (
     <li role="status" aria-label={`${BRAND.short} está escribiendo…`} className="flex animate-in items-center gap-2 text-xs text-muted-foreground duration-(--k-dur-standard) fade-in motion-reduce:animate-none">
-      <span className="k-pulse inline-flex rounded-full"><AgentAvatar id="kratos" provider="kratos" name={BRAND.short} size={32} state="running" /></span>
+      <span className="k-pulse inline-flex rounded-full"><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} state="running" /></span>
       <span className="inline-flex gap-1 rounded-lg border border-subtle px-3 py-2" aria-hidden>
         {[0, 1, 2].map((i) => <span key={i} data-dot style={{ animationDelay: `${i * 160}ms` }} className="size-1.5 animate-pulse rounded-full bg-muted-foreground motion-reduce:animate-none" />)}
       </span>

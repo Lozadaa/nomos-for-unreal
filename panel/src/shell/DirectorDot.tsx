@@ -2,13 +2,13 @@ import type { Status } from '@/api'
 import type { Session } from '@/session'
 import { cn } from '@/lib/utils'
 import { BRAND } from '@/lib/brand'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 
 export type DirectorState = 'esperando' | 'escuchando' | 'respondiendo' | 'atendiendo' | 'vigilanteCaido' | 'desconectado' | 'sinToken' | 'caducada'
 
 /** `null` = el servicio no respondió; sin sesión válida responde 401 y no está «desconectado». */
 /** Hito 10: el director avisó con `director.typing` y aún no respondió ni se le agotó el plazo. */
-export function typingActive(events: KratosEvent[]): boolean {
+export function typingActive(events: NomosEvent[]): boolean {
   const typing = new Map<string, boolean>()
   for (const e of events) {
     if (!e.messageId) continue
@@ -27,14 +27,14 @@ export function directorState(status: Status | null, session: Session = 'ok', ty
 }
 
 const look: Record<DirectorState, { dot: string; label: (pending: number) => string }> = {
-  esperando: { dot: 'bg-neutral', label: () => 'Esperando a Kratos' },
-  escuchando: { dot: 'bg-success k-pulse', label: () => 'Kratos escuchando' },
+  esperando: { dot: 'bg-neutral', label: () => `Esperando a ${BRAND.short}` },
+  escuchando: { dot: 'bg-success k-pulse', label: () => `${BRAND.short} escuchando` },
   respondiendo: { dot: 'bg-info k-pulse', label: () => `${BRAND.short} respondiendo` },
-  atendiendo: { dot: 'bg-info', label: (n) => (n > 0 ? `Kratos atendiendo ${n} ${n === 1 ? 'mensaje' : 'mensajes'}` : 'Kratos atendiendo') },
+  atendiendo: { dot: 'bg-info', label: (n) => (n > 0 ? `${BRAND.short} atendiendo ${n} ${n === 1 ? 'mensaje' : 'mensajes'}` : `${BRAND.short} atendiendo`) },
   vigilanteCaido: { dot: 'bg-warning', label: () => 'Vigilante caído' },
   desconectado: { dot: 'bg-error', label: () => 'Servicio desconectado' },
-  sinToken: { dot: 'bg-error', label: () => 'Sin sesión · ábrelo desde Kratos' },
-  caducada: { dot: 'bg-error', label: () => 'Sesión caducada · ábrelo de nuevo desde Kratos' },
+  sinToken: { dot: 'bg-error', label: () => `Sin sesión · ábrelo desde ${BRAND.short}` },
+  caducada: { dot: 'bg-error', label: () => `Sesión caducada · ábrelo de nuevo desde ${BRAND.short}` },
 }
 
 export function DirectorDot({ state, pending = 0 }: { state: DirectorState; pending?: number }) {

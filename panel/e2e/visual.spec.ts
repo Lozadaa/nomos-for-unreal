@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 import type { Task } from '../src/lib/tasks'
 
-const url = () => process.env.KRATOS_URL!
+const url = () => process.env.NOMOS_URL!
 const token = () => new URLSearchParams(new URL(url()).hash.slice(1)).get('token')!
 
 async function skipTour(page: Page) {
-  await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1'))
+  await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1'))
 }
 
 async function load(page: Page) {
@@ -17,12 +17,12 @@ test('la primera visita muestra la guía, Esc la cierra y no vuelve tras recarga
   // Un contexto nuevo comienza sin la clave. No usar addInitScript para borrarla:
   // volvería a borrarse también en la recarga que comprueba la persistencia.
   await page.goto(url().replace('/#', '/catalogo#'))
-  const tour = page.getByRole('dialog', { name: 'Guía de Kratos' })
+  const tour = page.getByRole('dialog', { name: 'Guía de Nomos' })
   await expect(tour).toBeVisible()
   await expect(tour).toHaveAttribute('data-tour-target', 'director')
-  await expect(tour.getByText('Aquí ves si Kratos escucha', { exact: true })).toBeVisible()
+  await expect(tour.getByText('Aquí ves si Nomos escucha', { exact: true })).toBeVisible()
   await expect.poll(() => new URL(page.url()).pathname).toBe('/catalogo')
-  expect(await page.evaluate(() => localStorage.getItem('kratos.tour.v1'))).toBe('1')
+  expect(await page.evaluate(() => localStorage.getItem('nomos.tour.v1'))).toBe('1')
 
   await page.keyboard.press('Escape')
   await expect(tour).toBeHidden()
@@ -38,10 +38,10 @@ test('Ver guía desde la paleta permite recorrer los tres pasos y terminar', asy
   await page.keyboard.press('Control+k')
   await page.getByRole('option', { name: 'Ver guía', exact: true }).click()
 
-  const tour = page.getByRole('dialog', { name: 'Guía de Kratos' })
+  const tour = page.getByRole('dialog', { name: 'Guía de Nomos' })
   await expect(tour).toBeVisible()
   await expect(tour).toHaveAttribute('data-tour-target', 'director')
-  await expect(tour.getByText('Aquí ves si Kratos escucha', { exact: true })).toBeVisible()
+  await expect(tour.getByText('Aquí ves si Nomos escucha', { exact: true })).toBeVisible()
   await tour.getByRole('button', { name: 'Siguiente', exact: true }).click()
   await expect(tour).toHaveAttribute('data-tour-target', 'composer')
   await expect(tour.getByText('Pide algo aquí', { exact: true })).toBeVisible()

@@ -76,9 +76,9 @@ export function Chat() {
           <Fragment key={m.id}>
             <Bubble from="tu" text={m.text} at={m.createdAt} fresh={fresh(m.id)}><MessageStatus m={m} now={now} /></Bubble>
             {/* en dos tiempos: el acuse corto, lo que se va creando y el cierre */}
-            {m.replies.slice(0, 1).map((r) => <Bubble key="0" from="kratos" text={r.text} at={r.at} fresh={fresh(`${m.id}:0`)} taskTitle={taskTitle} />)}
+            {m.replies.slice(0, 1).map((r) => <Bubble key="0" from="nomos" text={r.text} at={r.at} fresh={fresh(`${m.id}:0`)} taskTitle={taskTitle} />)}
             <CreatedCards links={m.links} tasks={tasks} />
-            {m.replies.slice(1).map((r, i) => <Bubble key={i + 1} from="kratos" text={r.text} at={r.at} fresh={fresh(`${m.id}:${i + 1}`)} taskTitle={taskTitle} />)}
+            {m.replies.slice(1).map((r, i) => <Bubble key={i + 1} from="nomos" text={r.text} at={r.at} fresh={fresh(`${m.id}:${i + 1}`)} taskTitle={taskTitle} />)}
             {m.state === 'respondiendo' && <Typing />}
           </Fragment>
         ))}

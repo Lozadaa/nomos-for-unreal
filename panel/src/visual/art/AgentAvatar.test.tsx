@@ -7,12 +7,12 @@ describe('avatar por implementador', () => {
     for (const [provider, label, monogram] of [
       ['codex', 'Codex', 'Cx'], ['claude', 'Claude', 'Cl'], ['opencode', 'OpenCode', 'Oc'],
       ['meshy', 'Meshy', 'Me'], ['blender', 'Blender', 'Bl'], ['unreal', 'Unreal', 'Un'],
-      ['kratos', 'Kratos', 'Kr'], ['launcher', 'Launcher', 'La'],
+      ['nomos', 'Nomos', 'No'], ['kratos', 'Nomos', 'No'], ['launcher', 'Launcher', 'La'],
     ]) {
       const { container, unmount } = render(<AgentAvatar provider={provider} name="UI Worker" />)
       const avatar = screen.getByRole('img', { name: `UI Worker · ${label}` })
       expect(avatar).toHaveAttribute('title', label)
-      expect(avatar).toHaveAttribute('data-provider', provider)
+      expect(avatar).toHaveAttribute('data-provider', provider === 'kratos' ? 'nomos' : provider)
       expect(avatar).toHaveClass('k-agent-avatar')
       expect(avatar.querySelector('.k-agent-monogram')).toHaveTextContent(monogram)
       expect(avatar.querySelector('.k-agent-monogram')).toHaveAttribute('aria-hidden', 'true')

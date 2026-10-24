@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const url = (path: string) => process.env.KRATOS_URL!.replace('/#', `${path}#`)
-test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1')) })
+const url = (path: string) => process.env.NOMOS_URL!.replace('/#', `${path}#`)
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
 /** Ancho del contenido de la vista y padding lateral de main, medidos en el navegador. */
 const measure = (page: Page) => page.locator('main').evaluate((m) => ({
@@ -33,7 +33,7 @@ test.describe('Ancho completo (hito 10)', () => {
     // auto-fill crea las columnas aunque haya menos tarjetas: se cuentan las pistas de la rejilla
     expect(await grid.evaluate((ul) => getComputedStyle(ul).gridTemplateColumns.split(' ').length)).toBeGreaterThanOrEqual(6)
   })
-  for (const [path, selector] of [['/chat', 'ul[aria-label="Conversación con Kratos"]'], ['/decisiones', '[data-decision-card]']] as const) {
+  for (const [path, selector] of [['/chat', 'ul[aria-label="Conversación con Nomos"]'], ['/decisiones', '[data-decision-card]']] as const) {
     test(`${path}: el texto corrido no pasa de 72ch`, async ({ page }) => {
       await page.goto(url(path))
       const box = await page.locator(selector).first().boundingBox()

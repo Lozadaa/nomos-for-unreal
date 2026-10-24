@@ -3,11 +3,11 @@ import { flushSync } from 'react-dom'
 import { api } from './api'
 import { connectEvents, type Live } from './sse'
 import { animateUpdate } from '@/feel/transitions'
-import { isTemp, type KratosEvent, type Task } from '@/lib/tasks'
+import { isTemp, type NomosEvent, type Task } from '@/lib/tasks'
 
 export interface Snapshot {
   tasks: Task[]
-  events: KratosEvent[]
+  events: NomosEvent[]
   loaded: boolean
   live: boolean
   /** Intervalos en los que se perdió la conexión con el servicio (para la vista Actividad). */
@@ -70,7 +70,7 @@ const schedule = () => {
 }
 
 /** Mantiene `waiting`: la pregunta del worker la abre y cualquier señal de que siguió (salida, mensaje, fin) la cierra. */
-function reduceWaiting(waiting: Snapshot['waiting'], e: KratosEvent): Snapshot['waiting'] {
+function reduceWaiting(waiting: Snapshot['waiting'], e: NomosEvent): Snapshot['waiting'] {
   const taskId = String(e.payload.taskId ?? '')
   if (!taskId) return waiting
   if (e.type === 'worker.waiting') return { ...waiting, [taskId]: { runId: String(e.payload.runId), question: String(e.payload.question ?? '') } }
@@ -80,7 +80,7 @@ function reduceWaiting(waiting: Snapshot['waiting'], e: KratosEvent): Snapshot['
 }
 
 /** Recibe un evento del servicio: lo guarda (hasta 500) y, si toca a las tareas, programa una lectura agrupada. */
-export function ingest(e: KratosEvent): void {
+export function ingest(e: NomosEvent): void {
   const fresh = !snap.events.some((x) => x.seq === e.seq)
   set({ events: [...snap.events.filter((x) => x.seq !== e.seq), e].slice(-MAX_EVENTS), version: snap.version + 1, ...(fresh ? { waiting: reduceWaiting(snap.waiting, e) } : {}) })
   if (/^(task|decision|run)\./.test(e.type)) schedule()

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { KratosEvent } from '@/lib/tasks'
+import type { NomosEvent } from '@/lib/tasks'
 import { directorState, typingActive } from './DirectorDot'
 
 let seq = 0
-const e = (type: string, messageId = 'm1') => ({ seq: ++seq, id: `e${seq}`, type, messageId, payload: {}, createdAt: '' }) as KratosEvent
+const e = (type: string, messageId = 'm1') => ({ seq: ++seq, id: `e${seq}`, type, messageId, payload: {}, createdAt: '' }) as NomosEvent
 const status = { service: true, listener: true, listenerAgeSec: 1, director: 's', lastAckSeq: 0, lastAckAt: null, pending: 0, paused: false } as never
 
 describe('Punto del director · respondiendo (hito 10)', () => {

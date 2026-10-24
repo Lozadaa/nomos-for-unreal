@@ -2,7 +2,7 @@ import { act, render, screen, within } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { TaskRow } from '@/components/TaskRow'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import type { KratosEvent, Run, Task } from '@/lib/tasks'
+import type { NomosEvent, Run, Task } from '@/lib/tasks'
 import { ingest, resetStore } from '@/store'
 import { budgets, visibleWords } from './text-budget'
 
@@ -76,7 +76,7 @@ it('el nombre y el ordinal vienen de la asignación de agentes vivos y desaparec
 
 it('la espera del store solo marca el avatar de la ejecución correspondiente', () => {
   const run: Run = { id: 'r', taskId: task.id, provider: 'codex', role: 'implementacion', state: 'running', startedAt: task.updatedAt, finishedAt: null, summary: null }
-  const event = (seq: number, runId: string): KratosEvent => ({ seq, id: `e${seq}`, type: 'worker.waiting', messageId: null, createdAt: task.updatedAt, payload: { taskId: task.id, runId, question: '¿Qué opción?' } })
+  const event = (seq: number, runId: string): NomosEvent => ({ seq, id: `e${seq}`, type: 'worker.waiting', messageId: null, createdAt: task.updatedAt, payload: { taskId: task.id, runId, question: '¿Qué opción?' } })
   render(<TaskRow task={task} run={run} now={Date.now()} open={false} onOpen={vi.fn()} />)
   act(() => { ingest(event(1, 'otra')) })
   expect(screen.getByRole('img', { name: 'Anim Worker · Codex' })).toHaveAttribute('data-state', 'running')

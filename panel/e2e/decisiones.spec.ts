@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
 
 // Prueba 20 (plan v2): resolver queda registrado una vez y no se vuelve a preguntar; una caducada se ve y se regenera.
-const url = () => process.env.KRATOS_URL!
+const url = () => process.env.NOMOS_URL!
 const origin = () => new URL(url()).origin
 const token = () => new URLSearchParams(new URL(url()).hash.slice(1)).get('token')!
 const call = (page: Page, path: string, data?: unknown) =>
   page.request.fetch(origin() + path, { method: data ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token()}` }, data })
-test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('kratos.tour.v1', '1')) })
+test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
 async function decisionFor(page: Page, title: string, reason: string) {
   const task = await (await call(page, '/tasks', { title, spec: '', area: 'qa', acceptance: [] })).json() as { id: string }
@@ -16,7 +16,7 @@ async function decisionFor(page: Page, title: string, reason: string) {
   return { task, decision, options }
 }
 
-test('resolver una Decisión la registra una vez y Kratos sigue sin volver a preguntar', async ({ page, browserName }) => {
+test('resolver una Decisión la registra una vez y Nomos sigue sin volver a preguntar', async ({ page, browserName }) => {
   const reason = `Elegir candidato (${browserName}) ${Date.now()}`
   const { task, decision } = await decisionFor(page, `Decidir ${browserName}`, reason)
   await page.goto(url().replace('/#', '/decisiones#'))
@@ -37,9 +37,9 @@ test('una Decisión caducada se anuncia, no registra la elección y ofrece la re
   await page.goto(url().replace('/#', '/decisiones#'))
   await page.getByRole('list', { name: 'Bandeja de decisiones' }).getByRole('button', { name: reason }).first().click()
   await expect(page.getByRole('group', { name: 'Opciones' })).toBeVisible()
-  // el contexto cambia mientras se mira (Kratos la vuelve a preparar): la que está en pantalla caduca
+  // el contexto cambia mientras se mira (Nomos la vuelve a preparar): la que está en pantalla caduca
   await call(page, '/decisions', { taskId: task.id, reason: `${reason} (actualizada)`, options })
-  await expect(page.getByText('Esta decisión caducó porque cambió el contexto. Kratos la prepara de nuevo.')).toBeVisible()
+  await expect(page.getByText('Esta decisión caducó porque cambió el contexto. Nomos la prepara de nuevo.')).toBeVisible()
   await page.getByRole('button', { name: 'Ver la nueva' }).click()
   await expect(page.getByRole('heading', { name: `${reason} (actualizada)` })).toBeVisible()
   await page.getByRole('group', { name: 'Opciones' }).getByRole('button', { name: 'Usar el primero' }).click()
