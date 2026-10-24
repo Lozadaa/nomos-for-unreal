@@ -17,6 +17,12 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   'asset.migrate': entry,
   'asset.prepare': entry,
   'asset.request_download': entry,
+  'asset.candidates': (db, p) => {
+    const strings = (v: unknown) => v === undefined || Array.isArray(v) && v.every(x => text(x));
+    if (!text(p.taskId) || !text(p.query) || !strings(p.kinds) || !strings(p.animations) || !optionalText(p.targetProject))
+      throw new Error('invalid_command_payload');
+    if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
+  },
   'checks.run': (db, p) => {
     if (!text(p.taskId) || !optionalText(p.runId) || p.dir !== undefined || p.files !== undefined
       && (!Array.isArray(p.files) || !p.files.every(f => typeof f === 'string'))) throw new Error('invalid_command_payload');

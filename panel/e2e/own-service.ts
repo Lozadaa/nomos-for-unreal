@@ -18,7 +18,7 @@ export function ownService(port: number) {
   }
   const stop = () => { try { execFileSync(process.execPath, [cli, 'stop', '--data', data], { stdio: 'ignore' }) } catch { /* ya parado */ } }
   return {
-    origin: `http://127.0.0.1:${port}`, start, stop,
+    origin: `http://127.0.0.1:${port}`, data, start, stop,
     url: (t: string) => `http://127.0.0.1:${port}/#token=${t}`,
     dispose() { stop(); setTimeout(() => rmSync(root, { recursive: true, force: true }), 500) },
   }

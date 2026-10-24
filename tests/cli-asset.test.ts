@@ -8,7 +8,7 @@ test('CLI asset: index y search por la bandeja; generate solo hard surface; entr
   const {dataDir, port} = await cliFixture(t);
   // carpetas vacías: la prueba no toca los proyectos ni el Launcher reales de este equipo
   writeFileSync(join(dataDir, 'config.json'), JSON.stringify({projectsDir: join(dataDir, 'P'), vaultDir: join(dataDir, 'V'),
-    megascansDir: join(dataDir, 'M'), fabCacheDirs: [], listingsDb: join(dataDir, 'none.db')}));
+    megascansDir: join(dataDir, 'M'), fabCacheDirs: [], listingsDb: join(dataDir, 'none.db'), unrealPath: join(dataDir, 'UE', 'UnrealEditor-Cmd.exe')}));
   cli(dataDir, 'start', '--port', String(port), '--no-open');
   const index = cli(dataDir, 'asset', 'index');
   assert.equal(index.status, 0, index.stderr);
@@ -24,4 +24,19 @@ test('CLI asset: index y search por la bandeja; generate solo hard surface; entr
   assert.notEqual(rig.status, 0);
   assert.match(rig.stderr, /meshy_kind_not_allowed/);
   assert.equal(cli(dataDir, 'asset', 'migrate').status, 1);
+});
+
+test('CLI asset candidates: encola asset.candidates con la tarea, la petición y los clips; tarea desconocida falla', async t => {
+  const {dataDir, port} = await cliFixture(t);
+  writeFileSync(join(dataDir, 'config.json'), JSON.stringify({projectsDir: join(dataDir, 'P'), vaultDir: join(dataDir, 'V'),
+    megascansDir: join(dataDir, 'M'), fabCacheDirs: [], listingsDb: join(dataDir, 'none.db'), unrealPath: join(dataDir, 'UE', 'UnrealEditor-Cmd.exe')}));
+  cli(dataDir, 'start', '--port', String(port), '--no-open');
+  const task = await api(dataDir, '/tasks', {title: 'Héroe', spec: '', area: 'animacion', acceptance: []});
+  const out = cli(dataDir, 'asset', 'candidates', '--task', task.id, 'héroe con ataque', '--animation', 'AM_ComboAttack');
+  assert.equal(out.status, 0, out.stderr);
+  const command = (await api(dataDir, '/commands')).find((c: any) => c.id === JSON.parse(out.stdout).commandId);
+  assert.equal(command.type, 'asset.candidates');
+  assert.deepEqual(command.payload, {taskId: task.id, query: 'héroe con ataque', animations: ['AM_ComboAttack']});
+  assert.match(cli(dataDir, 'asset', 'candidates', '--task', 'nadie', 'héroe').stderr, /unknown_task/);
+  assert.equal(cli(dataDir, 'asset', 'candidates', 'héroe').status, 1, 'sin --task es un error de uso');
 });

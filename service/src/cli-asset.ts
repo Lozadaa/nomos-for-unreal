@@ -3,20 +3,20 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { request, serviceInfo } from './client.ts';
 
-/** `kratos asset index|search|migrate|prepare|download|generate`: envoltorios de GET /catalog y POST /commands. */
+/** `kratos asset index|search|migrate|prepare|download|generate|candidates`: envoltorios de GET /catalog y POST /commands. */
 export async function assetCli(argv: string[]): Promise<boolean> {
-  const at = argv.findIndex((arg, i) => arg === 'asset' && !['--data', '--target'].includes(argv[i - 1] ?? ''));
+  const at = argv.findIndex((arg, i) => arg === 'asset' && !['--data', '--target', '--task', '--animation'].includes(argv[i - 1] ?? ''));
   if (at < 0) return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},
     target: {type: 'string'}, kind: {type: 'string'}, 'params-file': {type: 'string'}, credits: {type: 'string'},
-    'idempotency-key': {type: 'string'}}});
+    'idempotency-key': {type: 'string'}, task: {type: 'string'}, animation: {type: 'string', multiple: true}}});
   const [, action, arg, ...extra] = positionals;
   const call = (path: string, data?: unknown) => request(serviceInfo(resolve(values.data ?? '.kratos')), path, data);
   const minute = new Date().toISOString().slice(0, 16);
   const send = (type: string, payload: object, key: string) =>
     call('/commands', {type, payload, idempotencyKey: values['idempotency-key'] ?? key});
   const needsArg = action !== 'index';
-  if (extra.length || needsArg && !arg || !needsArg && arg) throw new Error('Uso: kratos asset index|search Q|migrate ID|prepare ID|download ID|generate TAREA');
+  if (extra.length || needsArg && !arg || !needsArg && arg) throw new Error('Uso: kratos asset index|search Q|migrate ID|prepare ID|download ID|generate TAREA|candidates --task TAREA Q');
   const target = values.target ? {targetProject: values.target} : {};
   let result: unknown;
   if (action === 'index') result = await send('asset.index', {}, `asset.index:${minute}`);
@@ -24,7 +24,12 @@ export async function assetCli(argv: string[]): Promise<boolean> {
   else if (action === 'migrate') result = await send('asset.migrate', {entryId: arg, ...target}, `migrate:${arg}:${values.target ?? 'juego'}`);
   else if (action === 'prepare') result = await send('asset.prepare', {entryId: arg, ...target}, `prepare:${arg}`);
   else if (action === 'download') result = await send('asset.request_download', {entryId: arg, ...target}, `download:${arg}:${minute}`);
-  else if (action === 'generate') {
+  else if (action === 'candidates') {
+    // personajes: siempre candidatos primero; la Decisión la resuelve el usuario en el panel
+    if (!values.task) throw new Error('Uso: kratos asset candidates --task TAREA "petición" [--animation AM_Clip ...]');
+    result = await send('asset.candidates', {taskId: values.task, query: arg, ...(values.animation ? {animations: values.animation} : {}), ...target},
+      `candidates:${values.task}:${arg.slice(0, 120)}`);
+  } else if (action === 'generate') {
     // Meshy solo para piezas hard surface: text, image o remesh; el servicio rechaza cualquier otro con meshy_kind_not_allowed
     if (!values.kind || !values['params-file'] || values.credits === undefined) throw new Error('Uso: generate TAREA --kind text|image|remesh --params-file F --credits N');
     const params = JSON.parse(readFileSync(values['params-file'], 'utf8'));
