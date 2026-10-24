@@ -100,8 +100,8 @@ Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config 
 El modelo de workers y revisores Claude es `workerModel` (`sonnet` por defecto, `opus`, `haiku`).
 Con dos tareas sobre el mismo asset, solo una arranca; la otra queda `preparada` con
 `waitReason` «Esperando reserva…» hasta que la primera termine: no la fuerces ni
-subas `attempt`. Los cupos viven en el campo `concurrency` de la config del servicio. OpenCode es un
-proveedor válido sin adaptador: no lo elijas para trabajo real.
+subas `attempt`. Los cupos viven en el campo `concurrency` de la config del servicio. OpenCode es el
+proveedor barato para tareas sencillas sin Unreal: reglas en [OpenCode](references/opencode.md).
 El revisor es otro run (otro proveedor si hay dos) con brief de revisión y skills de
 `revisor`. Aprobado no es `done`. Detalle en [brief del revisor](references/brief-revisor.md).
 

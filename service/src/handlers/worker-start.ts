@@ -15,8 +15,8 @@ import { requireGameProject } from '../project-root.ts';
 import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
-import { readConfig, workerModel } from '../config.ts';
-import { launchCommand, readyPattern } from './worker-launch.ts';
+import { readConfig, workerModel, opencodeModel } from '../config.ts';
+import { launchPlan, briefLine } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
 import { continuationBrief } from './continue.ts';
@@ -34,8 +34,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     || payload.attempt!==undefined && (!Number.isSafeInteger(payload.attempt)||payload.attempt<1)) throw new Error('invalid_worker_payload');
   if (!task.title.trim() || !task.spec.trim() || !task.acceptance.length
     || !task.acceptance.every(s=>typeof s==='string'&&s.trim())) throw new Error('invalid_worker_spec');
-  const model=workerModel(readConfig(ctx.dataDir));
-  if(payload.provider==='opencode') return {deferred:true,reason:'OpenCode sin adaptador disponible'};
+  const config=readConfig(ctx.dataDir),model=payload.provider==='opencode' ? opencodeModel(config) : workerModel(config);
   const history=filtered<Run>(db,'runs',{taskId:task.id});
   const reusable=history.find(r=>r.state==='running'&&r.provider===payload.provider&&r.attempt===(payload.attempt ?? 1)
     &&r.metadata.startCommandId===cmd.id&&r.metadata.phase==='preparing'
@@ -110,10 +109,15 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);
-  if(run.provider==='claude') run=updateRun(db,run.id,{model});
-  await orca.terminalSend(created.terminalHandle,launchCommand(run.provider,model));
-  if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,readyPattern(run.provider)))
-    throw new Error(`orca: ${run.provider} no estuvo listo antes de 90 s`);
+  if(run.provider!=='codex') run=updateRun(db,run.id,{model});
+  // hito 12: ningún subproceso de OpenCode hereda el modelo por defecto (caro) del usuario
+  if(run.provider==='opencode') writeFileSync(join(created.path,'opencode.json'),JSON.stringify({$schema:'https://opencode.ai/config.json',model},null,2)+'\n');
+  const plan=launchPlan(run.provider,model,short);
+  if(!plan.briefInCommand) {
+    await orca.terminalSend(created.terminalHandle,plan.command);
+    if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,plan.ready))
+      throw new Error(`orca: ${run.provider} no estuvo listo antes de 90 s`);
+  }
   const pauseDispatch=()=>{
     if(dispatchBlocked(db,guard)) {queuePoll(db,run);return pauseForDecision(db,task.id,run.id);}
     const reason=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,!review,run.id);
@@ -128,7 +132,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const beforeBrief=pauseDispatch();if(beforeBrief) return beforeBrief;
   if(review && !await review.valid()) throw new Error('invalid_review_snapshot');
   const finalGuard=pauseDispatch();if(finalGuard) return finalGuard;
-  await orca.terminalSend(created.terminalHandle,'Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.');
+  await orca.terminalSend(created.terminalHandle,plan.briefInCommand ? plan.command : briefLine);
   transaction(db,()=>{
     run=updateRun(db,run.id,{phase:'running'});
     if(!dispatchBlocked(db,guard)) db.prepare('update tasks set blocked_reason=null where id=? and decision_id is null').run(task.id);

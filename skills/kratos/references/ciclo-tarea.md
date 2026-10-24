@@ -14,9 +14,9 @@ dependencias y asignación mientras la tarea sigue pendiente y solo después apl
 `POST /tasks` (con `leases`, `assigneeRole`, `assigneeProvider`), después
 `POST /tasks/TASK/depends` con `{ "dependsOn": ["BASE"] }` y por último `/spec`. Consulta `docs/planificador.md` del repositorio
 Kratos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
-Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode todavía
-no tiene adaptador: puede declararse, pero no debe seleccionarse ni lanzarse;
-una espera «sin adaptador» no autoriza a inventar otro comando ni recursos.
+Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode solo corre si
+la tarea lo pide (`--provider opencode`) y tiene cupo; tareas sencillas sin Unreal, revisor
+siempre Claude y modelo barato (reglas en la referencia OpenCode de la skill).
 CLI y HTTP aceptan los tres proveedores y conservan la clave por tarea e intento.
 Claude usa `claude --model <workerModel> --dangerously-skip-permissions` (`sonnet` por defecto;
 `opus` o `haiku` en la config; el revisor usa el mismo y el run lo guarda en `metadata.model`); el servicio espera

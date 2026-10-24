@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { launchCommand, readyPattern, permissionPrompt } from '../../service/src/handlers/worker-launch.ts';
+import { launchCommand, readyPattern, permissionPrompt, launchPlan, followUp, opencodeMissing } from '../../service/src/handlers/worker-launch.ts';
 import { screenMarkers } from '../../service/src/handlers/worker-markers.ts';
 
 test('comandos y readiness conservan contratos separados por proveedor',()=>{
@@ -14,10 +14,32 @@ test('comandos y readiness conservan contratos separados por proveedor',()=>{
   for(const line of ['bypass permissions on','Try "edit file"']) assert.ok(readyPattern('claude').test(line));
   assert.equal(readyPattern('claude').test('› Ask Codex'),false);
   assert.equal(readyPattern('codex').test('bypass permissions'),false);
-  for(const fn of [launchCommand,readyPattern]) {
-    assert.throws(()=>fn('opencode'),/unsupported_worker_provider/);
-    assert.throws(()=>fn('otro'),/invalid_worker_provider/);
-  }
+  for(const fn of [launchCommand,readyPattern]) assert.throws(()=>fn('otro'),/invalid_worker_provider/);
+});
+const brief='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.';
+test('OpenCode lleva el brief en el comando con modelo explícito y título corto, sin comillas para Orca',()=>{
+  const plan=launchPlan('opencode','opencode/beam-free','abcd1234');
+  assert.equal(plan.command,`opencode run --auto --model opencode/beam-free --title kratos-abcd1234 ${brief}`);
+  assert.equal(plan.briefInCommand,true);assert.doesNotMatch(plan.command,/["'()]/,'terminalSend rechaza comillas y paréntesis');
+  const claude=launchPlan('claude','opus','abcd1234');
+  assert.equal(claude.command,'claude --model opus --dangerously-skip-permissions');
+  assert.equal(claude.briefInCommand,false);assert.ok(claude.ready.test('bypass permissions on'));
+  assert.equal(launchPlan('codex','sonnet','abcd1234').briefInCommand,false);
+  for(const bad of ['sonnet','gpt-5.3-codex','opencode/','openai/gpt-5','opencode/x" & del *','opencode/a b'])
+    assert.throws(()=>launchPlan('opencode',bad,'abcd1234'),/invalid_opencode_model/,bad);
+  assert.equal(launchPlan('opencode','opencode-go/deepseek-v4.1-flash','abcd1234').briefInCommand,true);
+});
+test('OpenCode ausente del PATH se reconoce en cmd y en shells POSIX',()=>{
+  for(const line of ["'opencode' is not recognized as an internal or external command,",
+    "\"opencode\" no se reconoce como un comando interno o externo,","bash: opencode: command not found"])
+    assert.ok(opencodeMissing(line),line);
+  for(const line of ['opencode run --auto --model opencode/beam-free','KRATOS_DONE {}',"'opencodezz' is not recognized"])
+    assert.equal(opencodeMissing(line),false,line);
+});
+test('seguimiento: OpenCode continúa su sesión con run; Claude y Codex reciben la línea tal cual',()=>{
+  const line='Lee el archivo .kratos-inbox/abc.md y ejecuta lo que dice.';
+  assert.equal(followUp('opencode','opencode/beam-free',line),`opencode run --continue --auto --model opencode/beam-free ${line}`);
+  assert.equal(followUp('claude','sonnet',line),line);assert.equal(followUp('codex',undefined,line),line);
 });
 test('Claude expone el permiso con la línea intacta y Codex conserva su protocolo',()=>{
   for(const line of ['Do you want to execute this command?','  Allow this action?','Continue (y/n)']) {

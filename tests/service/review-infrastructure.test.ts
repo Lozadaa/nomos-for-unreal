@@ -47,12 +47,12 @@ test('recovery falla arranque review incierto sin tocar implementador y repone r
   assert.equal(f.reviewer().state,'failed');assert.equal(f.current().state,'done');
   assert.equal(f.db.prepare('select state from commands where id=?').get(poll.id)!.state,'pending');
 });
-test('dos proveedores habilitados conservan OpenCode indisponible sin efectos Orca',async t=>{
+test('una revisión pedida a OpenCode pasa a otro proveedor: OpenCode nunca revisa',async t=>{
   const f=await reviewFixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":2,"claude":1,"opencode":4}}');
-  const before=f.state().creates;
-  const unsupported=await f.invoke('review.start',{taskId:f.task.id,implementerRunId:f.implementer.id,provider:'opencode'});
-  assert.deepEqual(unsupported,{deferred:true,reason:'OpenCode sin adaptador disponible'});
-  assert.equal(f.state().creates,before);
+  const state=f.state();state.treePath=join(f.dir,'review-opencode');state.terminalHandle='term_review';state.tail=[];
+  writeFileSync(f.file,JSON.stringify(state));f.ctx.orca.terminalWaitIdle=async()=>true;
+  await f.invoke('review.start',{taskId:f.task.id,implementerRunId:f.implementer.id,provider:'opencode'});
+  assert.equal(f.reviewer().provider,'claude');
   assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
 });
 
