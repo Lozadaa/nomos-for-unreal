@@ -27,3 +27,14 @@ test('gamePackage convierte rutas de Content en paquetes /Game', () => {
   assert.equal(gamePackage('Content\\Maps\\Nivel1.umap'), '/Game/Maps/Nivel1');
   assert.equal(gamePackage('Source/A.cpp'), null);
 });
+
+test('hito 5b: personajes y animaciones exigen animation, entre asset y map', () => {
+  for (const file of ['Content/Characters/Mannequins/Meshes/SKM_Manny_Simple.uasset', 'Content/Variant_Combat/Anims/AM_ComboAttack.uasset',
+    'Content/Anims/A_Salto.uasset', 'Content/Juego/ABP_Heroe.uasset', 'Content/Juego/BS_Andar.uasset', 'Content/Juego/MM_Idle.uasset',
+    'Content/Rigs/IK_Heroe.uasset', 'Content/Rigs/RTG_Heroe.uasset', 'Content/Juego/SK_Heroe.uasset', 'Content/Animations/Golpe.uasset',
+    'kratos-personaje.json'])
+    assert.deepEqual(selectChecks([file]), ['animation'], file);
+  assert.deepEqual(selectChecks(['Content/Props/SM_Caja.uasset', 'Content/Maps/Nivel1.umap', 'Content/Anims/AM_Golpe.uasset', 'Source/A.cpp']),
+    ['cpp', 'asset', 'animation', 'map']);
+  assert.deepEqual(selectChecks(['Content/Characters/Heroe/T_Piel.uasset']), ['asset', 'animation'], 'una textura del personaje: las dos');
+});

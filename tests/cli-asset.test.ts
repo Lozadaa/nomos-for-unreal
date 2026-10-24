@@ -40,3 +40,20 @@ test('CLI asset candidates: encola asset.candidates con la tarea, la petición y
   assert.match(cli(dataDir, 'asset', 'candidates', '--task', 'nadie', 'héroe').stderr, /unknown_task/);
   assert.equal(cli(dataDir, 'asset', 'candidates', 'héroe').status, 1, 'sin --task es un error de uso');
 });
+
+test('CLI asset character: encola character.setup con malla, clips y objetivo MetaHuman; rutas fuera de /Game fallan', async t => {
+  const {dataDir, port} = await cliFixture(t);
+  writeFileSync(join(dataDir, 'config.json'), JSON.stringify({projectsDir: join(dataDir, 'P'), vaultDir: join(dataDir, 'V'),
+    megascansDir: join(dataDir, 'M'), fabCacheDirs: [], listingsDb: join(dataDir, 'none.db'), unrealPath: join(dataDir, 'UE', 'UnrealEditor-Cmd.exe')}));
+  cli(dataDir, 'start', '--port', String(port), '--no-open');
+  const task = await api(dataDir, '/tasks', {title: 'Héroe', spec: '', area: 'animacion', acceptance: []});
+  const out = cli(dataDir, 'asset', 'character', '/Game/MetaHumans/Hudson/BP_Hudson', '--task', task.id,
+    '--animation', '/Game/Variant_Combat/Anims/AM_ComboAttack', '--metahuman');
+  assert.equal(out.status, 0, out.stderr);
+  const command = (await api(dataDir, '/commands')).find((c: any) => c.id === JSON.parse(out.stdout).commandId);
+  assert.equal(command.type, 'character.setup');
+  assert.equal(command.lane, 'long');
+  assert.deepEqual(command.payload, {taskId: task.id, mesh: '/Game/MetaHumans/Hudson/BP_Hudson',
+    animations: ['/Game/Variant_Combat/Anims/AM_ComboAttack'], targetSkeleton: 'metahuman'});
+  assert.match(cli(dataDir, 'asset', 'character', 'C:/fuera', '--task', task.id, '--animation', '/Game/A').stderr, /invalid_command_payload/);
+});

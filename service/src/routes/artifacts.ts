@@ -30,7 +30,7 @@ export async function file(res: Context['res'], root: string | undefined, name: 
       '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
       '.txt': 'text/plain; charset=utf-8', '.md': 'text/markdown; charset=utf-8',
       '.json': 'application/json; charset=utf-8', '.html': 'text/html; charset=utf-8',
-      '.pdf': 'application/pdf', '.mp4': 'video/mp4'
+      '.pdf': 'application/pdf', '.mp4': 'video/mp4', '.webm': 'video/webm', '.zip': 'application/zip'
     };
     res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'");
     res.writeHead(200, {'Content-Type': types[extname(actual).toLowerCase()] ?? 'application/octet-stream'});
@@ -48,7 +48,8 @@ export async function artifacts({db, req, res, url, dataDir}: Context): Promise<
     json(res, 200, listArtifacts(db, {taskId: url.searchParams.get('taskId') ?? undefined}));
     return true;
   }
-  const match = /^\/artifacts\/([^/]+)\/file$/.exec(url.pathname);
+  // hito 5b: `/preview` sirve la miniatura (el fotograma del 50 % de un vídeo) con las mismas reglas que el archivo
+  const match = /^\/artifacts\/([^/]+)\/(file|preview)$/.exec(url.pathname);
   if (!match) return false;
   const artifactId = id(match[1]);
   // node:sqlite text reads truncate at NUL, so check the stored value in SQL first.
@@ -56,6 +57,8 @@ export async function artifacts({db, req, res, url, dataDir}: Context): Promise<
   if (unsafe && Number(unsafe.nul) > 0) throw new Error('invalid_artifact_path');
   const artifact = read<Artifact>(db, 'artifacts', artifactId);
   if (!artifact) throw new Error('unknown_artifact');
-  await file(res, dataDir ? resolve(join(dataDir, 'artifacts')) : undefined, artifact.path);
+  const path = match[2] === 'preview' ? artifact.previewPath : artifact.path;
+  if (!path) throw new Error('unknown_file');
+  await file(res, dataDir ? resolve(join(dataDir, 'artifacts')) : undefined, path);
   return true;
 }

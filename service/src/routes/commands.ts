@@ -23,6 +23,12 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
       throw new Error('invalid_command_payload');
     if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
   },
+  'character.setup': (db, p) => {
+    const game = (v: unknown) => text(v) && /^\/Game\/[\p{L}\p{N}_ /.-]+$/u.test(v) && !v.includes('..');
+    if (!text(p.taskId) || !game(p.mesh) || !Array.isArray(p.animations) || !p.animations.length || !p.animations.every(game)
+      || ![undefined, 'metahuman'].includes(p.targetSkeleton as string) || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
+    if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
+  },
   'checks.run': (db, p) => {
     if (!text(p.taskId) || !optionalText(p.runId) || p.dir !== undefined || p.files !== undefined
       && (!Array.isArray(p.files) || !p.files.every(f => typeof f === 'string'))) throw new Error('invalid_command_payload');

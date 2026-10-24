@@ -8,7 +8,7 @@ import { useAssetViewer, viewerType, ViewerButton, type ViewerItem } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
-import { useArtifactSrc } from '@/hooks/artifact'
+import { useArtifactSrc, useAuthedSrc } from '@/hooks/artifact'
 import { useAfter } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
 import { useResource } from '@/hooks/useResource'
@@ -33,10 +33,22 @@ function useErrorLines(a: Artifact): string[] {
   return lines
 }
 
+/** Hito 5b: el vídeo de una animación se reconoce por su fotograma del 50 % con el glifo de vídeo del registro encima. */
+function VideoStill({ a, name }: { a: Artifact; name: string }) {
+  const still = useAuthedSrc(a.previewPath ? `/artifacts/${encodeURIComponent(a.id)}/preview` : null)
+  return <div className="relative size-full">
+    {still && <img src={still} alt={name} width={400} height={300} className="size-full object-cover" loading="lazy" />}
+    <span className={still ? 'absolute inset-0 grid place-items-center' : 'grid size-full place-items-center text-muted-foreground'}>
+      <span className={still ? 'rounded-full bg-background/80 p-2' : undefined}><Glyph kind="artifact" value="video" size={still ? 24 : 48} /></span>
+    </span>
+  </div>
+}
+
 function Preview({ a, name }: { a: Artifact; name: string }) {
   const src = useArtifactSrc(a.id)
   const errors = useErrorLines(a)
   if (meshyExpired(a)) return <MeshyExpired a={a} />
+  if (a.kind === 'video') return <VideoStill a={a} name={name} />
   if (isModel(a)) return <GlbViewer id={a.id} name={name} />
   if (isImage(a) && src) return <img src={src} alt={name} width={400} height={300} className="size-full object-cover" loading="lazy" />
   return (

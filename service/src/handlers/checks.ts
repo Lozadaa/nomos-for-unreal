@@ -22,8 +22,9 @@ import { blueprintCheck } from '../checks/blueprint.ts';
 import { assetCheck } from '../checks/asset.ts';
 import { mapCheck } from '../checks/map.ts';
 import { buildCheck } from '../checks/build.ts';
+import { animationCheck } from '../checks/animation.ts';
 
-const executors: Partial<Record<CheckId, Executor>> = {cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, map: mapCheck, build: buildCheck};
+const executors: Partial<Record<CheckId, Executor>> = {cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
 const returnOption = {id: 'return', label: 'Devolver al responsable', description: 'Enviar la lista al implementador para que lo corrija'};
 
 /** El run implementador cuyo diff se prueba: el indicado o el último terminado que no es revisión ni prueba. */
