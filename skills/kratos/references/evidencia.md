@@ -35,6 +35,11 @@ las capturas, además, `resolution`, `map`, `widget`, `control` (captura sin UI)
 | umg | `ui.cycle`: capturas con y sin UI a dos resoluciones + QA visual | 10 min por resolución |
 | build | `RunUAT BuildCookRun` + arranque 30 s con `HighResShot` | 40 min |
 
+Línea base visual de map y build: `docs/baseline/<check>-<mapa>-<captura>.png`, siempre con
+mapa. Si ni el diff ni el informe lo dicen, es `GameDefaultMap` de `Config/DefaultEngine.ini`
+(o el último `/Game/` cargado en el log); la antigua sin mapa se adopta para el mapa por
+defecto renombrándola, con una línea en el resumen.
+
 Motor ausente → `unavailable`, nunca `passed`. Tiempo agotado → `taskkill /T`, reserva
 liberada y `failed` con el log. Un solo editor por proyecto: la reserva `editor/<juego>`
 pone en cola al resto con el motivo «Editor de <juego>: ocupado por <agente>».

@@ -52,21 +52,21 @@ test('un paquete que se cierra a los 5 s falla con la causa y guarda el log, aun
   }
 });
 
-test('build aprobado crea la línea base; un cambio real de la UI (vida 32 → 16) falla con la imagen de diferencia', async () => {
+test('build aprobado crea la línea base de su mapa; un cambio real de la UI (vida 32 → 16) falla con la imagen de diferencia', async () => {
   const calls: string[][] = [];
   const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: game({}, png(32), calls)}});
   try {
     env();
     assert.equal((await f.run()).passed, true);
     assert.equal(calls.length, 1);
-    assert.match(f.events('test.passed').at(-1)!.summary, /Línea base creada: build-1280x720/);
-    assert.ok(existsSync(join(f.projectDir, 'docs', 'baseline', 'build-1280x720.png')));
+    assert.match(f.events('test.passed').at(-1)!.summary, /Línea base creada: build-Prueba-1280x720/);
+    assert.ok(existsSync(join(f.projectDir, 'docs', 'baseline', 'build-Prueba-1280x720.png')));
     const second = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: game({}, png(16))}});
     try {
       mkdirSync(join(second.projectDir, 'docs', 'baseline'), {recursive: true});
       writeFileSync(join(second.projectDir, 'docs', 'baseline', 'build-1280x720.png'), png(32));
       assert.equal((await second.run()).passed, false);
-      assert.match(second.events('test.failed').at(-1)!.summary, /build-1280x720: la captura difiere un \d+,?\d* % de la línea base \(tolerancia 2 %\)/);
+      assert.match(second.events('test.failed').at(-1)!.summary, /build-Prueba-1280x720: la captura difiere un \d+,?\d* % de la línea base \(tolerancia 2 %\)/);
       const diff = listArtifacts(second.db, {taskId: second.task.id}).find(a => (a.provenance as {visual?: string}).visual === 'diff')!;
       assert.equal((diff.provenance as {label: string}).label, 'Diferencia con la línea base 1280×720');
       writeFileSync(join(second.dataDir, 'config.json'), '{"visualTolerance":0.5}');

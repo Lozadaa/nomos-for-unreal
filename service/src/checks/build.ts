@@ -4,7 +4,7 @@ import { basename, dirname, join } from 'node:path';
 import { buildCookRun, errorLines } from '../adapters/unreal-build.ts';
 import { quote } from '../adapters/process.ts';
 import { readConfig } from '../config.ts';
-import { gameMap } from './map.ts';
+import { defaultMap, gameMap } from './map.ts';
 import { buildOf, type Executor, type Launch } from './run.ts';
 
 const pngs = (dir: string): string[] => !existsSync(dir) ? [] : readdirSync(dir, {withFileTypes: true})
@@ -79,7 +79,9 @@ export const buildCheck: Executor = async (ctx, {project, files, dir}, deps) => 
   if (fatal) return {result: 'failed', log: result.log, config: 'Development Win64', artifacts: evidence,
     summary: [`El juego tuvo un error fatal: ${fatal}`, `Log del juego: ${gameLog}`]};
   const shot = pngs(out).sort((a, b) => statSync(a).mtimeMs - statSync(b).mtimeMs).at(-1);
-  return {result: shot ? 'passed' : 'failed', log: result.log, config: 'Development Win64', map: map ?? null,
+  // sin mapa elegido, el paquete arranca con el suyo por defecto: la línea base tiene que saber cuál (Esquina J0.4)
+  const played = map ?? defaultMap(project.dir, gameText);
+  return {result: shot ? 'passed' : 'failed', log: result.log, config: 'Development Win64', map: played, mapDefault: !map,
     summary: shot ? [`Empaquetado en ${result.exePath}; recorrido de ${Math.round(life.seconds)} s`] : ['El ejecutable arrancó pero no dejó la captura', ...gameErrors(gameText)],
-    artifacts: [...evidence, ...(shot ? [{kind: 'screenshot' as const, path: shot, provenance: {resolution: '1280x720', source: 'build'}}] : [])]};
+    artifacts: [...evidence, ...(shot ? [{kind: 'screenshot' as const, path: shot, provenance: {resolution: '1280x720', source: 'build', map: played}}] : [])]};
 };
