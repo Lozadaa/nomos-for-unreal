@@ -34,7 +34,7 @@ function diffImage(a: Rgba, b: Rgba): Rgba {
   return {width: a.width, height: a.height, data};
 }
 
-const percent = (ratio: number) => `${(Math.round(ratio * 1000) / 10).toString().replace('.', ',')} %`;
+const percent = (ratio: number) => `${(Math.round(ratio * 10000) / 100).toString().replace('.', ',')} %`;
 export type VisualResult = {result: 'passed' | 'failed' | 'skipped'; ratio: number | null; baseline: string; diff?: string; summary: string};
 
 /** Regresión visual (hito 7): la captura contra `<juego>/docs/baseline/<nombre>.png`; sin línea base, la crea y no juzga. */

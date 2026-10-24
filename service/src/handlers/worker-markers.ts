@@ -65,7 +65,8 @@ function bulletContinuation(lines:string[],i:number):boolean {
     // las continuaciones de una lista dentro del mensaje llevan cuatro o más espacios (Claude, hito 5)
     if(!/^ {2,}[^\s└│⎿]/.test(lines[j])) return false;
   }
-  return false;
+  // hito 7: en un mensaje largo la viñeta ya salió del frame; todo lo de arriba es continuación
+  return i>0;
 }
 /** Cada frame es autónomo; nunca se conserva JSON parcial de pantalla entre lecturas. */
 export function screenMarkers(lines:string[]): Marker[] {
@@ -75,7 +76,10 @@ export function screenMarkers(lines:string[]): Marker[] {
     if(nextFence!==undefined) {fence=nextFence;continue;}
     if(fence) continue;
     const line=/^ {2}KRATOS_/.test(lines[i]) && bulletContinuation(lines,i) ? lines[i].slice(2) : lines[i];
-    const match=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
+    // hito 7: Claude Code parte la línea justo tras el marcador si el JSON no cabe; el JSON sigue en las líneas sangradas
+    const bare=/^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS)\s*$/.exec(line);
+    const match=bare && /^ {2,}[\[{]/.test(lines[i+1] ?? '') ? [line,bare[1],lines[++i].trimStart()]
+      : /^(?:[•●⏺] )?KRATOS_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(line);
     if(!match) {
       if(/^(?:[•●⏺] )?KRATOS_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:lines[i]});
       continue;

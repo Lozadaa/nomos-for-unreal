@@ -1,21 +1,75 @@
 # Estado de las entregas
 
-Actualizado el 2026-10-23 en `hito6-cierre` (sobre `main` con los hitos 0-5, 8 y 9). El hito 6 se entrega en esta rama, sin push ni merge. Las cifras de hitos anteriores son evidencia histórica; las del hito 6 están en [su aceptación](aceptacion-hito6.md).
+Actualizado el 2026-10-23 en `hito7-acabado` (sobre `main@eed03ed` con los hitos 0-6, 8 y 9). El hito 7 cierra el MVP en esta rama, sin push ni merge. Las cifras de hitos anteriores son evidencia histórica; las del hito 7 están en [su auditoría](auditoria-7-cierre.md) y [el recorrido](recorrido-mvp.md).
 
 | Hito | Estado | Evidencia |
 |---|---|---|
-| 0 · Escucha | En `main` | `docs/aceptacion-hito0.md`, `tests/` (pruebas del hito 0 dentro de `npm test`) |
-| 1a · Diseño | En `main`; su dirección visual quedó **sustituida** por el hito 8 | `docs/diseno/`, `docs/diseno-visual.md` (reescrito) |
-| 1b · Servicio (Tareas 1-5) | En `main` | `tests/service/`, `kratos seed`, rutas con token. Verificado: `npm test` 68/68 |
-| 8 · Interfaz viva, Tareas 1-3 | En `main` | base visual, capa de sensación, shell |
-| 8 · Interfaz viva, Tareas 4-6 | En `main` | `docs/auditoria-8-cierre.md`, `docs/medicion-8.json`, `docs/capturas-8/` |
-| 2 · Primer worker | En `main` (fusionado el 2026-10-23; aceptación real con Codex) | `docs/aceptacion-hito2.md`, sección «Hito 2» más abajo |
-| 9 · Lenguaje visual | Tareas 3–6 completas en `hito9-vistas`; Tareas 1–2/corrección en la base | `docs/auditoria-9-cierre.md`, `docs/capturas-9/`, `docs/diseno/glifos.md` |
-| 3 | En rama paralela según el brief; no se modifica ni valida aquí | `docs/superpowers/plans/` |
-| 4 · Catálogo y extracción | Tareas 1-6 en `hito4-catalogo` (sin push ni merge); aceptación real con Unreal 5.8.3 y Meshy | `docs/aceptacion-hito4.md`, `docs/capturas-4/`, sección «Hito 4» más abajo |
-| 5 · Unreal, UI del juego y QA | Tareas 1-6 en `hito5-unreal` (sin push ni merge); aceptación real con Unreal 5.8.3 y workers Claude | `docs/aceptacion-hito5.md`, `docs/capturas-5/`, sección «Hito 5» más abajo |
-| 6 · Integración y cierre | Tareas 1-4 en `hito6-cierre` (sin push ni merge); aceptación real con workers Claude en KratosFabTest | `docs/aceptacion-hito6.md`, `docs/capturas-6/`, sección «Hito 6» más abajo |
-| 5b, 7 | Con plan; 5b pausado por decisión del usuario | `docs/superpowers/plans/` |
+| 0 · Escucha | En `main` | `docs/aceptacion-hito0.md` (aceptación real con Claude Code y Monitor) |
+| 1a · Diseño | En `main`; su dirección visual quedó **sustituida** por el hito 8 | `docs/diseno/`, `docs/diseno-visual.md` |
+| 1b · Servicio y shell | En `main` | `tests/service/`, `kratos seed`, rutas con token |
+| 2 · Primer worker | En `main` (aceptación real con Codex, anterior a la regla «ningún Codex») | `docs/aceptacion-hito2.md` |
+| 3 · Varios workers | En `main` (aceptación completa con workers Claude) | `docs/aceptacion-hito3.md` |
+| 4 · Catálogo y Fab | En `main` | `docs/aceptacion-hito4.md`, `docs/capturas-4/` |
+| 5 · Unreal, UI y QA | En `main` | `docs/aceptacion-hito5.md`, `docs/capturas-5/` |
+| 5b · Personajes y animación | **Pausado** por decisión del usuario | `docs/superpowers/plans/2026-10-22-hito5b-personajes-animacion.md` |
+| 6 · Integración y cierre | En `main` | `docs/aceptacion-hito6.md`, `docs/capturas-6/` |
+| 7 · Endurecimiento y acabado | Tareas 1-5 en `hito7-acabado` (sin push ni merge) | `docs/auditoria-7-cierre.md`, `docs/recorrido-mvp.md`, `docs/capturas-7/`, sección «Hito 7» |
+| 8 · Interfaz viva | En `main` | `docs/auditoria-8-cierre.md`, `docs/medicion-8.json`, `docs/capturas-8/` |
+| 9 · Lenguaje visual | En `main` | `docs/auditoria-9-cierre.md`, `docs/capturas-9/`, `docs/diseno/glifos.md` |
+
+
+## Hito 7 — endurecimiento y acabado (cierre del MVP)
+
+**Hecho** (rama `hito7-acabado`, commits `7dfcf9d`, `b14cc4d`, `d036b64`, `fcb0fb8`, `9d807d4` y el de cierre): ejecutor con dos carriles (el largo para editor y empaquetado), latido cada 5 s y recuperación por dueño muerto o 60 s sin latido; Orca cerrado → arranques diferidos cada 30 s y Decisión «Abrir Orca / Cancelar» a los 30 min; Codex apagado por defecto; estados de fallo separados (conexión, ejecución, cancelación solicitada y confirmada, capacidad ausente); `kratos doctor` y `GET /doctor`; «Comprobar ahora» real y «Abrir Orca»; log JSONL diario con 14 días; `limits.corrections` y `visualTolerance`; intermitencias con nombre y causa corregidas; e2e de reconexión, token, teclado y decisiones; entrega fuera del editor con recorrido guionado, 20 s de vida mínima, error fatal y errores del log del juego, log y traza opcional de Insights como artefactos; regresión visual con línea base en el juego; opciones de Decisión de texto, ⌘K con acciones de la tarea, motivo corto en la fila, skills por agente; visor de assets a detalle (corrección 3 del usuario: Entregas, Catálogo y opciones de Decisión); recorrido completo real en KratosFabTest y lo que ese recorrido sacó a la luz: reenvío por terminal nuevo cuando Orca bloquea el envío, revisión de código encadenada tras el QA visual, detector de tareas paradas (`kratos doctor` y Decisión), diff de revisión sin lo generado por Unreal ni el contenido de `Config/` sin seguir, archivos sin seguir idénticos sustituidos al integrar y los locales del usuario fuera de los commits.
+
+**Verificado** en el cierre: ver puertas en [la auditoría](auditoria-7-cierre.md) y tiempos en [el recorrido](recorrido-mvp.md).
+
+```
+node skills/kratos/scripts/kratos.ts doctor --data <juego>/.kratos
+node panel/scripts/capturas-7.ts            # las 10 vistas a 1366 y 1920 → docs/capturas-7/
+```
+
+## Las 35 pruebas de aceptación (plan v1 §13 y plan v2 §7)
+
+«Pasada» = ejecutada con resultado correcto y evidencia escrita; «Parcial» = solo una parte o solo con fakes; «No pasada» = no ejecutada o pendiente; «N/A» = fuera del alcance acordado.
+
+| # | Prueba | Estado | Evidencia |
+|---|---|---|---|
+| 1 | Dos `/kratos`: un servicio y un director | Pasada | `aceptacion-hito0.md` «Prueba 1» |
+| 2 | Web → sesión original → respuesta | Pasada | `aceptacion-hito0.md` «Prueba 2» |
+| 3 | Expirar vigilante, reconectar o reiniciar conserva pendientes sin duplicar | Pasada | `aceptacion-hito0.md` «Prueba 3»; hito 7 `panel/e2e/sse.spec.ts` (stop/start real, mismas filas, SSE sin seq repetidos) |
+| 4 | Cerrar Claude cambia el estado y conserva la bandeja | Pasada | `aceptacion-hito0.md` «Prueba 4» |
+| 5 | Tareas hijas, workers y worktrees con atribución | Pasada | `aceptacion-hito6.md` (atribución por rol); recorrido del hito 7 |
+| 6 | Mismo widget: uno escribe, el otro espera | Pasada | `aceptacion-hito3.md` (dos tareas sobre `WBP_HUD.uasset`, «Esperando reserva») |
+| 7 | Pruebas fallidas no llegan a DONE y vuelven al responsable | Pasada | `aceptacion-hito5.md` §2 |
+| 8 | Captura, modelo y prueba identifican run y revisión | Pasada | `aceptacion-hito5.md` §3 |
+| 9 | Job de Meshy sobrevive a la recarga y se conservan sus archivos | Parcial | `aceptacion-hito4.md` §4 (copia propia del GLB); reconciliación al arrancar con fakes (`tests/service/asset-meshy.test.ts`); no se recargó el panel durante un job real |
+| 10 | La integración detecta cambios en la rama destino y recomprueba | Pasada | `aceptacion-hito6.md` paso 4 |
+| 11 | Error al preservar o parar impide retirar el worktree | Parcial | pruebas del finalizador (`finalize.test.ts`: ENOSPC y archivos en uso); en real solo el caso feliz |
+| 12 | DONE retira el workspace sin perder conversación, autores, commits ni pruebas | Pasada | `aceptacion-hito6.md` paso 3; recorrido del hito 7 |
+| 13 | «Pídele al responsable que ajuste esto» crea continuación con contexto | Pasada | `aceptacion-hito6.md` pasos 4-5; recorrido del hito 7 |
+| 14 | El paquete se ejecuta fuera del editor y su recorrido queda registrado | Pasada | hito 7: ejecutable empaquetado de KratosFabTest con recorrido guionado, captura y log como artefactos (88 s; `quit` temprano → fallo 777003); `auditoria-7-cierre.md` |
+| 15 | Sin token → 401; token de un arranque anterior → 401 | Pasada | `aceptacion-hito0.md`; hito 7 `panel/e2e/auth.spec.ts` y `sse.spec.ts` (el panel dice «Sesión caducada») |
+| 16 | `kratos seed` deja el panel navegable sin Unreal, Meshy ni Codex; e2e sobre la semilla | Pasada | `panel/e2e/global-setup.ts`; Playwright del hito 7 |
+| 17 | 1366×768: formulario de nueva tarea sin scroll, sin desplegables cortados | Parcial | el compositor se ve entero a 1366×768 (`capturas-7/produccion-7-1366.png`); no se midió el formulario desplegado en este hito |
+| 18 | Estados reproducibles desde `/estilo` y sin errores de accesibilidad | Pasada | `/estilo` (`capturas-7/estilo-7-*`); `web-design-guidelines` sobre lo tocado en el hito 7 sin errores pendientes |
+| 19 | Presupuesto de Meshy agotado → Decisión con el gasto, sin job | Pasada | `aceptacion-hito4.md` §4 |
+| 20 | Resolver una Decisión queda registrado y no repite contexto | Pasada | hito 7 `panel/e2e/decisiones.spec.ts` (una sola `decision.resolved`, ninguna abierta; caducada → regenerada) |
+| 21 | La franja distingue «listener activo» de «Kratos confirmó» | Pasada | `aceptacion-hito0.md` «Prueba 21» |
+| 22 | Worker UMG carga las skills y las reporta en su primer evento | Pasada | `aceptacion-hito5.md` (skills confirmadas en `run.started`); recorrido del hito 7 |
+| 23 | Visor GLB con modelo de la semilla y de Meshy | Parcial | e2e en Chromium (`vistas.spec.ts`); Firefox excluido; GLB de Meshy en `aceptacion-hito4.md` |
+| 24 | Kanban, Drawer y Catálogo con teclado y foco visible | Pasada | hito 7 `panel/e2e/teclado.spec.ts` (Chromium y Firefox) |
+| 25 | `/kratos` pasa skillsmith ≥ 95 y sus evals | Pasada | 98/100 (`docs/skillsmith-hito7.txt`) |
+| 26 | Personajes: catálogo propio, luego CC0; Meshy solo tras Decisión | Pasada | `aceptacion-hito4.md` §1 |
+| 27 | Licencia desconocida → Decisión en vez de importar | Pasada | `aceptacion-hito4.md` §5 |
+| 28 | UMG no se cierra sin captura en PIE e informe de `ue-visual-qa` | Pasada | `aceptacion-hito5.md` §1 y §2 |
+| 29 | Un solo MCP de Unreal; otro se marca como conflicto | Pasada | `aceptacion-hito5.md` §4 |
+| 30 | Motor anterior a 5.8: MetaHuman ausente | N/A | en el equipo solo hay 5.8.3; no se probó con otro motor |
+| 31 | Asset de Fab de otro proyecto o caché se importa sin la pestaña Fab | Pasada | `aceptacion-hito4.md` §2; hito 7: raqueta de CrazyPadel migrada a KratosFabTest en 36 s (recorrido) |
+| 32 | Asset comprado sin descargar → «Descargas pendientes» y detección | Parcial | `aceptacion-hito4.md` §3 (detector sobre el log real; sin descarga nueva con clics) |
+| 33 | Catálogo completo desde `listings_v1.db` con `is_ai_forbidden` | Parcial | indexador con `listings_v1.db` (`tests/service/indexer.test.ts`); la base de este equipo está vacía |
+| 34 | Exportación «Custom (socket port)» del Launcher termina importada | No pasada | no implementada en el MVP |
+| 35 | Nivel 3 apagado por defecto; activarlo exige Decisión | Parcial | apagado por defecto (no hay nivel 3 en el producto); la Decisión de activación no existe |
 
 ## Hito 8 (Tareas 4-6): lo que hay y lo que espera
 

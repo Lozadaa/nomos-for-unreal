@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { integrateRun } from '../../service/src/handlers/integrate.ts';
 import { filtered } from '../../service/src/repo/rows.ts';
@@ -69,6 +69,25 @@ test('conflicto de texto: abortMerge, workspace limpio, Decisión con diff3; «R
     assert.equal(send.payload.runId, a.implementer.id);
     assert.match(send.payload.text, /notas\.txt/);
     assert.equal(f.repo.git(f.repo.dir, 'show', 'master:notas.txt'), 'uno\nDOS master\ntres', 'master sin tocar');
+  } finally { f.close(); }
+});
+
+test('archivo local sin seguir del usuario: no se sobrescribe ni se reintenta; vuelve al responsable para sacarlo del commit', async () => {
+  const f = integrationFixture({'Config/DefaultEngine.ini': '[Mapas]\nGameMode=Kratos\n'});
+  try {
+    const a = f.addTask('ini');
+    mkdirSync(join(f.repo.dir, 'Config'), {recursive: true});
+    writeFileSync(join(f.repo.dir, 'Config', 'DefaultEngine.ini'), 'SecurityToken=secreto\n');
+    const before = f.repo.git(f.repo.dir, 'rev-parse', 'master');
+    const result = await integrate(f, a.task.id);
+    assert.equal(result.returned, true, 'no se difiere en bucle');
+    assert.equal(readFileSync(join(f.repo.dir, 'Config', 'DefaultEngine.ini'), 'utf8'), 'SecurityToken=secreto\n');
+    assert.equal(f.repo.git(f.repo.dir, 'rev-parse', 'master'), before, 'master sin tocar');
+    const [send] = commands(f, 'worker.send');
+    assert.equal(send.payload.runId, a.implementer.id);
+    assert.match(send.payload.text, /Config\/DefaultEngine\.ini[\s\S]*git rm --cached/);
+    assert.equal(f.events('integration.retry').length, 0);
+    assert.deepEqual(listLeases(f.db), []);
   } finally { f.close(); }
 });
 

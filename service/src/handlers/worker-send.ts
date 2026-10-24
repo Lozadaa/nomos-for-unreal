@@ -12,6 +12,7 @@ import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './wor
 import { acquire, release, leaseWaitReason } from '../leases.ts';
 import { dependencyReason } from '../scheduler-state.ts';
 import { limits, readConfig } from '../config.ts';
+import { deliver } from './worker-deliver.ts';
 
 export const workerSend: Handler=async (cmd,ctx)=>{
   const payload=cmd.payload as any,{db,orca}=ctx;
@@ -44,7 +45,8 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   const relative=`.kratos-inbox/${cmd.id}.md`;
   mkdirSync(join(tree.path,'.kratos-inbox'),{recursive:true});writeFileSync(join(tree.path,relative),payload.text);
   invalidateImplementation(db,run.id);
-  await orca.terminalSend(run.sessionRef!,`Lee el archivo ${relative} y ejecuta lo que dice.`);
+  await deliver(db,orca,run,tree.path,`Lee el archivo ${relative} y ejecuta lo que dice.`);
+  run=requireRun(db,run.id);
   transaction(db,()=>{
     const previous=run.metadata,lastLines=previous.lastLines ?? [];
     const oldDone=previous.markerFence || previous.seenDoneMarkers!==undefined ? []

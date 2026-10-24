@@ -76,6 +76,23 @@ function afterConflict(ctx: WorkerContext, task: Task, run: Run, decision: Decis
   return {discarded: true};
 }
 
+/** Archivos sin seguir del checkout del usuario que el avance sobrescribiría (git los lista sangrados con tabulador). */
+const localFiles = (error: unknown) => {
+  const text = error instanceof Error ? error.message : String(error);
+  return /untracked working tree files would be overwritten/.test(text) ? text.split(/\r?\n/).filter(l => l.startsWith('\t')).map(l => l.trim()) : [];
+};
+/** Nunca se tocan: el responsable los saca de su commit sin borrarlos y la tarea vuelve a pasar revisión y pruebas. */
+function localFilesBack(ctx: WorkerContext, task: Task, run: Run, files: string[]) {
+  release(ctx.db, run.id);
+  const reason = `Archivos locales del usuario en el commit: ${files.join(', ')}`;
+  enqueue(ctx.db, 'worker.send', {runId: implementerOf(ctx, task).id, text: `${reason}.\nEstán sin seguir a propósito en el checkout del usuario `
+    + `(pueden tener secretos) y no van en tus commits. Sácalos con git rm --cached <archivo> sin borrarlos del disco, consigue lo mismo `
+    + `sin ellos si hace falta, commitea y termina con KRATOS_DONE.`}, `integrate.local:${run.id}`);
+  appendEvent(ctx.db, 'integration.failed', null, {taskId: task.id, runId: run.id, reason});
+  finishRun(ctx.db, run.id, 'cancelled', reason);
+  return {returned: true};
+}
+
 export const integrateRun: Handler = async (command, ctx) => {
   const payload = command.payload as {taskId?: unknown};
   if (typeof payload.taskId !== 'string') throw new Error('invalid_command_payload');
@@ -119,9 +136,12 @@ export const integrateRun: Handler = async (command, ctx) => {
   }
   try { await ctx.git.advanceBranch(ctx.projectDir, ws.branch, state.commit, state.base); }
   catch (error) {
-    // la rama objetivo avanzó por fuera de Kratos (o el checkout del usuario tiene cambios): se rehace sobre la nueva punta
     await ctx.git.checkout(ws.dir, ws.branch);
     updateRun(ctx.db, run.id, {integration: undefined});
+    // hito 7: un archivo sin seguir del usuario (p. ej. Config con secretos) no se arregla reintentando: sale del commit del responsable
+    const local = localFiles(error);
+    if (local.length) return localFilesBack(ctx, task, run, local);
+    // la rama objetivo avanzó por fuera de Kratos (o el checkout del usuario tiene cambios): se rehace sobre la nueva punta
     const reason = `No se pudo avanzar ${ws.branch}: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`;
     appendEvent(ctx.db, 'integration.retry', null, {taskId: task.id, runId: run.id, reason});
     return {deferred: true, reason};

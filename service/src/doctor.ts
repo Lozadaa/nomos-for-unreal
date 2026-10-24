@@ -9,6 +9,7 @@ import { detectCapabilities } from './repo/capabilities.ts';
 import { capabilityList, configFs, type CheckResult } from './capability-checks.ts';
 import { readServiceInfo, isAlive } from './service-info.ts';
 import type { Lane } from './commands.ts';
+import { stalledTasks } from './stall.ts';
 
 type Probe = {isRunning?(): Promise<boolean>; open?(): Promise<void>};
 export type CheckDeps = {orca?: Probe; meshy?: {balance(): Promise<number>}; env?: NodeJS.ProcessEnv;
@@ -78,6 +79,9 @@ export async function doctor(dataDir: string, db: DatabaseSync, deps: CheckDeps 
       state: active && (age === null || age > 60) ? 'falla' : 'ok',
       detail: !active ? 'Libre' : age === null ? `${active.type} · sin latido` : `${active.type} · último latido hace ${age} s`});
   }
+  const stalls = stalledTasks(db, now);
+  rows.push({id: 'stalls', label: 'Tareas atascadas', state: stalls.length ? 'falla' : 'ok',
+    detail: stalls.length ? stalls.map(s => `${s.title} · ${s.state} · ${Math.round(s.quietSeconds / 60)} min sin paso en marcha`).join('; ') : 'Ninguna'});
   return rows;
 }
 

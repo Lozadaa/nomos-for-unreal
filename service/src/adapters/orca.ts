@@ -26,7 +26,8 @@ export type Orca = {
     Promise<{ worktreeId: string; path: string; branch: string; terminalHandle: string }>;
   terminalWaitIdle(handle: string, timeoutMs: number, pattern?: RegExp): Promise<boolean>;
   terminalIsIdle(handle: string): Promise<boolean>;
-  terminalSend(handle: string, text: string): Promise<void>;
+  terminalSend(handle: string, text: string, retry?: {requestId: string; waitSeconds: number}): Promise<void>;
+  /** Hito 7: terminal nuevo con el agente y su orden como argumento. */ terminalCreate?(path: string, title: string, command: string): Promise<string>;
   terminalRead(handle: string, cursor?: string): Promise<TerminalPage>;
   worktreeRemove(worktreeId: string, force?: boolean): Promise<void>;
   /** Cierra el terminal y el árbol de procesos de su shell (hito 6). */
@@ -146,9 +147,10 @@ export function createOrca(opts: Options = {}): Orca {
           result=>result?.wait?.satisfied===true);
       } catch(error) {if(error instanceof OrcaError && error.code==='timeout' && error.source==='condition') return false;throw error;}
     },
-    async terminalSend(handle, text) {
+    async terminalSend(handle, text, retry) {
       if (/[\r\n"'()]/.test(text)) throw new OrcaError('cli_error', 'Envía el texto mediante un archivo');
-      await run(['terminal', 'send', '--terminal', handle, '--text', text, '--enter'], result => {
+      await run(['terminal', 'send', '--terminal', handle, '--text', text, '--enter',
+        ...(retry ? ['--retry-request', retry.requestId, '--wait-submit', String(retry.waitSeconds)] : [])], result => {
         const accepted = result?.send === undefined ? result?.accepted : result.send?.accepted;
         if (accepted !== true) throw new OrcaError('cli_error', 'El terminal no aceptó el texto');
       });
@@ -172,6 +174,9 @@ export function createOrca(opts: Options = {}): Orca {
         await delay(Math.min(50, Math.max(0, deadline - performance.now())));
       }
       return false;
+    },
+    async terminalCreate(path, title, command) {
+      return run(['terminal', 'create', '--worktree', `path:${path}`, '--title', title, '--command', command], r => required(r?.terminal?.handle ?? r?.handle));
     },
     async terminalClose(handle) {
       await run(['terminal', 'close', '--terminal', handle], () => {});

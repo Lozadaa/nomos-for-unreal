@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolve, join } from 'node:path';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { gameSkills } from '../skills-install.ts';
 export type Git = {
   isRepo(dir: string): Promise<boolean>; currentBranch(dir: string): Promise<string>;
@@ -26,13 +26,15 @@ export type Git = {
 };
 export function createGit(): Git {
   const run = (dir: string, args: string[], diff = false) => new Promise<string>((accept, reject) => {
-    const child = spawn('git', ['-C', dir, ...args], {windowsHide:true,shell:false,env:{...process.env,LC_ALL:'C'}});
+    const child = spawn('git', ['-c', 'core.quotepath=false', '-C', dir, ...args], {windowsHide:true,shell:false,env:{...process.env,LC_ALL:'C'}});
     let stdout='', stderr='';
     child.stdout.on('data', chunk => {stdout+=chunk;}); child.stderr.on('data', chunk => {stderr+=chunk;});
     child.on('error',reject);
     child.on('close',code => code === 0 || diff && code === 1 ? accept(stdout) : reject(new Error(stderr || `git: ${code}`)));
   });
   const local = (path: string) => /^(\.kratos(?:\/|$)|\.kratos-brief\.md$|\.kratos-inbox(?:\/|$)|\.kratos-review(?:\/|$))/.test(path);
+  // hito 7: lo que Unreal genera al compilar o empaquetar no es trabajo del worker ni entra en la revisión
+  const generated = (path: string) => /^(Build|Saved|Intermediate|DerivedDataCache|Binaries)\//.test(path);
   const paths = ['--', '.', ':!/.kratos', ':!/.kratos-brief.md', ':!/.kratos-inbox', ':!/.kratos-review'];
   return {
     async isRepo(dir) {
@@ -60,9 +62,11 @@ export function createGit(): Git {
       const binary=(await run(dir,['diff','--numstat','--no-renames','-z',base,...paths])).split('\0')
         .filter(record=>record.startsWith('-\t-\t')).map(record=>`:(literal,exclude)${record.slice(4)}`);
       let patch=await run(dir,['diff','--no-ext-diff',base,...paths,...binary]);
-      const untracked=(await run(dir,['ls-files','--others','--exclude-standard','-z'])).split('\0').filter(p=>p&&!local(p)).sort();
+      const untracked=(await run(dir,['ls-files','--others','--exclude-standard','-z'])).split('\0').filter(p=>p&&!local(p)&&!generated(p)).sort();
       for (const file of untracked) {
         fingerprint.update(JSON.stringify([file,createHash('sha256').update(readFileSync(join(dir,file))).digest('hex')]));
+        // Config sin seguir (puede llevar secretos del usuario): el revisor ve que existe, nunca su contenido
+        if (/^Config\//.test(file)) { stat+=` ${file} | sin seguir (contenido fuera de la revisión)\n`; continue; }
         stat+=await run(dir,['diff','--no-index','--stat','--','/dev/null',file],true);
         patch+=await run(dir,['diff','--no-index','--no-ext-diff','--','/dev/null',file],true);
       }
@@ -130,7 +134,22 @@ export function createGit(): Git {
       // si la rama está activa en algún checkout (el del usuario), avanzarla allí con --ff-only mantiene su árbol al día
       const trees=(await run(repoDir,['worktree','list','--porcelain'])).split(/\r?\n\r?\n/);
       const owner=trees.find(block=>block.split(/\r?\n/).includes(`branch refs/heads/${branch}`));
-      if(owner) await run(owner.split(/\r?\n/)[0].slice('worktree '.length),['merge','--ff-only',commit]);
+      if(owner) {
+        const dir=owner.split(/\r?\n/)[0].slice('worktree '.length),ff=()=>run(dir,['-c','core.quotepath=false','merge','--ff-only',commit]);
+        try { await ff(); return; } catch(error) {
+          // hito 7: un sin seguir byte a byte igual al que llega (asset que Kratos migró sin versionar) se sustituye;
+          // uno distinto (Config con secretos del usuario) no se toca y el rechazo sigue, ya solo con esos
+          const text=error instanceof Error ? error.message : String(error);
+          if(!/untracked working tree files would be overwritten/.test(text)) throw error;
+          const files=text.split(/\r?\n/).filter(l=>l.startsWith('\t')).map(l=>l.trim());
+          const differ=[];
+          for(const file of files) if((await run(dir,['hash-object','--',file])).trim()!==(await run(dir,['rev-parse',`${commit}:${file}`])).trim()) differ.push(file);
+          // solo se borra si todos son iguales: si el merge sigue sin poder hacerse, nada desaparece del disco
+          if(differ.length) throw new Error(`error: The following untracked working tree files would be overwritten by merge:\n${differ.map(f=>`\t${f}`).join('\n')}`);
+          for(const file of files) rmSync(join(dir,file));
+          await ff();
+        }
+      }
       else await run(repoDir,['update-ref',`refs/heads/${branch}`,commit,expected]);
     },
   };
