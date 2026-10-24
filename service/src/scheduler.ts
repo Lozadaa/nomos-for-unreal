@@ -20,7 +20,7 @@ export function plan(db:DatabaseSync,config:SchedulerConfig): PlanDecision[] {
     const occupied=conflicts(task.leases,leases,task.id);
     if(occupied.length) return wait(leaseWaitReason(occupied));
     const implementation=runs.filter(r=>r.taskId===task.id&&r.role!=='revisor').at(-1);
-    const implementer=implementation?.provider==='codex'||implementation?.provider==='claude' ? implementation.provider : undefined;
+    const implementer=['codex','claude','opencode'].includes(implementation?.provider ?? '') ? implementation!.provider as WorkerProvider : undefined;
     const selected=chooseProvider(task.assigneeRole ?? 'implementacion',config,usage,implementer,
       task.assigneeProvider==='codex'||task.assigneeProvider==='claude'||task.assigneeProvider==='opencode' ? task.assigneeProvider : undefined);
     if(!selected.provider) return wait(selected.reason);

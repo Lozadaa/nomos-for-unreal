@@ -2,19 +2,28 @@
 
 CLI `kratos worker start TASK --provider PROVEEDOR` y HTTP autenticado `POST /tasks/:id/worker`
 admiten `codex`, `claude` y `opencode`. La clave `worker.start:TASK:attempt` conserva el payload
-original. OpenCode es reconocido y persistible; devuelve `deferred` con «OpenCode sin adaptador
-disponible» antes de crear run, worktree o sesión, aun con concurrencia positiva.
+original. OpenCode (hito 12) corre con `opencode run`: el brief viaja en la orden, sin esperar una TUI.
 
 `service/src/handlers/worker-launch.ts` expone:
 
-| Función | Codex | Claude |
-| --- | --- | --- |
-| `launchCommand(provider): string` | `codex --yolo --no-daemon` | `claude --model sonnet --dangerously-skip-permissions` |
-| `readyPattern(provider): RegExp` | `Ask\s*Codex`, sin distinguir mayúsculas | `bypass permissions\|Try "`, sin distinguir mayúsculas |
-| `permissionPrompt(provider, lines): string \| null` | `null` | Primera línea con `Do you want to`, palabra `Allow` o `(y/n)` |
+| Función | Codex | Claude | OpenCode |
+| --- | --- | --- | --- |
+| `launchPlan(provider, model, short)` | orden + readiness, `briefInCommand: false` | igual | `briefInCommand: true` |
+| `launchCommand(provider, model, title)` | `codex --yolo --no-daemon` | `claude --model sonnet --dangerously-skip-permissions` | `opencode run --auto --model <opencodeModel> --title kratos-<id> Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.` |
+| `readyPattern(provider): RegExp` | `Ask\s*Codex` | `bypass permissions\|Try "` | no se espera |
+| `followUp(provider, model, line)` | la línea | la línea | `opencode run --continue --auto --model <modelo> <línea>` |
+| `permissionPrompt(provider, lines)` | `null` | Primera línea con `Do you want to`, `Allow` o `(y/n)` | `null` (`--auto`) |
 
-Las funciones de lanzamiento y readiness rechazan `opencode` con `unsupported_worker_provider`;
-otros valores producen `invalid_worker_provider`. No existe fallback de proveedor.
+Otros proveedores producen `invalid_worker_provider`; un modelo de OpenCode que no empiece por
+`opencode/` u `opencode-go/` (o lleve espacios o comillas) produce `invalid_opencode_model`.
+La orden de OpenCode no lleva comillas porque `terminalSend` las rechaza; `run` une las palabras
+del mensaje. Antes de lanzar, el servicio escribe `opencode.json` con el modelo en el árbol
+(excluido de Git como el brief) y guarda el modelo en `metadata.model`. Si el terminal responde que
+`opencode` no se reconoce o `Error: … Invalid credential`, el sondeo cierra el terminal, quita el
+árbol, falla la run (`discarded`, no incierta), emite `worker.failed` con «OpenCode no está instalado
+o no está en el PATH del terminal» u «OpenCode rechazó las credenciales: ejecuta opencode auth login»
+y devuelve la tarea a `preparada` asignada a Claude, sin Decisión. Cuando `run` termina sin marcador, el terminal queda en el prompt y el sondeo
+lo trata como «opencode espera instrucciones». No existe fallback de proveedor.
 
 El contrato Orca amplía `terminalWaitIdle(handle: string, timeoutMs: number, pattern?: RegExp): Promise<boolean>`.
 Omitir pattern conserva readiness Codex. Siempre lee el tail y exige el patrón real; `wait.satisfied: true`

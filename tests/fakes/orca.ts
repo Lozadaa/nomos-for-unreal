@@ -52,11 +52,14 @@ if (process.env.FAKE_ORCA_HANG === '1') {
       { startupTerminal: { spawned: true, handle: state.terminalHandle ?? 'term_fake' } }) });
   }
 } else if (args[0] === 'worktree' && args[1] === 'rm') {
-  if (value('--worktree') !== 'id:repo-1::C:/Juego trabajador') fail('invalid_selector');
+  if (value('--worktree') !== `id:repo-1::${state.treePath ?? 'C:/Juego trabajador'}`) fail('invalid_selector');
   else if ((state.rmBusy ?? 0) > 0 && !args.includes('--force')) {
     state.rmBusy--; save(); fail('worktree_remove_failed', 'EBUSY: resource busy or locked, rmdir');
   }
-  else emit({ removed: true, forced: args.includes('--force') });
+  else {
+    state.removed = [...(state.removed ?? []), value('--worktree').slice(3)]; save();
+    emit({ removed: true, forced: args.includes('--force') });
+  }
 } else if (args[0] === 'terminal' && args[1] === 'list') {
   if (value('--worktree') !== `id:repo-1::${state.treePath ?? 'C:/Juego trabajador'}`) fail('invalid_selector');
   else emit({ terminals: state.terminals ?? [{ handle: 'term_fake',
@@ -85,12 +88,15 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   if (!args.includes('--enter')) fail('missing_enter');
   else {
     const text=value('--text');
-    const launch=text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions$/.test(text);
+    const opencode=/^opencode run --auto --model \S+ --title kratos-[0-9a-f]{8} Lee el archivo \.kratos-brief\.md de esta carpeta y ejecuta lo que dice\.$/.test(text);
+    const launch=opencode||text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions$/.test(text);
     if (state.realRepo && launch && !existsSync(join(state.treePath,'.kratos-brief.md'))) {
       fail('missing_brief');
     } else {
     state.tail.push(text);
-    if (state.realRepo && launch) state.tail.push(ready());
+    if (state.realRepo && launch && !opencode) state.tail.push(ready());
+    if (opencode && process.env.FAKE_ORCA_OPENCODE_CREDENTIAL) state.tail.push('Error: Upstream request failed: Invalid credential');
+    if (opencode && process.env.FAKE_ORCA_OPENCODE_MISSING) state.tail.push("'opencode' is not recognized as an internal or external command,");
     if (claude && text==='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.')
       state.tail.push('Do you want to allow this command? (y/n)');
     save();

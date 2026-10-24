@@ -20,7 +20,7 @@ test('dependencias autenticadas se declaran antes de preparar y rechazan ciclos'
     assert.equal((await f.request(`/tasks/${a.id}/depends`,{dependsOn:['missing']})).status,404);
   } finally {await f.close();}
 });
-test('tarea acepta OpenCode como proveedor declarado sin adaptador',async()=>{
+test('tarea acepta OpenCode como proveedor declarado',async()=>{
   const f=await fixture();
   try {
     const response=await f.request('/tasks',{title:'OpenCode',area:'qa',spec:'Probar',acceptance:['Verde'],assigneeProvider:'opencode'});

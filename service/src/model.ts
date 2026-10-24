@@ -20,14 +20,14 @@ export type RunMetadata = {
   phase?: 'preparing' | 'running' | 'waiting' | 'finished'; deadlineAt?: string;
   lastOutputAt?: string; correctionCount?: number; pollGeneration?: number;
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
-  uncertain?: boolean;
+  uncertain?: boolean; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
   startCommandId?: string;
   review?: import('./review.ts').ReviewSnapshot;
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
   confirmedSkills?: string[]; seenAskMarkers?: string[];
   /** Modelo Claude con el que arrancó (workerModel); el relevo de terminal lo repite. */
-  model?: import('./config.ts').WorkerModel;
+  /** `sonnet`… para Claude; `opencode/…` para OpenCode (hito 12). */ model?: string;
   // trabajo de assets (hito 4): orden que lo creó y, en Meshy, el job remoto
   commandId?: string; remoteId?: string; kind?: string; stage?: string; idempotencyKey?: string;
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;

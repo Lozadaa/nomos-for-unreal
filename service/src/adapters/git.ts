@@ -57,7 +57,7 @@ export function createGit(): Git {
       const common=resolve(dir,(await run(dir,['rev-parse','--git-common-dir'])).trim());
       mkdirSync(join(common,'info'),{recursive:true});
       const file=join(common,'info','exclude'),old=existsSync(file) ? readFileSync(file,'utf8') : '';
-      const patterns=['/.kratos-brief.md','/.kratos-inbox/','/.kratos-review/',
+      const patterns=['/.kratos-brief.md','/opencode.json','/.kratos-inbox/','/.kratos-review/',
         ...gameSkills.map(name=>`/.claude/skills/${name}/`)];
       writeFileSync(file,old+'\n'+patterns.filter(p=>!old.split(/\r?\n/).includes(p)).join('\n')+'\n');
     },

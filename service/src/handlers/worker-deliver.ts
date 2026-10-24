@@ -6,7 +6,7 @@ import type { Orca } from '../adapters/orca.ts';
 import type { Run } from '../model.ts';
 import { updateRun } from '../repo/worker.ts';
 import { appendEvent } from '../store.ts';
-import { launchCommand } from './worker-launch.ts';
+import { launchCommand, followUp } from './worker-launch.ts';
 
 /** `agent_prompt_blocked` trae el id para reintentar la misma petición. */
 export const blockedRequest = (error: unknown): string | undefined =>
@@ -27,6 +27,7 @@ export function claudeSession(treePath: string, home = process.env.CLAUDE_CONFIG
  */
 export async function deliver(db: DatabaseSync, orca: Orca, run: Run, treePath: string, line: string, home?: string): Promise<string> {
   const handle = run.sessionRef!;
+  line = followUp(run.provider, run.metadata.model, line);
   let error: unknown;
   try { await orca.terminalSend(handle, line); return handle; } catch (e) { error = e; }
   const requestId = blockedRequest(error);

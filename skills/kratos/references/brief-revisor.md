@@ -2,7 +2,7 @@
 
 La revisión usa un run, rama, worktree y terminal propios. El implementador conserva su árbol.
 Con dos proveedores habilitados se elige el opuesto; con uno, el evento `review.started` incluye `same_provider: true`.
-Codex y Claude tienen launcher. OpenCode es un proveedor reconocido, sin adaptador disponible.
+Codex y Claude revisan. OpenCode nunca revisa: el revisor de una tarea de OpenCode es siempre Claude.
 
 ## Encargo de revisión
 
