@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { ownService } from './own-service'
 
 // Hito 10 · Tarea 4: varios juegos con su servicio; la portada los enseña y cada panel pide su token a su propio servicio.
@@ -6,7 +8,8 @@ let fab: ReturnType<typeof ownService>, game: ReturnType<typeof ownService>
 let token = ''
 test.beforeAll(({ browserName }) => {
   const base = browserName === 'firefox' ? 18770 : 18772
-  fab = ownService(base, 'KratosFabTest'); game = ownService(base + 1, 'BlockKings')
+  const registry = join(tmpdir(), `kratos-e2e-proyectos-${base}-${Date.now()}.json`)
+  fab = ownService(base, 'KratosFabTest', registry); game = ownService(base + 1, 'BlockKings', registry)
   token = fab.start(); game.start()
 })
 test.afterAll(() => { fab.dispose(); game.dispose() })

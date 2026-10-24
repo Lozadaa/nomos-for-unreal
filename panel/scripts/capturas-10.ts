@@ -13,7 +13,10 @@ import { visibleWords } from './palabras.ts'
 process.env.KRATOS_REGISTRY ??= join(tmpdir(), 'kratos-capturas-registro.json')
 const tag = process.argv[2]
 if (!tag) throw new Error('Falta la etiqueta: antes, despues, revision…')
-const copyFrom = process.argv.includes('--datos') ? process.argv[process.argv.indexOf('--datos') + 1] : null
+const arg = (name: string) => process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : null
+const copyFrom = arg('--datos'), project = arg('--proyecto') ?? 'CrazyPadel'
+// con una copia de datos reales el servicio no debe alcanzar los terminales de Orca de ese juego: fuera de su PATH
+if (copyFrom) process.env.PATH = (process.env.PATH ?? '').split(';').filter((dir) => !/orca/i.test(dir)).join(';')
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 const docs = resolve(import.meta.dirname, '../../docs')
 const out = join(docs, 'capturas-10')
@@ -28,7 +31,9 @@ const views = [
 function seedEntregas() {
   const dir = join(data, 'artifacts', 'captura-10')
   mkdirSync(dir, { recursive: true })
-  const images = ['capturas-7/unreal/build-linea-base.png', 'capturas-5b/pie-heroe-1280x720.png', 'capturas-7/unreal/build-sin-atmosfera.png', 'capturas-7/unreal/build-diferencia.png']
+  // las cuatro vistas reales del rig en KratosFabTest (Tarea 3) y su hoja de contactos
+  const images = ['capturas-10/fabtest/map-1280x720.png', 'capturas-10/fabtest/map-left.png', 'capturas-10/fabtest/map-right.png', 'capturas-10/fabtest/map-top.png']
+  copyFileSync(join(docs, 'capturas-10/fabtest/map-hoja.jpg'), join(dir, 'map-hoja.jpg'))
   const angles = ['player', 'left', 'right', 'top']
   images.forEach((from, i) => copyFileSync(join(docs, from), join(dir, `map-${angles[i]}.png`)))
   copyFileSync(join(docs, 'capturas-5b/manny-ataque-1280x720.mp4'), join(dir, 'ataque.mp4'))
@@ -46,6 +51,7 @@ function seedEntregas() {
     put.run(id, at, at, 'seed-task-08', kind, join(dir, file), preview ? join(dir, preview) : null, JSON.stringify({ synthetic: true, ...provenance }))
   }
   angles.forEach((view, i) => add(`c10-vista-${view}`, 'screenshot', `map-${view}.png`, { check: 'map', testRunId: 'c10-map', resolution: '1280x720', map: '/Game/Mapas/L_Gym', view }, null, 60 - i))
+  add('c10-hoja', 'screenshot', 'map-hoja.jpg', { check: 'map', testRunId: 'c10-map', resolution: '1280x720', map: '/Game/Mapas/L_Gym', sheet: true, label: 'Mapa · hoja de contactos' }, null, 55)
   add('c10-video', 'video', 'ataque.mp4', { check: 'animation', testRunId: 'c10-anim', resolution: '1280x720', label: 'Animación · ataque', durationSeconds: 3.2 }, 'ataque-50.png', 50)
   add('c10-log', 'report', 'log.txt', { check: 'map', testRunId: 'c10-map', result: 'passed', label: 'Mapa · registro' }, null, 40)
   add('c10-review', 'report', 'review.json', { kind: 'REVIEW', approved: false }, null, 30)
@@ -58,7 +64,7 @@ await new Promise<void>((ok) => free.listen(0, '127.0.0.1', ok))
 const port = String((free.address() as { port: number }).port)
 await new Promise<void>((ok) => free.close(() => ok()))
 mkdirSync(out, { recursive: true })
-writeFileSync(join(root, 'CrazyPadel.uproject'), '{}')
+writeFileSync(join(root, `${project}.uproject`), '{}')
 if (copyFrom) cpSync(copyFrom, data, { recursive: true, filter: (p) => !/service\.json$|\.lock\.db/.test(p) })
 else {
   execFileSync(process.execPath, [cli, 'seed', '--data', data], { stdio: 'ignore' })
@@ -77,6 +83,8 @@ try {
     for (const [name, path] of views) {
       await page.goto(`http://127.0.0.1:${port}${path}#token=${token}`)
       await page.locator('header').first().waitFor()
+      // primera visita: el service worker tarda en controlar la página; se espera a que se vayan los esqueletos
+      await page.locator('[aria-label^="Cargando"]').first().waitFor({ state: 'detached', timeout: 8000 }).catch(() => {})
       await page.waitForTimeout(1500)
       await page.screenshot({ path: join(out, `${name}-${tag}-${width}.png`) })
       const main = page.locator('main')

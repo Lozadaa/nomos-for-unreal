@@ -8,8 +8,9 @@ import { TaskRow } from '@/components/TaskRow'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
 import { useAfter, useNow } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
+import { useResource } from '@/hooks/useResource'
 import { useRuns } from '@/hooks/useRuns'
-import { stageLabel, stages, type Stage, type Task } from '@/lib/tasks'
+import { stageLabel, stages, type Artifact, type Stage, type Task } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
 import { ClosingNote } from './Closing'
@@ -19,9 +20,23 @@ import { EmptyState } from '@/visual/art/EmptyState'
 
 type Filter = 'todas' | Stage
 
+/** La última captura (o fotograma de vídeo) de cada tarea, para la miniatura de su fila. */
+function useLatestCaptures(): Map<string, string> {
+  const { data } = useResource<Artifact[]>('/artifacts', /^artifact\./)
+  return useMemo(() => {
+    const latest = new Map<string, Artifact>()
+    for (const a of Array.isArray(data) ? data : []) {
+      if (a.kind !== 'screenshot' && !(a.kind === 'video' && a.previewPath)) continue
+      if ((latest.get(a.taskId)?.createdAt ?? '') < a.createdAt) latest.set(a.taskId, a)
+    }
+    return new Map([...latest].map(([task, a]) => [task, `/artifacts/${encodeURIComponent(a.id)}/${a.kind === 'video' ? 'preview' : 'file'}`]))
+  }, [data])
+}
+
 export function Produccion() {
   const tasks = useStore((s) => s.tasks)
   const runs = useRuns()
+  const thumbs = useLatestCaptures()
   const byTask = useMemo(() => {
     const map = new Map<string, (typeof runs)[number]>()
     for (const run of [...runs].sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))) {
@@ -111,7 +126,7 @@ export function Produccion() {
                 {stageLabel[stage]}<span className="font-mono">{rows.length}</span>
               </h2>
               <ul>
-                {rows.map((t) => <li key={t.id}><TaskRow task={t} run={byTask.get(t.id)} agent={agentsByRunId.get(byTask.get(t.id)?.id ?? '')} now={now} open={t.id === openId} onOpen={open} />
+                {rows.map((t) => <li key={t.id}><TaskRow task={t} run={byTask.get(t.id)} agent={agentsByRunId.get(byTask.get(t.id)?.id ?? '')} now={now} open={t.id === openId} onOpen={open} thumb={thumbs.get(t.id)} />
                   {stage === 'cerrando' && <ClosingNote task={t} onOpen={(from) => open(t, from)} />}</li>)}
               </ul>
             </div>

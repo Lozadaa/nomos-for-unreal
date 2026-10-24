@@ -105,5 +105,7 @@ export function migrateChat(db: DatabaseSync): void {
     const columns = db.prepare('pragma table_info(messages)').all();
     for (const column of ['typing_at', 'timed_out_at'])
       if (!columns.some(row => row.name === column)) db.exec(`alter table messages add column ${column} text`);
+    // GET /messages lee los eventos de cada mensaje: sin índice, 0,64 s con 200 mensajes reales (Block Kings)
+    db.exec('create index if not exists events_message_id on events(message_id)');
   });
 }

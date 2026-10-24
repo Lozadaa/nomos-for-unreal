@@ -145,3 +145,17 @@ describe('Producción: lista viva', () => {
     expect(screen.getByText('No se pudo cerrar')).toBeInTheDocument()
   })
 })
+
+describe('Producción a todo el ancho (hito 10)', () => {
+  it('cada fila lleva la miniatura de su última entrega visual; sin entrega, el hueco vacío', async () => {
+    mockApi.mockImplementation((async (path: string) => path === '/tasks' ? [...server] : path === '/artifacts' ? [
+      { id: 'a-old', taskId: server[0].id, kind: 'screenshot', path: 'old.png', license: null, createdAt: '2026-10-23T09:00:00.000Z' },
+      { id: 'a-new', taskId: server[0].id, kind: 'screenshot', path: 'new.png', license: null, createdAt: '2026-10-23T11:00:00.000Z' },
+      { id: 'a-log', taskId: server[0].id, kind: 'report', path: 'log.txt', license: null, createdAt: '2026-10-23T12:00:00.000Z' },
+    ] : []) as typeof api)
+    await mount()
+    const thumb = await screen.findByRole('img', { name: 'Última entrega de Tarea 1' })
+    expect(thumb.getAttribute('src')).toContain('/artifacts/a-new/file')
+    expect(screen.queryByRole('img', { name: 'Última entrega de Probar recorrido' })).toBeNull()
+  })
+})

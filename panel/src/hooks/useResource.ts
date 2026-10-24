@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '@/api'
 import { useStore } from '@/store'
 
@@ -22,15 +22,23 @@ export function useResource<T>(path: string, refreshOn?: RegExp): Resource<T> {
     return refreshOn ? (s.events.findLast((e) => refreshOn.test(e.type))?.seq ?? 0) : 0
   })
 
+  // Límite de frecuencia, no rebote (hito 10): con datos reales la reproducción del SSE trae eventos sin pausa y un
+  // rebote aplazaba la petición mientras durase, dejando Presupuesto o Entregas en esqueletos.
+  const current = useRef(path)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  current.current = path
+  useEffect(() => () => { clearTimeout(timer.current); timer.current = undefined; current.current = '' }, [])
   useEffect(() => {
-    let alive = true
-    const timer = setTimeout(() => {
-      api<T>(path).then(
-        (next) => { if (alive) { setData(next); setError(null); setLoading(false) } },
-        (e: unknown) => { if (alive) { setError(e instanceof Error ? e.message : 'error'); setLoading(false) } },
+    if (timer.current) return
+    timer.current = setTimeout(() => {
+      timer.current = undefined
+      const asked = current.current
+      if (!asked) return
+      api<T>(asked).then(
+        (next) => { if (current.current === asked) { setData(next); setError(null); setLoading(false) } },
+        (e: unknown) => { if (current.current === asked) { setError(e instanceof Error ? e.message : 'error'); setLoading(false) } },
       )
     }, trigger || reloads ? 100 : 0)
-    return () => { alive = false; clearTimeout(timer) }
   }, [path, reloads, trigger])
 
   const reload = useCallback(() => setReloads((n) => n + 1), [])

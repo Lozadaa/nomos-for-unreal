@@ -4,6 +4,8 @@ import type { Run } from '@/lib/tasks'
 import { getSnapshot, subscribe } from '@/store'
 
 export type LiveRun = Run & { waiting: boolean }
+/** Espera tras el último evento antes de leer los runs: agrupa una ráfaga en una lectura por run. */
+const coalesceMs = 120
 type RunResponse = { run: Run; latestStatus: { waiting: boolean } }
 type Entry = {
   id: string; revision: number; requested: number; latestSeq: number; latestWorkerSeq: number
@@ -65,11 +67,14 @@ export function useRuns(): LiveRun[] {
           }
         }
       }
-      for (const entry of entries.values()) read(entry)
+      // hito 10: la reproducción del SSE llega a ráfagas (con datos reales, 170 lecturas en 5 s); se agrupan
+      // límite de frecuencia: una ráfaga sin pausa no aplaza las lecturas indefinidamente
+      flush ??= setTimeout(() => { flush = undefined; for (const entry of entries.values()) read(entry) }, coalesceMs)
     }
+    let flush: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = subscribe(observe)
     observe()
-    return () => { alive = false; unsubscribe() }
+    return () => { alive = false; clearTimeout(flush); unsubscribe() }
   }, [])
   return runs
 }
