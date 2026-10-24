@@ -89,6 +89,10 @@ test('elegir un preset MetaHuman encadena character.setup con su Blueprint y tar
     assert.deepEqual(setup.payload, {taskId: task.id, mesh: '/Game/MetaHumans/Hudson/BP_Hudson', targetSkeleton: 'metahuman',
       animations: ['/Game/Variant_Combat/Anims/AM_ComboAttack']});
     assert.ok(commands(f).some(c => c.type === 'asset.migrate' && c.payload.entryId === hudson.id));
+    // el clip vive sobre el esqueleto de los maniquíes UE5: su pack se migra también (origen del retarget)
+    const chars = f.entry('Maniquíes UE5 (Manny y Quinn)');
+    assert.ok(commands(f).some(c => c.type === 'asset.migrate' && c.payload.entryId === chars.id), 'falta el pack del esqueleto del clip');
+    assert.ok(commands(f).findIndex(c => c.payload.entryId === chars.id) < commands(f).findIndex(c => c.type === 'character.setup'));
   } finally { f.close(); }
 });
 

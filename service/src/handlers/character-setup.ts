@@ -29,7 +29,7 @@ function manualRetarget(ctx: WorkerContext, task: Task, row: TestRun, summary: s
   const rtg = typeof retarget.retargeter === 'string' ? retarget.retargeter.split('.')[0] : 'el IK Retargeter de /Game/Kratos/Retarget';
   openDecision(ctx.db, {taskId: task.id, reason: `${summary}: la animación no se aprueba rota`,
     evidence: [{kind: 'test', ref: row.id}, ...(retarget.critical_unmapped ?? []).map((c: string) => ({kind: 'cadena', ref: c}))],
-    options: [{id: 'manual', label: 'Retarget a mano', description: `1. Abre ${rtg} en el editor. 2. En Chain Mapping asigna origen a ${(retarget.critical_unmapped ?? []).join(', ')}. `
+    options: [{id: 'manual', label: 'Retarget a mano', description: `1. Abre ${rtg} en el editor. 2. En Chain Mapping empareja ${(retarget.critical_unmapped ?? []).join(', ')} (o elige un personaje que tenga esas cadenas). `
       + '3. Comprueba la pose en el visor del retargeter. 4. Guarda. 5. Vuelve a lanzar character.setup.'},
       {id: 'engine', label: 'Usar maniquí del motor', description: 'Cambiar el personaje por Manny, que comparte esqueleto con los clips de las plantillas'}]});
 }
@@ -62,6 +62,8 @@ export function createCharacterSetup(deps: CheckDeps = {}): Handler {
     const summary = event ? String(JSON.parse(event.payload as string).summary ?? '').split('\n')[0] : '';
     if (row.result === 'passed') {
       finishRun(ctx.db, run.id, 'done', summary || 'Personaje animado y comprobado');
+      // el bloqueo lo puso una comprobación anterior de esta misma orden de trabajo: con esta en verde, sobra
+      ctx.db.prepare("update tasks set blocked_reason=null,updated_at=? where id=? and blocked_reason like 'Animación rota%'").run(new Date().toISOString(), task.id);
       appendEvent(ctx.db, 'character.ready', null, {taskId: task.id, runId: run.id, testRunId: row.id, mesh: spec.mesh});
       return {passed: true, testRunId: row.id};
     }

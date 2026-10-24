@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { CatalogEntry } from '../model.ts';
@@ -30,6 +30,17 @@ export function versionWarning(entry: Pick<CatalogEntry, 'engineVersions'>, engi
 /** Preset MetaHuman de Megascans/Bridge: `Tier0/asset_ue/MetaHumans/{Common,<Nombre>}` se monta en `/Game/MetaHumans`. */
 export const metahuman = (entry: CatalogEntry) => entry.source === 'megascans' && entry.category === 'metahuman-preset';
 const presetRoot = (entry: CatalogEntry) => join(entry.localPath!, 'Tier0', 'asset_ue', 'MetaHumans');
+/** El Blueprint de un MetaHuman de Bridge usa nodos de LiveLink: sin el plugin no compila y se queda sin mallas (KratosFabTest, 2026-10-24). */
+export const metahumanPlugins = ['LiveLink'];
+function missingPlugins(uproject: string): string[] {
+  const enabled = new Set((JSON.parse(readFileSync(uproject, 'utf8')).Plugins ?? []).filter((p: {Enabled?: boolean}) => p.Enabled).map((p: {Name: string}) => p.Name));
+  return metahumanPlugins.filter(name => !enabled.has(name));
+}
+function enablePlugins(uproject: string, names: string[]): void {
+  const json = JSON.parse(readFileSync(uproject, 'utf8'));
+  json.Plugins = [...(json.Plugins ?? []).filter((p: {Name: string}) => !names.includes(p.Name)), ...names.map(Name => ({Name, Enabled: true}))];
+  writeFileSync(uproject, JSON.stringify(json, null, '\t') + '\n', 'utf8');
+}
 
 /** Packs del plugin Fab van a `Content/Fab/<pack>`; los del Launcher, a `Content/<pack>` como los deja el propio Launcher.
  *  Plantillas del motor: las compartidas (`TemplateResources/<nivel>/<Mount>/Content`) se montan en `/Game/<Mount>` y las de
@@ -67,6 +78,16 @@ export function createMigrate(deps: AssetDeps = {}): Handler {
     const {task, run} = commandRun(ctx, command, {title: `Migrar ${entry.name} a ${project.name}`,
       provider: 'unreal', role: 'arte', metadata: {entryId: entry.id}});
     // la puerta va antes de la reserva: reservar mientras la Decisión espera cambiaría su contexto y la caducaría
+    const plugins = metahuman(entry) ? missingPlugins(project.uproject) : [];
+    if (plugins.length) {
+      const ok = decisionGate(ctx, task, 'metahuman_plugins', `MetaHuman necesita el plugin ${plugins.join(', ')} en ${project.name}`, {plugins, project: project.name},
+        [{id: 'approve', label: `Activar ${plugins.join(', ')}`, description: `Añadirlo a ${basename(project.uproject)}, como hace Bridge al importar un MetaHuman`},
+          {id: 'cancel', label: 'No migrar', description: 'Sin el plugin, el Blueprint del MetaHuman no compila'}]);
+      if (!ok && requireTask(ctx.db, task.id).decisionId) return {deferred: true, reason: `Esperando decisión: plugin ${plugins.join(', ')}`};
+      if (!ok) { finishRun(ctx.db, run.id, 'cancelled', 'Sin los plugins de MetaHuman'); return {ok: false, skipped: 'metahuman_plugins'}; }
+      enablePlugins(project.uproject, plugins);
+      appendEvent(ctx.db, 'project.plugins_enabled', null, {taskId: task.id, project: project.name, plugins});
+    }
     let replace = false;
     // una plantilla del motor ya copiada no se reemplaza: se verifica lo que hay y se dice
     const existing = entry.source === 'engine' && existsSync(dest);

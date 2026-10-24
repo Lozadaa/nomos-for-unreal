@@ -44,14 +44,15 @@ test('asset.candidates abre la Decisión con tres tarjetas; la miniatura abre el
   await thumb.click()
   const viewer = page.getByRole('dialog', { name: 'MetaHuman Ada' })
   await expect(viewer).toBeVisible()
+  // las capturas de la aceptación (docs/capturas-5b) salen de KratosFabTest real; aquí quedan junto a los resultados
   if (browserName === 'chromium') {
-    mkdirSync('../docs/capturas-5b', { recursive: true })
-    await page.screenshot({ path: '../docs/capturas-5b/visor-candidato-1920.png' })
+    mkdirSync('test-results/candidatos', { recursive: true })
+    await page.screenshot({ path: 'test-results/candidatos/visor-candidato-1920.png' })
   }
   await page.keyboard.press('Escape')
   await expect(viewer).toBeHidden()
   expect((await mine())!.state, 'abrir la miniatura no elige').toBe('open')
-  if (browserName === 'chromium') await page.screenshot({ path: '../docs/capturas-5b/candidatos-1920.png' })
+  if (browserName === 'chromium') await page.screenshot({ path: 'test-results/candidatos/candidatos-1920.png' })
 
   await group.getByRole('button', { name: 'MetaHuman Bruno', exact: true }).click()
   await expect(page.getByRole('status', { name: /Elegiste MetaHuman Bruno\./ })).toBeVisible()

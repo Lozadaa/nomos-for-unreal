@@ -111,6 +111,18 @@ test('el vídeo junta la cámara frontal y la lateral en un solo MP4 (hstack)', 
   } finally { f.close(); }
 });
 
+test('un character.setup en verde tras uno roto quita el bloqueo «Animación rota» que puso el anterior', async () => {
+  const f = setup();
+  try {
+    process.env.KRATOS_FAKE = 'deform';
+    await f.run({}, 'roto');
+    assert.match(getTask(f.db, f.task.id)!.blockedReason!, /^Animación rota/);
+    process.env.KRATOS_FAKE = 'ok';
+    assert.equal((await f.run({}, 'bien')).passed, true);
+    assert.equal(getTask(f.db, f.task.id)!.blockedReason, null);
+  } finally { f.close(); }
+});
+
 test('sin ffmpeg: fotogramas en un zip con nombre y el resumen lo dice; nunca un vídeo inventado', async () => {
   const f = setup(null);
   try {

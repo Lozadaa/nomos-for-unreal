@@ -37,7 +37,10 @@ function choose(ctx: WorkerContext, task: Task, project: Project, payload: Paylo
   const {animations} = parse(payload);
   const {found, missing} = clips(ctx, animations);
   const target = typeof payload.targetProject === 'string' && payload.targetProject.trim() ? {targetProject: payload.targetProject} : {};
-  for (const entry of [...new Map([chosen.entry, ...found.map(c => c.entry)].map(e => [e.id, e])).values()])
+  // un clip necesita el pack con su esqueleto (las animaciones de combate viven sobre /Game/Characters): también se migra
+  const skeletons = found.flatMap(c => c.entry.tags.filter(t => t.startsWith('skeleton:')));
+  const bones = listCatalog(ctx.db).filter(e => e.category === 'character' && e.source === 'engine' && e.tags.some(t => skeletons.includes(t)));
+  for (const entry of [...new Map([chosen.entry, ...bones, ...found.map(c => c.entry)].map(e => [e.id, e])).values()])
     enqueue(ctx.db, 'asset.migrate', {entryId: entry.id, ...target}, `migrate:${entry.id}:${project.name}`);
   // después de las migraciones: el carril largo las ejecuta en orden de llegada y character.setup comprueba que la malla existe
   enqueue(ctx.db, 'character.setup', {taskId: task.id, mesh: chosen.mesh, ...(chosen.targetSkeleton ? {targetSkeleton: chosen.targetSkeleton} : {}),

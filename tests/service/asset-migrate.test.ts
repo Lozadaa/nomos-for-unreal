@@ -169,6 +169,7 @@ test('preset MetaHuman de Megascans: copia MetaHumans/<Nombre> y Common sin pisa
   const f = assetFixture();
   try {
     process.env.KRATOS_FAKE = 'ok';
+    writeFileSync(join(f.projectDir, 'Juego.uproject'), JSON.stringify({Plugins: [{Name: 'LiveLink', Enabled: true}]}));
     const hudson = await f.run('asset.migrate', {entryId: f.entry('Hudson').id});
     assert.equal(hudson.ok, true, JSON.stringify(hudson));
     assert.equal(hudson.root, '/Game/MetaHumans/Hudson');
@@ -180,5 +181,25 @@ test('preset MetaHuman de Megascans: copia MetaHumans/<Nombre> y Common sin pisa
     assert.ok(existsSync(join(f.projectDir, 'Content', 'MetaHumans', 'Emory', 'BP_Emory.uasset')));
     assert.equal(readFileSync(common, 'utf8'), '4dlykISk', 'el Common compartido no se sobrescribe');
     assert.deepEqual(listDecisions(f.db, 'open'), []);
+  } finally { f.close(); }
+});
+
+test('preset MetaHuman sin LiveLink en el proyecto: Decisión antes de activarlo en el .uproject; «Activar» lo añade sin tocar el resto', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const uproject = join(f.projectDir, 'Juego.uproject');
+    writeFileSync(uproject, JSON.stringify({FileVersion: 3, Plugins: [{Name: 'PythonScriptPlugin', Enabled: true}]}, null, '\t'));
+    const hudson = f.entry('Hudson');
+    const first = await f.run('asset.migrate', {entryId: hudson.id}, 'mh');
+    assert.equal(first.deferred, true);
+    const [decision] = listDecisions(f.db, 'open');
+    assert.match(decision.reason, /MetaHuman necesita el plugin LiveLink/);
+    assert.deepEqual(decision.options.map(o => o.id), ['approve', 'cancel']);
+    assert.ok(!existsSync(join(f.projectDir, 'Content', 'MetaHumans')), 'nada se copia antes de decidir');
+    resolveDecision(f.db, decision.id, 'approve', 'usuario');
+    assert.equal((await f.run('asset.migrate', {entryId: hudson.id}, 'mh')).ok, true);
+    const plugins = JSON.parse(readFileSync(uproject, 'utf8')).Plugins;
+    assert.deepEqual(plugins, [{Name: 'PythonScriptPlugin', Enabled: true}, {Name: 'LiveLink', Enabled: true}]);
   } finally { f.close(); }
 });

@@ -121,7 +121,8 @@ def retarget(animations, target_mesh_path, dest, source_mesh_path=None, target_r
             mapped_sources.add(source_chain)
             report["chains"].append({"target": target_chain, "source": source_chain})
     report["unmapped_source_chains"] = [c for c in chains_of(source_rig) if c not in mapped_sources]
-    report["critical_unmapped"] = [c for c in report["unmapped_target_chains"] if CRITICAL.search(c)]
+    # principal sin pareja en cualquiera de los dos lados: un clip con piernas sobre un esqueleto sin piernas tampoco vale
+    report["critical_unmapped"] = [c for c in report["unmapped_target_chains"] + report["unmapped_source_chains"] if CRITICAL.search(c)]
     if report["critical_unmapped"]:
         report["errors"].append("Cadenas principales sin mapear: " + ", ".join(report["critical_unmapped"]))
         unreal.EditorAssetLibrary.save_directory(dest)
