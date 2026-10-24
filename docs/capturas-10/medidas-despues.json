@@ -1,0 +1,98 @@
+{
+  "revision": "2768cec",
+  "datos": "semilla + entregas de capturas-10",
+  "medidas": {
+    "produccion": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 129
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 131
+      }
+    },
+    "actividad": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 41
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 39
+      }
+    },
+    "entregas": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 69,
+        "cardsPerRow": 4
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 69,
+        "cardsPerRow": 6
+      }
+    },
+    "catalogo": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 153
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 153
+      }
+    },
+    "chat": {
+      "1366": {
+        "contentWidth": 764,
+        "words": 11
+      },
+      "1920": {
+        "contentWidth": 764,
+        "words": 11
+      }
+    },
+    "decisiones": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 64
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 64
+      }
+    },
+    "presupuesto": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 58
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 58
+      }
+    },
+    "capacidades": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 121
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 121
+      }
+    },
+    "estilo": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 443
+      },
+      "1920": {
+        "contentWidth": 1872,
+        "words": 443
+      }
+    }
+  }
+}

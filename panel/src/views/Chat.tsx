@@ -98,7 +98,7 @@ export function Chat() {
   const submit = () => { if (text.trim()) void send.fire() }
 
   return (
-    <div className="flex h-[calc(100dvh-var(--k-header)-var(--k-tabs)-3rem)] min-h-96 flex-col">
+    <div className="mx-auto flex h-[calc(100dvh-var(--k-header)-var(--k-tabs)-3rem)] min-h-96 w-full max-w-(--k-prose) flex-col">
       <ul aria-label="Conversación con Kratos" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
         {count === 0 && (
           <li className="m-auto">
