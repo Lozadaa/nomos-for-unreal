@@ -25,7 +25,7 @@ comandos se ejecutan desde el juego con `--data .kratos`.
    avisa de cambios locales, se conservan y lo dices en una línea.
    Invocar la skill por sí solo no crea tareas ni arranca workers.
 2. El comando abre el navegador. Muestra la URL en `show_pane preview` si existe.
-   Tras reiniciar, abre la URL nueva: rota el token y el anterior deja de servir.
+   Tras reiniciar, abre la URL nueva (rota el token). Un servicio por juego: [panel por proyecto](references/contrato-eventos.md#panel-por-proyecto).
 3. Consulta `kratos status --data .kratos`. Si otra sesión tiene vigilante vivo,
    conserva esa directora. En otro caso, arma `Monitor` durante 30 minutos con
    `kratos vigila --session <sesion> --data .kratos --types <tipos>` con

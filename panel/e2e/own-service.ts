@@ -4,12 +4,13 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
+process.env.KRATOS_REGISTRY ??= join(tmpdir(), 'kratos-e2e-registro.json')
 
 /** Servicio propio (otro puerto y carpeta) para las pruebas que lo paran y lo arrancan sin tocar el compartido. */
-export function ownService(port: number) {
+export function ownService(port: number, project = 'CrazyPadel') {
   const root = mkdtempSync(join(tmpdir(), 'kratos-e2e-propio-'))
   const data = join(root, '.kratos')
-  writeFileSync(join(root, 'CrazyPadel.uproject'), '{}')
+  writeFileSync(join(root, `${project}.uproject`), '{}')
   execFileSync(process.execPath, [cli, 'seed', '--data', data], { stdio: 'ignore' })
   const token = () => (JSON.parse(readFileSync(join(data, 'service.json'), 'utf8')) as { token: string }).token
   const start = () => {

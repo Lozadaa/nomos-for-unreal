@@ -2,15 +2,18 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Button } from '@/components/ui/button'
 import { relativeTime } from '@/lib/time'
 import { useSyncExternalStore } from 'react'
+import { useInRouterContext } from 'react-router'
 import type { Status } from '@/api'
 import { onSession, sessionState } from '@/session'
 import { DirectorDot, directorState, typingActive } from './DirectorDot'
+import { ProjectSwitcher } from './ProjectSwitcher'
 import { Glyph } from '@/visual/Glyph'
 import { useStore } from '@/store'
 
 export function Header({ project, status, onCommand, onTogglePause, pausePending = false }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean }) {
   const session = useSyncExternalStore(onSession, sessionState)
   const typing = useStore((s) => typingActive(s.events))
+  const routed = useInRouterContext()
   const state = directorState(status, session, typing)
   const confirmation = status?.lastAckAt ? relativeTime(status.lastAckAt) : 'sin confirmaciones todavía'
   return (
@@ -18,6 +21,7 @@ export function Header({ project, status, onCommand, onTogglePause, pausePending
       <span className="font-semibold tracking-tight">Kratos</span>
       <span aria-hidden className="text-muted-foreground">/</span>
       <h1 className="text-sm font-medium">{project}</h1>
+      {routed && <ProjectSwitcher />}
       <div data-tour-anchor="director" className="ml-4">
         <Tooltip>
           <TooltipTrigger render={<span tabIndex={0} className="inline-flex rounded-sm" />}>

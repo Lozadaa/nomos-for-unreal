@@ -158,3 +158,17 @@ con el título). Pasa `--message <messageId>` a `task create`, `decision open` y
 el servicio enlaza al último mensaje leído en los últimos 15 min. `GET /messages` devuelve
 `{id,text,createdAt,state,readAt,typingAt,repliedAt,timedOut,replies,links}` y el vigilante entrega los
 `message.*` antes que el resto de cada lote.
+
+## Panel por proyecto
+
+Cada juego arranca su propio servicio (`kratos start --data .kratos` en la carpeta del juego) con puerto y token
+propios. Al arrancar se apunta en `%LOCALAPPDATA%\kratos\projects.json` (nombre del `.uproject`, carpeta, puerto,
+pid; nunca el token) y al parar se borra; una entrada cuyo pid ya no existe caduca en el siguiente arranque.
+`GET /projects` (con token) devuelve los proyectos con tareas vivas, Decisiones abiertas y si hay captura;
+`GET /projects/<puerto>/capture` sirve la última captura de cada uno.
+
+El panel abre la portada `/proyectos` la primera vez de la sesión si hay más de un proyecto, y la cabecera lleva
+el nombre del `.uproject` con un selector. Abrir otro juego es ir a `http://127.0.0.1:<puerto>/`: ese panel pide su
+token a su propio servicio (`GET /session`, solo para su mismo origen: Host `127.0.0.1:<puerto>` y nada de webs
+ajenas). Para dar al usuario el panel correcto, pásale la URL que imprime `kratos start` en la carpeta de su juego,
+o dile que abra cualquiera y elija el juego en la portada.

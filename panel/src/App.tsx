@@ -11,6 +11,7 @@ import { Decisiones } from '@/views/Decisiones'
 import { Entregas } from '@/views/Entregas'
 import { Estilo } from '@/views/Estilo'
 import { Presupuesto } from '@/views/Presupuesto'
+import { Proyectos } from '@/views/Proyectos'
 
 const pages: Record<string, React.ReactElement> = {
   '/': <Produccion />, '/actividad': <Actividad />, '/entregas': <Entregas />, '/catalogo': <Catalogo />, '/chat': <Chat />,
@@ -21,7 +22,8 @@ const pages: Record<string, React.ReactElement> = {
 export const router = createBrowserRouter([
   {
     element: <Layout />,
-    children: views.map((v) => (v.to === '/' ? { index: true, element: pages[v.to] } : { path: v.to.slice(1), element: pages[v.to] })),
+    children: [...views.map((v) => (v.to === '/' ? { index: true, element: pages[v.to] } : { path: v.to.slice(1), element: pages[v.to] })),
+      { path: 'proyectos', element: <Proyectos /> }],
   },
 ])
 

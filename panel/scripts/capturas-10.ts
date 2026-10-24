@@ -10,6 +10,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { chromium } from '@playwright/test'
 import { visibleWords } from './palabras.ts'
 
+process.env.KRATOS_REGISTRY ??= join(tmpdir(), 'kratos-capturas-registro.json')
 const tag = process.argv[2]
 if (!tag) throw new Error('Falta la etiqueta: antes, despues, revision…')
 const copyFrom = process.argv.includes('--datos') ? process.argv[process.argv.indexOf('--datos') + 1] : null

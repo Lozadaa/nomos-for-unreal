@@ -5,6 +5,8 @@ import { join, resolve } from 'node:path'
 
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 const PORT = '18791'
+// los servicios de los e2e no se apuntan en el registro de proyectos de la máquina
+process.env.KRATOS_REGISTRY ??= join(tmpdir(), 'kratos-e2e-registro.json')
 
 /** Servicio de prueba con la semilla real y un .uproject; los datos viven en una carpeta temporal que el teardown borra. */
 export default function setup() {
