@@ -163,6 +163,7 @@ En `main` se habían visto fallos sueltos que pasaban al repetir. Cinco pasadas 
   (hallazgo 15), y que la spec de una tarea herede las reglas del usuario (Config local fuera de los commits).
 - `npm test` bajo carga vuelve a fallar al cierre (ver Puertas): las pruebas con plazos de reloj real (vigilante, espera
   de Orca, CLI) y un error de enlace intermitente en `build-walkthrough.test.ts` sin causa encontrada. En secuencia, verde.
+  Cuando la prueba del CLI vence su plazo deja vivo el servicio que arrancó (`kratos-cli-*` en Temp): quedaron cuatro.
 - El revisor no es determinista con el mismo commit (aprobó y rechazó `64fbcb3`); no hay segunda opinión automática.
 - Quedan copias del `SecurityToken` generado por Unreal en los `.kratos-review/diff.patch` de las revisiones de
   `kratos-2e3d41ae` (tarea de hitos anteriores, sin cerrar). Las de B se fueron al cerrar: el archivo de B, `kratos.db` y
