@@ -24,3 +24,9 @@ test('hito 5b: asset acepta un plano (grosor 0) y las tarjetas de pelo de un Gro
   const bad = await run([mesh('Punto', {bounds_cm: [0, 0, 0]}), mesh('Roca', {materials: [null], bounds_cm: [50, 50, 50]})]);
   assert.deepEqual(bad.summary, ['/Game/MetaHumans/Punto: escala fuera de rango (0 × 0 × 0 cm)', '/Game/MetaHumans/Roca: material vacío']);
 });
+
+test('hito 5b: el escenario de animación de Kratos no es el mapa de juego de map ni de build', async () => {
+  const {gameMap} = await import('../../service/src/checks/map.ts');
+  assert.equal(gameMap(['Content/Kratos/Maps/AnimTest.umap', 'kratos-personaje.json']), undefined);
+  assert.equal(gameMap(['Content/Kratos/Maps/AnimTest.umap', 'Content/Mapas/Arena.umap']), '/Game/Mapas/Arena');
+});

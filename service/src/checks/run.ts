@@ -91,8 +91,8 @@ function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outc
   for (const shot of (outcome.artifacts ?? []).filter(a => a.kind === 'screenshot')) {
     const base = basename(shot.path, extname(shot.path)).replace(/^HighresScreenshot\d+$/i, '1280x720');
     // hito 5b: la línea base es de un mapa; un build o un PIE de otro mapa se compara con la suya (o la crea)
-    const map = outcome.map ? `${outcome.map.split('/').at(-1)}-` : '';
-    const name = base.startsWith(`${id}-`) ? base : `${id}-${map}${base}`;
+    const map = ['map', 'build'].includes(id) && outcome.map ? `${outcome.map.split('/').at(-1)}-` : '';
+    const name = `${id}-${map}${base.startsWith(`${id}-`) ? base.slice(id.length + 1) : base}`;
     try {
       const visual = compareBaseline(shot.path, join(ctx.projectDir, 'docs', 'baseline'), name, tolerance, join(dir, `${name}-diferencia.png`));
       lines.push(visual.summary);

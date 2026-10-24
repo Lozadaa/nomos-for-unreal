@@ -4,7 +4,7 @@ import { basename, dirname, join } from 'node:path';
 import { buildCookRun, errorLines } from '../adapters/unreal-build.ts';
 import { quote } from '../adapters/process.ts';
 import { readConfig } from '../config.ts';
-import { packages } from './blueprint.ts';
+import { gameMap } from './map.ts';
 import { buildOf, type Executor, type Launch } from './run.ts';
 
 const pngs = (dir: string): string[] => !existsSync(dir) ? [] : readdirSync(dir, {withFileTypes: true})
@@ -56,7 +56,7 @@ export const launch = (exe: string, args: string[], ms: number): Promise<Launch>
 export const buildCheck: Executor = async (ctx, {project, files, dir}, deps) => {
   const out = join(dir, 'build');
   const config = readConfig(ctx.dataDir) as {walkthrough?: {map?: unknown; commands?: unknown}};
-  const map = typeof config.walkthrough?.map === 'string' ? config.walkthrough.map : packages(files, f => /\.umap$/i.test(f))[0];
+  const map = typeof config.walkthrough?.map === 'string' ? config.walkthrough.map : gameMap(files);
   const result = await buildCookRun(project.uproject, out, buildOf(ctx, deps), map ? [map] : []);
   if (!result.ok || !result.exePath) return {result: 'failed', log: result.log, config: 'Development Win64',
     summary: result.errors.length ? result.errors : ['El empaquetado no produjo un ejecutable']};
