@@ -76,6 +76,9 @@ Conserva commandId devuelto al arrancar. `worker start` usa attempt 1 y clave
 No incrementes attempt para eludir un fallo de efecto incierto. Si la creación se
 interrumpió antes de guardar su ID, consulta `GET /tasks` y evidencia de eventos:
 `task create` no tiene clave de idempotencia; repetirlo puede crear otra tarea.
+Prioridad: `--priority N` al crear o `nomos task priority TAREA N` después (entero, 0 por
+defecto, mayor arranca antes; a igual prioridad, la más antigua). Úsala para lo urgente en
+vez de pausar el planificador y arrancar a mano.
 
 ## Estado actual antes de eventos reentregados
 

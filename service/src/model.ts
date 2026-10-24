@@ -12,6 +12,7 @@ export type Task = Entity & {
   dependsOn: string[]; worktreeId: string | null; budgetId: string | null; scope: string[];
   leases: string[]; reviewApproved: 0 | 1; waitReason: string | null;
   attribution: Attribution; archivePath: string | null;
+  /** hito 13: mayor arranca antes; empate por fecha de creación */ priority: number;
 };
 /** Quién hizo qué en la tarea (hito 6): implemento, reviso, genero, integro, verifico. */
 export type Attribution = Record<string, {runId: string; provider: string; agentName: string; at: string}[]>;

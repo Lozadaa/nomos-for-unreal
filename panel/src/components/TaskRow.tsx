@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { ChevronsDown, ChevronsUp } from 'lucide-react'
 import { StatusDot } from './StatusDot'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import { nameFor } from '@/feel/transitions'
@@ -51,6 +52,8 @@ function TaskRowView({ task, run, agent, now, open, onOpen, thumb }: {
           <span className="sr-only">{statusText(task)}</span>
         </span>
         <span className="flex min-w-0 items-baseline gap-3">
+          {!!task.priority && <span data-task-priority={task.priority > 0 ? 'up' : 'down'} role="img" aria-label={`Prioridad ${task.priority}`}
+            className="shrink-0 self-center text-muted-foreground">{task.priority > 0 ? <ChevronsUp size={14} aria-hidden /> : <ChevronsDown size={14} aria-hidden />}</span>}
           <span data-task-title className="truncate font-medium" title={task.title}
             style={{ viewTransitionName: open ? undefined : nameFor('task', task.id), viewTransitionClass: 'k-title' } as React.CSSProperties}>{task.title}</span>
           <span data-task-id-text className="shrink-0 font-mono text-xs text-muted-foreground">{temp ? 'enviando' : shortId(task.id)}</span>

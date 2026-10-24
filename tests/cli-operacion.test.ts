@@ -18,3 +18,13 @@ test('CLI task reconcile encola la reconciliación de la tarea y la ejecuta el s
   assert.equal(command.type,'task.reconcile');assert.deepEqual(command.payload,{taskId:task.id});
   assert.equal(cli(dataDir,'task','reconcile').status,1);
 });
+
+test('CLI task create --priority y task priority TAREA N',{timeout:30_000},async t=>{
+  const {dataDir,port}=await cliFixture(t);cli(dataDir,'start','--port',String(port),'--no-open');
+  const created=cli(dataDir,'task','create','--title','Urgente','--area','qa','--priority','4');
+  assert.equal(created.status,0,created.stderr);const task=JSON.parse(created.stdout);assert.equal(task.priority,4);
+  const changed=cli(dataDir,'task','priority',task.id,'-1');assert.equal(changed.status,0,changed.stderr);
+  assert.equal(JSON.parse(changed.stdout).priority,-1);
+  assert.equal(cli(dataDir,'task','priority',task.id,'alta').status,1);
+  assert.equal(cli(dataDir,'task','create','--title','X','--area','qa','--priority','1.5').status,1);
+});
