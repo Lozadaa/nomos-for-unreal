@@ -161,6 +161,9 @@ intento original: conserva commandId y autorización, reevalúa políticas y sol
 un bloqueo previo a efectos marcado `policyBlocked:true`. No aumentes attempt para
 eludir una Decisión ni repitas efectos inciertos; un worker anterior se reconcilia (abajo).
 
+Marcas largas: el servicio reensambla una marca partida por el terminal (hasta 40 líneas u 8 KB) y
+lee antes `.nomos-inbox/done.json`, `review.json` o `ask.json` del worktree si el worker lo dejó.
+
 ## Reconciliar un worker anterior
 
 `nomos worker stop RUN` ya reconcilia: cierra su terminal (si sigue vivo, reintenta cada 30 s

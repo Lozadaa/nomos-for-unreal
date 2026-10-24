@@ -7,7 +7,7 @@ import { appendEvent } from '../store.ts';
 import { pauseForDecision } from './worker-decisions.ts';
 import { refreshPendingDecision } from '../repo/decisions.ts';
 import { createHash } from 'node:crypto';
-import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './worker-markers.ts';
+import { streamMarkers, screenMarkers, markerId, compactMarkerText, inboxMarkers } from './worker-markers.ts';
 import { finishReview } from './review-finish.ts';
 import { permissionPrompt, opencodeFatal } from './worker-launch.ts';
 import { discardOpencode } from './worker-opencode.ts';
@@ -18,7 +18,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
   if (run.state!=='running' || (payload.generation ?? 0)!==(run.metadata.pollGeneration ?? 0)) return;
-  runTree(db,run);
+  const inbox=inboxMarkers(runTree(db,run).path);
   if (run.metadata.deadlineAt && Date.now()>=Date.parse(run.metadata.deadlineAt)) throw new Error('orca: tiempo máximo de 4 horas agotado');
   const task=requireTask(db,run.taskId);
   if(task.decisionId || task.blockedReason) {
@@ -38,7 +38,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   const changed=!snapshot || fingerprint!==run.metadata.screenFingerprint;
   const lines=changed ? snapshot ? screenLines : frame : [];
   const parsed=streamMarkers(snapshot ? [] : lines,stream.oldestCursor ? '' : run.metadata.markerBuffer ?? '',run.metadata.markerFence ?? '');
-  const observed=snapshot ? changed ? screenMarkers(screenLines) : [] : parsed.found;
+  const observed=[...inbox.found,...snapshot ? changed ? screenMarkers(screenLines) : [] : parsed.found];
   const seen=run.metadata.seenDoneMarkers ?? [],legacy=run.metadata.legacyDoneSummaries ?? [];
   // Una pregunta en pantalla sigue visible tras contestarla: en snapshots solo cuenta la primera vez.
   const seenAsk=run.metadata.seenAskMarkers ?? [],asks=observed.flatMap(m=>m.kind==='ASK' ? [compactMarkerText(m.question)] : []);
@@ -95,5 +95,6 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
     const current=requireTask(db,run.taskId);
     if(current.decisionId || current.blockedReason) pauseForDecision(db,run.taskId,run.id);
   });
+  inbox.consume();
   if(review) await finishReview(ctx,run,review);
 };
