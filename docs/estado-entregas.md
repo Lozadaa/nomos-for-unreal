@@ -28,6 +28,9 @@ probado en KratosFabTest; portada `/proyectos` y selector en la cabecera, regist
 del propio origen; chat en vivo (estados con hora, «escribiendo», tarjetas de lo creado, Markdown seguro, sin scroll
 horizontal); revisión con datos reales de Block Kings (Entregas y Presupuesto ya cargan, 170 → 85 lecturas de runs,
 `/messages` 0,64 → 0,003 s, miniatura en la fila de Producción).
+Correcciones de Fable: la tarjeta de cada proyecto enseña su última captura real (el service worker no cubría
+`/projects/:puerto/capture`) o un marcador con el nombre si no hay o no carga; el subrayado de la pestaña activa se
+recoloca cuando cambian los anchos y desaparece en la portada.
 
 ```
 node panel/scripts/capturas-10.ts <etiqueta> [--datos <copia de .kratos>] [--proyecto <nombre>]

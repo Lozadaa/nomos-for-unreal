@@ -22,10 +22,22 @@ export function Tabs() {
   const pending = useStore((s) => s.tasks.filter((t) => t.decisionId).length)
 
   // indicador deslizante bajo la pestaña activa (transición de 180 ms en CSS)
+  // se recoloca también cuando una pestaña cambia de ancho (el contador de Decisiones llega después, carga la fuente,
+  // cambia la ventana): antes se quedaba bajo la pestaña anterior (hito 10, corrección de Fable)
   useLayoutEffect(() => {
-    const active = nav.current?.querySelector<HTMLElement>('[aria-current="page"]')
-    if (active) setBar({ x: active.offsetLeft, w: active.offsetWidth })
-  }, [pathname])
+    const place = () => {
+      const active = nav.current?.querySelector<HTMLElement>('[aria-current="page"]')
+      // sin pestaña activa (la portada de proyectos) no hay subrayado
+      const x = active?.offsetLeft ?? 0, w = active?.offsetWidth ?? 0
+      setBar((bar) => bar.x === x && bar.w === w ? bar : { x, w })
+    }
+    place()
+    if (typeof ResizeObserver === 'undefined' || !nav.current) return
+    const observer = new ResizeObserver(place)
+    observer.observe(nav.current)
+    for (const link of nav.current.querySelectorAll('a')) observer.observe(link)
+    return () => observer.disconnect()
+  }, [pathname, pending])
 
   return (
     <nav ref={nav} aria-label="Vistas" className="relative flex h-(--k-tabs) items-stretch gap-1 border-b border-subtle px-6">

@@ -22,6 +22,10 @@ test('portada al abrir con varios proyectos; el otro juego se abre sin token en 
   const card = page.getByRole('listitem').filter({ hasText: 'BlockKings' })
   await expect(card).toContainText(/tareas? vivas?/)
   await expect(page.locator('main')).not.toContainText(token)
+  // la miniatura es la última captura real del otro juego: cargada de verdad, no una imagen rota
+  const shot = card.getByRole('img', { name: 'Última captura de BlockKings' })
+  await expect.poll(() => shot.evaluate((img: HTMLImageElement) => img.complete ? img.naturalWidth : 0)).toBeGreaterThan(0)
+  await page.waitForTimeout(300) // el subrayado de la pestaña termina su transición antes de la captura
   if (browserName === 'chromium') await page.screenshot({ path: '../docs/capturas-10/portada-proyectos-1920.png' })
   await card.getByRole('link').click()
   await expect(page).toHaveURL(new RegExp(`^${game.origin}/`))
@@ -29,5 +33,6 @@ test('portada al abrir con varios proyectos; el otro juego se abre sin token en 
   await expect(page.getByText('Sin sesión')).toHaveCount(0)
   await page.getByRole('button', { name: 'Cambiar de proyecto' }).click()
   await expect(page.getByRole('menuitem', { name: 'KratosFabTest' })).toHaveAttribute('href', `${fab.origin}/`)
+  await page.waitForTimeout(300)
   if (browserName === 'chromium') await page.screenshot({ path: '../docs/capturas-10/selector-proyectos-1920.png' })
 })

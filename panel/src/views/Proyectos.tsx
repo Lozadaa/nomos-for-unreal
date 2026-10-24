@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { useAuthedSrc } from '@/hooks/artifact'
 import { useResource } from '@/hooks/useResource'
 import { BRAND } from '@/lib/brand'
 import { humanError } from '@/lib/errors'
-import { Glyph } from '@/visual/Glyph'
+import { AreaPictogram } from '@/visual/art/AreaPictogram'
 
 /** Lo que devuelve `GET /projects` (hito 10): sin tokens ni rutas de datos. */
 export interface Project { name: string; dir: string; port: number; alive: boolean; current: boolean; liveTasks?: number; openDecisions?: number; hasCapture?: boolean }
@@ -14,11 +15,16 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 function Card({ p }: { p: Project }) {
   const capture = useAuthedSrc(p.hasCapture ? `/projects/${p.port || 0}/capture` : null)
+  const [broken, setBroken] = useState(false)
   const body = (
     <>
       <div className="aspect-video overflow-hidden border-b border-subtle bg-card">
-        {capture ? <img src={capture} alt={`Última captura de ${p.name}`} width={480} height={270} className="size-full object-cover" loading="lazy" />
-          : <span className="grid size-full place-items-center text-muted-foreground"><Glyph kind="artifact" value="screenshot" size={48} /></span>}
+        {capture && !broken ? <img src={capture} alt={`Última captura de ${p.name}`} width={480} height={270} className="size-full object-cover" loading="lazy" onError={() => setBroken(true)} />
+          // sin captura o si no carga: el pictograma de escenario del taller art/, nunca una imagen rota
+          : <span role="img" aria-label={`${p.name} sin captura`} className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
+            <span aria-hidden className="contents"><AreaPictogram area="escenarios" size={48} /></span>
+            <span aria-hidden className="text-sm">{p.name}</span>
+          </span>}
       </div>
       <div className="flex flex-col gap-1 p-3">
         <span className="flex items-center gap-2 font-medium">{p.name}{p.current && <span className="text-xs font-normal text-muted-foreground">· este panel</span>}</span>

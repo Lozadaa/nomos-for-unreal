@@ -39,6 +39,7 @@ test('envío → leído → escribiendo → tarjeta de la tarea creada → respu
   const cards = page.getByRole('list', { name: 'Creado a partir de tu mensaje' })
   await expect(cards.getByRole('link', { name: /^J1\.6 Reacción al golpe/ })).toHaveAttribute('href', `/?tarea=${created.id}`)
   await expect(page.getByRole('status', { name: 'Kratos está escribiendo…' })).toBeVisible()
+  await page.waitForTimeout(300) // el subrayado de la pestaña termina su transición
   if (browserName === 'chromium') await page.screenshot({ path: '../docs/capturas-10/chat-en-vivo-1920.png' })
 
   await call(page, `/messages/${messageId}/reply`, { text: 'Listo. Tareas:\n1) J1.6 Reacción al golpe · **preparada**\n2) J1.7 Dash sin vuelo · preparada\n3) J1.8 Estamina y peso · pendiente' })
@@ -47,7 +48,9 @@ test('envío → leído → escribiendo → tarjeta de la tarea creada → respu
   await expect(page.locator('main')).not.toContainText(created.id)
   await call(page, '/tasks', { title: 'J1.8 Estamina y peso', area: 'animacion', spec: '', acceptance: [], messageId })
   await expect(cards.getByRole('link')).toHaveCount(3)
+  await page.waitForTimeout(300) // el subrayado de la pestaña termina su transición
   if (browserName === 'chromium') await page.screenshot({ path: '../docs/capturas-10/chat-markdown-1920.png' })
+  await page.waitForTimeout(300) // el subrayado de la pestaña termina su transición
   if (browserName === 'chromium') await page.screenshot({ path: '../docs/capturas-10/chat-tarjetas-1920.png' })
 })
 
@@ -63,6 +66,7 @@ for (const [width, height] of [[1024, 768], [1366, 768], [1920, 1080]] as const)
     await expect(page.locator('main pre').first()).toBeVisible()
     const sizes = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }))
     expect(sizes.scroll).toBe(sizes.client)
+    await page.waitForTimeout(300)
     if (browserName === 'chromium' && width === 1024) await page.screenshot({ path: '../docs/capturas-10/chat-sin-scroll-1024.png' })
   })
 }
