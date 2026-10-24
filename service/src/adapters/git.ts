@@ -21,6 +21,8 @@ export type Git = GitLfs & {
   worktreeAdd(repoDir: string, path: string, ref: string): Promise<void>;
   worktreeRemove(repoDir: string, path: string): Promise<void>;
   status(dir: string): Promise<{clean: boolean; files: string[]}>;
+  /** Hito 13: «Commitear al run» al reconciliar un worker cancelado. */
+  commitAll(dir: string, message: string): Promise<void>;
   /** Deshace en `dir` esos archivos: los seguidos vuelven a HEAD, los nuevos se borran (lo que escribió un lote de pruebas). */
   discard(dir: string, files: string[]): Promise<void>;
   branchExists(dir: string, branch: string): Promise<boolean>;
@@ -136,6 +138,7 @@ export function createGit(): Git {
         .map(record=>record.slice(3)).filter(path=>path&&!local(path));
       return {clean:!files.length,files};
     },
+    async commitAll(dir,message) {await run(dir,['add','-A']);await run(dir,['commit','-m',message]);},
     async discard(dir,files) {
       for(let i=0;i<files.length;i+=100) {
         const chunk=files.slice(i,i+100),tracked=new Set((await run(dir,['ls-files','-z','--',...chunk])).split('\0').filter(Boolean));

@@ -1,0 +1,20 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { cli, cliFixture, api, until } from './cli-helpers.ts';
+
+const prepared=async (dataDir:string,title='Cambio')=>{
+  const task=await api(dataDir,'/tasks',{title,area:'qa',spec:'Crear',acceptance:['Existe'],scope:['Docs']});
+  await api(dataDir,'/tasks/'+task.id+'/spec',{spec:'Crear',acceptance:['Existe'],area:'qa',scope:['Docs']});
+  return task;
+};
+
+test('CLI task reconcile encola la reconciliación de la tarea y la ejecuta el servicio',{timeout:30_000},async t=>{
+  const {dataDir,port}=await cliFixture(t);cli(dataDir,'start','--port',String(port),'--no-open');
+  const task=await prepared(dataDir);
+  const result=cli(dataDir,'task','reconcile',task.id);assert.equal(result.status,0,result.stderr);
+  const {commandId}=JSON.parse(result.stdout);
+  await until(async ()=>(await api(dataDir,'/commands')).find((c:any)=>c.id===commandId)?.state==='done');
+  const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===commandId);
+  assert.equal(command.type,'task.reconcile');assert.deepEqual(command.payload,{taskId:task.id});
+  assert.equal(cli(dataDir,'task','reconcile').status,1);
+});

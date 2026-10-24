@@ -5,9 +5,11 @@ import { reviewStart } from './review-start.ts';
 import { workerSend, workerStop } from './worker-send.ts';
 import { OrcaError } from '../adapters/orca.ts';
 import { workerFailure } from './worker-failure.ts';
+import { taskReconcile } from './reconcile.ts';
 export function createWorkerHandlers(): Record<string, Handler> {
   const handlers: Record<string,Handler>={'worker.start':workerStart, 'worker.poll':workerPoll,
-    'worker.send':workerSend, 'worker.stop':workerStop,'review.start':reviewStart,'review.poll':workerPoll};
+    'worker.send':workerSend, 'worker.stop':workerStop,'review.start':reviewStart,'review.poll':workerPoll,
+    'task.reconcile':taskReconcile};
   return Object.fromEntries(Object.entries(handlers).map(([type,handler])=>[type,async (cmd,ctx)=>{
     try {return await handler(cmd,ctx);}
     catch (error) {

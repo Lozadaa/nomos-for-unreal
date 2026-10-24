@@ -33,7 +33,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   const action=argv[index+1];
   const flags: Record<string,string[]>={
     'task.create':['title','area','spec-file','leases','depends','role','provider','message'],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
-    'task.integrate':[],'task.finalize':[],'task.continue':['file','text'],
+    'task.integrate':[],'task.finalize':[],'task.reconcile':[],'task.continue':['file','text'],
     'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key','message'],'worker.stop':[],
     'run.diff':[],'run.output':['since'],'decision.open':['file','message'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
@@ -52,7 +52,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     // la revisión calcula el diff antes de responder: con 1,5 GB de contenido tarda más de los 10 s por defecto
     else if(action==='review') result=await call('/tasks/'+id+'/review',{},120_000);
     else if(action==='check') result=await call('/tasks/'+id+'/checks',values.run===undefined ? {} : {runId:required(values.run,'--run')});
-    else if(action==='integrate' || action==='finalize') result=await call('/tasks/'+id+'/'+action,{});
+    else if(action==='integrate' || action==='finalize' || action==='reconcile') result=await call('/tasks/'+id+'/'+action,{});
     else if(action==='continue') {
       if ((values.file===undefined)===(values.text===undefined)) throw new Error('Uso: elige --file o --text');
       result=await call('/tasks/'+id+'/continue',{text:required(values.file===undefined ? values.text : readFileSync(values.file,'utf8'),'texto')});

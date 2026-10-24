@@ -5,6 +5,7 @@ import { getTask } from './repo/tasks.ts';
 import { listLeases,type LeaseConflict } from './leases.ts';
 import { normalizedPaths } from './handlers/worker-policy.ts';
 import type { WorkerProvider } from './config.ts';
+import { unsettled } from './handlers/reconcile.ts';
 
 export type StartIntent={id:string;taskId:string;provider:WorkerProvider;attempt:number;review?:boolean;generation?:string};
 export function startIntents(db:DatabaseSync,beforeId?:string):StartIntent[] {
@@ -46,7 +47,10 @@ export function dependencyReason(db:DatabaseSync,task:Task):string|null {
 }
 export function nextAttempt(db:DatabaseSync,taskId:string):number {
   const history=filtered<Run>(db,'runs',{taskId});
-  if(history.length) return Math.max(...history.map(r=>r.attempt))+1;
+  // hito 13: un arranque que no llegó a crear run (Decisión de reconciliar) también gasta su número
+  const started=db.prepare("select payload from commands where type='worker.start' and json_extract(payload,'$.taskId')=?").all(taskId)
+    .map(row=>JSON.parse(row.payload as string).attempt ?? 1);
+  if(history.length||started.length) return Math.max(...history.map(r=>r.attempt),...started)+1;
   // continuación después de DONE (hito 6): el run nuevo sigue la numeración del responsable original
   const parent=getTask(db,taskId)?.parentTaskId;
   const previous=parent ? filtered<Run>(db,'runs',{taskId:parent}).filter(r=>r.provider==='codex'||r.provider==='claude') : [];
@@ -60,12 +64,14 @@ export function automaticReason(db:DatabaseSync,task:Task):string|null {
     ? active.metadata.question ?? 'Preparación en espera' : 'Worker en ejecución';
   // hito 5b: una run de assets terminada (migración, character.setup) no es un worker que reconciliar
   // hito 12: una run de OpenCode descartada (no pudo arrancar) tampoco deja nada que reconciliar
-  if(task.assigneeRole!=='revisor' && (task.worktreeId || history.filter(r=>r.provider!=='unreal'&&r.provider!=='nomos').some(r=>
-    r.state!=='failed'||r.metadata.uncertain!==false||!r.metadata.discarded&&(r.summary!=='lease_conflict'||r.metadata.worktreeId))))
+  // hito 13: una run cancelada y reconciliada (terminal cerrado, árbol retirado) tampoco
+  if(task.assigneeRole!=='revisor' && (task.worktreeId || unsettled(db,task.id).length))
     return 'Requiere reconciliar worker existente';
   if(startIntents(db).some(i=>i.taskId===task.id)) return 'Arranque pendiente';
-  const terminal=db.prepare("select payload from commands where type='worker.start' and state in ('done','failed') and json_extract(payload,'$.taskId')=?")
-    .all(task.id);
+  // el arranque que se paró en la Decisión de reconciliar ya no exige uno explícito una vez reconciliada
+  const reconciled=db.prepare("select max(created_at) at from events where type='task.reconciled' and json_extract(payload,'$.taskId')=?").get(task.id)?.at ?? '';
+  const terminal=db.prepare("select payload from commands where type='worker.start' and state in ('done','failed') and json_extract(payload,'$.taskId')=? and updated_at>?")
+    .all(task.id,reconciled);
   if(terminal.some(row=>!history.some(run=>run.attempt===(JSON.parse(row.payload as string).attempt ?? 1))))
     return 'Requiere arranque explícito';
   return null;

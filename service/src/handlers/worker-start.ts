@@ -21,6 +21,7 @@ import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
 import { continuationBrief } from './continue.ts';
 import { orcaDeferral, orcaDown } from './orca-down.ts';
+import { askReconcile } from './reconcile.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -41,10 +42,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     && !r.sessionRef&&!r.metadata.worktreeId&&!r.metadata.uncertain);
   if(task.decisionId) return {policyBlocked:true,decisionId:task.decisionId};
   if (history.some(r=>r.state==='running'&&r.id!==reusable?.id)) throw new Error('worker_exists');
-  if (!review && (task.worktreeId || history.some(r=>r.metadata.uncertain))) {
-    decisionGate(ctx,task,'reconcile','Reconciliar worker existente antes de continuar',
-      {worktreeId:task.worktreeId,runs:filtered<Run>(db,'runs',{taskId:task.id})},undefined,false);return;
-  }
+  // hito 13: la Decisión ofrece reconciliar (y reintentar o dejar preparada) o cancelar; ninguna opción es decorativa
+  if (!review && (task.worktreeId || history.some(r=>r.metadata.uncertain))) return askReconcile(db,task,cmd.id);
   const waiting=schedulingBlocked(ctx,task,payload.provider,cmd.id,false,reusable?.id);
   if(waiting) return {deferred:true,reason:waiting};
   await requireGameProject(projectDir);
@@ -97,7 +96,9 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   });
   const baseCommit=await git.head(created.path);
   db.prepare('update worktrees set base_commit=?,updated_at=? where id=?').run(baseCommit,new Date().toISOString(),created.worktreeId);
-  await git.renameBranch(created.path,'nomos/'+short+suffix);
+  // hito 13: la rama de un worker reconciliado sigue en el repositorio (con lo commiteado); la nueva no la pisa
+  const name='nomos/'+short+suffix;
+  await git.renameBranch(created.path,await git.branchExists(projectDir,name) ? name+'-'+run.id.slice(0,8) : name);
   const branch=await git.currentBranch(created.path);
   db.prepare('update worktrees set branch=?,updated_at=? where id=?').run(branch,new Date().toISOString(),created.worktreeId);
   const contextFile=join(projectDir,'.agents','ue-project-context.md'),uiFile=join(projectDir,'docs','ui-direction.md');

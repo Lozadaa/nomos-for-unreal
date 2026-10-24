@@ -22,6 +22,8 @@ export type RunMetadata = {
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
   uncertain?: boolean; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
   startCommandId?: string;
+  /** hito 13: reintentos de cerrar el terminal y de retirar el worktree al reconciliar; la cancelación que ya la paró */
+  closeAttempts?: number; removeAttempts?: number; stopCommandId?: string;
   review?: import('./review.ts').ReviewSnapshot;
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
