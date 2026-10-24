@@ -1,6 +1,6 @@
 # Corrección 2 · agentes
 
-2026-10-23. Primer commit de la Tarea 3, según el addendum de `.kratos-brief.md`.
+2026-10-23. Primer commit de la Tarea 3, según el addendum de `.nomos-brief.md`.
 
 `AgentAvatar` identifica al implementador con monograma circular (Cx, Cl, Oc, Me, Bl, Un, Kr, La). Anillo sólido en curso, discontinuo al esperar respuesta, sin anillo libre o terminado. No hay animaciones continuas. Toda pintura, radio y tipografía nueva vive en `panel/src/styles/theme.css`.
 

@@ -38,7 +38,7 @@ OpenCode recibe el mismo contrato de brief (hito 12: viaja en la orden `opencode
 El worker emite fuera de fences y al comienzo de la línea:
 
 ```text
-KRATOS_SKILLS ["ue-ui-umg-slate","game-ui-design"]
+NOMOS_SKILLS ["ue-ui-umg-slate","game-ui-design"]
 ```
 
 Se admite una lista JSON de strings no vacíos; se eliminan duplicados. El parser admite
@@ -48,7 +48,7 @@ prompts y prosa no confirman skills. Los marcadores inválidos se ignoran.
 
 La última lista observada se guarda en `run.metadata.confirmedSkills`. Es una declaración
 del worker, no una comprobación independiente de que el proveedor cargó las skills.
-Sin marcador, el campo queda ausente: estado desconocido. `KRATOS_SKILLS []` guarda `[]`:
+Sin marcador, el campo queda ausente: estado desconocido. `NOMOS_SKILLS []` guarda `[]`:
 el worker declaró que no cargó ninguna. Solicitar skills nunca basta para confirmarlas.
 
 Si la lista cambia y faltan requeridas, se emite `worker.skills_missing` con
@@ -68,7 +68,7 @@ GET /capabilities?details=1
 ```
 
 El workspace es `dirname(dataDir)` del servicio, no el cwd del proceso ni el repositorio
-de Kratos. Solo se enumeran `.claude/skills/*/SKILL.md` y `.agents/skills/*/SKILL.md` locales.
+de Nomos. Solo se enumeran `.claude/skills/*/SKILL.md` y `.agents/skills/*/SKILL.md` locales.
 `name` es el nombre exacto de la carpeta; `path` es la ruta absoluta al SKILL.md.
 Se ordenan primero fuente claude y después agents, y dentro de cada fuente por nombre.
 Un mismo nombre en ambas fuentes produce dos entradas. Directorios sin SKILL.md,

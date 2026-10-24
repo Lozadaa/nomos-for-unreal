@@ -12,7 +12,7 @@ Fecha: 2026-10-23. Rama: `hito9-vistas`, base `083ec79`. Entrega local, sin push
 | 5 | `7c68c88` | Vacíos de ocho vistas, miniaturas o pictogramas, visor accesible sin giro automático, opciones de decisión visuales, evidencia accesible y foco de las acciones. Se revisó y cerró el diff heredado. |
 | 6 | Este commit: `docs: cierre del hito 9, lenguaje visual` | Tour persistente de tres pasos, leyenda con `?` y paleta, foco, E2E, revisión de movimiento, comparación y documentación. |
 
-La implementación conserva el tema oscuro y los tokens. No se modificaron `service/`, `skills/`, `tests/` de raíz ni `design/`; no hay dependencias nuevas. `.kratos-brief.md` queda fuera de los commits.
+La implementación conserva el tema oscuro y los tokens. No se modificaron `service/`, `skills/`, `tests/` de raíz ni `design/`; no hay dependencias nuevas. `.nomos-brief.md` queda fuera de los commits.
 
 ## Verificaciones ejecutadas en esta reanudación
 
@@ -113,7 +113,7 @@ La curva local se mantiene por mandato del brief. Los avatares no tienen latido 
 - El tour conserva la ruta inicial durante el paso del director y solo navega a Producción al solicitar «Siguiente». Evita perder un enlace directo al abrir el panel. Si el navegador impide escribir localStorage no puede garantizarse la persistencia entre recargas.
 - Comprensión en cinco segundos con una persona nueva: pendiente, como ya reconoce la guía. No se presenta como superada por las pruebas automáticas.
 - Se mantienen el aviso de tamaño del bundle, las tres exclusiones históricas de Firefox y la limitación de frames largos de carga con 500 eventos. No se repitió la medición de INP ni la aceptación de workers reales.
-- El archivo temporal del baseline y su junction a dependencias quedaron conservados: la revisión automática rechazó la limpieza con «blocked by policy». El servicio temporal terminó. No se intentó eludir el rechazo. Carpeta: `C:/Users/richa/AppData/Local/Temp/kratos-hito9-baseline-20d9ae7f0c524c759bfdfae51f1b6bad`.
+- El archivo temporal del baseline y su junction a dependencias quedaron conservados: la revisión automática rechazó la limpieza con «blocked by policy». El servicio temporal terminó. No se intentó eludir el rechazo. Carpeta: `C:/Users/richa/AppData/Local/Temp/nomos-hito9-baseline-20d9ae7f0c524c759bfdfae51f1b6bad`.
 
 ## Cómo repetir las puertas
 

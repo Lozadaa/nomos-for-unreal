@@ -1,4 +1,4 @@
-# Dirección visual del panel de Kratos (vigente desde el hito 8)
+# Dirección visual del panel de Nomos (vigente desde el hito 8)
 
 Esta dirección **sustituye** a la «A · Sala de control densa» del hito 1a (tema claro, Ant Design, tablero de ocho columnas, sombras). El usuario la cambió el 2026-10-23: panel **oscuro con la apariencia de Vercel**, sin Next.js, sin tablero tipo Jira, y «cada acción tiene que tener una respuesta en la misma pantalla y si es una redirección se tiene que sentir». La fuente de verdad de la implementación es `panel/src/styles/theme.css` y `design/tokens.json`; el plan es `docs/superpowers/plans/2026-10-23-hito8-interfaz-viva.md`.
 
@@ -63,7 +63,7 @@ Integración del hito 9 en `hito9-vistas`: [tabla de glifos, nombres y ubicacion
 - `Sparkline` usa eventos recibidos por hora y carriles con nombre visible. `Ring` muestra porcentaje solo cuando existe límite o progreso real; `DiffBars` usa el stat real del diff. Los presupuestos conservan «Definir límite» y `PUT /budget`.
 - Catálogo usa la miniatura servible del mismo origen o el pictograma de categoría. Entregas usa visor 3D sin giro automático, imagen para captura y FileText para informe. Las opciones de decisión mantienen su etiqueta completa y descripción accesibles aunque abrevien el texto superficial.
 - `visibleWords` cuenta tokens Unicode del DOM renderizado, también fuera del viewport. Ignora atributos, ayudas ocultas, tooltips cerrados y valores de campos; en select cerrado cuenta solo la opción seleccionada. Presupuestos: fila de Producción ≤7 sin título/id, tarjeta de Catálogo ≤5, tarjeta de Decisión ≤20, franja del director ≤4 más hora, cabecera ≤4. Son límites de componentes, no un límite total de palabras por vista.
-- La guía inicial tiene tres pasos anclados al director, compositor y mapa; Esc o «Cerrar guía» la descarta. Se recuerda en `kratos.tour.v1` al presentarse. «Ver guía» en la paleta permite repetirla. El primer paso conserva la ruta del enlace directo; «Siguiente» lleva a Producción si hace falta. `?` abre la leyenda en un Sheet y Esc devuelve el foco; no intercepta campos de texto, select, contenido editable ni diálogos abiertos.
+- La guía inicial tiene tres pasos anclados al director, compositor y mapa; Esc o «Cerrar guía» la descarta. Se recuerda en `nomos.tour.v1` al presentarse. «Ver guía» en la paleta permite repetirla. El primer paso conserva la ruta del enlace directo; «Siguiente» lleva a Producción si hace falta. `?` abre la leyenda en un Sheet y Esc devuelve el foco; no intercepta campos de texto, select, contenido editable ni diálogos abiertos.
 - Navegación por `withViewTransition`, acciones por `useAction`, sin bucles decorativos. Con movimiento reducido, el mapa y los anillos quedan estáticos; el resto conserva las reglas del hito 8.
 
 Evidencia actual a 1366×768 y 1920×1080 en `docs/capturas-9/`. La prueba humana de comprensión en cinco segundos sigue pendiente.

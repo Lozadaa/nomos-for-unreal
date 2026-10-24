@@ -1,7 +1,7 @@
 # Aceptación del hito 2
 
 2026-10-23, Windows. **Aceptación funcional real completada por CLI/HTTP y Codex.**
-Panel, capturas UI, nueva sesión Claude Code `/kratos` y Monitor: **PENDIENTES**.
+Panel, capturas UI, nueva sesión Claude Code `/nomos` y Monitor: **PENDIENTES**.
 El director de esta prueba fue el harness CLI; no se simulan esas superficies.
 
 ## Proyecto y preparación
@@ -14,7 +14,7 @@ El director de esta prueba fue el harness CLI; no se simulan esas superficies.
 - Ignore Unreal tomado de `C:/Users/richa/Documents/unreal-game-jam/.gitignore`.
 - `Content/` quedó untracked, sin excluirlo: 197 archivos / 89.450.083 bytes.
   SHA256 de cada archivo cotejado al terminar: ningún cambio.
-- Datos aislados: `<juego>/.kratos-hito2`; `.kratos` previo no se usó.
+- Datos aislados: `<juego>/.nomos-hito2`; `.nomos` previo no se usó.
 - Rama del producto: `hito2-worker`; árbol de código validado:
   `9e27fc1b9fd738dc9f22f64923cfdbd7b2e390f3` (antes de estos documentos).
   La aceptación se ancla a ese contenido; los commits del producto admiten autosquash.
@@ -46,11 +46,11 @@ El JSONL de esa sesión contiene dos turnos completados, conservando la sesión.
    La spec usa Qué / Por qué / Criterios de aceptación / Alcance / No tocar.
 3. `worker start <task> --provider codex --role implementacion`, una vez por tarea.
    Comando del intento aceptado: `775d9c80-397b-4cd4-bbfe-d7a1b7ba50ce`.
-4. Orca creó worktree y terminal; Kratos comprobó `Ask Codex` y envió el brief.
+4. Orca creó worktree y terminal; Nomos comprobó `Ask Codex` y envió el brief.
    Evento `46`: tarea `implementando`. Codex creó README y script, con commits reales.
-5. El primer `KRATOS_DONE` real quedó recuperado tras corregir la lectura de pantalla:
+5. El primer `NOMOS_DONE` real quedó recuperado tras corregir la lectura de pantalla:
    eventos `270 worker.output`, `271 run.finished(done)`, `272 task.moved(revisando)`.
-6. Corrección multilinea por archivo en `.kratos-hito2/correcciones/`:
+6. Corrección multilinea por archivo en `.nomos-hito2/correcciones/`:
    «Que el script también imprima la ruta del motor instalado»; usar InstallLocation
    de LauncherInstalled.dat, validar Build.version y conservar la versión.
    Mensaje: `5a1f5ce1-283f-43d8-8645-9f114abd2b59`, ACK/reply reales.
@@ -72,7 +72,7 @@ Todos los procesos Orca/Git/CLI/pwsh se invocaron mediante Node spawn con argv,
 HTTP usó token solo en memoria; no se registraron Bearer ni URL de arranque.
 
 ```text
-node <CLI-absoluta> start --data <juego>/.kratos-hito2 --port <libre> --no-open
+node <CLI-absoluta> start --data <juego>/.nomos-hito2 --port <libre> --no-open
 node <CLI-absoluta> ack <seq> --session task6-cli-director --data <datos>
 node <CLI-absoluta> reply <messageId> <respuesta-director> --data <datos>
 GET /runs/1cb1d3bf-2288-412c-8143-bca4e5e6e4cc [Authorization redactada]
@@ -84,7 +84,7 @@ node <CLI-absoluta> stop --data <datos>
 npm test
 ```
 
-La ejecución independiente de pwsh usó cwd externo al juego, en el scratch de Kratos.
+La ejecución independiente de pwsh usó cwd externo al juego, en el scratch de Nomos.
 Antes: exit0, stderr vacío y una sola línea:
 
 ```text
@@ -150,10 +150,10 @@ Cada ID es `<repo>::<path>`; estos cuatro paths e IDs no cambiaron durante la co
   servicio vacío, detenido antes de inicializar Git. Después se exigió preparación válida.
 - Servicio final propio PID42360 detenido por CLI: exit0, DETENIDO, service.json retirado.
   Codex, terminales y los cuatro worktrees conservados; sin push, merge ni borrados.
-- Panel/Cambios/Chat visual, capturas UI, Monitor y nueva sesión Claude `/kratos`:
+- Panel/Cambios/Chat visual, capturas UI, Monitor y nueva sesión Claude `/nomos`:
   **PENDIENTES**. Esta prueba acredita el recorrido funcional con director CLI explícito.
 
 Evidencia local no versionada: `.superpowers/sdd/2026-10-22-hito2-primer-worker/`,
 `task6-before.json`, `task6-after.json`, `task6-continuity.json`, `task6-latest.json`,
 `task6-worker-tdd-evidence.json`, `task6-cleanup.json`, `task-6-suite.log`
-y `task-6-report.md`. Los datos y eventos originales permanecen en `.kratos-hito2`.
+y `task-6-report.md`. Los datos y eventos originales permanecen en `.nomos-hito2`.

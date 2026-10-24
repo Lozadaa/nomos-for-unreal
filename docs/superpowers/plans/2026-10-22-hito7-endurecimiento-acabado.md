@@ -1,4 +1,4 @@
-# Kratos · Hito 7 «endurecimiento y acabado» · Plan de implementación
+# Nomos · Hito 7 «endurecimiento y acabado» · Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -6,7 +6,7 @@
 
 **Goal:** Que el recorrido completo (petición → tareas → workers → assets → Unreal → pruebas → integración → DONE) sea estable ante fallos, reintentos y límites, que el panel esté acabado según las puertas de diseño del plan, y que una entrega se ejecute fuera del editor con su recorrido registrado.
 
-**Architecture:** Endurecimiento del servicio sobre lo que existe (`recovery.ts`, bandeja con `notBefore`/`defer`, reservas, presupuesto, `OrcaError`), un ejecutor con **dos carriles** para que un empaquetado de 40 minutos no bloquee los sondeos, `kratos doctor`, log JSONL, pruebas intermitentes estabilizadas; entrega fuera del editor con recorrido guionado y regresión visual con el decodificador PNG propio del hito 5; acabado del panel con las puertas de diseño y la corrección de las tarjetas de Decisión; cierre del MVP con la tabla de las 35 pruebas.
+**Architecture:** Endurecimiento del servicio sobre lo que existe (`recovery.ts`, bandeja con `notBefore`/`defer`, reservas, presupuesto, `OrcaError`), un ejecutor con **dos carriles** para que un empaquetado de 40 minutos no bloquee los sondeos, `nomos doctor`, log JSONL, pruebas intermitentes estabilizadas; entrega fuera del editor con recorrido guionado y regresión visual con el decodificador PNG propio del hito 5; acabado del panel con las puertas de diseño y la corrección de las tarjetas de Decisión; cierre del MVP con la tabla de las 35 pruebas.
 
 **Tech Stack:** Lo de los hitos anteriores. Regresión visual con `checks/png.ts` (`pixelDiffRatio`) y líneas base en `docs/baseline/` del juego, no con Screenshot Comparison (exige el editor con GUI y automatización). Insights queda como trace opcional. Playwright ya está en `panel/` (61 pruebas).
 
@@ -31,12 +31,12 @@
 - Reintentos solo tras reconciliar con el proveedor (Meshy, Orca, editor): nunca repetir a ciegas una creación remota que pudo cobrarse.
 - Motion solo en cambios de estado; reduced-motion respetado; nada decorativo.
 - `npm test` **tres veces seguidas** en verde en `main` (prueba de intermitencia), `npm run test:panel`, `npm run build`, e2e y skillsmith ≥ 95 al cerrar; `docs/auditoria-7-cierre.md` y `docs/estado-entregas.md` completos.
-- Lo demás, como los hitos anteriores (cero dependencias en el servicio, ≤ 200 líneas, token, LF, copy en español, `.kratos-brief.md` fuera de los commits, sin push ni merge).
+- Lo demás, como los hitos anteriores (cero dependencias en el servicio, ≤ 200 líneas, token, LF, copy en español, `.nomos-brief.md` fuera de los commits, sin push ni merge).
 
 ## Review Focus
 
 1. El servicio se reinicia con un `worker.poll` en marcha: al arrancar, los comandos `running` sin latido vuelven a `pending` una vez y se registran como `recovered`; un `checks.run` de larga duración se marca `failed` con «resultado incierto» y la tarea vuelve a `probando` con motivo; nunca se duplica un worktree. (Tarea 1.)
-2. Orca no está abierto: `kratos doctor` lo dice, Capacidades marca `roto` con la acción «Abrir Orca» (`orca open`), y los `worker.start` se **difieren** (`deferred`, reintento cada 30 s hasta 30 min) en vez de fallar tres veces. (Tarea 1.)
+2. Orca no está abierto: `nomos doctor` lo dice, Capacidades marca `roto` con la acción «Abrir Orca» (`orca open`), y los `worker.start` se **difieren** (`deferred`, reintento cada 30 s hasta 30 min) en vez de fallar tres veces. (Tarea 1.)
 3. Captura de regresión visual con variación de render (tiempo, exposición): tolerancia configurable (`config.json: visualTolerance`, defecto 2 %) y captura tras 2 s de estabilización; un cambio real de UI (barra de vida de 100 a 50) sí falla. (Tarea 3.)
 4. Paquete que arranca pero se cierra a los 5 s: el recorrido registra el log y el `TestRun build` falla con la causa («el proceso terminó a los 5 s con código N»), no aprueba por «salida cero». (Tarea 3.)
 5. `Ctrl+K` con el foco dentro de un `textarea` o `input`: no abre la paleta mientras se escribe; `Esc` cierra y devuelve el foco. (Tarea 4.)
@@ -53,7 +53,7 @@
 | `service/src/doctor.ts`, `cli.ts` (`doctor`) | Diagnóstico en tabla; `POST /capabilities/:id/check` para «Comprobar ahora» |
 | `service/src/log.ts` | JSONL en `<dataDir>/logs/<fecha>.jsonl` con rotación diaria y 14 días |
 | `service/src/config.ts` (ampliar) | Defectos nuevos y `visualTolerance`, `limits` |
-| `service/src/checks/build.ts` (ampliar), `service/src/checks/visual.ts`, `service/unreal/kratos_walkthrough.py` o `-ExecCmds` guionado | Recorrido guionado, regresión visual |
+| `service/src/checks/build.ts` (ampliar), `service/src/checks/visual.ts`, `service/unreal/nomos_walkthrough.py` o `-ExecCmds` guionado | Recorrido guionado, regresión visual |
 | `panel/src/shell/CommandMenu.tsx`, `components/DecisionOptions.tsx`, `components/TaskRow.tsx`, `views/Capacidades.tsx`, `views/Produccion.tsx` | Acabado: ⌘K con foco, opciones de Decisión sin icono repetido, estados de fallo, «Esperando reserva», skills por agente |
 | `tests/service/{lanes,heartbeat,doctor,orca-down,visual,build-walkthrough}.test.ts`, pruebas intermitentes corregidas | Pruebas |
 | `docs/auditoria-7-cierre.md`, `docs/estado-entregas.md`, `docs/recorrido-mvp.md`, `README.md`, `docs/capturas-7/` | Cierre |
@@ -62,14 +62,14 @@
 
 ### Task 1: Fiabilidad
 
-**Files:** Modify `service/src/commands.ts`, `runner.ts`, `recovery.ts`, `migrations.ts`, `config.ts`, `handlers/worker-start.ts`, `handlers/checks.ts`, `repo/capabilities.ts`, `routes/capabilities.ts`; Create `service/src/doctor.ts`, `service/src/log.ts`; Modify `skills/kratos/scripts/kratos.ts` (`doctor`); Test `tests/service/{lanes,heartbeat,doctor,orca-down}.test.ts` y las intermitentes.
+**Files:** Modify `service/src/commands.ts`, `runner.ts`, `recovery.ts`, `migrations.ts`, `config.ts`, `handlers/worker-start.ts`, `handlers/checks.ts`, `repo/capabilities.ts`, `routes/capabilities.ts`; Create `service/src/doctor.ts`, `service/src/log.ts`; Modify `skills/nomos/scripts/nomos.ts` (`doctor`); Test `tests/service/{lanes,heartbeat,doctor,orca-down}.test.ts` y las intermitentes.
 
 - **Dos carriles**: `claim(db, workerId, lane: 'normal'|'long')`; `lane` se decide al encolar por tipo (`checks.run` con `cpp|build|map|umg` y `asset.migrate` → `long`; el resto `normal`). El runner mantiene un comando activo por carril (dos bucles con el mismo `tick`, uno por carril). Review Focus 6. Prueba: un handler `long` que tarda 3 s no retrasa un `normal` de 10 ms.
 - **Latido**: el runner actualiza `heartbeat_at` cada 5 s mientras un comando corre; `recoverCommands` considera «sin latido» los `running` con `heartbeat_at` de más de 60 s; los de tipo `checks.run`/`integrate.run`/`finalize.run` se marcan `failed` «resultado incierto tras reinicio» y la tarea vuelve al estado anterior con motivo (Review Focus 1).
 - **Orca caído**: `createOrca` expone `isRunning()` (un `orca open --json` de solo lectura con tiempo máximo 5 s, o `not_running` del primer comando); `worker.start`, `review.start`, `task.continue` devuelven `{deferred, reason: 'Orca no está abierto'}` con `notBefore` +30 s hasta 30 min, luego Decisión «Abrir Orca / Cancelar» (Review Focus 2). Capacidades: `orca` con estado `roto` y acción «Abrir Orca» (`POST /capabilities/orca/check` ejecuta `orca open`).
 - **Codex apagado por defecto**: `concurrency` por defecto `{claude: 2, codex: 0, opencode: 0}`; las pruebas que arrancan Codex pasan a fijar `concurrency` explícita en su fixture (ajustar `tests/service/worker-fixture.ts` y las que lo usen; es trabajo mecánico, no cambia contratos).
 - **Estados de fallo separados**: eventos `command.failed {kind: 'connection'|'execution'|'cancel_requested'|'cancel_confirmed'|'capability_missing'}` y texto corto por `kind` en la fila y el Sheet (sin icono nuevo salvo que pase la prueba de unicidad).
-- `kratos doctor --data .kratos`: tabla Node, Orca, motor, plugins MCP y Fab, Launcher, Meshy, Blender, Git, token y puerto del servicio, carriles y último latido; salida también por `GET /doctor`. «Comprobar ahora» de Capacidades llama a `POST /capabilities/:id/check` (ejecuta la comprobación real: versión de Node, `orca open`, `UnrealEditor-Cmd -version`, `git --version`, `MESHY_API_KEY` con `balance()`) y guarda `comprobado|roto` con fecha.
+- `nomos doctor --data .nomos`: tabla Node, Orca, motor, plugins MCP y Fab, Launcher, Meshy, Blender, Git, token y puerto del servicio, carriles y último latido; salida también por `GET /doctor`. «Comprobar ahora» de Capacidades llama a `POST /capabilities/:id/check` (ejecuta la comprobación real: versión de Node, `orca open`, `UnrealEditor-Cmd -version`, `git --version`, `MESHY_API_KEY` con `balance()`) y guarda `comprobado|roto` con fecha.
 - **Log JSONL**: `log.ts` escribe cada evento de `appendEvent` y cada comando en `<dataDir>/logs/YYYY-MM-DD.jsonl`, rota a medianoche y borra más de 14 días; sin bloquear (append síncrono de una línea).
 - **Intermitencias**: ejecutar `npm test` 5 veces; para cada prueba que falle al menos una vez, encontrar la causa (temporizadores reales, puertos fijos, orden de archivos, estado compartido) y corregirla con reloj inyectado o espera por condición; anotar la lista en `docs/auditoria-7-cierre.md`.
 
@@ -79,12 +79,12 @@
 
 **Files:** Create `panel/e2e/{sse,auth,teclado,decisiones}.spec.ts`.
 
-- SSE reconecta tras `kratos stop`/`start` sin duplicar eventos (prueba 3); 401 sin token y con token caducado tras reinicio (prueba 15); teclado recorre Producción, Sheet, Catálogo y Decisiones (prueba 24); Decisión resuelta sin repetir contexto y Decisión caducada regenerada (prueba 20); `?` y ⌘K con el foco en un `textarea` (Review Focus 5).
+- SSE reconecta tras `nomos stop`/`start` sin duplicar eventos (prueba 3); 401 sin token y con token caducado tras reinicio (prueba 15); teclado recorre Producción, Sheet, Catálogo y Decisiones (prueba 24); Decisión resuelta sin repetir contexto y Decisión caducada regenerada (prueba 20); `?` y ⌘K con el foco en un `textarea` (Review Focus 5).
 - [ ] Commit `test: e2e de reconexión, token, teclado y decisiones`.
 
 ### Task 3: Entrega y calidad del juego
 
-**Files:** Modify `service/src/checks/build.ts`; Create `service/src/checks/visual.ts`, `service/unreal/kratos_walkthrough.py` (o secuencia `-ExecCmds`), `tests/service/{visual,build-walkthrough}.test.ts`.
+**Files:** Modify `service/src/checks/build.ts`; Create `service/src/checks/visual.ts`, `service/unreal/nomos_walkthrough.py` (o secuencia `-ExecCmds`), `tests/service/{visual,build-walkthrough}.test.ts`.
 
 - `build` completo: `buildCookRun` → arranque del ejecutable fuera del editor con `-ExecCmds` guionado (entrada, carga del mapa, 3 acciones por consola, `HighResShot`, salida) y tiempo mínimo de vida de 20 s; si el proceso termina antes, `failed` con «el proceso terminó a los N s con código M» (Review Focus 4); log y capturas como artefactos con `provenance.label`.
 - Regresión visual: `visual.ts` compara cada captura de `umg`/`build`/`map` con su línea base en `<juego>/docs/baseline/<nombre>.png` usando `pixelDiffRatio`; sin línea base → la crea y `skipped` «línea base creada»; diferencia > `visualTolerance` → `failed` con la imagen de diferencia (PNG escrito con el codificador mínimo); espera de estabilización de 2 s antes de capturar (Review Focus 3).
@@ -97,17 +97,17 @@
 
 - **Opciones de Decisión**: fuera el `AreaPictogram` repetido en cada opción; una opción lleva miniatura solo si tiene `thumbnail` propio (catálogo, Meshy); si no, es una tarjeta de texto con etiqueta corta (≤ 4 palabras), descripción (≤ 14) y, como único acento, el borde de la opción recomendada. Prueba de unicidad: dos opciones sin miniatura no muestran icono.
 - ⌘K / Ctrl+K: no abre con el foco en `textarea`/`input` (Review Focus 5); busca tareas por título y abre el Sheet; acciones «Nueva petición», «Indexar», «Pausar/Reanudar», «Lanzar pruebas», «Integrar», «Cerrar»; `Esc` devuelve el foco.
-- Fila de Producción: texto corto «Esperando reserva» / «Depende de …» / «Director en pausa» desde `waitReason` (pendiente del hito 3), estados de fallo separados; Capacidades: skills confirmadas por agente (`KRATOS_SKILLS`) en el tooltip del avatar.
+- Fila de Producción: texto corto «Esperando reserva» / «Depende de …» / «Director en pausa» desde `waitReason` (pendiente del hito 3), estados de fallo separados; Capacidades: skills confirmadas por agente (`NOMOS_SKILLS`) en el tooltip del avatar.
 - Pase de motion: `find-animation-opportunities` → `animate` solo en cambios de estado (tarjeta que cambia de grupo, franja del director, fila de prueba que pasa a `passed`) → `review-animations`; `/impeccable harden` (desbordes, textos largos, errores de red) y `polish`; `web-design-guidelines` sin errores de accesibilidad; `ux-heuristics` ≥ 9/10; capturas finales de las 10 vistas a 1366 y 1920 en `docs/capturas-7/`.
 - [ ] Commit `feat: acabado del panel`.
 
 ### Task 5: Cierre del MVP
 
-**Files:** Create `docs/auditoria-7-cierre.md`, `docs/recorrido-mvp.md`; Modify `docs/estado-entregas.md`, `README.md`, `skills/kratos/SKILL.md` si hace falta.
+**Files:** Create `docs/auditoria-7-cierre.md`, `docs/recorrido-mvp.md`; Modify `docs/estado-entregas.md`, `README.md`, `skills/nomos/SKILL.md` si hace falta.
 
 - Recorrido completo real en `KratosFabTest` con workers Claude: petición → tareas → worker → ciclo UMG → pruebas → integración → DONE → continuación; con un asset del catálogo migrado y usado; tiempos por etapa en `docs/recorrido-mvp.md`.
-- `docs/estado-entregas.md` con la tabla de los hitos 0-9 (5b pausado) y las 35 pruebas del plan v2 §7 (pasada / no pasada / no aplicable, con evidencia); `docs/auditoria-7-cierre.md` (puertas, hallazgos, intermitencias corregidas, pendientes: prueba de los cinco segundos con una persona nueva, nivel 2 de Fab con clics, Gauntlet, Insights resumido, hito 5b); README con instalación (`junction` de la skill, Node ≥ 25, Orca, Unreal 5.8) y uso de `/kratos`; skillsmith ≥ 95.
-- [ ] Commit `docs: cierre del MVP de Kratos`.
+- `docs/estado-entregas.md` con la tabla de los hitos 0-9 (5b pausado) y las 35 pruebas del plan v2 §7 (pasada / no pasada / no aplicable, con evidencia); `docs/auditoria-7-cierre.md` (puertas, hallazgos, intermitencias corregidas, pendientes: prueba de los cinco segundos con una persona nueva, nivel 2 de Fab con clics, Gauntlet, Insights resumido, hito 5b); README con instalación (`junction` de la skill, Node ≥ 25, Orca, Unreal 5.8) y uso de `/nomos`; skillsmith ≥ 95.
+- [ ] Commit `docs: cierre del MVP de Nomos`.
 
 ---
 

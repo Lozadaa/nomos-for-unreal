@@ -3,7 +3,7 @@
 Unreal 5.8.3, Windows 11. Las pruebas reales con el editor se hicieron primero en un **proyecto de sonda** (en blanco, con
 los plugins PythonScriptPlugin, IKRig y MetaHumanCharacter, y copias de las plantillas del motor y del preset Hudson). Sirvió
 para aprender la API sin tocar `KratosFabTest`. Después, la aceptación real se hizo sobre `KratosFabTest` por el servicio de
-este worktree (`127.0.0.1:8780`, datos en `KratosFabTest/.kratos-hito5b`, fuera de git por `.git/info/exclude`). Horas en UTC
+este worktree (`127.0.0.1:8780`, datos en `KratosFabTest/.nomos-hito5b`, fuera de git por `.git/info/exclude`). Horas en UTC
 del 24 de octubre de 2026, sacadas de los comandos del servicio.
 
 ## Recorrido real en KratosFabTest
@@ -27,7 +27,7 @@ editor (`Build.bat KratosFabTestEditor`, 44 s; solo crea `Binaries/` e `Intermed
 | (c) Retarget real UE4 → UE5: `ThirdPersonRun` sobre Manny | 05:01:57 → 05:04:23 | 2 min 26 s | `animation` **passed**; 0 cadenas sin mapear; root motion en `root` |
 | (e) Review Focus 1: el clip sobre la malla de la cara (sin piernas) | 05:04:54 → 05:07:41 | 2 min 47 s | falla por pose y bloquea («Animación rota») |
 | (e) Lo mismo con el criterio corregido (hallazgo 6) | 05:08:05 → 05:08:19 | 14 s | Decisión **«Retarget manual: LeftLeg, RightLeg sin mapear»** con guion; sin PIE ni vídeo |
-| (f) `character.metahuman` Kratos_Heroe por script | 05:08:36 → 05:08:57 | 21 s | sin el plugin MetaHumanCharacter en el proyecto: run esperando externo + Decisión con guion de 5 pasos |
+| (f) `character.metahuman` Nomos_Heroe por script | 05:08:36 → 05:08:57 | 21 s | sin el plugin MetaHumanCharacter en el proyecto: run esperando externo + Decisión con guion de 5 pasos |
 | (d) Cascadeur `cleanup` sobre `MM_Attack_01` | 05:09:06 → 05:09:37 | 31 s | Unreal exporta el FBX, Cascadeur lo importa sin ventana, la exportación la bloquea la licencia gratuita: Decisión «Exportar a mano / Usar solo retarget» y Capacidades «Cascadeur · No responde» con el motivo |
 | Entregas con el vídeo en el visor y Capacidades | 05:10 | — | grabado con Playwright (demo, parte 2) |
 
@@ -47,7 +47,7 @@ ni en ningún informe.
 
 ## Cierre con LFS (Tarea 5)
 
-Mismo KratosFabTest, servicio de la rama `hito5b-lfs` (`127.0.0.1:8780`, datos en `KratosFabTest/.kratos-hito5b-lfs`, fuera de
+Mismo KratosFabTest, servicio de la rama `hito5b-lfs` (`127.0.0.1:8780`, datos en `KratosFabTest/.nomos-hito5b-lfs`, fuera de
 git por `.git/info/exclude`), worker y revisores Claude (Sonnet 5.5) por Orca. Antes: `master` en `2263a65`, sin
 `.gitattributes`, `.git` de 1,3 GB (1.191 objetos sueltos, 1,22 GiB: los blobs que el worker commiteó antes de decidir LFS).
 Horas UTC del 24 de octubre, de los eventos del servicio.
@@ -58,7 +58,7 @@ Horas UTC del 24 de octubre, de los eventos del servicio.
 | Migraciones (Hudson, maniquíes, animaciones de combate) | 07:34:28 → 07:35:12 | 44 s | ya estaban: solo se copia lo que falta, nada se sobrescribe |
 | `character.setup` (Hudson con `AM_ComboAttack`) | 07:35:13 → 07:38:13 | 3 min | `animation` **passed** |
 | Worker: copia, compila el módulo y commitea | 07:39:23 → 07:41:53 | 2 min 30 s | 668 archivos, 1,5 GB, iguales al checkout del usuario |
-| Siete rondas de revisión y comprobaciones | 07:44:07 → 12:06:56 | 4 h 23 min | ver abajo: casi todo fueron fallos de las comprobaciones de Kratos, corregidos en el código |
+| Siete rondas de revisión y comprobaciones | 07:44:07 → 12:06:56 | 4 h 23 min | ver abajo: casi todo fueron fallos de las comprobaciones de Nomos, corregidos en el código |
 | Última ronda de comprobaciones | 11:37:47 → 12:06:56 | 29 min | blueprint 28 s, asset (102 carpetas) 25 min, animation 3 min, map 1 min: **todo en verde** |
 | Decisión «Contenido pesado (1491 MB): 666 archivos, 32 de más de 10 MB» | 12:07:28 → 12:07:34 | 6 s | Configurar Git LFS / Integrar sin LFS / Cancelar, con la nota de la cuota de GitHub (sin remoto) |
 | `integrate.lfs` (carril largo) | 12:07:57 → 12:08:16 | **19 s** | `git lfs migrate import` de la rama, `.gitattributes` en `master` (`7ff0785`), gc |
@@ -73,15 +73,15 @@ de LiveLink ya es de `master`); Capacidades «Git LFS · git-lfs 3.7.1 · config
 de octubre sin fusionar, `kratos/4c443009` y `kratos/2e3d41ae`, tienen un commit que le añade dos líneas: son anteriores y no se tocaron.)
 Capturas: `docs/capturas-5b/decision-lfs-1920.png` y `capacidades-lfs-1920.png`.
 
-**Las siete rondas.** El worker cumplió a la primera; lo que fallaba eran las comprobaciones de Kratos sobre contenido de terceros:
+**Las siete rondas.** El worker cumplió a la primera; lo que fallaba eran las comprobaciones de Nomos sobre contenido de terceros:
 blueprint y map daban por rotas las referencias **blandas** que faltan en las plantillas de Epic (malla de vista previa
 `SKM_Manny`, secuencias `LS_Attack_*`); asset rechazaba los **planos** del rig facial de MetaHuman y las **tarjetas de pelo** sin
 material propio; build comparaba la captura con la **línea base de otro mapa**; map y build elegían como mapa de juego el
-**escenario de animación** de Kratos. Además: dos assets de la prueba (c) (`IK_SK_Mannequin` y su retargeter) dependen del maniquí
+**escenario de animación** de Nomos. Además: dos assets de la prueba (c) (`IK_SK_Mannequin` y su retargeter) dependen del maniquí
 UE4 (`Content/Mannequin`, fuera del alcance) y se quedaron fuera por decisión del director (la spec se actualizó); una instrucción
 mía equivocada (quitar 15 assets, entre ellos los `MM_Attack_*` que forman `AM_ComboAttack`) la paró el segundo revisor y se
 deshizo; la rama acabó en un solo commit (`72b3e10`) sobre `2263a65`. Por el límite de correcciones el director subió
-`limits.corrections` a 7 en `.kratos-hito5b-lfs/config.json`, con la Decisión registrada.
+`limits.corrections` a 7 en `.nomos-hito5b-lfs/config.json`, con la Decisión registrada.
 
 ### Hallazgos del cierre con LFS
 
@@ -96,11 +96,11 @@ deshizo; la rama acabó en un solo commit (`72b3e10`) sobre `2263a65`. Por el l�
 13. **Un fallo inesperado dejaba la integración retenida.** El run integrador quedaba «en curso» con la reserva y la siguiente
     integración esperaba para siempre. Ahora un fallo definitivo cierra los runs de la orden y suelta sus reservas. (El que quedó
     colgado antes del arreglo se cerró a mano con la misma función, con el servicio parado.)
-14. **Más del ciclo.** Una run de assets terminada impedía que el planificador arrancara el worker; un `KRATOS_REVIEW` partido a
+14. **Más del ciclo.** Una run de assets terminada impedía que el planificador arrancara el worker; un `NOMOS_REVIEW` partido a
     mitad de palabra no se leía; el bloqueo «Máximo de N correcciones» no se levantaba al subir el límite; `task spec` devuelve la
-    tarea a `preparada` (hay que pedir al worker que confirme para volver a revisión); un `KRATOS_DONE` idéntico a uno anterior se
+    tarea a `preparada` (hay que pedir al worker que confirme para volver a revisión); un `NOMOS_DONE` idéntico a uno anterior se
     descarta. Todo corregido salvo los dos últimos, que se anotan como pendientes.
-15. **Sin vigilante armado, el director tardó 12 min en ver una pregunta del worker.** Hay que armar `kratos vigila` desde el principio.
+15. **Sin vigilante armado, el director tardó 12 min en ver una pregunta del worker.** Hay que armar `nomos vigila` desde el principio.
 
 ### Hallazgos del recorrido real
 
@@ -112,8 +112,8 @@ deshizo; la rama acabó en un solo commit (`72b3e10`) sobre `2263a65`. Por el l�
 7. **Git Bash convierte `/Game/...` en rutas de Windows.** La CLI recibía `C:/Program Files/Git/Game/...`. Hay que usar
    `MSYS_NO_PATHCONV=1` con `--data` en formato Windows, o PowerShell. Lo dice la referencia de personajes de la skill.
 8. **KratosFabTest sin `Binaries/`.** El editor por lotes se cerraba sin informe. Se compiló el módulo a mano. Pendiente:
-   que Kratos lo detecte y lo diga, o compile antes de abrir el editor.
-9. **«Retarget a mano» no podía funcionar.** Al relanzar, Kratos regeneraba los IK Rig y volvía a mapear todas las cadenas
+   que Nomos lo detecte y lo diga, o compile antes de abrir el editor.
+9. **«Retarget a mano» no podía funcionar.** Al relanzar, Nomos regeneraba los IK Rig y volvía a mapear todas las cadenas
    (`auto_map_chains(FUZZY, True)`): lo emparejado a mano se perdía. Comprobado en KratosFabTest con el IK Retargeter del
    caso (e): Spine emparejada a mano con Neck volvía a Spine. Ahora el retargeter existente se reutiliza con sus IK Rig y solo
    se rellenan las cadenas sin pareja; la misma prueba conserva Spine ← Neck (después se restauró el mapeo original).
@@ -122,13 +122,13 @@ deshizo; la rama acabó en un solo commit (`72b3e10`) sobre `2263a65`. Por el l�
 
 ### 1. `RTG_MH_IKRig` es MetaHuman → MetaHuman
 `IKRetargeterController` lo confirma: el origen y el destino de `RTG_MH_IKRig` son `IK_MH_IKRig`, con la malla de vista previa
-`/MetaHumanCharacter/Body/IdentityTemplate/SKM_Body`. No hay retargeter maniquí → MetaHuman en el plugin. Kratos crea uno
+`/MetaHumanCharacter/Body/IdentityTemplate/SKM_Body`. No hay retargeter maniquí → MetaHuman en el plugin. Nomos crea uno
 por script (IK Rig autogenerado del origen, `auto_map_chains` FUZZY, `add_default_ops`) y lo ejecuta con
 `IKRetargetBatchOperation.run_batch_retarget` (`DuplicateAndRetarget` está deprecado en 5.8).
 
 ### 2. `IK_MH_IKRig` no sirve para un MetaHuman de Megascans/Bridge
 Con `IK_MH_IKRig` como destino sobre Hudson (`metahuman_base_skel` en `/Game/MetaHumans/Common`), el personaje quedaba de
-rodillas a mitad del combo. Con un IK Rig autogenerado para el cuerpo de Hudson queda en guardia, igual que Manny. Kratos usa
+rodillas a mitad del combo. Con un IK Rig autogenerado para el cuerpo de Hudson queda en guardia, igual que Manny. Nomos usa
 el del plugin solo con MetaHumans que no son de Bridge.
 
 ### 3. Defecto visto por el usuario: malla estirada hacia la raíz (Review Focus 10)
@@ -178,9 +178,9 @@ Dos defectos del servicio que el director de Esquina (UE 5.8.3) estaba sorteando
   mapa por defecto renombrándola, con una línea en el resumen; un mapa elegido por el diff o por `walkthrough.map` no la adopta.
 
 ### 2. `animation` sin personaje bloqueaba la puerta
-- **Síntoma.** En J1.2, montajes provisionales sobre secuencias de la plantilla (sin personaje de Kratos) abrieron dos veces
+- **Síntoma.** En J1.2, montajes provisionales sobre secuencias de la plantilla (sin personaje de Nomos) abrieron dos veces
   «Comprobación no disponible: animation»; el director tuvo que elegir «continuar» en cada lote.
-- **Causa.** La selección por diff pide `animation` ante cualquier clip o montaje; la comprobación, sin `kratos-personaje.json`
+- **Causa.** La selección por diff pide `animation` ante cualquier clip o montaje; la comprobación, sin `nomos-personaje.json`
   ni malla con clips en el diff, terminaba `skipped`, y la puerta trata `skipped` como «no se pudo ejecutar».
 - **Arreglo.** «No aplica» ya no es «no disponible»: sin personaje que reproducir, `animation` no se selecciona para ese diff y
   el resumen del lote dice «animation no aplica». Con personaje, sigue exigida y, si no se puede ejecutar, abre la Decisión.

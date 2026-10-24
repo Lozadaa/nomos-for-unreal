@@ -1,8 +1,8 @@
-# Kratos · Hito 1a «diseño del panel» · Plan de implementación
+# Nomos · Hito 1a «diseño del panel» · Plan de implementación
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Dejar decidido y documentado el diseño visual del panel de Kratos antes de programarlo: brief, tokens, inventario de vistas y estados con su copy, tres maquetas comparadas a 1366×768 y 1920×1080, una dirección elegida y una página `/estilo` que muestra todos los componentes en todos sus estados. Todo en HTML y CSS estáticos con los tokens como única fuente de color, tipografía y sombra.
+**Goal:** Dejar decidido y documentado el diseño visual del panel de Nomos antes de programarlo: brief, tokens, inventario de vistas y estados con su copy, tres maquetas comparadas a 1366×768 y 1920×1080, una dirección elegida y una página `/estilo` que muestra todos los componentes en todos sus estados. Todo en HTML y CSS estáticos con los tokens como única fuente de color, tipografía y sombra.
 
 **Architecture:** Los tokens viven en `design/tokens.json` (fuente única) y se generan a `design/tokens.css` (variables CSS) con un script Node sin dependencias; las maquetas y `/estilo` solo usan esas variables. El hito 1b importará el mismo `tokens.json` al `ConfigProvider` de Ant Design. Las puertas de calidad del plan (auditoría Vercel, Impeccable, ux-heuristics, contraste AA, capturas) se aplican a la maqueta elegida y a `/estilo`.
 
@@ -25,7 +25,7 @@
 
 1. Texto sobre el color de acento (botón primario): el blanco sobre el azul elegido debe dar ≥ 4.5:1 o el azul se oscurece. (Prueba en Tarea 2.)
 2. Tarjeta del Kanban con nombre de pack largo o con emoji (hay packs reales como «Nude_Tennis_Racket_🎾»): no debe romper la columna ni cortar sin elipsis. (Comprobación en Tarea 4 con ese texto en la maqueta.)
-3. Franja del director en estado «Vigilante caído» debe distinguirse de «Kratos escuchando» sin depender solo del color (icono o texto). (Tarea 3 y 5.)
+3. Franja del director en estado «Vigilante caído» debe distinguirse de «Nomos escuchando» sin depender solo del color (icono o texto). (Tarea 3 y 5.)
 4. Columna del Kanban vacía y Catálogo sin indexar: estados vacíos con una acción, no un hueco. (Tarea 3 copy; Tarea 5 en `/estilo`.)
 5. A 1366×768 con barra lateral de 248 px, el Drawer de tarea (720 px) no tapa la franja del director ni deja el Kanban ilegible debajo. (Captura en Tarea 4.)
 
@@ -127,7 +127,7 @@ test("las maquetas y /estilo no llevan colores ni sombras a mano", () => { /* pa
 - Create: `docs/diseno/brief.md`, `docs/diseno/estados.md`
 
 - [ ] **Step 1: Escribir `brief.md`** con exactamente estas secciones: Propósito (sala de control que se mira mucho y se teclea poco), Usuario y pantalla (una persona, escritorio, 1366×768 con barra lateral y 1920×1080, mínimo 1280), Tono (claro, sombras en dos niveles, IBM Plex Sans + JetBrains Mono para logs/IDs/rutas), Reglas heredadas (las cuatro de Noovo), Antipatrones (los cinco). Una página; sin párrafos de relleno.
-- [ ] **Step 2: Escribir `estados.md`**: una tabla por vista de §2.3 del plan v2 (Franja del director, Producción, Actividad, Entregas, Catálogo, Chat + detalle, Decisiones, Presupuesto, Capacidades, `/estilo`) con columnas Estado · Qué se ve · Copy exacto · Acción disponible. Copy fijado para la franja: `Servicio activo · esperando a Kratos`, `Kratos escuchando`, `Kratos atendiendo N mensajes`, `Vigilante caído · N mensajes en espera`, `Servicio desconectado` (coincide con el hito 0). Estados vacíos siempre con acción: Kanban vacío → «Escribe la primera petición a Kratos» + botón «Nueva petición»; Catálogo sin indexar → «Aún no se ha indexado nada» + botón «Indexar ahora».
+- [ ] **Step 2: Escribir `estados.md`**: una tabla por vista de §2.3 del plan v2 (Franja del director, Producción, Actividad, Entregas, Catálogo, Chat + detalle, Decisiones, Presupuesto, Capacidades, `/estilo`) con columnas Estado · Qué se ve · Copy exacto · Acción disponible. Copy fijado para la franja: `Servicio activo · esperando a Nomos`, `Nomos escuchando`, `Nomos atendiendo N mensajes`, `Vigilante caído · N mensajes en espera`, `Servicio desconectado` (coincide con el hito 0). Estados vacíos siempre con acción: Kanban vacío → «Escribe la primera petición a Nomos» + botón «Nueva petición»; Catálogo sin indexar → «Aún no se ha indexado nada» + botón «Indexar ahora».
 - [ ] **Step 3: Pasar `ux-writing`** sobre todo el copy de `estados.md` y aplicar sus correcciones.
 - [ ] **Step 4: Commit** `docs: brief del panel e inventario de vistas y estados`.
 
@@ -143,7 +143,7 @@ Cada maqueta muestra la misma pantalla con datos realistas (usar nombres reales 
 Las tres direcciones difieren en un eje cada una y lo demás se mantiene:
 - **A · Sala de control densa**: Kanban como protagonista, tarjetas compactas (56 px de alto, una línea de meta), sombra 1 en todo, barra lateral siempre abierta.
 - **B · Tarjetas con aire**: tarjetas de 88 px con dos líneas de meta y avatar del responsable, sombra 2 en Drawer y tarjetas activas, barra lateral colapsable a 64 px.
-- **C · Actividad protagonista**: carriles de Actividad en la mitad superior (Kratos, Codex, Claude Code, Meshy, Blender, Unreal, builds) y Kanban compacto debajo; franja del director integrada en la cabecera.
+- **C · Actividad protagonista**: carriles de Actividad en la mitad superior (Nomos, Codex, Claude Code, Meshy, Blender, Unreal, builds) y Kanban compacto debajo; franja del director integrada en la cabecera.
 
 - [ ] **Step 1: Cargar las skills** `frontend-design` y `ui-ux-pro-max` (patrón dashboard) antes de maquetar; leer `brief.md` y `estados.md`.
 - [ ] **Step 2: Escribir las tres maquetas** usando solo `var(--k-*)`.

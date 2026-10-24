@@ -4,31 +4,31 @@ Fecha: 2026-10-23. Rama `hito4-catalogo`. Equipo: Windows 11, Unreal 5.8.3 en `C
 
 Juego de destino creado para esta aceptación, vacío y con Git: `C:\Users\richa\Documents\Unreal Projects\KratosJuegoH4`
 (copia del `.uproject` y la `Config` de `KratosFabTest`). No se tocaron tus proyectos: CrazyPadel, unknowncall y
-KratosFabTest solo se leyeron. Servicio arrancado desde el juego con `kratos start --data .kratos --port 8791 --no-open`
+KratosFabTest solo se leyeron. Servicio arrancado desde el juego con `nomos start --data .nomos --port 8791 --no-open`
 y `config.json` con `concurrency: {claude: 0, codex: 0}`, para que el planificador no lanzara workers por su cuenta.
-**Ningún worker Codex.** El director de la aceptación fue esta sesión de Claude (Opus) usando la skill `kratos`.
+**Ningún worker Codex.** El director de la aceptación fue esta sesión de Claude (Opus) usando la skill `nomos`.
 No se lanzó ningún worker de implementación: los cinco casos se cierran en el servicio y en Decisiones (ver «Pendientes»).
 
-En lo que sigue, `kratos` es `node skills/kratos/scripts/kratos.ts` y `D` es `KratosJuegoH4/.kratos`.
+En lo que sigue, `nomos` es `node skills/nomos/scripts/nomos.ts` y `D` es `KratosJuegoH4/.nomos`.
 
 ## 1 · Buscar antes de generar (prueba 26)
 
 Petición: «Necesito cinco personajes de fantasía estilizados con esqueleto».
 
 ```
-$ kratos asset index --data D
+$ nomos asset index --data D
 {"commandId":"dc700bb2-…","state":"pending"}          → catalog.indexed: 8 entradas (listings 1, launcherVault 1, fabCache 0, projects 6, megascans 2)
-$ kratos asset search personaje | character | skeletal  → []
-$ kratos asset search fantasy                          → Skybox_Fantasy___View_2 (Fab, importado en CrazyPadel, licencia null)
+$ nomos asset search personaje | character | skeletal  → []
+$ nomos asset search fantasy                          → Skybox_Fantasy___View_2 (Fab, importado en CrazyPadel, licencia null)
 ```
 
 El catálogo de este equipo no tiene personajes con esqueleto (solo dos presets MetaHuman de Megascans, Hudson y
-Emory). Respuesta de Kratos según `references/assets.md`: lista lo encontrado, propone el nivel 2 sobre tu biblioteca de
+Emory). Respuesta de Nomos según `references/assets.md`: lista lo encontrado, propone el nivel 2 sobre tu biblioteca de
 Fab, fuentes CC0 y una Decisión de compra. **No propone Meshy**: personajes y formas orgánicas nunca se generan con
 Meshy (corrección del usuario del 2026-10-23), y el servicio rechaza `rig` y `animate` con `meshy_kind_not_allowed`:
 
 ```
-$ kratos asset generate tarea --kind rig --params-file params.json --credits 5   → Petición rechazada (400): meshy_kind_not_allowed
+$ nomos asset generate tarea --kind rig --params-file params.json --credits 5   → Petición rechazada (400): meshy_kind_not_allowed
 ```
 
 Hallazgo durante la prueba: `asset search tennis` no encontraba `Free_Tennisball`, porque FTS5 solo parte por `_`.
@@ -37,7 +37,7 @@ La búsqueda pasa a usar prefijos (`"tennis"*`) y ahora devuelve las dos pelotas
 ## 2 · Migrar «Advanced Cel Shader Lite» sin GUI (prueba 31, Review Focus 1)
 
 ```
-$ kratos asset migrate df80fcd0-b7aa-43f5-b59e-2b900d286e91 --data D
+$ nomos asset migrate df80fcd0-b7aa-43f5-b59e-2b900d286e91 --data D
 18:02:36 run.started provider unreal · lease.acquired editor/KratosJuegoH4
 18:03:07 asset.migrated {"root":"/Game/AdvancedCelShader","engine":"5.8.3","warning":"Publicado para 5.4; verificado en 5.8.3","assets":12,"missing":0}
 18:03:07 lease.released · run.finished done «Migrado y verificado. Publicado para 5.4; verificado en 5.8.3»
@@ -88,7 +88,7 @@ compara prompt y hora ±10 min).
 Prop hard surface, presupuesto de workspace 25 créditos:
 
 ```
-$ kratos asset generate 54791b9c-… --kind text --params-file preview.json --credits 20 --idempotency-key meshy:…:preview:1
+$ nomos asset generate 54791b9c-… --kind text --params-file preview.json --credits 20 --idempotency-key meshy:…:preview:1
 18:06:40 meshy.job.created {"remoteId":"01a169f1-8292-7653-b0ca-3aa47e4d35b2","stage":"Preview"}
 18:07:13 command.deferred «Meshy: IN_PROGRESS 91%» · 18:07:19 «Meshy: IN_PROGRESS 99%»
 18:07:26 meshy.job.completed {"stage":"Guardado","model":"…\\artifacts\\meshy\\33e79f4e-…\\model.glb"}
@@ -109,9 +109,9 @@ caducada al llegar el `run.finished` del run rechazado; sigue en la lista como c
 ## 5 · Licencia desconocida (prueba 27)
 
 ```
-$ kratos asset prepare 31582855-92ff-45e5-afcb-635336fa8d07 --data D      (Nude_Tennis_Racket_🎾, license null)
+$ nomos asset prepare 31582855-92ff-45e5-afcb-635336fa8d07 --data D      (Nude_Tennis_Racket_🎾, license null)
 18:06:04 decision.opened «Licencia desconocida» · asset.prepared {"licensed":false}
-$ kratos decision list --state open → Licencia desconocida | Registrar licencia / No usar este asset
+$ nomos decision list --state open → Licencia desconocida | Registrar licencia / No usar este asset
 ```
 
 La tarea de arte (`provider: claude`, contrato `ue-asset-intake`, alcance `Content/Fab/Nude_Tennis_Racket_🎾`) queda
@@ -126,7 +126,7 @@ y lee la biblioteca con peticiones HTTP autenticadas (`FabMyFolderIntegration`):
 ## Capturas
 
 `docs/capturas-4/{catalogo,entregas,actividad,decisiones}-4-{1366,1920}.png`, del servicio real de esta aceptación,
-con `node panel/scripts/capturas-4.ts "<juego>/.kratos"` (marca la guía de primera visita como vista). Sin desbordamiento
+con `node panel/scripts/capturas-4.ts "<juego>/.nomos"` (marca la guía de primera visita como vista). Sin desbordamiento
 horizontal ni errores de página en ninguna.
 
 ## Pendientes

@@ -1,6 +1,6 @@
 # Auditoría de cierre · Hito 8 «Interfaz viva» (Tareas 4-6)
 
-Fecha: 2026-10-23 · Rama `hito8-vistas` · Navegador de medición: Google Chrome 155 (headless) y Firefox de Playwright, 1366×768 · Datos: la semilla real (`kratos seed`) sobre el servicio real.
+Fecha: 2026-10-23 · Rama `hito8-vistas` · Navegador de medición: Google Chrome 155 (headless) y Firefox de Playwright, 1366×768 · Datos: la semilla real (`nomos seed`) sobre el servicio real.
 
 Lo que sigue distingue lo **ejecutado y observado** de lo que **no se pudo comprobar**. Las cifras salen de `docs/medicion-8.json` (script `panel/scripts/medir.ts`).
 
@@ -135,7 +135,7 @@ Lo que el cierre dejaba pendiente y ya está resuelto:
 | Pendiente | Estado |
 |---|---|
 | Pestañas **Cambios** y **Chat** (hallazgo 6) | hechas contra las rutas reales: `stat`, `patch` con filtro por archivo y aviso de archivos fuera de `task.scope`; salida agrupada por sondeo con hora, pregunta de `worker.waiting` destacada, «Pedir cambios al responsable» (`POST /runs/:id/message`) y «Detener worker» con confirmación en línea (`POST /runs/:id/stop`). La fila de Producción muestra «Esperando respuesta». `store.ts` reduce `worker.waiting|output|message_sent` y `run.finished` |
-| ⌘K **Pausar** (hallazgo 7) | `POST /director/pause` y `/resume`; botón en la franja, acción en ⌘K y aviso «En pausa · Kratos no recibirá mensajes». El estado se refresca al llegar `director.*` |
+| ⌘K **Pausar** (hallazgo 7) | `POST /director/pause` y `/resume`; botón en la franja, acción en ⌘K y aviso «En pausa · Nomos no recibirá mensajes». El estado se refresca al llegar `director.*` |
 | **Límites de presupuesto** (hallazgo 7) | `PUT /budget`; editor en línea por métrica («Definir/Cambiar/Subir límite»). `GET /budget` devuelve además `scope` y `scopeId` |
 | `'wasm-unsafe-eval'` (hallazgo 1) | en la política de seguridad del servicio (commit `d464bed`) |
 | `project.ts` / `project-root.ts` | unificados en `project-root.ts` (commit `19c2bf6`) |

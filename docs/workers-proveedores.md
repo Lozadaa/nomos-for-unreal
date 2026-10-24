@@ -1,6 +1,6 @@
 # Proveedores de workers
 
-CLI `kratos worker start TASK --provider PROVEEDOR` y HTTP autenticado `POST /tasks/:id/worker`
+CLI `nomos worker start TASK --provider PROVEEDOR` y HTTP autenticado `POST /tasks/:id/worker`
 admiten `codex`, `claude` y `opencode`. La clave `worker.start:TASK:attempt` conserva el payload
 original. OpenCode (hito 12) corre con `opencode run`: el brief viaja en la orden, sin esperar una TUI.
 
@@ -9,7 +9,7 @@ original. OpenCode (hito 12) corre con `opencode run`: el brief viaja en la orde
 | Función | Codex | Claude | OpenCode |
 | --- | --- | --- | --- |
 | `launchPlan(provider, model, short)` | orden + readiness, `briefInCommand: false` | igual | `briefInCommand: true` |
-| `launchCommand(provider, model, title)` | `codex --yolo --no-daemon` | `claude --model sonnet --dangerously-skip-permissions` | `opencode run --auto --model <opencodeModel> --title kratos-<id> Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.` |
+| `launchCommand(provider, model, title)` | `codex --yolo --no-daemon` | `claude --model sonnet --dangerously-skip-permissions` | `opencode run --auto --model <opencodeModel> --title nomos-<id> Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.` |
 | `readyPattern(provider): RegExp` | `Ask\s*Codex` | `bypass permissions\|Try "` | no se espera |
 | `followUp(provider, model, line)` | la línea | la línea | `opencode run --continue --auto --model <modelo> <línea>` |
 | `permissionPrompt(provider, lines)` | `null` | Primera línea con `Do you want to`, `Allow` o `(y/n)` | `null` (`--auto`) |
@@ -39,10 +39,10 @@ el alcance. Cambios de salida retiran la espera; el fingerprint evita repetir el
 Los marcadores de pantalla admiten viñetas `•`, `●`, `⏺` y JSON continuado con indentación y `⎿`.
 Se conservan las exclusiones de prompts, prosa y bloques de código. Son formatos cubiertos por pruebas
 sintéticas; aquí no se afirma haberlos capturado de una TUI Claude real. El cursor del stream se mantiene
-separado de los snapshots. DONE sigue siendo válido sin `KRATOS_SKILLS`.
+separado de los snapshots. DONE sigue siendo válido sin `NOMOS_SKILLS`.
 
 El brief de todos los workers y revisores enumera `run.skills` (explícitas y requeridas por rol)
-y pide una primera línea `KRATOS_SKILLS […]` con las skills realmente cargadas. El marcador
+y pide una primera línea `NOMOS_SKILLS […]` con las skills realmente cargadas. El marcador
 persiste la declaración en `metadata.confirmedSkills` y reporta faltantes sin bloquear.
 Sin marcador, la confirmación es desconocida; no se infiere carga ni se impide DONE/REVIEW.
 Contrato de inventario, eventos y HTTP en [skills-workspace.md](skills-workspace.md).
