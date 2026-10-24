@@ -10,7 +10,7 @@ import { getTask } from '../../service/src/repo/tasks.ts';
 import { openDecision, resolveDecision } from '../../service/src/repo/decisions.ts';
 
 const captured=JSON.parse(readFileSync(new URL('../fixtures/orca-screen-final.json',import.meta.url),'utf8'));
-const done='KRATOS_DONE {"summary":"Primera versión","commits":["abc"],"tests":"passed"}';
+const done='NOMOS_DONE {"summary":"Primera versión","commits":["abc"],"tests":"passed"}';
 function screen(f: ReturnType<typeof fixture>,lines: string[],extra: object={}) {
   const state=f.state();state.tail=state.tail.slice(0,Number(f.run().metadata.cursor));
   writeFileSync(f.file,JSON.stringify({...state,screen:lines,...extra}));
@@ -31,10 +31,10 @@ test('stream vacío recupera DONE real bullet+JSON en tres líneas desde snapsho
 });
 
 test('ASK de pantalla espera una vez; fingerprint persistido evita duplicar output o retirar espera tras restart',async t=>{
-  const f=fixture(t);await f.start();screen(f,['• KRATOS_ASK {"question":"¿Qué', '    color?"}','» Ask Codex']);
+  const f=fixture(t);await f.start();screen(f,['• NOMOS_ASK {"question":"¿Qué', '    color?"}','» Ask Codex']);
   await poll(f);assert.equal(f.run().metadata.waiting,true);assert.equal(f.run().metadata.question,'¿Qué color?');
   const fingerprint=f.run().metadata.screenFingerprint;assert.ok(fingerprint);
-  const restarted=openDb(join(f.dataDir,'kratos.db'));
+  const restarted=openDb(join(f.dataDir,'nomos.db'));
   try {
     f.ctx.db=restarted;Object.assign(f.handlers,createWorkerHandlers());
     await poll(f);await poll(f);
@@ -48,20 +48,20 @@ for(const origin of ['stream','screen'] as const) test(`DONE observado en ${orig
   if(origin==='stream') f.output(done);else screen(f,['• '+done]);
   await poll(f);assert.equal(f.run().state,'done');
   await f.invoke('worker.send',{runId:first.id,text:'Corrige una cosa'});
-  screen(f,['• KRATOS_DONE {"summary":"Primera', '  versión", "commits": ["a b c"],', '  "tests":"passed"}', '› Lee el archivo .kratos-inbox/nuevo.md y ejecuta lo que dice.']);
+  screen(f,['• NOMOS_DONE {"summary":"Primera', '  versión", "commits": ["a b c"],', '  "tests":"passed"}', '› Lee el archivo .nomos-inbox/nuevo.md y ejecuta lo que dice.']);
   await poll(f);assert.equal(f.run().state,'running');assert.equal(f.run().metadata.correctionCount,1);
-  screen(f,['Cabecera cambiada','• KRATOS_DONE {"summary":"Primera versión","commits":["abc"],"tests":"passed"}','» Ask Codex']);
+  screen(f,['Cabecera cambiada','• NOMOS_DONE {"summary":"Primera versión","commits":["abc"],"tests":"passed"}','» Ask Codex']);
   await poll(f);assert.equal(f.run().state,'running');
-  screen(f,['• KRATOS_DONE {"summary":"Corregido","commits":["def"],"tests":"passed"}']);
+  screen(f,['• NOMOS_DONE {"summary":"Corregido","commits":["def"],"tests":"passed"}']);
   await poll(f);assert.equal(f.run().state,'done');assert.equal(f.run().summary,'Corregido');
   assert.equal(f.run().id,first.id);assert.equal(f.run().sessionRef,first.sessionRef);assert.equal(f.state().creates,1);
 });
 
 test('snapshots son frames independientes y preservan aparte fragmento legacy del stream',async t=>{
   const f=fixture(t);await f.start();
-  f.output('KRATOS_DONE {"summary":"Frag');await poll(f);const buffer=f.run().metadata.markerBuffer;
+  f.output('NOMOS_DONE {"summary":"Frag');await poll(f);const buffer=f.run().metadata.markerBuffer;
   screen(f,['• Estado visible']);await poll(f);assert.equal(f.run().metadata.markerBuffer,buffer);
-  screen(f,['• KRATOS_DONE {"summary":"No concatenar']);await poll(f);
+  screen(f,['• NOMOS_DONE {"summary":"No concatenar']);await poll(f);
   screen(f,['  frames","commits":[],"tests":"passed"}']);await poll(f);assert.equal(f.run().state,'running');
   f.output('mentado","commits":[],"tests":"none"}');await poll(f);
   assert.equal(f.run().state,'done');assert.equal(f.run().summary,'Fragmentado');
@@ -72,10 +72,10 @@ test('pantalla no confunde prosa, comandos, citas, fences ni JSON inválido con 
   const invalid=[['Prosa '+done],['• Ran echo '+done],['> '+done],['"'+done+'"'],['  '+done],
     ['```json','• '+done,'```'],['~~~','• '+done,'~~~'],
     ['````json','```','• '+done],['```json','```not-a-closing-fence','• '+done],
-    ['• KRATOS_DONE {"summary":42,"commits":[],"tests":"passed"}'],
-    ['• KRATOS_DONE {"summary":"x","commits":[1],"tests":"passed"}'],
-    ['• KRATOS_DONE {"summary":"x","commits":[],"tests":"passing"}'],
-    ['• '+done+' texto extra'],['• KRATOS_ASK {"question":[]}']];
+    ['• NOMOS_DONE {"summary":42,"commits":[],"tests":"passed"}'],
+    ['• NOMOS_DONE {"summary":"x","commits":[1],"tests":"passed"}'],
+    ['• NOMOS_DONE {"summary":"x","commits":[],"tests":"passing"}'],
+    ['• '+done+' texto extra'],['• NOMOS_ASK {"question":[]}']];
   for(const lines of invalid) {screen(f,lines);await poll(f);assert.equal(f.run().state,'running',JSON.stringify(lines));}
   assert.equal(listEvents(f.db,0).filter(e=>e.type==='run.finished').length,0);
 });
@@ -106,7 +106,7 @@ for(const retained of [true,false]) test(`run done previo al fix conserva oldDON
 test('legacy summary anterior protege oldDONE aunque lastLines solo conserve un marcador más antiguo',async t=>{
   const f=fixture(t);await f.start();f.output(done);await poll(f);
   const metadata={...f.run().metadata};delete metadata.seenDoneMarkers;
-  metadata.lastLines=['KRATOS_DONE {"summary":"Anterior distinto","commits":[],"tests":"none"}'];
+  metadata.lastLines=['NOMOS_DONE {"summary":"Anterior distinto","commits":[],"tests":"none"}'];
   f.db.prepare('update runs set metadata=? where id=?').run(JSON.stringify(metadata),f.run().id);
   await f.invoke('worker.send',{runId:f.run().id,text:'Corregir legacy'});
   screen(f,['• '+done]);await poll(f);assert.equal(f.run().state,'running');

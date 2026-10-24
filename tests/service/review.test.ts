@@ -13,9 +13,9 @@ for(const checks of [false,true]) test(`Review Focus 3: aprobación ${checks ? '
   assert.notEqual(f.reviewer().id,f.implementer.id);assert.notEqual(f.reviewTree().path,f.implementerTree.path);
   assert.notEqual(f.reviewer().sessionRef,f.implementer.sessionRef);
   assert.equal(requireTask(f.db,f.task.id).worktreeId,f.implementerTree.id);
-  assert.match(readFileSync(join(f.reviewTree().path,'.kratos-review/diff.patch'),'utf8'),/Resultado revisable/);
-  assert.match(readFileSync(join(f.reviewTree().path,'.kratos-brief.md'),'utf8'),/KRATOS_REVIEW/);
-  f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  assert.match(readFileSync(join(f.reviewTree().path,'.nomos-review/diff.patch'),'utf8'),/Resultado revisable/);
+  assert.match(readFileSync(join(f.reviewTree().path,'.nomos-brief.md'),'utf8'),/NOMOS_REVIEW/);
+  f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(f.reviewer().state,'done');assert.equal(f.current().state,'done');
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,1);
   assert.equal(requireTask(f.db,f.task.id).state,checks ? 'probando' : 'revisando');
@@ -32,7 +32,7 @@ for(const checks of [false,true]) test(`Review Focus 3: aprobación ${checks ? '
 test('rechazo libera revisor y envía findings al mismo implementador con reserva',async t=>{
   const f=await reviewFixture(t);f.db.prepare('update tasks set leases=? where id=?').run('["Docs"]',f.task.id);
   await f.startReview();assert.equal(listLeases(f.db).length,0);
-  f.output('KRATOS_REVIEW {"approved":false,"findings":[{"file":"resultado.md","line":1,"severity":"error","note":"Falta prueba"}]}');await f.poll();
+  f.output('NOMOS_REVIEW {"approved":false,"findings":[{"file":"resultado.md","line":1,"severity":"error","note":"Falta prueba"}]}');await f.poll();
   assert.equal(f.reviewer().state,'done');assert.equal(requireTask(f.db,f.task.id).state,'implementando');
   const row=f.db.prepare("select payload from commands where type='worker.send'").get()!;
   const payload=JSON.parse(row.payload as string);assert.equal(payload.runId,f.implementer.id);assert.match(payload.text,/Falta prueba/);
@@ -42,9 +42,9 @@ test('rechazo libera revisor y envía findings al mismo implementador con reserv
 
 test('REVIEW mal formado espera con línea; DONE y ejemplos no aprueban',async t=>{
   const f=await reviewFixture(t);await f.startReview();
-  const malformed='KRATOS_REVIEW {"approved":"yes","findings":[]}';
-  f.output('```json','KRATOS_REVIEW {"approved":true,"findings":[]}','```',
-    'KRATOS_DONE {"summary":"No revisar","commits":[],"tests":"passed"}',malformed);await f.poll();
+  const malformed='NOMOS_REVIEW {"approved":"yes","findings":[]}';
+  f.output('```json','NOMOS_REVIEW {"approved":true,"findings":[]}','```',
+    'NOMOS_DONE {"summary":"No revisar","commits":[],"tests":"passed"}',malformed);await f.poll();
   assert.equal(f.reviewer().state,'running');assert.equal(f.reviewer().metadata.waiting,true);
   assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.waiting').at(-1)?.payload.question,malformed);
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
@@ -53,16 +53,16 @@ test('REVIEW mal formado espera con línea; DONE y ejemplos no aprueban',async t
 test('aprobación atrasada no aprueba diff modificado y queda informe auditable',async t=>{
   const f=await reviewFixture(t);await f.startReview();
   writeFileSync(join(f.implementerTree.path,'resultado.md'),'Cambiado después\n');
-  f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
   assert.equal(listEvents(f.db,0).find(e=>e.type==='review.finished')?.payload.stale,true);
 });
 test('snapshot detecta cambio binario del mismo tamaño sin incluir binario en diff.patch',async t=>{
   const f=await reviewFixture(t);const binary=join(f.implementerTree.path,'asset.bin');
   writeFileSync(binary,Buffer.from([0,1,2,3]));await f.startReview();
-  assert.doesNotMatch(readFileSync(join(f.reviewTree().path,'.kratos-review/diff.patch'),'utf8'),/asset.bin|GIT binary/);
+  assert.doesNotMatch(readFileSync(join(f.reviewTree().path,'.nomos-review/diff.patch'),'utf8'),/asset.bin|GIT binary/);
   writeFileSync(binary,Buffer.from([0,3,2,1]));
-  f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
   assert.equal(listEvents(f.db,0).find(e=>e.type==='review.finished')?.payload.stale,true);
 });
@@ -72,6 +72,6 @@ test('ASK revisor usa su sesión sin leases ni transición implementación; term
   f.db.prepare('update tasks set leases=? where id=?').run('["Docs"]',f.task.id);
   await f.invoke('worker.send',{runId:f.reviewer().id,text:'Inspeccionar el diff adjunto'});
   assert.equal(listLeases(f.db).length,0);assert.equal(requireTask(f.db,f.task.id).state,'revisando');
-  f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   await assert.rejects(f.invoke('worker.send',{runId:f.reviewer().id,text:'Otra revisión'}),/invalid_worker_state/);
 });

@@ -26,7 +26,7 @@ test('aviso de versión: rango declarado frente al motor que verificó', () => {
 test('migrar el pack del Launcher al juego: copia, verifica, marca imported y deja informe con el aviso', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const cel = f.entry('Advanced Cel Shader Lite');
     const result = await f.run('asset.migrate', {entryId: cel.id});
     assert.equal(result.ok, true);
@@ -51,7 +51,7 @@ test('migrar el pack del Launcher al juego: copia, verifica, marca imported y de
 test('verificación fallida: asset.verify_failed, entrada sin cambios y tarea en probando bloqueada', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'fail';
+    process.env.NOMOS_FAKE = 'fail';
     const ball = f.entry('Free_Tennisball', 'CrazyPadel');
     const result = await f.run('asset.migrate', {entryId: ball.id});
     assert.equal(result.ok, false);
@@ -67,7 +67,7 @@ test('verificación fallida: asset.verify_failed, entrada sin cambios y tarea en
 test('destino existente: Decisión Reemplazar/Conservar; mientras está abierta se difiere y «Reemplazar» copia', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const ball = f.entry('Free_Tennisball', 'CrazyPadel');
     const old = join(f.projectDir, 'Content', 'Fab', 'Free_Tennisball');
     mkdirSync(old, {recursive: true}); writeFileSync(join(old, 'propio.uasset'), 'mío');
@@ -101,7 +101,7 @@ test('dos operaciones de editor sobre el mismo proyecto: la segunda se difiere p
 test('caché del plugin: el zip (store/deflate, nombre UTF-8) se descomprime en Content/Fab', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const zip = join(f.root, 'FabLibrary', 'raqueta.zip');
     mkdirSync(join(f.root, 'FabLibrary'), {recursive: true});
     writeFileSync(zip, makeZip({'Nude_Tennis_Racket_🎾/scene.uasset': 'malla', 'Nude_Tennis_Racket_🎾/T_Base.uasset': 'textura'}));
@@ -117,7 +117,7 @@ test('caché del plugin: el zip (store/deflate, nombre UTF-8) se descomprime en 
 test('plantilla del motor: Maniquíes UE5 conservan /Game/Characters/Mannequins y las de combate /Game/Variant_Combat/Anims', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const manny = await f.run('asset.migrate', {entryId: f.entry('Maniquíes UE5 (Manny y Quinn)').id});
     assert.equal(manny.ok, true);
     assert.equal(manny.root, '/Game/Characters');
@@ -132,7 +132,7 @@ test('plantilla del motor: Maniquíes UE5 conservan /Game/Characters/Mannequins 
 test('plantilla del motor con destino existente: copia lo que falta sin sobrescribir nada, lo dice y verifica, sin Decisión', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const mine = join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Manny_Simple.uasset');
     mkdirSync(join(mine, '..'), {recursive: true}); writeFileSync(mine, 'mío');
     const result = await f.run('asset.migrate', {entryId: f.entry('Maniquíes UE5 (Manny y Quinn)').id});
@@ -169,7 +169,7 @@ function makeZip(files: Record<string, string>): Buffer {
 test('preset MetaHuman de Megascans: copia MetaHumans/<Nombre> y Common sin pisar el Common que ya hay', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     writeFileSync(join(f.projectDir, 'Juego.uproject'), JSON.stringify({Plugins: [{Name: 'LiveLink', Enabled: true}]}));
     const hudson = await f.run('asset.migrate', {entryId: f.entry('Hudson').id});
     assert.equal(hudson.ok, true, JSON.stringify(hudson));
@@ -188,7 +188,7 @@ test('preset MetaHuman de Megascans: copia MetaHumans/<Nombre> y Common sin pisa
 test('preset MetaHuman sin LiveLink en el proyecto: Decisión antes de activarlo en el .uproject; «Activar» lo añade sin tocar el resto', async () => {
   const f = assetFixture();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const uproject = join(f.projectDir, 'Juego.uproject');
     writeFileSync(uproject, JSON.stringify({FileVersion: 3, Plugins: [{Name: 'PythonScriptPlugin', Enabled: true}]}, null, '\t'));
     const hudson = f.entry('Hudson');

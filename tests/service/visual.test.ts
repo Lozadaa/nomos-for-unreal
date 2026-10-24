@@ -27,7 +27,7 @@ test('el codificador PNG mínimo produce un archivo que el decodificador propio 
 });
 
 test('sin línea base la crea y no juzga; variación de render pasa; la barra de vida de 100 a 50 falla con imagen de diferencia', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-visual-')), baselines = join(dir, 'docs', 'baseline');
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-visual-')), baselines = join(dir, 'docs', 'baseline');
   try {
     const shot = (name: string, image: Rgba) => { const path = join(dir, `${name}.png`); writeFileSync(path, encodePng(image)); return path; };
     const first = compareBaseline(shot('base', hud(100)), baselines, 'build-1280x720', 0.02, join(dir, 'diff-1.png'));

@@ -1,24 +1,24 @@
-"""Kratos · se ejecuta DENTRO del juego lanzado desde el editor (`-game -windowed -ResX -ResY <mapa>`, con `-ExecCmds="py …"`).
+"""Nomos · se ejecuta DENTRO del juego lanzado desde el editor (`-game -windowed -ResX -ResY <mapa>`, con `-ExecCmds="py …"`).
 
 Espera a que el juego arranque, pausa, captura el viewport CON la UI (`Shot showui`), oculta los widgets y vuelve a capturar
 SIN UI (captura de control), en el mismo fotograma pausado. Probado en UE 5.8.3: en PIE desde el editor por lotes
 `Shot showui` captura la ventana entera del editor (2560×1392) y no el viewport del juego; por eso se usa `-game`.
 
 Variables de entorno:
-  KRATOS_REPORT  ruta del informe JSON
-  KRATOS_SHOT    PNG con la UI;  KRATOS_CONTROL  PNG sin UI (opcional: sin ella no hay captura de control)
-  KRATOS_WAIT    segundos de juego antes de capturar (30 por defecto)
-  KRATOS_WIDGETS lista JSON de clases de widget esperadas; sin ella vale cualquier UserWidget en el viewport
-  KRATOS_VIEWS   (hito 10) lista JSON de vistas extra {view, path}: cámara libre que orbita al pawn, HighResShot sin UI
-  KRATOS_VIEWS_BUDGET  segundos para las vistas extra (90); pasado el plazo se entregan las que haya y se anota
+  NOMOS_REPORT  ruta del informe JSON
+  NOMOS_SHOT    PNG con la UI;  NOMOS_CONTROL  PNG sin UI (opcional: sin ella no hay captura de control)
+  NOMOS_WAIT    segundos de juego antes de capturar (30 por defecto)
+  NOMOS_WIDGETS lista JSON de clases de widget esperadas; sin ella vale cualquier UserWidget en el viewport
+  NOMOS_VIEWS   (hito 10) lista JSON de vistas extra {view, path}: cámara libre que orbita al pawn, HighResShot sin UI
+  NOMOS_VIEWS_BUDGET  segundos para las vistas extra (90); pasado el plazo se entregan las que haya y se anota
 """
 import json, os, shutil, time, unreal
 
-REPORT = os.environ["KRATOS_REPORT"]
-SHOT = os.environ.get("KRATOS_SHOT") or os.path.join(unreal.Paths.project_saved_dir(), "kratos-ui.png")
-CONTROL = os.environ.get("KRATOS_CONTROL", "")
-WAIT = float(os.environ.get("KRATOS_WAIT", "30"))
-EXPECTED = json.loads(os.environ.get("KRATOS_WIDGETS") or "[]")
+REPORT = os.environ["NOMOS_REPORT"]
+SHOT = os.environ.get("NOMOS_SHOT") or os.path.join(unreal.Paths.project_saved_dir(), "nomos-ui.png")
+CONTROL = os.environ.get("NOMOS_CONTROL", "")
+WAIT = float(os.environ.get("NOMOS_WAIT", "30"))
+EXPECTED = json.loads(os.environ.get("NOMOS_WIDGETS") or "[]")
 UI_WAIT, FILE_WAIT = 20.0, 20.0
 SHOTS = os.path.join(unreal.Paths.project_saved_dir(), "Screenshots")
 
@@ -49,7 +49,7 @@ def finish():
     report["ok"] = bool(report["screenshot"]) and (not CONTROL or bool(report["control"])) and not report["errors"]
     with open(REPORT, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    unreal.log(f"KRATOS_PIE ok={report['ok']} shot={report['screenshot']} widgets={len(report['widgets'])}")
+    unreal.log(f"NOMOS_PIE ok={report['ok']} shot={report['screenshot']} widgets={len(report['widgets'])}")
     if state["handle"] is not None:
         unreal.unregister_slate_post_tick_callback(state["handle"])
         state["handle"] = None
@@ -74,10 +74,10 @@ def landed(key):
 
 
 # --- Hito 10: vistas extra con un rig de cámara fijo relativo al pawn ------------------------------------------------
-# KRATOS_VIEWS   lista JSON [{"view": "left|right|top", "path": "..."}]: tras las capturas del jugador, una vista por cámara libre
-# KRATOS_VIEWS_BUDGET  segundos para todas las vistas extra (90): se entregan las que haya y se anota
-VIEWS = json.loads(os.environ.get("KRATOS_VIEWS") or "[]")
-BUDGET = float(os.environ.get("KRATOS_VIEWS_BUDGET", "90"))
+# NOMOS_VIEWS   lista JSON [{"view": "left|right|top", "path": "..."}]: tras las capturas del jugador, una vista por cámara libre
+# NOMOS_VIEWS_BUDGET  segundos para todas las vistas extra (90): se entregan las que haya y se anota
+VIEWS = json.loads(os.environ.get("NOMOS_VIEWS") or "[]")
+BUDGET = float(os.environ.get("NOMOS_VIEWS_BUDGET", "90"))
 report["views"] = {}
 
 

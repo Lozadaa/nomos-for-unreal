@@ -23,7 +23,7 @@ function script(name: string, needs: Report['needs']): string {
     `2. En el Content Browser: clic derecho › MetaHuman › MetaHuman Character, llámalo ${name}.`,
     '3. Ábrelo, elige cuerpo y cara (inicia sesión en MetaHuman si lo pide) y pulsa Auto-Rig.',
     `4. Assemble con la canalización Optimized en /Game/MetaHumans/${name}.`,
-    `5. Avisa a Kratos: kratos asset character /Game/MetaHumans/${name}/BP_${name} --metahuman.`].join(' ');
+    `5. Avisa a Nomos: nomos asset character /Game/MetaHumans/${name}/BP_${name} --metahuman.`].join(' ');
 }
 
 const openRun = (ctx: WorkerContext, commandId: string): Run | undefined => {
@@ -55,8 +55,8 @@ export function createCharacterMetahuman(deps: AssetDeps = {}): Handler {
     const run = previous?.state === 'running' ? previous
       : startRun(ctx.db, {taskId: task.id, role: 'animacion', provider: 'unreal', attempt: (previous?.attempt ?? 0) + 1, metadata: {commandId: command.id, kind: 'metahuman'}});
     const outcome = await withEditor(ctx, project, run, async () => {
-      const {reportJson, exitCode} = await unrealFor(deps, ctx).runPython(project.uproject, join(scripts, 'kratos_metahuman.py'),
-        {KRATOS_NAME: name, KRATOS_DEST: '/Game/MetaHumans'}, 10 * 60_000);
+      const {reportJson, exitCode} = await unrealFor(deps, ctx).runPython(project.uproject, join(scripts, 'nomos_metahuman.py'),
+        {NOMOS_NAME: name, NOMOS_DEST: '/Game/MetaHumans'}, 10 * 60_000);
       return (reportJson as Report | undefined) ?? {ok: false, name, steps: [], blueprint: null, needs: 'gui',
         errors: [`El editor terminó con código ${exitCode} sin el informe`]} as Report;
     });

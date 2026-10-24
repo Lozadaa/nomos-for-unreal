@@ -16,7 +16,7 @@ export const minLifeSeconds = 20, lifeSeconds = 30;
 
 /**
  * Recorrido guionado fuera del editor: mapa, acciones por consola, 120 fotogramas de estabilización
- * (`r.HighResScreenshotDelay`, unos 2 s) y `HighResShot`; Kratos cierra el proceso al acabar su tiempo de vida.
+ * (`r.HighResScreenshotDelay`, unos 2 s) y `HighResShot`; Nomos cierra el proceso al acabar su tiempo de vida.
  */
 export function walkthroughArgs(opts: {map?: string; commands?: string[]; tracefile?: string} = {}): string[] {
   const commands = opts.commands ?? defaultCommands;

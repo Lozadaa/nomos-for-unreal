@@ -20,7 +20,7 @@ export function umgCapture(opts: UmgOptions = {}): Executor {
     for (const [width, height] of opts.resolutions ?? defaultResolutions) {
       const name = `ui-${width}x${height}`, shot = join(dir, `${name}.png`), control = join(dir, `${name}-control.png`);
       const run = await capture(unreal, project.uproject, opts.map, [width, height], shot, deps,
-        {KRATOS_CONTROL: control, ...(opts.widgets?.length ? {KRATOS_WIDGETS: JSON.stringify(opts.widgets)} : {})});
+        {NOMOS_CONTROL: control, ...(opts.widgets?.length ? {NOMOS_WIDGETS: JSON.stringify(opts.widgets)} : {})});
       logs.push(run.log);
       const pie = run.reportJson as Pie | undefined;
       if (!pie?.ok) return {result: 'failed', log: logs.join('\n'), map, summary: [`${width}×${height}: ${pie?.errors.join('; ') || 'el juego no produjo las capturas'}`]};

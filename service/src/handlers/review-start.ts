@@ -40,17 +40,17 @@ export const reviewStart:Handler=async(cmd,ctx)=>{
   return startWorker({...cmd,payload:{...payload,provider:choice.provider,role:'revisor',skills:qa ? [...new Set([...skillsForRole('qa',''),'ue-visual-qa'])] : [],attempt:1}},ctx,{
     snapshot,valid:()=>reviewCurrent(ctx,task.id,snapshot),
     brief:(path,run)=>{
-      mkdirSync(join(path,'.kratos-review'),{recursive:true});writeFileSync(join(path,'.kratos-review','diff.patch'),patch);
+      mkdirSync(join(path,'.nomos-review'),{recursive:true});writeFileSync(join(path,'.nomos-review','diff.patch'),patch);
       appendEvent(ctx.db,'review.started',null,{taskId:task.id,runId:run.id,provider:run.provider,...snapshot,same_provider:choice.sameProvider,
         ...(qa ? {qa} : {})});
       if(qa) {updateRun(ctx.db,run.id,{qa});return qaBrief(ctx,task,run,snapshot,qa.testRunId,path);}
       return `# Revisión independiente\n\nSolo inspección: no modificar la implementación, crear commits ni hacer merge.\n\n`
         +workerSkillsBrief(run)
         +`## Encargo\n${task.spec}\n\n## Criterios de aceptación\n${task.acceptance.map(s=>'- '+s).join('\n')}\n\n`
-        +`Inspecciona .kratos-review/diff.patch (cambios desde la base) y el contexto de este árbol.\n`
+        +`Inspecciona .nomos-review/diff.patch (cambios desde la base) y el contexto de este árbol.\n`
         +`Implementación: ${snapshot.commit}. Generación: ${snapshot.generation}.\n`
-        +`Termina fuera de bloques de código con una línea: KRATOS_REVIEW {"approved":true,"findings":[]}\n`
+        +`Termina fuera de bloques de código con una línea: NOMOS_REVIEW {"approved":true,"findings":[]}\n`
         +`Para rechazar usa approved:false y findings con file, line (entero positivo), severity y note.\n`
-        +`Si necesitas aclaración: KRATOS_ASK {"question":"Pregunta"}. No uses KRATOS_DONE.\n`;
+        +`Si necesitas aclaración: NOMOS_ASK {"question":"Pregunta"}. No uses NOMOS_DONE.\n`;
     }});
 };

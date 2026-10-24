@@ -132,7 +132,7 @@ test('una base anterior al 5b (check sin engine) admite entradas engine al abrir
   const {mkdtempSync} = await import('node:fs');
   const {tmpdir} = await import('node:os');
   const {DatabaseSync} = await import('node:sqlite');
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-old-')), file = join(dir, 'old.sqlite');
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-old-')), file = join(dir, 'old.sqlite');
   try {
     const raw = new DatabaseSync(file);
     // catalog_entries tal como la creaba main antes del 5b

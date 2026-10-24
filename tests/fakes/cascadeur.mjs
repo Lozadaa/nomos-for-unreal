@@ -1,8 +1,8 @@
-// Cascadeur falso: `--run-python-code` con el job de Kratos. KRATOS_CSC_FAKE: ok (exporta), noflag (sale sin hacer nada),
+// Cascadeur falso: `--run-python-code` con el job de Nomos. NOMOS_CSC_FAKE: ok (exporta), noflag (sale sin hacer nada),
 // license (informe con la exportación FBX bloqueada por la licencia).
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const mode = process.env.KRATOS_CSC_FAKE ?? 'ok', args = process.argv.slice(2);
+const mode = process.env.NOMOS_CSC_FAKE ?? 'ok', args = process.argv.slice(2);
 const code = args[args.indexOf('--run-python-code') + 1] ?? '';
 const job = code.match(/main\(r'([^']+)'\)/)?.[1];
 if (mode === 'noflag' || !job) process.exit(0);

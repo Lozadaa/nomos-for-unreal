@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
 import { createServer } from '../../service/src/server.ts';
 export async function fixture(memory = false) {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-routes-'));
-  const db = openDb(memory ? ':memory:' : join(dir, 'kratos.db'));
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-routes-'));
+  const db = openDb(memory ? ':memory:' : join(dir, 'nomos.db'));
   const server = createServer(db, 'secret', 'service/web', dir);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${(server.address() as any).port}`;

@@ -9,7 +9,7 @@ import { enqueue } from '../../service/src/commands.ts';
 import { start } from '../../service/src/server.ts';
 
 test('servicio arranca runner una vez y admin stop drena antes de cerrar SQLite y borrar service.json',async()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-lifecycle-')),file=join(dir,'kratos.db');
+  const dir=mkdtempSync(join(tmpdir(),'nomos-lifecycle-')),file=join(dir,'nomos.db');
   const initial=openDb(file);enqueue(initial,'hold',{},'hold');initial.close();
   let entered=false,release!:()=>void, finished=false;
   const gate=new Promise<void>(resolve=>{release=resolve;});

@@ -1,25 +1,25 @@
-"""Kratos · prepara un personaje animado DENTRO del editor sin GUI (UnrealEditor-Cmd -ExecutePythonScript).
+"""Nomos · prepara un personaje animado DENTRO del editor sin GUI (UnrealEditor-Cmd -ExecutePythonScript).
 
 Carga la malla (SkeletalMesh) o el Blueprint del personaje (un MetaHuman: su componente `Body`), resuelve su esqueleto y,
-por cada animación: mismo esqueleto → se usa; distinto → retarget por lotes (kratos_retarget.py). Después crea o reutiliza el
-mapa de prueba (`KRATOS_MAP`, desde Template_Default) con el personaje reproduciendo el primer clip, una cámara delante y el
-GameModeBase como modo de juego (sin el HUD del juego), y lo guarda. El juego (`-game`) lo captura con kratos_anim_capture.py.
+por cada animación: mismo esqueleto → se usa; distinto → retarget por lotes (nomos_retarget.py). Después crea o reutiliza el
+mapa de prueba (`NOMOS_MAP`, desde Template_Default) con el personaje reproduciendo el primer clip, una cámara delante y el
+GameModeBase como modo de juego (sin el HUD del juego), y lo guarda. El juego (`-game`) lo captura con nomos_anim_capture.py.
 
-Variables: KRATOS_REPORT, KRATOS_MESH, KRATOS_ANIMATIONS (JSON), KRATOS_TARGET ('metahuman' o vacío), KRATOS_MAP.
+Variables: NOMOS_REPORT, NOMOS_MESH, NOMOS_ANIMATIONS (JSON), NOMOS_TARGET ('metahuman' o vacío), NOMOS_MAP.
 """
 import json, os, re, sys, unreal
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kratos_retarget import retarget, short  # noqa: E402
+from nomos_retarget import retarget, short  # noqa: E402
 
 # cadera: el hueso pelvis (si mide ~0 es que el retarget no le da movimiento: Review Focus 10)
 HIPS = "pelvis"
 MH_RIG = "/MetaHumanCharacter/Animation/Retargeting/IK_MH_IKRig"
 TEMPLATE = "/Engine/Maps/Templates/Template_Default"
-MESH = os.environ["KRATOS_MESH"]
-ANIMS = json.loads(os.environ.get("KRATOS_ANIMATIONS") or "[]")
-TARGET = os.environ.get("KRATOS_TARGET", "")
-MAP = os.environ.get("KRATOS_MAP") or "/Game/Kratos/Maps/AnimTest"
+MESH = os.environ["NOMOS_MESH"]
+ANIMS = json.loads(os.environ.get("NOMOS_ANIMATIONS") or "[]")
+TARGET = os.environ.get("NOMOS_TARGET", "")
+MAP = os.environ.get("NOMOS_MAP") or "/Game/Kratos/Maps/AnimTest"
 levels = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "mesh": MESH, "target_mesh": None, "skeleton": None,
@@ -145,6 +145,6 @@ try:
     main()
 except Exception as e:  # noqa: BLE001
     report["errors"].append(str(e))
-with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:
+with open(os.environ["NOMOS_REPORT"], "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2, ensure_ascii=False)
-unreal.log(f"KRATOS_CHARACTER ok={report['ok']} clips={len(report['clips'])} map={MAP}")
+unreal.log(f"NOMOS_CHARACTER ok={report['ok']} clips={len(report['clips'])} map={MAP}")

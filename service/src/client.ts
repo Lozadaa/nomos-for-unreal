@@ -4,7 +4,7 @@ import type { ServiceInfo } from "./service-info.ts";
 export class ServiceError extends Error {}
 export function serviceInfo(dataDir: string): ServiceInfo {
   const info = readServiceInfo(dataDir);
-  if (!info) throw new ServiceError("Servicio no disponible; ejecuta /kratos");
+  if (!info) throw new ServiceError("Servicio no disponible; ejecuta /nomos");
   return info;
 }
 /** 10 s por orden: con el servicio ocupado (git, Unreal) 1,5 s daba «Servicio no disponible» en falso; el vigilante pide 1,5 s. */

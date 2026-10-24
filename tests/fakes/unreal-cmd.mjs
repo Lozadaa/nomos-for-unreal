@@ -1,15 +1,15 @@
-// Editor sin GUI falso: imita UnrealEditor-Cmd (-ExecutePythonScript o -game con -ExecCmds="py …") escribiendo el informe en KRATOS_REPORT.
+// Editor sin GUI falso: imita UnrealEditor-Cmd (-ExecutePythonScript o -game con -ExecCmds="py …") escribiendo el informe en NOMOS_REPORT.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 
-const mode = process.env.KRATOS_FAKE ?? 'ok';
+const mode = process.env.NOMOS_FAKE ?? 'ok';
 const args = process.argv.slice(2);
 const script = args.find(a => a.startsWith('-ExecutePythonScript='))?.slice(21)
-  ?? (args.some(a => a.startsWith('-ExecCmds=py ') && a.includes('KRATOS_SCRIPT')) ? process.env.KRATOS_SCRIPT : undefined) ?? '';
+  ?? (args.some(a => a.startsWith('-ExecCmds=py ') && a.includes('NOMOS_SCRIPT')) ? process.env.NOMOS_SCRIPT : undefined) ?? '';
 console.log(`LogPython: ${script} ${args.join(' ')}`);
-if (process.env.KRATOS_ASSETS) console.log(`KRATOS_ASSETS ${process.env.KRATOS_ASSETS}`);
-const write = report => writeFileSync(process.env.KRATOS_REPORT, JSON.stringify({args, script, ...report}), 'utf8');
+if (process.env.NOMOS_ASSETS) console.log(`NOMOS_ASSETS ${process.env.NOMOS_ASSETS}`);
+const write = report => writeFileSync(process.env.NOMOS_REPORT, JSON.stringify({args, script, ...report}), 'utf8');
 const engine = '5.8.3-58210709+++UE5+Release-5.8';
 
 // PNG RGBA sin filtro: fondo gris y, con UI, una barra roja en la esquina (más del 0,5 % de los píxeles)
@@ -31,26 +31,26 @@ function png(path, width, height, ui, shift = 0) {
 }
 
 const arg = name => args.find(a => a.startsWith(`-${name}=`))?.slice(name.length + 2);
-const assets = JSON.parse(process.env.KRATOS_ASSETS || '[]');
+const assets = JSON.parse(process.env.NOMOS_ASSETS || '[]');
 if (mode === 'hang') {
-  if (process.env.KRATOS_FAKE_PID) writeFileSync(process.env.KRATOS_FAKE_PID, String(process.pid));
+  if (process.env.NOMOS_FAKE_PID) writeFileSync(process.env.NOMOS_FAKE_PID, String(process.pid));
   setInterval(() => {}, 1000);
 } else if (mode === 'noreport') {
   process.exitCode = 3;
-} else if (script.endsWith('kratos_import.py')) {
-  write({ok: mode === 'ok', assets: mode === 'ok' ? [`${process.env.KRATOS_DEST}/${process.env.KRATOS_NAME}`] : [], errors: []});
-} else if (script.endsWith('kratos_compile_bp.py')) {
+} else if (script.endsWith('nomos_import.py')) {
+  write({ok: mode === 'ok', assets: mode === 'ok' ? [`${process.env.NOMOS_DEST}/${process.env.NOMOS_NAME}`] : [], errors: []});
+} else if (script.endsWith('nomos_compile_bp.py')) {
   const ok = mode !== 'fail';
   write({ok, engine, compiled: assets.map(p => ({package: p, status: ok ? 'BS_UpToDate' : 'BS_Error'})),
     errors: ok ? [] : assets.map(p => `${p}: el Blueprint no compila (BS_Error)`)});
-} else if (script.endsWith('kratos_validate.py')) {
+} else if (script.endsWith('nomos_validate.py')) {
   const ok = !['fail', 'validate_fail'].includes(mode);
   write({ok, engine, errors: [], assets: assets.map(p => ({package: p, result: ok ? 'valid' : 'invalid',
     errors: ok ? [] : [`Dependencia rota: /Game/Falta/T_${p.split('/').at(-1)}`]}))});
-} else if (script.endsWith('kratos_character.py')) {
+} else if (script.endsWith('nomos_character.py')) {
   // personaje: retarget al esqueleto del MetaHuman; «critical» deja la columna y un brazo sin mapear
-  const critical = mode === 'critical', mesh = process.env.KRATOS_MESH, anims = JSON.parse(process.env.KRATOS_ANIMATIONS || '[]');
-  write({ok: !critical, engine, mesh, map: process.env.KRATOS_MAP, target_mesh: '/Game/MetaHumans/Hudson/Body/m_tal_ovw_body.m_tal_ovw_body',
+  const critical = mode === 'critical', mesh = process.env.NOMOS_MESH, anims = JSON.parse(process.env.NOMOS_ANIMATIONS || '[]');
+  write({ok: !critical, engine, mesh, map: process.env.NOMOS_MAP, target_mesh: '/Game/MetaHumans/Hudson/Body/m_tal_ovw_body.m_tal_ovw_body',
     skeleton: '/Game/MetaHumans/Common/Female/Medium/NormalWeight/Body/metahuman_base_skel', rest_extent: [23, 58, 92],
     rest_pelvis: {target: 96.9, source: 99.6}, errors: critical ? ['Cadenas principales sin mapear: Spine, LeftArm'] : [],
     clips: anims.map(a => ({source: a, played: critical ? null : `/Game/Kratos/Retarget/m_tal_ovw_body/${a.split('/').at(-1)}_m_tal_ovw_body`, retargeted: true, length: critical ? 0 : 3.667})),
@@ -58,10 +58,10 @@ if (mode === 'hang') {
       chains: [{target: 'Head', source: 'Head'}], unmapped_target_chains: critical ? ['Spine', 'LeftArm'] : [], unmapped_source_chains: ['LeftFoot'],
       critical_unmapped: critical ? ['Spine', 'LeftArm'] : [], outputs: critical ? [] : anims.map(a => `/Game/Kratos/Retarget/m_tal_ovw_body/${a.split('/').at(-1)}_m_tal_ovw_body`),
       errors: critical ? ['Cadenas principales sin mapear: Spine, LeftArm'] : []}});
-} else if (script.endsWith('kratos_anim_capture.py')) {
-  // tres instantes y, con KRATOS_VIDEO_DIR, 12 fotogramas (una barra que avanza; «static»: todos iguales)
+} else if (script.endsWith('nomos_anim_capture.py')) {
+  // tres instantes y, con NOMOS_VIDEO_DIR, 12 fotogramas (una barra que avanza; «static»: todos iguales)
   const width = Math.max(8, Math.round(Number(arg('ResX') ?? 1280) / 40)), height = Math.max(8, Math.round(Number(arg('ResY') ?? 720) / 40));
-  const dir = process.env.KRATOS_SHOT_DIR, prefix = process.env.KRATOS_PREFIX, video = process.env.KRATOS_VIDEO_DIR;
+  const dir = process.env.NOMOS_SHOT_DIR, prefix = process.env.NOMOS_PREFIX, video = process.env.NOMOS_VIDEO_DIR;
   const frames = [0, 0.5, 0.9].map(fraction => {
     const shot = join(dir, `${prefix}-${Math.round(fraction * 100)}.png`);
     png(shot, width, height, true);
@@ -79,36 +79,36 @@ if (mode === 'hang') {
   write({ok: !['deform', 'stretch', 'clothes'].includes(mode), engine, followers,
     ...(mode === 'clothes' ? {errors: ['prendas sin seguir al cuerpo: Torso']} : {}), map: args.find(a => a.startsWith('/Game/')) ?? null, clip: '/Game/Kratos/Retarget/x', length: 3.667,
     frames, ...(mode === 'clothes' ? {} : {errors: []}), ...(video ? {video_frames: 12, video_seconds: 3.67} : {})});
-} else if (script.endsWith('kratos_metahuman.py')) {
+} else if (script.endsWith('nomos_metahuman.py')) {
   // MetaHuman por script: «ok» lo crea y ensambla; «noplugin», sin el subsistema; «cloud», el ensamblado pide la nube
-  const name = process.env.KRATOS_NAME, ok = mode === 'ok';
+  const name = process.env.NOMOS_NAME, ok = mode === 'ok';
   const steps = [{step: 'subsystem', ok: mode !== 'noplugin', detail: mode === 'noplugin' ? 'MetaHumanCharacterEditorSubsystem no existe: el plugin MetaHumanCharacter no está activo en el proyecto' : 'ok'}];
   if (mode !== 'noplugin') steps.push({step: 'create', ok: true, detail: `/Game/Kratos/MetaHumans/${name}`},
     {step: 'build', ok, detail: ok ? 'build_meta_human terminado' : 'El ensamblado necesita iniciar sesión en la nube de MetaHuman'});
   write({ok, engine, name, steps, blueprint: ok ? `/Game/MetaHumans/${name}/BP_${name}` : null,
     needs: ok ? null : mode === 'noplugin' ? 'plugin' : 'cloud', errors: ok ? [] : [steps.at(-1).detail]});
-} else if (script.endsWith('kratos_export_fbx.py')) {
-  writeFileSync(process.env.KRATOS_FBX, `fbx de ${process.env.KRATOS_CLIP}`);
-  write({ok: true, engine, clip: process.env.KRATOS_CLIP, fbx: process.env.KRATOS_FBX, skeleton: '/Game/Characters/Mannequins/Meshes/SK_Mannequin', errors: []});
-} else if (script.endsWith('kratos_import_anim.py')) {
-  write({ok: true, engine, clip: `${process.env.KRATOS_DEST}/${process.env.KRATOS_NAME}`, length: 1.2, fixed_bones: ['root', 'pelvis'], errors: []});
-} else if (script.endsWith('kratos_pie_capture.py')) {
+} else if (script.endsWith('nomos_export_fbx.py')) {
+  writeFileSync(process.env.NOMOS_FBX, `fbx de ${process.env.NOMOS_CLIP}`);
+  write({ok: true, engine, clip: process.env.NOMOS_CLIP, fbx: process.env.NOMOS_FBX, skeleton: '/Game/Characters/Mannequins/Meshes/SK_Mannequin', errors: []});
+} else if (script.endsWith('nomos_import_anim.py')) {
+  write({ok: true, engine, clip: `${process.env.NOMOS_DEST}/${process.env.NOMOS_NAME}`, length: 1.2, fixed_bones: ['root', 'pelvis'], errors: []});
+} else if (script.endsWith('nomos_pie_capture.py')) {
   // resolución reducida (÷40) para que las pruebas sean rápidas; la diferencia relativa se conserva
   const width = Math.max(8, Math.round(Number(arg('ResX') ?? 1280) / 40)), height = Math.max(8, Math.round(Number(arg('ResY') ?? 720) / 40));
   if (mode === 'fail') write({ok: false, engine, map: null, widgets: [], screenshot: null, control: null, errors: ['El juego no arrancó en 120 s']});
   else {
-    png(process.env.KRATOS_SHOT, width, height, mode !== 'noui');
-    if (process.env.KRATOS_CONTROL) png(process.env.KRATOS_CONTROL, width, height, false);
+    png(process.env.NOMOS_SHOT, width, height, mode !== 'noui');
+    if (process.env.NOMOS_CONTROL) png(process.env.NOMOS_CONTROL, width, height, false);
     const map = args.find(a => a.startsWith('/Game/')) ?? '/Game/Maps/Nivel1';
     // hito 10: las vistas del rig; «views_slow» imita un editor que pasa de 90 s y solo deja la primera
-    const requested = JSON.parse(process.env.KRATOS_VIEWS || '[]'), done = mode === 'views_slow' ? requested.slice(0, 1) : requested;
+    const requested = JSON.parse(process.env.NOMOS_VIEWS || '[]'), done = mode === 'views_slow' ? requested.slice(0, 1) : requested;
     for (const v of done) png(v.path, width, height, false, v.view.length);
-    write({ok: true, engine, map, widgets: mode === 'noui' ? [] : ['WBP_Vida_C'], screenshot: process.env.KRATOS_SHOT,
-      control: process.env.KRATOS_CONTROL || null, errors: [], views: Object.fromEntries(done.map(v => [v.view, v.path])),
+    write({ok: true, engine, map, widgets: mode === 'noui' ? [] : ['WBP_Vida_C'], screenshot: process.env.NOMOS_SHOT,
+      control: process.env.NOMOS_CONTROL || null, errors: [], views: Object.fromEntries(done.map(v => [v.view, v.path])),
       ...(mode === 'views_slow' ? {views_note: `Vistas extra cortadas a los 90 s: ${done.length} de ${requested.length}`} : {})});
   }
 } else {
-  const root = process.env.KRATOS_ROOT;
+  const root = process.env.NOMOS_ROOT;
   write({ok: mode === 'ok', root, engine: '5.8.3-0+UE5', assets: [{package: `${root}/M_Cel`, class: 'Material', loaded: mode === 'ok'}],
     missing_dependencies: mode === 'ok' ? [] : [{from: `${root}/M_Cel`, to: '/Game/StarterContent/T_Falta'}],
     external_dependencies: [], errors: [], utf8: 'Nude_Tennis_Racket_🎾'});

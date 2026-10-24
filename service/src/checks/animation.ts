@@ -6,10 +6,11 @@ import { writeZip } from '../catalog/zip.ts';
 import { decodePng, pixelDiffRatio } from './png.ts';
 import { packages, scripts } from './blueprint.ts';
 import { ffmpegOf, unrealOf, type Executor, type Outcome } from './run.ts';
+import { legacySpecFile } from '../legacy.ts';
 
 /** Ficha del personaje que deja `character.setup` en la raíz del proyecto (y en el diff): qué malla y qué clips se prueban. */
 export type CharacterSpec = {mesh: string; animations: string[]; targetSkeleton?: 'metahuman'};
-export const specFile = 'kratos-personaje.json';
+export const specFile = 'nomos-personaje.json';
 export const resolutions: [number, number][] = [[1280, 720], [1920, 1080]];
 /** Review Focus 9: por debajo de este cambio medio entre fotogramas, la animación no se mueve. */
 export const minMotion = 0.002;
@@ -23,7 +24,9 @@ const pct = (fraction: number) => `${Math.round(fraction * 100)} %`;
 const comma = (n: number) => String(n).replace('.', ',');
 
 export function readSpec(dir: string): CharacterSpec | null {
-  try { return JSON.parse(readFileSync(join(dir, specFile), 'utf8')); } catch { return null; }
+  for (const name of [specFile, legacySpecFile])
+    try { return JSON.parse(readFileSync(join(dir, name), 'utf8')); } catch { /* la siguiente */ }
+  return null;
 }
 
 /** Sin ficha: la primera malla con esqueleto del diff y sus clips. */
@@ -54,8 +57,8 @@ export function animationCheck(given?: CharacterSpec): Executor {
     const spec = given ?? characterOf(worktree, files);
     if (!spec) return {result: 'skipped', log: '', summary: [`Sin personaje que reproducir: falta ${specFile} y el diff no trae malla y clips`]};
     const unreal = unrealOf(ctx, deps), clip = short(spec.animations[0]);
-    const setup = await unreal.runPython(project.uproject, join(scripts, 'kratos_character.py'), {KRATOS_MESH: spec.mesh,
-      KRATOS_ANIMATIONS: JSON.stringify(spec.animations), KRATOS_TARGET: spec.targetSkeleton ?? '', KRATOS_MAP: animMap}, 15 * 60_000);
+    const setup = await unreal.runPython(project.uproject, join(scripts, 'nomos_character.py'), {NOMOS_MESH: spec.mesh,
+      NOMOS_ANIMATIONS: JSON.stringify(spec.animations), NOMOS_TARGET: spec.targetSkeleton ?? '', NOMOS_MAP: animMap}, 15 * 60_000);
     const character = setup.reportJson as Record<string, any> | undefined;
     const logs = [setup.log], artifacts: NonNullable<Outcome['artifacts']> = [];
     if (!character) return {result: 'failed', log: setup.log, summary: [`El editor terminó con código ${setup.exitCode} sin el informe del personaje`]};
@@ -71,9 +74,9 @@ export function animationCheck(given?: CharacterSpec): Executor {
     const failures: string[] = [], lines: string[] = [], deformation: Record<string, JsonValue> = {};
     for (const [width, height] of resolutions) {
       const res = `${width}×${height}`, prefix = `anim-${width}x${height}`, frames = width === 1280 ? join(dir, 'fotogramas') : '';
-      const run = await unreal.runPython(project.uproject, join(scripts, 'kratos_anim_capture.py'), {KRATOS_SHOT_DIR: dir, KRATOS_PREFIX: prefix,
-        KRATOS_REST: JSON.stringify(character.rest_extent ?? null), KRATOS_PELVIS: JSON.stringify(character.rest_pelvis ?? null),
-        KRATOS_WAIT: String(deps.playSeconds ?? 10), ...(frames ? {KRATOS_VIDEO_DIR: frames} : {})}, 10 * 60_000, {render: {width, height, map: animMap}});
+      const run = await unreal.runPython(project.uproject, join(scripts, 'nomos_anim_capture.py'), {NOMOS_SHOT_DIR: dir, NOMOS_PREFIX: prefix,
+        NOMOS_REST: JSON.stringify(character.rest_extent ?? null), NOMOS_PELVIS: JSON.stringify(character.rest_pelvis ?? null),
+        NOMOS_WAIT: String(deps.playSeconds ?? 10), ...(frames ? {NOMOS_VIDEO_DIR: frames} : {})}, 10 * 60_000, {render: {width, height, map: animMap}});
       logs.push(run.log);
       const capture = run.reportJson as Capture | undefined;
       if (!capture?.frames?.length) { failures.push(`${res}: ${capture?.errors?.join('; ') || 'el juego no produjo las capturas'}`); continue; }

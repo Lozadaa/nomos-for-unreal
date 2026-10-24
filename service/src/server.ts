@@ -10,6 +10,8 @@ import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { openDb } from "./db.ts";
+import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
+import { writeLog } from "./log.ts";
 import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
 import { parseArgs } from "node:util";
 import { acquireLock } from "./lock.ts";
@@ -131,8 +133,9 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const old = readServiceInfo(opts.dataDir);
   if (old && await isAlive(old)) return { ...old, url: serviceUrl(old) };
   const file = join(opts.dataDir, "service.json");
+  const migrated = migratedFrom(opts.dataDir);
   rmSync(file, { force: true });
-  const db = openDb(join(opts.dataDir, "kratos.db"));
+  const db = openDb(dbFile(opts.dataDir));
   db.exec("update director set alive_at=null where id=1");
   const token = randomBytes(24).toString("hex");
   let runner: ReturnType<typeof startRunner> | undefined;
@@ -146,7 +149,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
     });
   } catch (error) { db.close(); throw error; }
   const port = (server.address() as { port: number }).port;
-  const info = { pid: process.pid, port, token, startedAt: new Date().toISOString() };
+  const info = { pid: process.pid, port, token, startedAt: new Date().toISOString(), ...(migrated ? { migrated_from: migrated } : {}) };
   // registro de proyectos de la máquina (nombre, carpeta, puerto, pid; nunca el token): portada y selector del panel
   try { register(opts.dataDir, port); } catch { /* sin registro, el panel sigue funcionando solo con este proyecto */ }
   const temporary = file + `.${process.pid}.tmp`;
@@ -172,8 +175,10 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
 
 if (process.argv.includes("--serve")) {
   const { values } = parseArgs({ options: { serve: { type: "boolean" },
-    data: { type: "string", default: ".kratos" }, port: { type: "string", default: "8780" } } });
+    data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" } } });
+  const old = legacyEnv();
+  if (old.length) writeLog(values.data!, { event: "legacy_env", names: old });
   await start({ dataDir: values.data!, port: Number(values.port) }).catch(error => {
-    console.error("No se pudo arrancar Kratos:", error.message); process.exitCode = 2;
+    console.error("No se pudo arrancar Nomos:", error.message); process.exitCode = 2;
   });
 }

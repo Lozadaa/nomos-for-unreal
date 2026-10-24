@@ -89,7 +89,7 @@ test('diff usa base/worktree persistido y conserva binario solo en stat',async()
     writeFileSync(join(f.dir,'base.txt'),'base\n');git('add','base.txt');git('commit','-m','Base');
     const base=git('rev-parse','HEAD').trim();
     writeFileSync(join(f.dir,'texto ñ.txt'),'nuevo\n');git('add','texto ñ.txt');git('commit','-m','Texto');
-    writeFileSync(join(f.dir,'image.bin'),Buffer.from([0,1,2]));writeFileSync(join(f.dir,'.kratos-brief.md'),'secreto');
+    writeFileSync(join(f.dir,'image.bin'),Buffer.from([0,1,2]));writeFileSync(join(f.dir,'.nomos-brief.md'),'secreto');
     const task=createTask(f.db,{title:'Juego',area:'qa'});
     const tree=insert(f.db,'worktrees',{taskId:task.id,path:f.dir,branch:'test',baseCommit:base,state:'active',closedReason:null});
     const run=startRun(f.db,{taskId:task.id,provider:'codex',role:'implementacion',sessionRef:'terminal',metadata:{worktreeId:tree.id}});
@@ -112,6 +112,6 @@ test('nuevas rutas autentican primero y decisiones abiertas se resuelven sin nac
       assert.equal((await f.request('/decisions',{...input,...patch})).status,400);
     const response=await f.request('/decisions',{...input,state:'resolved',contextHash:'evil'});assert.equal(response.status,201);
     const decision=await response.json();assert.equal(decision.state,'open');assert.notEqual(decision.contextHash,'evil');
-    assert.equal((await f.request('/decisions/'+decision.id+'/resolve',{optionId:'answer',by:'kratos'})).status,200);
+    assert.equal((await f.request('/decisions/'+decision.id+'/resolve',{optionId:'answer',by:'nomos'})).status,200);
   } finally {await f.close();}
 });

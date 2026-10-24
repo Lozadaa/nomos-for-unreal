@@ -1,12 +1,12 @@
-// Build.bat / RunUAT.bat falsos: KRATOS_FAKE elige éxito, fallo con 400 líneas de error o cuelgue.
+// Build.bat / RunUAT.bat falsos: NOMOS_FAKE elige éxito, fallo con 400 líneas de error o cuelgue.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const mode = process.env.KRATOS_FAKE ?? 'ok';
+const mode = process.env.NOMOS_FAKE ?? 'ok';
 const args = process.argv.slice(2);
 console.log(`Running ${args.join(' ')}`);
 if (mode === 'hang') {
-  if (process.env.KRATOS_FAKE_PID) writeFileSync(process.env.KRATOS_FAKE_PID, String(process.pid));
+  if (process.env.NOMOS_FAKE_PID) writeFileSync(process.env.NOMOS_FAKE_PID, String(process.pid));
   setInterval(() => {}, 1000);
 } else if (mode === 'fail') {
   for (let i = 1; i <= 400; i++) console.log(`C:\Juego\Source\Juego\Juego.cpp(${i}): error C2065: 'Falta${i}': identificador no declarado`);

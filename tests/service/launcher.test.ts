@@ -21,7 +21,7 @@ test('no cierra con la misma línea de otra app (Fortnite) ni con solo la copia 
 });
 
 test('tailLog lee solo líneas completas nuevas y reinicia si el log rota', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-log-')), file = join(dir, 'EpicGamesLauncher.log');
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-log-')), file = join(dir, 'EpicGamesLauncher.log');
   try {
     writeFileSync(file, 'uno\r\ndos\r\ntr');
     const first = tailLog(file, 0);

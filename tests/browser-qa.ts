@@ -7,12 +7,12 @@ import { once } from "node:events";
 import { setTimeout as sleep } from "node:timers/promises";
 import { readServiceInfo, serviceUrl } from "../service/src/service-info.ts";
 
-const dataDir = resolve(process.argv[2] || ".kratos/prueba-web");
+const dataDir = resolve(process.argv[2] || ".nomos/prueba-web");
 const info = readServiceInfo(dataDir)!;
 assert.ok(info, "Arranca el servicio de prueba antes de ejecutar browser-qa.ts");
-const profile = mkdtempSync(join(tmpdir(), "kratos-browser-"));
+const profile = mkdtempSync(join(tmpdir(), "nomos-browser-"));
 const screenshots = resolve("docs/capturas-hito0"); mkdirSync(screenshots, { recursive: true });
-const chrome = process.env.KRATOS_CHROME || "C:/Program Files/Google/Chrome/Application/chrome.exe";
+const chrome = process.env.NOMOS_CHROME || "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const browser = spawn(chrome, ["--headless=new", "--no-first-run", "--disable-background-networking",
   "--window-size=1366,900", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
   { windowsHide: true, stdio: "ignore" });
@@ -65,15 +65,15 @@ try {
   await send("Page.enable"); await send("Runtime.enable"); await send("Network.enable");
   await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
   await send("Page.navigate", { url: `http://127.0.0.1:${info.port}/` });
-  await until('document.getElementById("director")?.textContent === "Abre esta página desde /kratos"');
+  await until('document.getElementById("director")?.textContent === "Abre esta página desde /nomos"');
   assert.equal(requests.some(path => ["/status", "/events"].includes(path)), false);
   await screenshot("sin-token");
   await send("Page.navigate", { url: "about:blank" });
   await send("Page.navigate", { url: serviceUrl(info) });
-  await until('document.getElementById("director")?.textContent === "Servicio activo · esperando a Kratos"');
+  await until('document.getElementById("director")?.textContent === "Servicio activo · esperando a Nomos"');
   assert.equal(await evaluate("location.hash"), "");
   await evaluate('document.getElementById("mensaje").focus()');
-  await send("Input.insertText", { text: "hola 🎾 <script>window.kratosXss = true</script>" });
+  await send("Input.insertText", { text: "hola 🎾 <script>window.nomosXss = true</script>" });
   await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", modifiers: 2 });
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", modifiers: 2 });
   await until('document.querySelector(".state")?.textContent === "Enviado"');
@@ -83,15 +83,15 @@ try {
   let output = ""; listener.stdout!.on("data", chunk => { output += chunk.toString(); });
   for (let i = 0; i < 60 && !output.includes("messageId"); i++) await sleep(100);
   const message = JSON.parse(output.trim().split("\n").find(line => line.includes("messageId"))!);
-  await until('document.getElementById("director").textContent === "Kratos atendiendo 1 mensajes"');
+  await until('document.getElementById("director").textContent === "Nomos atendiendo 1 mensajes"');
   await screenshot("atendiendo");
   cli("ack", String(message.seq), "--session", "prueba-web");
   cli("reply", message.messageId, "Hola. Recibí tu mensaje con el emoji 🎾 y el texto intactos.");
-  await until('document.querySelector(".state").textContent === "Recibido por Kratos" && !document.querySelector(".reply").hidden && document.getElementById("director").textContent === "Kratos escuchando"');
-  assert.equal(await evaluate("window.kratosXss === true"), false);
+  await until('document.querySelector(".state").textContent === "Recibido por Nomos" && !document.querySelector(".reply").hidden && document.getElementById("director").textContent === "Nomos escuchando"');
+  assert.equal(await evaluate("window.nomosXss === true"), false);
   await screenshot("intercambio");
   await send("Page.reload");
-  await until('document.querySelectorAll("#mensajes > li").length === 1 && document.querySelector(".state").textContent === "Recibido por Kratos"');
+  await until('document.querySelectorAll("#mensajes > li").length === 1 && document.querySelector(".state").textContent === "Recibido por Nomos"');
   await evaluate('document.getElementById("mensaje").value = "Este mensaje queda en espera"; document.getElementById("formulario").requestSubmit()');
   await until('document.querySelectorAll("#mensajes > li").length === 2');
   const exited = once(listener, "exit"); listener.kill(); await exited; listener = undefined;

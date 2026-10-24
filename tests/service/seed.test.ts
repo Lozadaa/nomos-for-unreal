@@ -69,12 +69,12 @@ test('force reemplaza producción sin perder mensajes, director ni cursores del 
 });
 
 test('CLI offline escribe artefactos locales y rechaza reseed sin force', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-seed-'));
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-seed-'));
   const cli = (...args: string[]) => spawnSync(process.execPath, ['service/src/cli.ts', 'seed', '--data', dir, ...args], {encoding:'utf8'});
   try {
     const result = cli(); assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), {tasks:12,runs:3,events:60,catalog:30});
-    const db = openDb(join(dir,'kratos.db'));
+    const db = openDb(join(dir,'nomos.db'));
     try {
       for (const row of db.prepare('select path from artifacts').all()) {
         assert.equal(dirname(row.path as string), '.');
@@ -94,7 +94,7 @@ test('CLI offline escribe artefactos locales y rechaza reseed sin force', () => 
 
 
 test('filas en disco independientes son idénticas y memory no crea artefactos', () => {
-  const dir = mkdtempSync(join(tmpdir(),'kratos-seed-determinism-'));
+  const dir = mkdtempSync(join(tmpdir(),'nomos-seed-determinism-'));
   const a = openDb(join(dir,'a.db')), b = openDb(join(dir,'b.db'));
   try {
     seed(a); seed(b);

@@ -11,7 +11,7 @@ import { upsertEntry } from '../../service/src/repo/catalog.ts';
 const touch = (file: string) => { mkdirSync(join(file, '..'), {recursive: true}); writeFileSync(file, ''); };
 
 function engine(withPlugins: boolean) {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-caps-')), dataDir = join(root, '.kratos');
+  const root = mkdtempSync(join(tmpdir(), 'nomos-caps-')), dataDir = join(root, '.nomos');
   const plugins = join(root, 'UE_5.8', 'Engine', 'Plugins'), cmd = join(root, 'UE_5.8', 'Engine', 'Binaries', 'Win64', 'UnrealEditor-Cmd.exe');
   touch(cmd);
   if (withPlugins) {

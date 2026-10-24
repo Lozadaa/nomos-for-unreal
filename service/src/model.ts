@@ -2,7 +2,7 @@ type Entity = { id: string; createdAt: string; updatedAt: string };
 export type TaskState = 'pendiente' | 'preparada' | 'implementando' | 'revisando'
   | 'probando' | 'integrando' | 'cerrando' | 'done';
 export type TaskArea = 'gameplay' | 'ui' | 'escenarios' | 'assets' | 'animacion' | 'audio' | 'qa' | 'builds';
-export type Provider = 'codex' | 'claude' | 'opencode' | 'meshy' | 'blender' | 'unreal' | 'kratos';
+export type Provider = 'codex' | 'claude' | 'opencode' | 'meshy' | 'blender' | 'unreal' | 'nomos';
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 export type Task = Entity & {

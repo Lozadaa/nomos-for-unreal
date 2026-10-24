@@ -1,6 +1,6 @@
 import { isOpencodeModel, type WorkerModel, type WorkerProvider } from '../config.ts';
 
-export const briefLine='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.';
+export const briefLine='Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.';
 function adapter(provider:string):WorkerProvider {
   if(provider==='codex'||provider==='claude'||provider==='opencode') return provider;
   throw new Error('invalid_worker_provider');
@@ -10,7 +10,7 @@ function opencode(model:string,flags=''):string {
   return `opencode run${flags} --auto --model ${model}`;
 }
 // Hito 12: OpenCode corre con `run` (salida plana que Orca lee) y el brief viaja en la orden; termina al acabar.
-export function launchCommand(provider:string,model:string='sonnet',title='kratos'):string {
+export function launchCommand(provider:string,model:string='sonnet',title='nomos'):string {
   const kind=adapter(provider);
   return kind==='codex' ? 'codex --yolo --no-daemon' : kind==='opencode' ? `${opencode(model)} --title ${title} ${briefLine}`
     : `claude --model ${model as WorkerModel} --dangerously-skip-permissions`;
@@ -20,7 +20,7 @@ export function readyPattern(provider:string):RegExp {
   return kind==='codex' ? /Ask\s*Codex/i : kind==='opencode' ? /opencode run/i : /bypass permissions|Try "/i;
 }
 export function launchPlan(provider:string,model:string,short:string):{command:string;ready:RegExp;briefInCommand:boolean} {
-  return {command:launchCommand(provider,model,`kratos-${short}`),ready:readyPattern(provider),briefInCommand:provider==='opencode'};
+  return {command:launchCommand(provider,model,`nomos-${short}`),ready:readyPattern(provider),briefInCommand:provider==='opencode'};
 }
 /** Lo que se escribe en el terminal para una respuesta o corrección: OpenCode ya salió y continúa su sesión. */
 export function followUp(provider:string,model:string|undefined,line:string):string {

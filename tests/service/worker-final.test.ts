@@ -33,12 +33,12 @@ test('fence de stream atraviesa polls, envío y reinicio sin terminar por ejempl
   const poll=()=>f.invoke('worker.poll',{runId:f.run().id,generation:f.run().metadata.pollGeneration ?? 0});
   f.output('````text');await poll();
   await f.invoke('worker.send',{runId:f.run().id,text:'Sigue'});
-  f.output('```','~~~~','````con sufijo','KRATOS_DONE {"summary":"Ejemplo","commits":[],"tests":"none"}');
+  f.output('```','~~~~','````con sufijo','NOMOS_DONE {"summary":"Ejemplo","commits":[],"tests":"none"}');
   await poll();
   assert.equal(f.run().state,'running');assert.equal(listEvents(f.db,0).filter(e=>e.type==='run.finished').length,0);
   // A fresh runner reloads the persisted stream state before the next page.
   f.db.prepare("delete from commands where type='worker.poll' and state='pending'").run();
-  f.output('`````','KRATOS_DO');await poll();
+  f.output('`````','NOMOS_DO');await poll();
   f.output('NE {"summary":"Real","commits":[],"tests":"passed"}');
   enqueue(f.db,'worker.poll',{runId:f.run().id,generation:f.run().metadata.pollGeneration},'after-restart');
   const stop=startRunner(f.db,f.handlers,{intervalMs:5,context:f.ctx});
@@ -49,13 +49,13 @@ test('fence de stream atraviesa polls, envío y reinicio sin terminar por ejempl
 
 test('envío invalida fragmento DONE anterior y exige marcador completo nuevo',async t=>{
   const f=fixture(t);await f.start();
-  f.output('KRATOS_DO');
+  f.output('NOMOS_DO');
   await f.invoke('worker.poll',{runId:f.run().id,generation:0});
   await f.invoke('worker.send',{runId:f.run().id,text:'Nueva instrucción'});
   let reads=0;
   f.ctx.orca.terminalRead=async()=>({text:++reads===1
     ? 'NE {"summary":"Anterior","commits":[],"tests":"passed"}'
-    : 'KRATOS_DONE {"summary":"Nuevo","commits":[],"tests":"passed"}',cursor:String(99+reads),source:'stream'});
+    : 'NOMOS_DONE {"summary":"Nuevo","commits":[],"tests":"passed"}',cursor:String(99+reads),source:'stream'});
   await f.invoke('worker.poll',{runId:f.run().id,generation:0});assert.equal(reads,0);
   const generation=f.run().metadata.pollGeneration;
   await f.invoke('worker.poll',{runId:f.run().id,generation});
@@ -66,7 +66,7 @@ test('envío invalida fragmento DONE anterior y exige marcador completo nuevo',a
 
 test('send no convierte ejemplo cercado en DONE visto si lastLines perdió apertura',async t=>{
   const f=fixture(t);await f.start();
-  const marker='KRATOS_DONE {"summary":"Luego real","commits":[],"tests":"passed"}';
+  const marker='NOMOS_DONE {"summary":"Luego real","commits":[],"tests":"passed"}';
   f.output('```text',...Array.from({length:25},()=>'- texto'),marker,'```');
   await f.invoke('worker.poll',{runId:f.run().id,generation:0});
   assert.equal(f.run().state,'running');

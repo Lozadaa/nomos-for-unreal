@@ -60,7 +60,7 @@ export function automaticReason(db:DatabaseSync,task:Task):string|null {
     ? active.metadata.question ?? 'Preparación en espera' : 'Worker en ejecución';
   // hito 5b: una run de assets terminada (migración, character.setup) no es un worker que reconciliar
   // hito 12: una run de OpenCode descartada (no pudo arrancar) tampoco deja nada que reconciliar
-  if(task.assigneeRole!=='revisor' && (task.worktreeId || history.filter(r=>r.provider!=='unreal'&&r.provider!=='kratos').some(r=>
+  if(task.assigneeRole!=='revisor' && (task.worktreeId || history.filter(r=>r.provider!=='unreal'&&r.provider!=='nomos').some(r=>
     r.state!=='failed'||r.metadata.uncertain!==false||!r.metadata.discarded&&(r.summary!=='lease_conflict'||r.metadata.worktreeId))))
     return 'Requiere reconciliar worker existente';
   if(startIntents(db).some(i=>i.taskId===task.id)) return 'Arranque pendiente';

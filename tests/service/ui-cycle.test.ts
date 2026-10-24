@@ -15,7 +15,7 @@ const payloadOf = (c: Command) => JSON.parse(c.payload as unknown as string);
 test('captura sin UI: umg failed «la captura no contiene la UI», vuelve al implementador y no hay QA', async () => {
   const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
   try {
-    process.env.KRATOS_FAKE = 'noui';
+    process.env.NOMOS_FAKE = 'noui';
     const result = await f.handlers['ui.cycle']({id: 'c1', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c1'} as any, f.ctx) as any;
     assert.equal(result.passed, false);
     const [row] = filtered<TestRun>(f.db, 'test_runs', {taskId: f.task.id});
@@ -30,7 +30,7 @@ test('captura sin UI: umg failed «la captura no contiene la UI», vuelve al imp
 test('con UI: dos resoluciones → dos capturas con procedencia, umg running y review.start de QA con Claude', async () => {
   const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const result = await f.handlers['ui.cycle']({id: 'c2', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c2'} as any, f.ctx) as any;
     const shots = listArtifacts(f.db, {taskId: f.task.id, kind: 'screenshot'});
     assert.deepEqual(shots.map(s => (s.provenance as any).resolution), ['1280x720', '1920x1080']);
@@ -49,14 +49,14 @@ test('con UI: dos resoluciones → dos capturas con procedencia, umg running y r
   } finally { f.close(); }
 });
 
-test('KRATOS_DONE de un worker ui encola ui.cycle con clave por run y corrección; otras áreas no', async t => {
+test('NOMOS_DONE de un worker ui encola ui.cycle con clave por run y corrección; otras áreas no', async t => {
   const {fixture} = await import('./worker-fixture.ts');
   const {uiCycleKey} = await import('../../service/src/handlers/ui-cycle.ts');
   for (const area of ['ui', 'qa']) {
     const f = fixture(t);
     f.db.prepare('update tasks set area=? where id=?').run(area, f.task.id);
     await f.start();
-    f.output('KRATOS_DONE {"summary":"HUD listo","commits":[],"tests":"passed"}');
+    f.output('NOMOS_DONE {"summary":"HUD listo","commits":[],"tests":"passed"}');
     await f.invoke('worker.poll', {runId: f.run().id});
     const cycles = filtered<Command>(f.db, 'commands', {type: 'ui.cycle'});
     assert.deepEqual(cycles.map(c => [payloadOf(c), c.idempotencyKey]),
@@ -74,10 +74,10 @@ async function qaReview(t: any, verdict: string) {
   const state = f.state(); state.treePath = join(f.dir, 'qa-tree'); state.terminalHandle = 'term_qa'; state.tail = [];
   writeFileSync(f.file, JSON.stringify(state));
   await f.invoke('review.start', {taskId: f.task.id, implementerRunId: f.implementer.id, provider: 'claude', qa: {testRunId: test.id}});
-  const brief = readFileSync(join(f.reviewTree().path, '.kratos-brief.md'), 'utf8');
+  const brief = readFileSync(join(f.reviewTree().path, '.nomos-brief.md'), 'utf8');
   assert.match(brief, /QA visual/);
-  assert.match(brief, /\.kratos-review\/ui-1280x720\.png` · 1280x720 · mapa \/Game\/Maps\/Nivel1/);
-  assert.ok(existsSync(join(f.reviewTree().path, '.kratos-review', 'ui-1280x720-control.png')));
+  assert.match(brief, /\.nomos-review\/ui-1280x720\.png` · 1280x720 · mapa \/Game\/Maps\/Nivel1/);
+  assert.ok(existsSync(join(f.reviewTree().path, '.nomos-review', 'ui-1280x720-control.png')));
   assert.ok(f.reviewer().skills.includes('ue-visual-qa'));
   assert.deepEqual(f.reviewer().metadata.qa, {testRunId: test.id});
   f.output(verdict); await f.poll();
@@ -85,7 +85,7 @@ async function qaReview(t: any, verdict: string) {
 }
 
 test('QA aprobado: TestRun umg passed sin marcar aprobada la revisión de código', async t => {
-  const {f, test: row} = await qaReview(t, 'KRATOS_REVIEW {"approved":true,"findings":[]}');
+  const {f, test: row} = await qaReview(t, 'NOMOS_REVIEW {"approved":true,"findings":[]}');
   assert.equal(filtered<TestRun>(f.db, 'test_runs', {id: row.id})[0].result, 'passed');
   assert.equal(requireTask(f.db, f.task.id).reviewApproved, 0);
   assert.equal(f.reviewer().state, 'done');
@@ -93,7 +93,7 @@ test('QA aprobado: TestRun umg passed sin marcar aprobada la revisión de códig
 
 test('QA rechazado: umg failed y los hallazgos vuelven al mismo implementador', async t => {
   const {f, test: row} = await qaReview(t,
-    'KRATOS_REVIEW {"approved":false,"findings":[{"file":"WBP_Vida","line":1,"severity":"bloqueante","note":"1280×720: contraste 2,1:1 sobre el cielo"}]}');
+    'NOMOS_REVIEW {"approved":false,"findings":[{"file":"WBP_Vida","line":1,"severity":"bloqueante","note":"1280×720: contraste 2,1:1 sobre el cielo"}]}');
   assert.equal(filtered<TestRun>(f.db, 'test_runs', {id: row.id})[0].result, 'failed');
   const send = filtered<Command>(f.db, 'commands', {type: 'worker.send'}).at(-1)!;
   assert.equal(payloadOf(send).runId, f.implementer.id);
@@ -104,7 +104,7 @@ test('QA rechazado: umg failed y los hallazgos vuelven al mismo implementador', 
 test('diff sin cambios de Unreal (p. ej. solo docs/ui-direction.md): ui.cycle no captura ni encola QA', async () => {
   const f = checksFixture({files: ['docs/ui-direction.md']});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const result = await f.handlers['ui.cycle']({id: 'c3', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c3'} as any, f.ctx) as any;
     assert.deepEqual(result, {skipped: 'el diff no toca Unreal'});
     assert.equal(filtered<TestRun>(f.db, 'test_runs', {taskId: f.task.id}).length, 0);
@@ -113,7 +113,7 @@ test('diff sin cambios de Unreal (p. ej. solo docs/ui-direction.md): ui.cycle no
 });
 
 test('hito 7: QA aprobado en revisando encola la revisión de código aunque ya hubo una del primer ciclo (misma run)', async t => {
-  const {f} = await qaReview(t, 'KRATOS_REVIEW {"approved":true,"findings":[]}');
+  const {f} = await qaReview(t, 'NOMOS_REVIEW {"approved":true,"findings":[]}');
   const reviews = filtered<Command>(f.db, 'commands', {type: 'review.start'}).filter(c => !payloadOf(c).qa);
   assert.deepEqual(reviews.map(c => payloadOf(c)), [{taskId: f.task.id, implementerRunId: f.implementer.id}]);
   assert.equal(reviews[0].idempotencyKey, `review.after-qa:${f.reviewer().id}`);

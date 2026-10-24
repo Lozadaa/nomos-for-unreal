@@ -7,8 +7,8 @@ import { openDb } from '../../service/src/db.ts';
 import { createServer } from '../../service/src/server.ts';
 
 test('capabilities legacy y details=1 autenticado: skills del juego real y concurrencia del scheduler',async t=>{
-  const root=mkdtempSync(join(tmpdir(),'kratos-capabilities-')),dataDir=join(root,'.kratos');mkdirSync(dataDir);
-  const db=openDb(join(dataDir,'kratos.db')),server=createServer(db,'token','service/web',dataDir);
+  const root=mkdtempSync(join(tmpdir(),'nomos-capabilities-')),dataDir=join(root,'.nomos');mkdirSync(dataDir);
+  const db=openDb(join(dataDir,'nomos.db')),server=createServer(db,'token','service/web',dataDir);
   await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));db.close();rmSync(root,{recursive:true,force:true});});
   const base=`http://127.0.0.1:${(server.address() as any).port}`;

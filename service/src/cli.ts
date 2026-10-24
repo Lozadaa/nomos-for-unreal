@@ -12,6 +12,7 @@ import { directorCli } from './cli-director.ts';
 import { assetCli } from './cli-asset.ts';
 import { skillsCli } from './skills-install.ts';
 import { doctor, renderDoctor } from './doctor.ts';
+import { dataDirFor, dbFile, legacyEnv } from './legacy.ts';
 
 function openBrowser(url: string) {
   const [command, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
@@ -20,10 +21,23 @@ function openBrowser(url: string) {
   child.on("error", () => console.error("Abre la URL en tu navegador")); child.unref();
 }
 
+/** `--data` ya resuelto (y migrado desde la carpeta del nombre anterior si toca, ver legacy.ts) para todas las órdenes; sin `--data`, `.nomos`. */
+async function withData(argv: string[]): Promise<string[]> {
+  // lo que va tras `--` es texto (reply), nunca una opción
+  const end = argv.includes('--') ? argv.indexOf('--') : argv.length;
+  const at = argv.slice(0, end).findIndex(arg => arg === '--data' || arg.startsWith('--data='));
+  const option = at < 0 ? undefined : argv[at] === '--data' ? argv[at + 1] : argv[at].slice(7);
+  const dir = await dataDirFor(option);
+  if (at >= 0) return argv.toSpliced(at, argv[at] === '--data' ? 2 : 1, '--data', dir);
+  return argv.toSpliced(end, 0, '--data', dir);
+}
+
 async function main() {
-  if (skillsCli(process.argv.slice(2)) || await directorCli(process.argv.slice(2)) || await assetCli(process.argv.slice(2))) return;
-  const { values, positionals } = parseArgs({ allowPositionals: true, options: {
-    data: { type: "string", default: ".kratos" }, port: { type: "string", default: "8780" },
+  for (const name of legacyEnv()) console.warn(`Aviso: ${name} ahora se llama NOMOS_${name.slice(7)}`);
+  const argv = await withData(process.argv.slice(2));
+  if (skillsCli(argv) || await directorCli(argv) || await assetCli(argv)) return;
+  const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
+    data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" },
     force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false } } });
   const [command, ...args] = positionals; const dataDir = resolve(values.data!);
   const session = values.session?.trim(); const port = Number(values.port);
@@ -33,11 +47,11 @@ async function main() {
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim())) || (command === "typing" && args.length !== 1)
     || (["start", "status", "vigila", "stop", "seed", "doctor"].includes(command) && args.length)) {
-    throw new Error("Uso: kratos start|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor [--data CARPETA]");
+    throw new Error("Uso: nomos start|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor [--data CARPETA]");
   }
   if (command === "doctor") {
     mkdirSync(dataDir, { recursive: true });
-    const db = openDb(join(dataDir, "kratos.db"));
+    const db = openDb(dbFile(dataDir));
     try {
       const rows = await doctor(dataDir, db);
       console.log(renderDoctor(rows));
@@ -47,7 +61,7 @@ async function main() {
   }
   if (command === "seed") {
     mkdirSync(dataDir, { recursive: true });
-    const db = openDb(join(dataDir, "kratos.db"));
+    const db = openDb(dbFile(dataDir));
     try { console.log(JSON.stringify(seed(db, { force: values.force }))); }
     finally { db.close(); }
     return;
@@ -90,6 +104,6 @@ async function main() {
 }
 
 await main().catch(error => {
-  console.error(error instanceof Error ? error.message : "Error de Kratos");
+  console.error(error instanceof Error ? error.message : "Error de Nomos");
   process.exitCode = error instanceof ServiceError ? 2 : 1;
 });

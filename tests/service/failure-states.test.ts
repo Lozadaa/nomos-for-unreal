@@ -45,7 +45,7 @@ test('cada tarea expone su estado de fallo como texto corto; la cancelación sol
 });
 
 test('límites y tolerancia visual configurables con defectos; valores inválidos rechazan la configuración', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-config-'));
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-config-'));
   try {
     assert.equal(visualTolerance(readConfig(dir)), 0.02);
     assert.deepEqual(limits(readConfig(dir)), {corrections: 3});

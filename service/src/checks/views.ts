@@ -17,10 +17,10 @@ export function viewCount(dataDir: string): number {
   return typeof value === 'number' && Number.isInteger(value) ? Math.min(4, Math.max(1, value)) : 4;
 }
 
-/** Variables para kratos_pie_capture.py: qué vistas extra y dónde dejarlas. */
+/** Variables para nomos_pie_capture.py: qué vistas extra y dónde dejarlas. */
 export function viewsEnv(dir: string, prefix: string, count: number): Record<string, string> {
   const views = extraViews.slice(0, count - 1).map(view => ({view, path: join(dir, `${prefix}-${view}.png`)}));
-  return views.length ? {KRATOS_VIEWS: JSON.stringify(views), KRATOS_VIEWS_BUDGET: String(viewsBudgetSeconds)} : {};
+  return views.length ? {NOMOS_VIEWS: JSON.stringify(views), NOMOS_VIEWS_BUDGET: String(viewsBudgetSeconds)} : {};
 }
 
 type ViewReport = {views?: Record<string, string>; views_note?: string; views_errors?: string[]};

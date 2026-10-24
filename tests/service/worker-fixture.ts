@@ -13,15 +13,15 @@ import { read, filtered } from '../../service/src/repo/rows.ts';
 import type { Run, Worktree } from '../../service/src/model.ts';
 
 export function fixture(t: any, env: Record<string,string> = {}) {
-  const dir=mkdtempSync(join(tmpdir(),'kratos-worker-')), projectDir=join(dir,'game'),dataDir=join(projectDir,'.kratos');
+  const dir=mkdtempSync(join(tmpdir(),'nomos-worker-')), projectDir=join(dir,'game'),dataDir=join(projectDir,'.nomos');
   mkdirSync(dataDir,{recursive:true});
   // Codex viene apagado por defecto (hito 7): estas pruebas lo arrancan, así que lo habilitan explícitamente
   writeFileSync(join(dataDir,'config.json'),JSON.stringify({concurrency:{codex:2,claude:2}}));
   const git=(...args:string[])=>execFileSync('git',['-C',projectDir,...args],{encoding:'utf8',windowsHide:true,stdio:['pipe','pipe','pipe']});
-  git('init');git('config','core.autocrlf','false');git('config','user.name','Kratos test');git('config','user.email','test@example.invalid');
+  git('init');git('config','core.autocrlf','false');git('config','user.name','Nomos test');git('config','user.email','test@example.invalid');
   writeFileSync(join(projectDir,'Game.uproject'),'{"FileVersion":3}\n');
   writeFileSync(join(projectDir,'base.txt'),'base\n');git('add','base.txt','Game.uproject');git('commit','-m','Base');
-  const db=openDb(join(dataDir,'kratos.db')), file=join(dir,'orca.json');
+  const db=openDb(join(dataDir,'nomos.db')), file=join(dir,'orca.json');
   const state=()=>JSON.parse(readFileSync(file,'utf8'));
   const output=(...lines:string[])=>{const data=state();data.tail.push(...lines);writeFileSync(file,JSON.stringify(data));};
   writeFileSync(file,JSON.stringify({repos:[],tail:[],realRepo:projectDir,treePath:join(dir,'worker tree')}));

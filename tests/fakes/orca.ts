@@ -88,16 +88,16 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   if (!args.includes('--enter')) fail('missing_enter');
   else {
     const text=value('--text');
-    const opencode=/^opencode run --auto --model \S+ --title kratos-[0-9a-f]{8} Lee el archivo \.kratos-brief\.md de esta carpeta y ejecuta lo que dice\.$/.test(text);
+    const opencode=/^opencode run --auto --model \S+ --title nomos-[0-9a-f]{8} Lee el archivo \.nomos-brief\.md de esta carpeta y ejecuta lo que dice\.$/.test(text);
     const launch=opencode||text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions$/.test(text);
-    if (state.realRepo && launch && !existsSync(join(state.treePath,'.kratos-brief.md'))) {
+    if (state.realRepo && launch && !existsSync(join(state.treePath,'.nomos-brief.md'))) {
       fail('missing_brief');
     } else {
     state.tail.push(text);
     if (state.realRepo && launch && !opencode) state.tail.push(ready());
     if (opencode && process.env.FAKE_ORCA_OPENCODE_CREDENTIAL) state.tail.push('Error: Upstream request failed: Invalid credential');
     if (opencode && process.env.FAKE_ORCA_OPENCODE_MISSING) state.tail.push("'opencode' is not recognized as an internal or external command,");
-    if (claude && text==='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.')
+    if (claude && text==='Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.')
       state.tail.push('Do you want to allow this command? (y/n)');
     save();
     const accepted = process.env.FAKE_ORCA_SEND_MISSING ? {} : { accepted: process.env.FAKE_ORCA_REJECT !== '1' };

@@ -41,9 +41,9 @@ test('runner termina tipos desconocidos una sola vez y sigue procesando', async 
 
 test('contexto resuelve dataDir explícito y deriva proyecto desde DB, no desde cwd del servicio',async()=>{
   const db=openDb(':memory:');enqueue(db,'context',{},'context');let captured:any;
-  const stop=startRunner(db,{context:async(cmd,ctx)=>{captured=ctx;}},{context:{dataDir:'relative-data/.kratos'},intervalMs:1});
-  try {await until(()=>!!captured);assert.equal(captured.dataDir,resolve('relative-data/.kratos'));
-    assert.equal(captured.projectDir,dirname(resolve('relative-data/.kratos')));}
+  const stop=startRunner(db,{context:async(cmd,ctx)=>{captured=ctx;}},{context:{dataDir:'relative-data/.nomos'},intervalMs:1});
+  try {await until(()=>!!captured);assert.equal(captured.dataDir,resolve('relative-data/.nomos'));
+    assert.equal(captured.projectDir,dirname(resolve('relative-data/.nomos')));}
   finally {stop();await stop.drained;db.close();}
 });
 
@@ -63,7 +63,7 @@ test('hito 5b: un fallo definitivo cierra los runs propios de la orden y suelta 
   const task = createTask(db, {title: 'Integrar héroe', area: 'animacion'});
   enqueue(db, 'integrar', {}, 'integrar');
   const stop = startRunner(db, {integrar: async command => {
-    const run = startRun(db, {taskId: task.id, role: 'integrador', provider: 'kratos', metadata: {commandId: command.id}});
+    const run = startRun(db, {taskId: task.id, role: 'integrador', provider: 'nomos', metadata: {commandId: command.id}});
     acquire(db, run.id, task.id, ['integration/Juego']);
     throw new Error('invalid_merge: Your local changes to the following files would be overwritten by merge');
   }}, {intervalMs: 1, context: {dataDir: import.meta.dirname}});

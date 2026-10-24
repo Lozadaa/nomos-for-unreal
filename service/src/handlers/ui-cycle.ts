@@ -47,7 +47,7 @@ export function createUiCycle(deps: CheckDeps = {}): Handler {
 
 /** Brief del run revisor de QA visual: copia las capturas al árbol de revisión y rellena references/brief-qa-visual.md. */
 export function qaBrief(ctx: WorkerContext, task: Task, run: Run, snapshot: ReviewSnapshot, testRunId: string, path: string): string {
-  const dir = join(path, '.kratos-review');
+  const dir = join(path, '.nomos-review');
   mkdirSync(dir, {recursive: true});
   const shots = filtered<Artifact>(ctx.db, 'artifacts', {taskId: task.id, kind: 'screenshot'})
     .filter(a => (a.provenance as Record<string, JsonValue>)?.testRunId === testRunId);
@@ -55,7 +55,7 @@ export function qaBrief(ctx: WorkerContext, task: Task, run: Run, snapshot: Revi
     const p = shot.provenance as Record<string, string>;
     copyFileSync(shot.path, join(dir, basename(shot.path)));
     if (p.control && existsSync(p.control)) copyFileSync(p.control, join(dir, basename(p.control)));
-    return `- \`.kratos-review/${basename(shot.path)}\` · ${p.resolution} · mapa ${p.map ?? 'por defecto'} · control \`.kratos-review/${basename(p.control ?? '')}\``;
+    return `- \`.nomos-review/${basename(shot.path)}\` · ${p.resolution} · mapa ${p.map ?? 'por defecto'} · control \`.nomos-review/${basename(p.control ?? '')}\``;
   });
   const test = filtered<TestRun>(ctx.db, 'test_runs', {id: testRunId})[0];
   const direction = join(ctx.projectDir, 'docs', 'ui-direction.md');
@@ -63,6 +63,6 @@ export function qaBrief(ctx: WorkerContext, task: Task, run: Run, snapshot: Revi
     acceptance: task.acceptance.map((s, i) => `${i + 1}. ${s}`).join('\n'), captures: lines.join('\n') || '(sin capturas)',
     commit: test?.commit ?? snapshot.commit, generation: snapshot.generation,
     direction: existsSync(direction) ? readFileSync(direction, 'utf8') : 'El juego no tiene docs/ui-direction.md: revisa contra los criterios mínimos.'};
-  const template = readFileSync(fileURLToPath(new URL('../../../skills/kratos/references/brief-qa-visual.md', import.meta.url)), 'utf8');
+  const template = readFileSync(fileURLToPath(new URL('../../../skills/nomos/references/brief-qa-visual.md', import.meta.url)), 'utf8');
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] ?? '');
 }

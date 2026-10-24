@@ -64,10 +64,10 @@ test('CLI asset metahuman: encola character.metahuman en el carril largo; un nom
     megascansDir: join(dataDir, 'M'), fabCacheDirs: [], listingsDb: join(dataDir, 'none.db'), unrealPath: join(dataDir, 'UE', 'UnrealEditor-Cmd.exe')}));
   cli(dataDir, 'start', '--port', String(port), '--no-open');
   const task = await api(dataDir, '/tasks', {title: 'MetaHuman', spec: '', area: 'animacion', acceptance: []});
-  const out = cli(dataDir, 'asset', 'metahuman', 'Kratos_Heroe', '--task', task.id);
+  const out = cli(dataDir, 'asset', 'metahuman', 'Nomos_Heroe', '--task', task.id);
   assert.equal(out.status, 0, out.stderr);
   const command = (await api(dataDir, '/commands')).find((c: any) => c.id === JSON.parse(out.stdout).commandId);
-  assert.deepEqual([command.type, command.lane, command.payload], ['character.metahuman', 'long', {taskId: task.id, name: 'Kratos_Heroe'}]);
+  assert.deepEqual([command.type, command.lane, command.payload], ['character.metahuman', 'long', {taskId: task.id, name: 'Nomos_Heroe'}]);
   assert.match(cli(dataDir, 'asset', 'metahuman', '../fuera', '--task', task.id).stderr, /invalid_command_payload/);
 });
 

@@ -12,7 +12,7 @@ export async function reviewFixture(t:any,checks=false) {
   if(checks) f.db.prepare('update tasks set acceptance=? where id=?').run('["check: npm test"]',f.task.id);
   await f.start();const implementer=f.run(),tree=f.tree();
   writeFileSync(join(tree.path,'resultado.md'),'Resultado revisable\n');
-  f.output('KRATOS_DONE {"summary":"Terminado","commits":[],"tests":"passed"}');
+  f.output('NOMOS_DONE {"summary":"Terminado","commits":[],"tests":"passed"}');
   await f.invoke('worker.poll',{runId:implementer.id});
   const startReview=async()=>{
     assert.equal(typeof f.handlers['review.start'],'function','Falta el arranque de revisión');

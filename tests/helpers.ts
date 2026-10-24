@@ -17,7 +17,7 @@ export function requestJson(server: Server, method: string, path: string, body?:
     body: body === undefined ? undefined : JSON.stringify(body) });
 }
 export async function fixture(t: TestContext, webDir?: string) {
-  const web = mkdtempSync(join(tmpdir(), "kratos-web-"));
+  const web = mkdtempSync(join(tmpdir(), "nomos-web-"));
   writeFileSync(join(web, "index.html"), '<!doctype html><div id="director"></div>');
   const db = openDb(":memory:");
   const server = createServer(db, token, webDir || web);

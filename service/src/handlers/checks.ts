@@ -30,7 +30,7 @@ const returnOption = {id: 'return', label: 'Devolver al responsable', descriptio
 /** El run implementador cuyo diff se prueba: el indicado o el último terminado que no es revisión ni prueba. */
 export function implementerOf(ctx: WorkerContext, task: Task, runId?: unknown): Run {
   if (typeof runId === 'string') return requireRun(ctx.db, runId);
-  const run = filtered<Run>(ctx.db, 'runs', {taskId: task.id}).filter(r => r.role !== 'revisor' && r.provider !== 'unreal' && r.provider !== 'kratos' && r.role !== 'qa'
+  const run = filtered<Run>(ctx.db, 'runs', {taskId: task.id}).filter(r => r.role !== 'revisor' && r.provider !== 'unreal' && r.provider !== 'nomos' && r.role !== 'qa'
     && r.state === 'done').at(-1);
   if (!run) throw new Error('invalid_checks_target');
   return run;
@@ -157,7 +157,7 @@ function umgStep(ctx: WorkerContext, task: Task, implementer: Run, row: TestRun,
   const approved = cycles.filter(r => r.result === 'passed').at(-1);
   if (approved) { updateTestRun(ctx.db, row.id, {result: 'passed', reportPath: approved.reportPath, config: approved.config}); return; }
   if (cycles.some(r => r.result === 'running' || r.result === 'pending')) return; // el ciclo de este commit aún espera al QA
-  // clave por commit y lanzamiento: la del KRATOS_DONE puede existir ya, terminada
+  // clave por commit y lanzamiento: la del NOMOS_DONE puede existir ya, terminada
   const n = ctx.db.prepare("select count(*) n from commands where type='ui.cycle' and json_extract(payload,'$.taskId')=?").get(task.id)!.n;
   enqueue(ctx.db, 'ui.cycle', {taskId: task.id, runId: implementer.id}, `ui.cycle:${task.id}:${commit ?? 'sin-commit'}:${n}`);
 }

@@ -8,15 +8,15 @@ import { recoverCommands } from '../../service/src/recovery.ts';
 import { reservations } from '../../service/src/scheduler-state.ts';
 import { requireTask } from '../../service/src/repo/tasks.ts';
 
-test('Git excluye .kratos-review tracked/untracked del diff y lo ignora localmente',async t=>{
+test('Git excluye .nomos-review tracked/untracked del diff y lo ignora localmente',async t=>{
   const f=await reviewFixture(t),tree=f.implementerTree;
-  mkdirSync(join(tree.path,'.kratos-review'));writeFileSync(join(tree.path,'.kratos-review/diff.patch'),'INTERNAL');
+  mkdirSync(join(tree.path,'.nomos-review'));writeFileSync(join(tree.path,'.nomos-review/diff.patch'),'INTERNAL');
   let diff=await f.ctx.git.diff(tree.path,tree.baseCommit);assert.doesNotMatch(diff.patch,/INTERNAL/);
   const {execFileSync}=await import('node:child_process');
-  execFileSync('git',['-C',tree.path,'add','-f','.kratos-review'],{windowsHide:true});
+  execFileSync('git',['-C',tree.path,'add','-f','.nomos-review'],{windowsHide:true});
   diff=await f.ctx.git.diff(tree.path,tree.baseCommit);assert.doesNotMatch(diff.patch,/INTERNAL/);
   await f.ctx.git.excludeLocal(tree.path);
-  assert.match(execFileSync('git',['-C',tree.path,'check-ignore','--no-index','.kratos-review/diff.patch'],{encoding:'utf8',windowsHide:true}),/diff.patch/);
+  assert.match(execFileSync('git',['-C',tree.path,'check-ignore','--no-index','.nomos-review/diff.patch'],{encoding:'utf8',windowsHide:true}),/diff.patch/);
 });
 test('hito 7: el diff de revisión no lleva el contenido de Config sin seguir ni lo generado por Unreal; rutas con emoji legibles',async t=>{
   const f=await reviewFixture(t),tree=f.implementerTree;

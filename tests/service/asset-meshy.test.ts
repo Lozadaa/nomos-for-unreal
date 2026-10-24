@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 async function setup(opts: Parameters<typeof meshyServer>[0] = {}, credits: number | null = 100) {
-  const fake = await meshyServer(opts), db = openDb(':memory:'), dataDir = mkdtempSync(join(tmpdir(), 'kratos-meshy-'));
+  const fake = await meshyServer(opts), db = openDb(':memory:'), dataDir = mkdtempSync(join(tmpdir(), 'nomos-meshy-'));
   const deps = {meshy: () => createMeshy({baseUrl: fake.baseUrl, apiKey: 'clave-falsa'})};
   const ctx = {db, dataDir, projectDir: dataDir} as unknown as WorkerContext;
   setLimits(db, 'workspace', 'default', {meshyCredits: credits});

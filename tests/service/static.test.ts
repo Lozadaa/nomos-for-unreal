@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { panelStatic } from "../../service/src/static.ts";
 
 async function withPanel(run: (get: (path: string, accept?: string) => Promise<Response>) => Promise<void>, build = true) {
-  const dir = mkdtempSync(join(tmpdir(), "kratos-panel-"));
+  const dir = mkdtempSync(join(tmpdir(), "nomos-panel-"));
   if (build) {
     mkdirSync(join(dir, "assets"));
     writeFileSync(join(dir, "index.html"), "<!doctype html><title>Panel</title>");

@@ -87,18 +87,18 @@ for(const phase of ['excludeLocal','terminalWaitIdle','terminalRead'] as const) 
     (owner as any)[phase]=async(...args:any[])=>{const result=await operation(...args);blockTask(f.db,base.id,'Revisar');return result;};
     const result=await f.start() as any;
     assert.equal(f.state().creates,1);
-    assert.ok(!f.state().tail.includes('Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.'));
+    assert.ok(!f.state().tail.includes('Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.'));
     assert.equal(result?.deferred,undefined);
     assert.equal(f.run().metadata.phase,'preparing');assert.equal(f.run().metadata.waiting,true);
     assert.equal(f.tree().id,f.run().metadata.worktreeId);
     const decision=listDecisions(f.db,'open')[0];assert.ok(decision);
     resolveDecision(f.db,decision.id,'approve','director');
     const before=f.state().tail.length;
-    await f.invoke('worker.send',{runId:f.run().id,text:'Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.'});
+    await f.invoke('worker.send',{runId:f.run().id,text:'Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.'});
     assert.equal(f.state().tail.length,before,'la continuación explícita también debe comprobar la dependencia');
     f.db.prepare('update tasks set blocked_reason=null where id=?').run(base.id);
     const pending=listDecisions(f.db,'open')[0];if(pending) resolveDecision(f.db,pending.id,'approve','director');
-    await f.invoke('worker.send',{runId:f.run().id,text:'Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.'});
+    await f.invoke('worker.send',{runId:f.run().id,text:'Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.'});
     assert.equal(f.run().metadata.phase,'running');assert.equal(f.state().creates,1);
   });
 }

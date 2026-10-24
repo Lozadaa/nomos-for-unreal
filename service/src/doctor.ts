@@ -75,7 +75,7 @@ export async function checkCapability(id: string, deps: CheckDeps): Promise<Chec
 }
 
 export type DoctorRow = {id: string; label: string; state: 'ok' | 'aviso' | 'falla'; detail: string};
-/** `kratos doctor` y `GET /doctor`: capacidades, Orca en vivo, servicio (sin el token) y los dos carriles con su latido. */
+/** `nomos doctor` y `GET /doctor`: capacidades, Orca en vivo, servicio (sin el token) y los dos carriles con su latido. */
 export async function doctor(dataDir: string, db: DatabaseSync, deps: CheckDeps = {}, now = Date.now()): Promise<DoctorRow[]> {
   const rows: DoctorRow[] = capabilityList(dataDir, db).map(c => ({id: c.id, label: c.label, detail: c.detail,
     state: c.state === 'roto' ? 'falla' : c.state === 'ausente' ? required.includes(c.id) ? 'falla' : 'aviso' : 'ok'}));

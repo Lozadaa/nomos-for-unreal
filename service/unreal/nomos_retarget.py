@@ -1,12 +1,12 @@
-"""Kratos · retarget de animaciones entre esqueletos distintos, DENTRO del editor sin GUI (UnrealEditor-Cmd -ExecutePythonScript).
+"""Nomos · retarget de animaciones entre esqueletos distintos, DENTRO del editor sin GUI (UnrealEditor-Cmd -ExecutePythonScript).
 
-Se usa como módulo desde kratos_character.py (`retarget(...)`) o suelto con variables de entorno:
-  KRATOS_REPORT       ruta del informe JSON
-  KRATOS_ANIMATIONS   lista JSON de animaciones (/Game/...) del esqueleto origen
-  KRATOS_SOURCE_MESH  malla con el esqueleto de las animaciones (opcional: si falta, la primera malla de ese esqueleto)
-  KRATOS_TARGET_MESH  malla destino
-  KRATOS_DEST         carpeta de salida (/Game/Kratos/Retarget/<destino> por defecto)
-  KRATOS_TARGET_RIG   IK Rig del destino (opcional; p. ej. /MetaHumanCharacter/Animation/Retargeting/IK_MH_IKRig)
+Se usa como módulo desde nomos_character.py (`retarget(...)`) o suelto con variables de entorno:
+  NOMOS_REPORT       ruta del informe JSON
+  NOMOS_ANIMATIONS   lista JSON de animaciones (/Game/...) del esqueleto origen
+  NOMOS_SOURCE_MESH  malla con el esqueleto de las animaciones (opcional: si falta, la primera malla de ese esqueleto)
+  NOMOS_TARGET_MESH  malla destino
+  NOMOS_DEST         carpeta de salida (/Game/Kratos/Retarget/<destino> por defecto)
+  NOMOS_TARGET_RIG   IK Rig del destino (opcional; p. ej. /MetaHumanCharacter/Animation/Retargeting/IK_MH_IKRig)
 
 IK Rigs con definición de retarget autogenerada, IK Retargeter nuevo con cadenas mapeadas automáticamente y
 `IKRetargetBatchOperation.run_batch_retarget` (DuplicateAndRetarget está deprecado en 5.8). Si queda sin mapear una cadena
@@ -162,11 +162,11 @@ def retarget(animations, target_mesh_path, dest, source_mesh_path=None, target_r
 
 
 if __name__ == "__main__":
-    target = os.environ["KRATOS_TARGET_MESH"]
-    out = retarget(json.loads(os.environ["KRATOS_ANIMATIONS"]), target,
-                   os.environ.get("KRATOS_DEST") or f"/Game/Kratos/Retarget/{short(target)}",
-                   os.environ.get("KRATOS_SOURCE_MESH") or None, os.environ.get("KRATOS_TARGET_RIG") or None)
+    target = os.environ["NOMOS_TARGET_MESH"]
+    out = retarget(json.loads(os.environ["NOMOS_ANIMATIONS"]), target,
+                   os.environ.get("NOMOS_DEST") or f"/Game/Kratos/Retarget/{short(target)}",
+                   os.environ.get("NOMOS_SOURCE_MESH") or None, os.environ.get("NOMOS_TARGET_RIG") or None)
     out["engine"] = str(unreal.SystemLibrary.get_engine_version())
-    with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:
+    with open(os.environ["NOMOS_REPORT"], "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
-    unreal.log(f"KRATOS_RETARGET ok={out['ok']} outputs={len(out['outputs'])} critical={out['critical_unmapped']}")
+    unreal.log(f"NOMOS_RETARGET ok={out['ok']} outputs={len(out['outputs'])} critical={out['critical_unmapped']}")

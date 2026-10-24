@@ -37,7 +37,7 @@ function manualRetarget(ctx: WorkerContext, task: Task, row: TestRun, summary: s
 
 /**
  * `character.setup` (hito 5b, carril largo): con el editor reservado, monta el personaje con sus clips (retarget si hace falta)
- * y pasa la comprobación `animation`: PIE a dos resoluciones, deformación y vídeo. Deja la ficha `kratos-personaje.json` para
+ * y pasa la comprobación `animation`: PIE a dos resoluciones, deformación y vídeo. Deja la ficha `nomos-personaje.json` para
  * que `checks.run` la repita sobre el diff. Nunca aprueba una animación rota: bloquea o abre Decisión.
  */
 export function createCharacterSetup(deps: CheckDeps = {}): Handler {

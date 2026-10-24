@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { transaction } from './repo/rows.ts';
+import { migrateBrand } from './legacy.ts';
 
 export function migrateWorker(db: DatabaseSync): void {
   transaction(db, () => {
@@ -29,9 +30,9 @@ export function migrateLeases(db: DatabaseSync): void {
 }
 
 /** Añade `value` al `check(column in (...))` de `table` reconstruyendo la tabla (SQLite no altera checks); conserva rowid, índices y disparadores. */
-function widenCheck(db: DatabaseSync, table: string, column: string, value: string): void {
+function widenCheck(db: DatabaseSync, table: string, column: string, value: string): boolean {
   const sql=db.prepare("select sql from sqlite_master where type='table' and name=?").get(table)!.sql as string;
-  if(sql.includes(`'${value}'`)) return;
+  if(sql.includes(`'${value}'`)) return false;
   const check=new RegExp(String.raw`check\s*\(\s*${column}\s+in\s*\(([^)]*)\)\s*\)`,'i');
   if(!check.test(sql)) throw new Error(`invalid_${column}_schema`);
   const temp=`${table}_migrating`;
@@ -44,6 +45,7 @@ function widenCheck(db: DatabaseSync, table: string, column: string, value: stri
   db.exec(`insert into ${temp}(${columns}) select ${columns} from ${table} order by rowid`);
   db.exec(`drop table ${table}; alter table ${temp} rename to ${table}`);
   for(const auxiliary of auxiliaries) db.exec(auxiliary.sql as string);
+  return true;
 }
 
 /** Amplía el proveedor persistible sin convertirlo en un adaptador ejecutable. */
@@ -108,4 +110,9 @@ export function migrateChat(db: DatabaseSync): void {
     // GET /messages lee los eventos de cada mensaje: sin índice, 0,64 s con 200 mensajes reales (Block Kings)
     db.exec('create index if not exists events_message_id on events(message_id)');
   });
+}
+
+/** Hito 11: el proveedor del propio servicio pasa a `nomos` en las bases anteriores al renombrado (ver legacy.ts). */
+export function migrateNomos(db: DatabaseSync): void {
+  transaction(db, () => migrateBrand(db, (table, column, value) => widenCheck(db, table, column, value)));
 }

@@ -26,7 +26,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (group==='pausar' || group==='reanudar') {
     // hito 6: el planificador deja de arrancar workers; integraciones y cierres en curso terminan
     const {values}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'}}});
-    const status=await request(serviceInfo(resolve(values.data ?? '.kratos')),'/director/'+(group==='pausar' ? 'pause' : 'resume'),{});
+    const status=await request(serviceInfo(resolve(values.data ?? '.nomos')),'/director/'+(group==='pausar' ? 'pause' : 'resume'),{});
     console.log(JSON.stringify(status));return true;
   }
   if (!groups.includes(group)) return false;
@@ -42,7 +42,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   const [, ,rawId,...extra]=positionals;
   const needsId=!(group==='task' && action==='create' || group==='decision' && action==='list');
   if (extra.length || needsId && !rawId || !needsId && rawId) throw new Error('Uso: argumentos incorrectos');
-  const id=rawId ? encodeURIComponent(rawId) : '',dataDir=resolve(values.data ?? '.kratos');
+  const id=rawId ? encodeURIComponent(rawId) : '',dataDir=resolve(values.data ?? '.nomos');
   const call=(path: string,data?: unknown,timeoutMs?: number)=>request(serviceInfo(dataDir),path,data,timeoutMs);
   // hito 10: lo que el director crea por un mensaje del chat se enlaza a él (sin --message, el servicio lo infiere)
   const message=values.message===undefined ? {} : {messageId:required(values.message,'--message')};

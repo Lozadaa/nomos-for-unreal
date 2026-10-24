@@ -1,10 +1,10 @@
-"""Kratos · editor sin GUI: Data Validation sobre los assets tocados por el diff, más dependencias rotas o sin guardar.
+"""Nomos · editor sin GUI: Data Validation sobre los assets tocados por el diff, más dependencias rotas o sin guardar.
 
-KRATOS_ASSETS: lista JSON de paquetes `/Game/...`. Escribe en KRATOS_REPORT {ok, engine, assets: [{package, result, errors}], errors}.
+NOMOS_ASSETS: lista JSON de paquetes `/Game/...`. Escribe en NOMOS_REPORT {ok, engine, assets: [{package, result, errors}], errors}.
 """
 import json, os, unreal
 
-ASSETS = json.loads(os.environ.get("KRATOS_ASSETS") or "[]")
+ASSETS = json.loads(os.environ.get("NOMOS_ASSETS") or "[]")
 registry = unreal.AssetRegistryHelpers.get_asset_registry()
 validator = unreal.get_editor_subsystem(unreal.EditorValidatorSubsystem)
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "assets": [], "errors": []}
@@ -38,6 +38,6 @@ for package in ASSETS:
     report["assets"].append(entry)
 
 report["ok"] = all(not a["errors"] and a["result"] != "invalid" for a in report["assets"]) and not report["errors"]
-with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:
+with open(os.environ["NOMOS_REPORT"], "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2, ensure_ascii=False)
-unreal.log(f"KRATOS_VALIDATE ok={report['ok']} assets={len(report['assets'])}")
+unreal.log(f"NOMOS_VALIDATE ok={report['ok']} assets={len(report['assets'])}")

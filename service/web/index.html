@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kratos · Intercambio</title>
+<title>Nomos · Intercambio</title>
 <style>
 :root { font-family: system-ui, sans-serif; color: #17243b; background: #F3F5F9; }
 * { box-sizing: border-box; }
@@ -34,14 +34,14 @@ h2 { font-size: 18px; margin: 28px 0 16px; }
 </head>
 <body>
 <main>
-<header><h1>KRATOS</h1><p>Intercambio con el director</p></header>
+<header><h1>NOMOS</h1><p>Intercambio con el director</p></header>
 <section id="presencia" class="card" aria-live="polite">
-  <p id="director">Conectando con Kratos…</p><small id="confirmacion">sin confirmaciones</small>
+  <p id="director">Conectando con Nomos…</p><small id="confirmacion">sin confirmaciones</small>
 </section>
 <form id="formulario" class="card">
-  <label for="mensaje">Tu mensaje para Kratos</label>
+  <label for="mensaje">Tu mensaje para Nomos</label>
   <textarea id="mensaje" placeholder="Escribe una petición…" required></textarea>
-  <div class="actions"><small>Ctrl+Enter para enviar</small><button id="enviar" type="submit">Enviar a Kratos</button></div>
+  <div class="actions"><small>Ctrl+Enter para enviar</small><button id="enviar" type="submit">Enviar a Nomos</button></div>
   <p id="error" role="alert"></p>
 </form>
 <h2>Conversación</h2><p id="vacio">Los mensajes y las respuestas aparecerán aquí.</p>
@@ -50,9 +50,9 @@ h2 { font-size: 18px; margin: 28px 0 16px; }
 <script>
 const $ = id => document.getElementById(id);
 const incoming = new URLSearchParams(location.hash.slice(1)).get("token");
-if (incoming) sessionStorage.setItem("kratos.token", incoming);
+if (incoming) sessionStorage.setItem("nomos.token", incoming);
 if (location.hash) history.replaceState(null, "", location.pathname + location.search);
-const token = sessionStorage.getItem("kratos.token");
+const token = sessionStorage.getItem("nomos.token");
 const messages = new Map();
 let lastSeq = 0, source = null, sending = false;
 
@@ -60,7 +60,7 @@ async function api(path, data) {
   const response = await fetch(path, { method: data === undefined ? "GET" : "POST",
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(4000) });
-  if (!response.ok) throw new Error("No se pudo conectar con el servicio. Abre la URL actual desde /kratos.");
+  if (!response.ok) throw new Error("No se pudo conectar con el servicio. Abre la URL actual desde /nomos.");
   return response.json();
 }
 function renderMessage(id, text, seq) {
@@ -77,7 +77,7 @@ function receive(event) {
   if (row.seq <= lastSeq) return;
   if (row.type === "message.received") renderMessage(row.messageId, row.payload.text, row.seq);
   const message = messages.get(row.messageId);
-  if (message && (row.type === "message.read" || row.type === "message.acked")) message.state.textContent = "Recibido por Kratos";
+  if (message && (row.type === "message.read" || row.type === "message.acked")) message.state.textContent = "Recibido por Nomos";
   if (message && (row.type === "message.replied" || row.type === "reply.published")) { message.reply.textContent = row.payload.text; message.reply.hidden = false; }
   lastSeq = row.seq;
 }
@@ -90,8 +90,8 @@ async function refresh() {
   try {
     const state = await api("/status");
     $("director").textContent = state.listener
-      ? (state.pending ? `Kratos atendiendo ${state.pending} mensajes` : "Kratos escuchando")
-      : (state.pending ? `Vigilante caído · ${state.pending} mensajes en espera` : "Servicio activo · esperando a Kratos");
+      ? (state.pending ? `Nomos atendiendo ${state.pending} mensajes` : "Nomos escuchando")
+      : (state.pending ? `Vigilante caído · ${state.pending} mensajes en espera` : "Servicio activo · esperando a Nomos");
     $("presencia").dataset.state = state.pending ? "pending" : state.listener ? "listening" : "waiting";
     $("confirmacion").textContent = state.lastAckAt ? "Última confirmación: " + new Date(state.lastAckAt).toLocaleTimeString() : "sin confirmaciones";
   } catch { $("director").textContent = "Servicio desconectado"; $("presencia").dataset.state = "offline"; }
@@ -110,7 +110,7 @@ $("mensaje").addEventListener("keydown", event => {
   if (event.ctrlKey && event.key === "Enter") { event.preventDefault(); $("formulario").requestSubmit(); }
 });
 if (!token) {
-  $("director").textContent = "Abre esta página desde /kratos"; $("enviar").disabled = true; $("mensaje").disabled = true;
+  $("director").textContent = "Abre esta página desde /nomos"; $("enviar").disabled = true; $("mensaje").disabled = true;
 } else { refresh(); setInterval(refresh, 2000); connect(); }
 </script>
 </body>

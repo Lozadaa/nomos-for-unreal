@@ -1,6 +1,6 @@
-"""Kratos · se ejecuta DENTRO del juego (`-game -windowed -ResX -ResY <mapa>`, `-ExecCmds="py …"`) en el mapa que deja
-kratos_character.py: mira por la cámara `KratosCamera`, congela el clip del actor `KratosAnim` en cada fracción pedida, mide la
-deformación y captura el viewport (`Shot showui`, igual que kratos_pie_capture.py).
+"""Nomos · se ejecuta DENTRO del juego (`-game -windowed -ResX -ResY <mapa>`, `-ExecCmds="py …"`) en el mapa que deja
+nomos_character.py: mira por la cámara `KratosCamera`, congela el clip del actor `KratosAnim` en cada fracción pedida, mide la
+deformación y captura el viewport (`Shot showui`, igual que nomos_pie_capture.py).
 
 Deformación (Global Constraints del hito 5b): la diagonal de la caja del actor en cada instante dentro de ×3 de la de reposo, ningún hueso
 del componente principal con escala 0 y duración del clip > 0.
@@ -9,26 +9,26 @@ Con dos sondas fuera de cámara (`KratosReference`: malla y clip originales; `Kr
 la altura de cadera, cabeza, pies y manos de una y otra, relativas a la cadera en reposo, no pueden diferir más de 0,15
 (un MetaHuman de rodillas donde el maniquí está de pie).
 
-Variables: KRATOS_PELVIS (JSON {target, source}), KRATOS_REPORT, KRATOS_SHOT_DIR (carpeta de PNG), KRATOS_PREFIX (nombre base), KRATOS_FRACTIONS (JSON, [0, 0.5, 0.9]),
-KRATOS_REST (JSON, caja de reposo [x, y, z]), KRATOS_VIDEO_DIR (carpeta de fotogramas del vídeo; sin ella, no hay vídeo), KRATOS_WAIT (segundos antes de la primera captura; 10 por defecto).
+Variables: NOMOS_PELVIS (JSON {target, source}), NOMOS_REPORT, NOMOS_SHOT_DIR (carpeta de PNG), NOMOS_PREFIX (nombre base), NOMOS_FRACTIONS (JSON, [0, 0.5, 0.9]),
+NOMOS_REST (JSON, caja de reposo [x, y, z]), NOMOS_VIDEO_DIR (carpeta de fotogramas del vídeo; sin ella, no hay vídeo), NOMOS_WAIT (segundos antes de la primera captura; 10 por defecto).
 """
 import json, os, shutil, sys, time, unreal
 
-# el juego ejecuta este archivo con exec(): los módulos hermanos se cargan desde la carpeta de KRATOS_SCRIPT
-sys.path.insert(0, os.path.dirname(os.environ.get("KRATOS_SCRIPT", "")))
-from kratos_anim_follow import BONES, center, follow_report, followers, pose, stretch  # noqa: E402
+# el juego ejecuta este archivo con exec(): los módulos hermanos se cargan desde la carpeta de NOMOS_SCRIPT
+sys.path.insert(0, os.path.dirname(os.environ.get("NOMOS_SCRIPT", "")))
+from nomos_anim_follow import BONES, center, follow_report, followers, pose, stretch  # noqa: E402
 
-REPORT = os.environ["KRATOS_REPORT"]
-OUT = os.environ.get("KRATOS_SHOT_DIR") or unreal.Paths.project_saved_dir()
-PREFIX = os.environ.get("KRATOS_PREFIX", "anim")
-FRACTIONS = json.loads(os.environ.get("KRATOS_FRACTIONS") or "[0, 0.5, 0.9]")
-REST = json.loads(os.environ.get("KRATOS_REST") or "null")
+REPORT = os.environ["NOMOS_REPORT"]
+OUT = os.environ.get("NOMOS_SHOT_DIR") or unreal.Paths.project_saved_dir()
+PREFIX = os.environ.get("NOMOS_PREFIX", "anim")
+FRACTIONS = json.loads(os.environ.get("NOMOS_FRACTIONS") or "[0, 0.5, 0.9]")
+REST = json.loads(os.environ.get("NOMOS_REST") or "null")
 # altura de cadera en reposo {target, source} de las sondas: la pose se compara instante a instante
-PELVIS = json.loads(os.environ.get("KRATOS_PELVIS") or "null") or {}
+PELVIS = json.loads(os.environ.get("NOMOS_PELVIS") or "null") or {}
 MAX_PELVIS_DIFF = 0.15
-# vídeo (corrección 2): con KRATOS_VIDEO_DIR, el clip entero a 30 fps paso a paso, de 3 a 8 s, un PNG por fotograma
-VIDEO_DIR, FPS, MIN_S, MAX_S = os.environ.get("KRATOS_VIDEO_DIR") or "", 30, 3.0, 8.0
-WAIT, FILE_WAIT, MAX_RATIO = float(os.environ.get("KRATOS_WAIT", "10")), 20.0, 3.0
+# vídeo (corrección 2): con NOMOS_VIDEO_DIR, el clip entero a 30 fps paso a paso, de 3 a 8 s, un PNG por fotograma
+VIDEO_DIR, FPS, MIN_S, MAX_S = os.environ.get("NOMOS_VIDEO_DIR") or "", 30, 3.0, 8.0
+WAIT, FILE_WAIT, MAX_RATIO = float(os.environ.get("NOMOS_WAIT", "10")), 20.0, 3.0
 SHOTS = os.path.join(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_saved_dir()), "Screenshots")
 
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "map": None, "clip": None, "length": 0,
@@ -66,7 +66,7 @@ def finish():
         and all(f["screenshot"] and f["deformation_ok"] for f in frames)
     with open(REPORT, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    unreal.log(f"KRATOS_ANIM ok={report['ok']} frames={len(frames)}")
+    unreal.log(f"NOMOS_ANIM ok={report['ok']} frames={len(frames)}")
     if state["handle"] is not None:
         unreal.unregister_slate_post_tick_callback(state["handle"])
         state["handle"] = None

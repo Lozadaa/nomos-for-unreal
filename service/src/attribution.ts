@@ -11,7 +11,7 @@ const roles: Record<string, string> = {
 };
 /** La misma regla que `panel/src/visual/art/agentName.ts` («{Área} {Rol}»), sin ordinales. */
 export function agentName(role?: string | null, area?: string | null): string {
-  if (role === 'director') return 'Kratos';
+  if (role === 'director') return 'Nomos';
   return `${area && Object.hasOwn(areas, area) ? areas[area] : 'Proyecto'} ${role && Object.hasOwn(roles, role) ? roles[role] : 'Worker'}`;
 }
 

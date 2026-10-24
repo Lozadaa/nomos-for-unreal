@@ -25,7 +25,7 @@ export async function freePort(): Promise<number> {
   await new Promise<void>(resolve => server.close(() => resolve())); return port;
 }
 export async function cliFixture(t: TestContext) {
-  const dataDir = mkdtempSync(join(tmpdir(), "kratos-cli-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "nomos-cli-"));
   childrenByDir.set(dataDir, new Set());
   t.after(async () => {
     for (const child of childrenByDir.get(dataDir) || []) await stopChild(child);

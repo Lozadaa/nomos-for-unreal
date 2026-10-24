@@ -1,12 +1,12 @@
-"""Kratos · importa el FBX que devuelve Cascadeur como AnimSequence sobre un esqueleto existente, DENTRO del editor sin GUI.
+"""Nomos · importa el FBX que devuelve Cascadeur como AnimSequence sobre un esqueleto existente, DENTRO del editor sin GUI.
 
-Variables: KRATOS_REPORT, KRATOS_FBX, KRATOS_SKELETON (/Game/...), KRATOS_DEST (carpeta), KRATOS_NAME (nombre del clip).
+Variables: NOMOS_REPORT, NOMOS_FBX, NOMOS_SKELETON (/Game/...), NOMOS_DEST (carpeta), NOMOS_NAME (nombre del clip).
 La distorsión típica de un FBX externo (flujo oficial MetaHuman ↔ Cascadeur) se corrige en el esqueleto: `root` y `pelvis`
 con traslación de la animación y el resto del esqueleto; si la API no lo expone, se dice en el informe.
 """
 import json, os, unreal
 
-FBX, SKELETON, DEST, NAME = (os.environ[k] for k in ("KRATOS_FBX", "KRATOS_SKELETON", "KRATOS_DEST", "KRATOS_NAME"))
+FBX, SKELETON, DEST, NAME = (os.environ[k] for k in ("NOMOS_FBX", "NOMOS_SKELETON", "NOMOS_DEST", "NOMOS_NAME"))
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "clip": None, "length": 0, "fixed_bones": [], "notes": [],
           "errors": [], "ok": False}
 try:
@@ -40,6 +40,6 @@ try:
     report["ok"] = report["length"] > 0
 except Exception as e:  # noqa: BLE001
     report["errors"].append(str(e))
-with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:
+with open(os.environ["NOMOS_REPORT"], "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2, ensure_ascii=False)
-unreal.log(f"KRATOS_IMPORT_ANIM ok={report['ok']} clip={report['clip']}")
+unreal.log(f"NOMOS_IMPORT_ANIM ok={report['ok']} clip={report['clip']}")

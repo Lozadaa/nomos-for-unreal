@@ -1,5 +1,5 @@
-"""Kratos · job de Cascadeur. Se ejecuta DENTRO de Cascadeur sin ventana:
-`cascadeur.exe --run-python-code "import sys; sys.path.insert(0, r'<esta carpeta>'); import kratos_job; kratos_job.main(r'<job>.json')"`.
+"""Nomos · job de Cascadeur. Se ejecuta DENTRO de Cascadeur sin ventana:
+`cascadeur.exe --run-python-code "import sys; sys.path.insert(0, r'<esta carpeta>'); import nomos_job; nomos_job.main(r'<job>.json')"`.
 Comprobado en 2026.2.3: corre con la plataforma qoffscreen, `csc` disponible, y Cascadeur se cierra al terminar.
 
 El job (JSON) dice: action (cleanup | author | fix-retarget), input_fbx, output_fbx, report.

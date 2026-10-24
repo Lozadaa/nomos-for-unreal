@@ -26,7 +26,7 @@ test('runner programa preparada sin solapar y deja de escribir tras drained',asy
 });
 
 test('config inválida se recupera en próximo tick y runners genéricos no programan workers',async()=>{
-  const db=openDb(':memory:'),dir=mkdtempSync(join(tmpdir(),'kratos-schedule-'));
+  const db=openDb(':memory:'),dir=mkdtempSync(join(tmpdir(),'nomos-schedule-'));
   createTask(db,{title:'Programar',area:'qa',state:'preparada'});
   writeFileSync(join(dir,'config.json'),'{');let count=0;
   let stop=startRunner(db,{'worker.start':async()=>{count++;}},{intervalMs:1,schedulerIntervalMs:5,context:{dataDir:dir}});

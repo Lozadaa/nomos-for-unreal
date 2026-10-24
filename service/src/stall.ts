@@ -32,7 +32,7 @@ export function openStallDecisions(db: DatabaseSync, now = Date.now()): number {
     appendEvent(db, 'task.stalled', null, {taskId: s.taskId, state: s.state, quietSeconds: s.quietSeconds});
     openDecision(db, {taskId: s.taskId, reason: `Tarea parada en «${s.state}» sin ningún paso en marcha`,
       evidence: [{kind: 'estado', ref: s.state}],
-      options: [{id: 'retomar', label: 'Retomar', description: `El director pide el paso que falta (kratos ${resume[s.state]})`},
+      options: [{id: 'retomar', label: 'Retomar', description: `El director pide el paso que falta (nomos ${resume[s.state]})`},
         {id: 'cancelar', label: 'Cancelar', description: 'Dejar la tarea sin terminar'}]});
   }
   return stalls.length;

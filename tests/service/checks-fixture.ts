@@ -17,7 +17,7 @@ const fakes = join(import.meta.dirname, '..', 'fakes');
 
 /** Juego `Juego/Juego.uproject`, motor falso 5.8.3, git falso con el diff dado y una tarea con su run implementador terminado. */
 export function checksFixture(opts: {files?: string[]; state?: Task['state']; area?: Task['area']; engine?: boolean; deps?: CheckDeps} = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'kratos-checks-')), dataDir = join(root, '.kratos'), projectDir = join(root, 'Juego');
+  const root = mkdtempSync(join(tmpdir(), 'nomos-checks-')), dataDir = join(root, '.nomos'), projectDir = join(root, 'Juego');
   const engineDir = join(root, 'Engine');
   mkdirSync(dataDir, {recursive: true}); mkdirSync(join(projectDir, 'Content'), {recursive: true}); mkdirSync(join(engineDir, 'Build'), {recursive: true});
   writeFileSync(join(projectDir, 'Juego.uproject'), '{}');
@@ -41,7 +41,7 @@ export function checksFixture(opts: {files?: string[]; state?: Task['state']; ar
   };
   const handlers = createCheckHandlers(deps);
   const task = createTask(db, {title: 'HUD de vida', area: opts.area ?? 'ui', state: opts.state ?? 'probando'});
-  const tree = insert<{id: string}>(db, 'worktrees', {taskId: task.id, path: projectDir, branch: 'kratos/hud', baseCommit: 'base000', state: 'active', closedReason: null});
+  const tree = insert<{id: string}>(db, 'worktrees', {taskId: task.id, path: projectDir, branch: 'nomos/hud', baseCommit: 'base000', state: 'active', closedReason: null});
   let implementer = startRun(db, {taskId: task.id, role: 'implementacion', provider: 'claude', metadata: {worktreeId: tree.id}});
   implementer = finishRun(db, implementer.id, 'done', 'Hecho');
   const run = (payload: object = {taskId: task.id}, id = randomUUID()) =>

@@ -1,5 +1,5 @@
-"""Kratos · prendas, pelo y cara de un personaje siguiendo al cuerpo durante la captura (Review Focus 10 del hito 5b).
-Lo importa kratos_anim_capture.py dentro del juego.
+"""Nomos · prendas, pelo y cara de un personaje siguiendo al cuerpo durante la captura (Review Focus 10 del hito 5b).
+Lo importa nomos_anim_capture.py dentro del juego.
 """
 import unreal
 
@@ -20,7 +20,7 @@ def followers(actor, body):
         if not own:
             comp.set_leader_pose_component(body, True)
         # en el juego, nada de set_editor_property: re-ejecuta el construction script y deja los componentes como TRASH_
-        comp.set_cloth_max_distance_scale(0.0)  # la tela queda pegada a la malla skinneada (la desactiva kratos_character.py)
+        comp.set_cloth_max_distance_scale(0.0)  # la tela queda pegada a la malla skinneada (la desactiva nomos_character.py)
         comp.force_cloth_next_update_teleport_and_reset()
         leader = comp.get_editor_property("leader_pose_component")
         out.append({"name": comp.get_name(), "comp": comp, "leader": bool(leader) and leader == body, "anim": own, "centers": []})

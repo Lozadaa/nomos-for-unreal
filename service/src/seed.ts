@@ -21,10 +21,10 @@ export function seed(db: DatabaseSync, opts: {force?: boolean, now?: Date} = {})
     const put = writer(db,timestamp);
     productionRows(put); catalogRows(put); artifactRows(db,put);
     db.prepare('update runs set started_at=?').run(new Date(now.getTime()-3600000).toISOString());
-    const sources = ['Kratos','Codex','Claude Code','Meshy','Blender','Unreal','builds'];
+    const sources = ['Nomos','Codex','Claude Code','Meshy','Blender','Unreal','builds'];
     for (let i=0;i<60;i++) {
       const decision = i===59;
-      const payload = decision ? {source:'Kratos',taskId:'seed-task-04',decisionId:'seed-decision-01',
+      const payload = decision ? {source:'Nomos',taskId:'seed-task-04',decisionId:'seed-decision-01',
         reason:'Elegir personaje base: 3 candidatos del catálogo',priorBlockedReason:null,runId:null,correlation:'seed-event-59'} :
         {source:sources[i%7],taskId:`seed-task-${String(i%12+1).padStart(2,'0')}`,
           runId:({5:'seed-run-01',7:'seed-run-02',6:'seed-run-03'} as Record<number,string>)[i%12+1] ?? null,correlation:i ? `seed-event-${String(i).padStart(2,'0')}` : null};

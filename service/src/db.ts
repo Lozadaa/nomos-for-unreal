@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { applySchema } from "./schema.ts";
-import { migrateWorker, migrateLeases,migrateWorkerProviders,migrateAssets,migrateChecks,migrateClosing,migrateLanes,migrateEngineSource,migrateChat } from './migrations.ts';
+import { migrateWorker, migrateLeases,migrateWorkerProviders,migrateAssets,migrateChecks,migrateClosing,migrateLanes,migrateEngineSource,migrateChat,migrateNomos } from './migrations.ts';
 
 export function openDb(file: string): DatabaseSync {
   const db = new DatabaseSync(file);
@@ -28,5 +28,6 @@ export function openDb(file: string): DatabaseSync {
   migrateLanes(db);
   migrateEngineSource(db);
   migrateChat(db);
+  migrateNomos(db);
   return db;
 }

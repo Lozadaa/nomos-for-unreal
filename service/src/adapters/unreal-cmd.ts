@@ -21,18 +21,18 @@ export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[];
   async function runPython(uproject: string, script: string, env: Record<string, string> = {}, timeoutMs = opts.timeoutMs ?? 180_000,
     run: RenderOpts = {}): Promise<RunResult> {
     if (!existsSync(bin)) throw new Error('unreal_missing');
-    const dir = mkdtempSync(join(tmpdir(), 'kratos-unreal-'));
-    const report = env.KRATOS_REPORT ?? join(dir, 'report.json');
+    const dir = mkdtempSync(join(tmpdir(), 'nomos-unreal-'));
+    const report = env.NOMOS_REPORT ?? join(dir, 'report.json');
     // con render se lanza el juego (`-game <mapa>`) en ventana a resolución fija: la captura es el viewport del juego
     const view = run.render ? [...(run.render.map ? [run.render.map] : []), '-game', `-ResX=${run.render.width}`, `-ResY=${run.render.height}`,
       '-windowed', '-ForceRes'] : ['-NullRHI'];
     // -ExecutePythonScript cierra el editor al volver el script; con render (PIE) el script se lanza con «py» y cierra él mismo
-    // la ruta va por KRATOS_SCRIPT: «py» corta en el primer espacio y ExecCmds en cada coma
-    const exec = run.render ? `-ExecCmds="py import os;exec(open(os.environ['KRATOS_SCRIPT']).read())"` : `-ExecutePythonScript=${quote(script)}`;
+    // la ruta va por NOMOS_SCRIPT: «py» corta en el primer espacio y ExecCmds en cada coma
+    const exec = run.render ? `-ExecCmds="py import os;exec(open(os.environ['NOMOS_SCRIPT']).read())"` : `-ExecutePythonScript=${quote(script)}`;
     const args = [...[...(opts.baseArgs ?? []), uproject].map(quote), ...view, exec,
       '-unattended', '-nopause', '-nosplash', '-stdout', '-FullStdOutLogOutput'];
     try {
-      const {exitCode, log} = await runLogged(bin, args, {timeoutMs, env: {...process.env, PYTHONUTF8: '1', ...env, KRATOS_REPORT: report, KRATOS_SCRIPT: script}});
+      const {exitCode, log} = await runLogged(bin, args, {timeoutMs, env: {...process.env, PYTHONUTF8: '1', ...env, NOMOS_REPORT: report, NOMOS_SCRIPT: script}});
       let reportJson: Record<string, unknown> | undefined;
       try { reportJson = JSON.parse(readFileSync(report, 'utf8')); } catch { reportJson = undefined; }
       return {exitCode, log, reportJson};
@@ -46,14 +46,14 @@ export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[];
     } catch { return null; }
   }
   async function verifyPack(uproject: string, root: string): Promise<VerifyReport> {
-    const {exitCode, reportJson} = await runPython(uproject, join(scripts, 'kratos_verify.py'), {KRATOS_ROOT: root});
+    const {exitCode, reportJson} = await runPython(uproject, join(scripts, 'nomos_verify.py'), {NOMOS_ROOT: root});
     if (!reportJson) return {ok: false, root, engine: null, assets: [], missing_dependencies: [], external_dependencies: [],
       errors: [`El editor terminó con código ${exitCode} sin escribir el informe`]};
     return {engine: null, ...reportJson} as VerifyReport;
   }
   async function importFile(uproject: string, sourceFile: string, destFolder: string, name: string): Promise<{assets: string[]}> {
-    const {reportJson} = await runPython(uproject, join(scripts, 'kratos_import.py'),
-      {KRATOS_SOURCE: sourceFile, KRATOS_DEST: destFolder, KRATOS_NAME: name});
+    const {reportJson} = await runPython(uproject, join(scripts, 'nomos_import.py'),
+      {NOMOS_SOURCE: sourceFile, NOMOS_DEST: destFolder, NOMOS_NAME: name});
     if (!reportJson?.ok) throw new Error('unreal_import_failed');
     return {assets: reportJson.assets as string[]};
   }

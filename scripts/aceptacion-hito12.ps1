@@ -1,7 +1,7 @@
 # Aceptación real del hito 12: una tarea de docs con OpenCode, revisión Claude y cierre en KratosFabTest.
 # Uso (PowerShell, donde opencode está en el PATH):
 #   pwsh -File scripts/aceptacion-hito12.ps1 [-Game <juego>] [-Model opencode/beam-free]
-# Deja la captura en docs/capturas-12/ y para siempre su servicio (.kratos-hito12); no toca el del 8780.
+# Deja la captura en docs/capturas-12/ y para siempre su servicio (.nomos-hito12); no toca el del 8780.
 param(
   [string]$Game = 'C:\Users\richa\Documents\Unreal Projects\KratosFabTest',
   [string]$Model = 'opencode/beam-free',
@@ -10,8 +10,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $Repo = Split-Path $PSScriptRoot -Parent
 $Cli = Join-Path $Repo 'service\src\cli.ts'
-$Data = Join-Path $Game '.kratos-hito12'
-function Kratos { $out = & node $Cli @args --data $Data; if ($LASTEXITCODE) { throw "kratos $($args -join ' ') falló" }; $out }
+$Data = Join-Path $Game '.nomos-hito12'
+function Nomos { $out = & node $Cli @args --data $Data; if ($LASTEXITCODE) { throw "nomos $($args -join ' ') falló" }; $out }
 function Step($text) { Write-Host "[$(Get-Date -Format HH:mm:ss)] $text" }
 
 # 1. OpenCode debe autenticar antes de gastar nada: una pregunta mínima al mismo modelo
@@ -28,7 +28,7 @@ $Port = & node -e "const s=require('net').createServer().listen(0,'127.0.0.1',()
 Push-Location $Game
 try {
   Step "Arrancando el servicio en el puerto $Port"
-  Kratos start --port $Port --no-open | Out-Null
+  Nomos start --port $Port --no-open | Out-Null
 
   # 3. Tarea sencilla de docs, pedida explícitamente a OpenCode
   $spec = Join-Path $Data 'tarea-opencode.md'
@@ -51,13 +51,13 @@ Comprobar el adaptador OpenCode del hito 12 con una tarea barata y verificable s
 - Content
 - Config
 '@ | Set-Content -Encoding utf8NoBOM $spec
-  $task = (Kratos task create --title 'Notas de OpenCode' --area builds --provider opencode --spec-file $spec) | ConvertFrom-Json
+  $task = (Nomos task create --title 'Notas de OpenCode' --area builds --provider opencode --spec-file $spec) | ConvertFrom-Json
   Step "Tarea $($task.id) creada; el planificador la lanza con OpenCode"
 
   $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
   function WaitState([string[]]$states) {
     while ((Get-Date) -lt $deadline) {
-      $detail = (Kratos task show $task.id) | ConvertFrom-Json
+      $detail = (Nomos task show $task.id) | ConvertFrom-Json
       $failed = $detail.events | Where-Object type -eq 'worker.failed'
       if ($failed) { throw "worker.failed: $($failed[-1].payload.reason)" }
       if ($detail.decision) { throw "Decisión abierta: $($detail.decision.reason)" }
@@ -67,14 +67,14 @@ Comprobar el adaptador OpenCode del hito 12 con una tarea barata y verificable s
     throw "Tiempo agotado esperando $($states -join '/')"
   }
 
-  # 4. KRATOS_DONE de OpenCode → revisando
+  # 4. NOMOS_DONE de OpenCode → revisando
   $detail = WaitState @('revisando')
   $impl = $detail.runs | Where-Object { $_.role -ne 'revisor' } | Select-Object -Last 1
   if ($impl.provider -ne 'opencode' -or $impl.state -ne 'done') { throw "La implementación no la hizo OpenCode: $($impl.provider) $($impl.state)" }
   Step "OpenCode terminó: $($impl.summary) (modelo $($impl.metadata.model))"
 
   # 5. Revisión: el revisor de OpenCode es siempre Claude
-  Kratos task review $task.id | Out-Null
+  Nomos task review $task.id | Out-Null
   $detail = WaitState @('probando', 'implementando', 'integrando', 'cerrando')
   $review = $detail.runs | Where-Object role -eq 'revisor' | Select-Object -Last 1
   if ($detail.task.state -eq 'implementando') { throw "El revisor $($review.provider) pidió cambios: $($review.summary)" }
@@ -82,8 +82,8 @@ Comprobar el adaptador OpenCode del hito 12 con una tarea barata y verificable s
   Step "Revisión Claude aprobada"
 
   # 6. Cierre
-  if ($detail.task.state -eq 'probando') { Kratos task integrate $task.id | Out-Null; $detail = WaitState @('cerrando', 'done') }
-  if ($detail.task.state -eq 'cerrando') { Kratos task finalize $task.id | Out-Null; $detail = WaitState @('done') }
+  if ($detail.task.state -eq 'probando') { Nomos task integrate $task.id | Out-Null; $detail = WaitState @('cerrando', 'done') }
+  if ($detail.task.state -eq 'cerrando') { Nomos task finalize $task.id | Out-Null; $detail = WaitState @('done') }
   Step "Tarea cerrada: $($detail.task.state)"
 
   # 7. Captura de Producción a 1920 y gasto
@@ -92,6 +92,6 @@ Comprobar el adaptador OpenCode del hito 12 con una tarea barata y verificable s
   Step 'Gasto según opencode stats:'
   & opencode stats
 } finally {
-  try { Kratos stop | Out-Null; Step 'Servicio .kratos-hito12 parado' } catch { Write-Warning "No se pudo parar el servicio: $_" }
+  try { Nomos stop | Out-Null; Step 'Servicio .nomos-hito12 parado' } catch { Write-Warning "No se pudo parar el servicio: $_" }
   Pop-Location
 }

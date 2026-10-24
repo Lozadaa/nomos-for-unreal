@@ -9,7 +9,7 @@ import { appendEvent } from '../../service/src/store.ts';
 import { enqueue } from '../../service/src/commands.ts';
 
 test('una línea JSON por registro, un archivo por día y fuera lo de más de 14 días al cambiar de día', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-log-'));
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-log-'));
   try {
     const day = (offset: number) => new Date(2026, 9, 23 - offset, 12);
     mkdirSync(join(dir, 'logs'));
@@ -27,8 +27,8 @@ test('una línea JSON por registro, un archivo por día y fuera lo de más de 14
 });
 
 test('cada evento y cada comando del servicio queda en <dataDir>/logs; una base en memoria no escribe nada', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-log-'));
-  const db = openDb(join(dir, 'kratos.db'));
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-log-'));
+  const db = openDb(join(dir, 'nomos.db'));
   try {
     appendEvent(db, 'task.created', null, {taskId: 't1'});
     enqueue(db, 'worker.poll', {runId: 'r'}, 'k');

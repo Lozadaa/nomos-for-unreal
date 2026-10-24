@@ -16,7 +16,7 @@ const rows = (f: {db: any; task: {id: string}}) => filtered<TestRun>(f.db, 'test
 test('Blueprint en verde: TestRun con commit, motor, log como artefacto y la tarea pasa a integrando', async () => {
   const f = checksFixture({files: ['Content/Blueprints/BP_Puerta.uasset']});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const result = await f.run();
     assert.equal(result.passed, true);
     assert.equal(result.advanced, true);
@@ -33,7 +33,7 @@ test('Blueprint en verde: TestRun con commit, motor, log como artefacto y la tar
 test('C++ con 400 líneas de error: log completo en artefacto, evento con 30, vuelve al responsable con la ruta y para ahí', async () => {
   const f = checksFixture({files: ['Source/Juego/Vida.cpp', 'Content/Blueprints/BP_Puerta.uasset']});
   try {
-    process.env.KRATOS_FAKE = 'fail';
+    process.env.NOMOS_FAKE = 'fail';
     const result = await f.run();
     assert.equal(result.passed, false);
     const [cpp, bp] = rows(f);
@@ -71,7 +71,7 @@ test('motor ausente: unavailable, nunca passed; Decisión «Continuar sin esta c
 test('mapa con assets rotos: Data Validation antes de jugar y Decisión con la lista', async () => {
   const f = checksFixture({files: ['Content/Maps/Nivel1.umap', 'Content/Props/BP_Caja.uasset']});
   try {
-    process.env.KRATOS_FAKE = 'validate_fail';
+    process.env.NOMOS_FAKE = 'validate_fail';
     const result = await f.run({taskId: f.task.id}, 'cmd-map');
     assert.equal(result.deferred, true);
     const map = rows(f).find(r => r.checkId === 'map')!;
@@ -89,7 +89,7 @@ test('mapa con assets rotos: Data Validation antes de jugar y Decisión con la l
 test('mapa válido: juego a 1280×720 con captura como artefacto y mapa en el TestRun', async () => {
   const f = checksFixture({files: ['Content/Maps/Nivel1.umap']});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     assert.equal((await f.run()).passed, true);
     const [row] = rows(f);
     assert.deepEqual([row.result, row.map, row.config], ['passed', '/Game/Maps/Nivel1', '1280x720']);
@@ -122,7 +122,7 @@ test('diff sin Unreal: test.skipped «el diff no toca Unreal» y pasa sin prueba
 test('build: empaqueta, arranca el ejecutable y guarda captura y ejecutable como evidencia', async () => {
   const f = checksFixture({files: ['Config/DefaultGame.ini']});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     assert.equal((await f.run()).passed, true);
     const kinds = listArtifacts(f.db, {taskId: f.task.id}).map(a => a.kind).sort();
     assert.deepEqual(kinds, ['build', 'report', 'screenshot']);
@@ -145,11 +145,11 @@ test('hito 5b: un diff con la ficha del personaje y su clip pasa la comprobació
   const {writeFileSync} = await import('node:fs');
   const {filtered} = await import('../../service/src/repo/rows.ts');
   const ff = {bin: process.execPath, baseArgs: [join(import.meta.dirname, '..', 'fakes', 'ffmpeg.mjs')]};
-  const f = checksFixture({area: 'animacion', files: ['kratos-personaje.json', 'Content/Kratos/Retarget/m_tal_ovw_body/AM_ComboAttack_m_tal_ovw_body.uasset'],
+  const f = checksFixture({area: 'animacion', files: ['nomos-personaje.json', 'Content/Kratos/Retarget/m_tal_ovw_body/AM_ComboAttack_m_tal_ovw_body.uasset'],
     deps: {ffmpeg: () => ff}});
   try {
-    process.env.KRATOS_FAKE = 'ok';
-    writeFileSync(join(f.projectDir, 'kratos-personaje.json'), JSON.stringify({mesh: '/Game/MetaHumans/Hudson/BP_Hudson',
+    process.env.NOMOS_FAKE = 'ok';
+    writeFileSync(join(f.projectDir, 'nomos-personaje.json'), JSON.stringify({mesh: '/Game/MetaHumans/Hudson/BP_Hudson',
       animations: ['/Game/Variant_Combat/Anims/AM_ComboAttack'], targetSkeleton: 'metahuman'}));
     const result = await f.run();
     assert.equal(result.passed, true, JSON.stringify(f.events('test.failed')));

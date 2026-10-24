@@ -11,7 +11,7 @@ import { acquire, listLeases } from '../../service/src/leases.ts';
 import { seed } from '../../service/src/seed.ts';
 
 test('migra tareas existentes y decodifica reservas con defaults sin perder datos',()=>{
-  const dir=mkdtempSync(join(tmpdir(),'kratos-lease-schema-')),file=join(dir,'db.sqlite');
+  const dir=mkdtempSync(join(tmpdir(),'nomos-lease-schema-')),file=join(dir,'db.sqlite');
   try {
     const old=new DatabaseSync(file);applySchema(old);
     old.prepare(`insert into tasks(id,title,spec,acceptance,state,area,depends_on,created_at,updated_at)

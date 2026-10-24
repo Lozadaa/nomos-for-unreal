@@ -19,7 +19,7 @@ test('instrucción aceptada por HTTP invalida aprobación y revisión aún en vu
   const response=await fetch(`http://127.0.0.1:${(server.address() as any).port}/runs/${f.implementer.id}/message`,{
     method:'POST',headers:{Authorization:'Bearer secret'},body:JSON.stringify({text:'Corrige nueva condición'})});
   assert.equal(response.status,202);assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
-  f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+  f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
 });
 test('fallo del review.start después de cambio del implementador preserva su run y leases',async t=>{
@@ -43,8 +43,8 @@ test('recovery review.start preserva implementación corregida activa y sus leas
 test('instrucción en envío invalida snapshot antes de esperar aceptación de terminal',async t=>{
   const f=await reviewFixture(t);await f.startReview();const send=f.ctx.orca.terminalSend;
   f.ctx.orca.terminalSend=async(handle,text)=>{
-    if(text.includes('.kratos-inbox')) {
-      f.output('KRATOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
+    if(text.includes('.nomos-inbox')) {
+      f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
       assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
     }
     return send(handle,text);

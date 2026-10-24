@@ -59,7 +59,7 @@ export function createRequestDownload(deps: DownloadDeps = {}): Handler {
     if (open) return {downloadId: open.id, existing: true};
     // el Launcher escribe fuera de la carpeta del pack (StarterContent): siempre al proyecto cuarentena, luego nivel 1
     const text = instructions(entry.name, basename(config.quarantineProject));
-    const task = createTask(ctx.db, {title: `Descargar ${entry.name} desde Fab`, area: 'assets', assigneeRole: 'arte', assigneeProvider: 'kratos'});
+    const task = createTask(ctx.db, {title: `Descargar ${entry.name} desde Fab`, area: 'assets', assigneeRole: 'arte', assigneeProvider: 'nomos'});
     setTaskWait(ctx.db, task.id, 'Esperando al Launcher');
     const now = (deps.now ?? Date.now)(), id = randomUUID(), iso = new Date(now).toISOString();
     let logOffset = 0;

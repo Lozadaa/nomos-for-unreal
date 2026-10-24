@@ -12,9 +12,9 @@ async function commonDir(dir: string): Promise<string | undefined> {
 export async function requireGameProject(projectDir: string): Promise<void> {
   const own=resolve(import.meta.dirname,'../..');
   const target=realpathSync(projectDir);
-  if (fold(target)===fold(realpathSync(own))) throw new Error('invalid_kratos_project');
+  if (fold(target)===fold(realpathSync(own))) throw new Error('invalid_nomos_project');
   const [projectGit,ownGit]=await Promise.all([commonDir(target),commonDir(own)]);
-  if (projectGit && projectGit===ownGit) throw new Error('invalid_kratos_project');
+  if (projectGit && projectGit===ownGit) throw new Error('invalid_nomos_project');
   if (!readdirSync(target,{withFileTypes:true}).some(e=>e.isFile() && e.name.toLowerCase().endsWith('.uproject')))
     throw new Error('invalid_unreal_project');
 }

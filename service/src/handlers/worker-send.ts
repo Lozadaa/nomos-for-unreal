@@ -45,8 +45,10 @@ export const workerSend: Handler=async (cmd,ctx)=>{
       .run(leaseWaitReason(reservation.conflicts),new Date().toISOString(),task.id);return;
   }
   db.prepare('update tasks set wait_reason=null where id=?').run(task.id);
-  const relative=`.kratos-inbox/${cmd.id}.md`;
-  mkdirSync(join(tree.path,'.kratos-inbox'),{recursive:true});writeFileSync(join(tree.path,relative),payload.text);
+  const relative=`.nomos-inbox/${cmd.id}.md`;
+  mkdirSync(join(tree.path,'.nomos-inbox'),{recursive:true});writeFileSync(join(tree.path,relative),payload.text);
+  // un worktree de antes del hito 11 solo excluye la bandeja con el nombre anterior: la carpeta se ignora sola para que nunca se commitee
+  writeFileSync(join(tree.path,'.nomos-inbox','.gitignore'),'*\n');
   invalidateImplementation(db,run.id);
   await deliver(db,orca,run,tree.path,`Lee el archivo ${relative} y ejecuta lo que dice.`);
   run=requireRun(db,run.id);

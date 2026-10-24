@@ -15,7 +15,7 @@ test('nombres de artefactos derivados de la comprobación, el tipo y la resoluci
 test('checks.run guarda provenance.label en el registro y en la captura del mapa', async () => {
   const f = checksFixture({files: ['Content/Maps/Nivel1.umap']});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     await f.run();
     const labels = listArtifacts(f.db, {taskId: f.task.id}).map(a => (a.provenance as {label?: string}).label);
     // hito 10: la del jugador, las tres del rig y la hoja de contactos

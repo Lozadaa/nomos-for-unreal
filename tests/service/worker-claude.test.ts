@@ -17,8 +17,8 @@ test('Claude arranca con fake+Git, atribuye proveedor y skills esperadas, permis
   f.ctx.orca.terminalWaitIdle=async(...args)=>{assert.ok(args[2]?.test('bypass permissions'));return wait(...args);};
   await start(f);const run=f.run();assert.equal(run.provider,'claude');
   assert.deepEqual(run.skills,['tdd','qa',...skillsForRole('implementacion','qa')]);
-  const brief=readFileSync(join(f.tree().path,'.kratos-brief.md'),'utf8');
-  assert.match(brief,/Carga las skills/);assert.match(brief,/tdd, qa/);assert.match(brief,/primera línea.*KRATOS_SKILLS/);
+  const brief=readFileSync(join(f.tree().path,'.nomos-brief.md'),'utf8');
+  assert.match(brief,/Carga las skills/);assert.match(brief,/tdd, qa/);assert.match(brief,/primera línea.*NOMOS_SKILLS/);
   assert.deepEqual(f.state().tail.slice(0,2),['claude --model sonnet --dangerously-skip-permissions','bypass permissions on']);
   const before=f.state().tail.length;
   await poll(f);assert.equal(f.run().metadata.waiting,true);
@@ -27,7 +27,7 @@ test('Claude arranca con fake+Git, atribuye proveedor y skills esperadas, permis
   assert.equal(event.payload.question,f.run().metadata.question);assert.equal(event.payload.provider,'claude');
   await poll(f);assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.waiting').length,1);
   assert.equal(f.state().tail.length,before,'El servicio nunca responde automáticamente al permiso');
-  f.output('KRATOS_DONE {"summary":"Implementado","commits":[],"tests":"passed"}');await poll(f);
+  f.output('NOMOS_DONE {"summary":"Implementado","commits":[],"tests":"passed"}');await poll(f);
   assert.equal(f.run().state,'done');assert.equal(requireTask(f.db,f.task.id).state,'revisando');
   assert.equal(f.run().metadata.confirmedSkills,undefined);
   assert.equal(listEvents(f.db,0).some(e=>e.type==='worker.skills_missing'),false);
@@ -39,9 +39,9 @@ test('Claude detecta permiso y marcadores con viñetas en source screen sin alte
   const screen=(lines:string[])=>writeFileSync(f.file,JSON.stringify({...f.state(),screen:lines,screenCursor:'999'}));
   screen(['⏺ Allow this action?']);await poll(f);assert.equal(f.run().metadata.question,'⏺ Allow this action?');
   await poll(f);assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.waiting').length,2);
-  screen(['⏺ KRATOS_ASK {"question":"¿Qué', '  ⎿ color?"}']);await poll(f);
+  screen(['⏺ NOMOS_ASK {"question":"¿Qué', '  ⎿ color?"}']);await poll(f);
   assert.equal(f.run().metadata.question,'¿Qué color?');assert.equal(f.run().metadata.cursor,cursor);
-  screen(['● KRATOS_DONE {"summary":"Listo",','  "commits":[],"tests":"none"}']);await poll(f);
+  screen(['● NOMOS_DONE {"summary":"Listo",','  "commits":[],"tests":"none"}']);await poll(f);
   assert.equal(f.run().state,'done');assert.equal(f.run().summary,'Listo');
 });
 test('espera idle de Claude nombra el proveedor real',async t=>{

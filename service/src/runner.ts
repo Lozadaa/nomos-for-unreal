@@ -21,7 +21,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
   intervalMs?: number; schedulerIntervalMs?: number; heartbeatMs?: number;
   context?: Partial<WorkerContext>; orcaOptions?: Parameters<typeof createOrca>[0];
 } = {}): RunnerStop {
-  const dataDir=resolve(opts.context?.dataDir ?? databaseDirectory(db) ?? '.kratos');
+  const dataDir=resolve(opts.context?.dataDir ?? databaseDirectory(db) ?? '.nomos');
   const owner=`runner:${process.pid}:${randomUUID().slice(0,8)}`;
   recoverCommands(db,{owner});
   let stopped=false;

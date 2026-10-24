@@ -1,10 +1,10 @@
-"""Kratos · editor sin GUI: carga y compila los Blueprints tocados y comprueba que sus referencias existen.
+"""Nomos · editor sin GUI: carga y compila los Blueprints tocados y comprueba que sus referencias existen.
 
-KRATOS_ASSETS: lista JSON de paquetes `/Game/...`. Escribe en KRATOS_REPORT {ok, engine, compiled: [{package, status}], errors}.
+NOMOS_ASSETS: lista JSON de paquetes `/Game/...`. Escribe en NOMOS_REPORT {ok, engine, compiled: [{package, status}], errors}.
 """
 import json, os, unreal
 
-ASSETS = json.loads(os.environ.get("KRATOS_ASSETS") or "[]")
+ASSETS = json.loads(os.environ.get("NOMOS_ASSETS") or "[]")
 registry = unreal.AssetRegistryHelpers.get_asset_registry()
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "compiled": [], "errors": [], "warnings": []}
 HARD = unreal.AssetRegistryDependencyOptions(include_soft_package_references=False, include_hard_package_references=True)
@@ -37,6 +37,6 @@ for package in ASSETS:
                 else: report["warnings"].append(f"{package}: referencia blanda inexistente {dep} (no impide cargar)")
 
 report["ok"] = not report["errors"]
-with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:
+with open(os.environ["NOMOS_REPORT"], "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2, ensure_ascii=False)
-unreal.log(f"KRATOS_COMPILE_BP ok={report['ok']} compiled={len(report['compiled'])}")
+unreal.log(f"NOMOS_COMPILE_BP ok={report['ok']} compiled={len(report['compiled'])}")

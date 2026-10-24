@@ -2,7 +2,7 @@ import { unrealOf, type Executor } from './run.ts';
 import { packages } from './blueprint.ts';
 
 /** Criterios de ue-asset-intake legibles en el informe de verificación: escala razonable en cm y materiales asignados.
- *  ponytail: la colisión no está en el informe de kratos_verify.py; se añade cuando el script la lea. */
+ *  ponytail: la colisión no está en el informe de nomos_verify.py; se añade cuando el script la lea. */
 function intake(asset: Record<string, any>): string[] {
   const problems: string[] = [];
   if (asset.loaded === false) problems.push(`${asset.package}: no carga`);

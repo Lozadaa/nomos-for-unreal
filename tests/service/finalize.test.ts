@@ -43,8 +43,8 @@ test('cierre completo: preserva y verifica, cierra los terminales, retira los wo
   try {
     const calls = withOrca(f), a = await closing(f, 'vida');
     const reviewPath = join(f.repo.root, 'vida-review');
-    f.repo.git(f.repo.dir, 'worktree', 'add', '-b', 'kratos/vida-review', reviewPath);
-    const review = insert<Worktree>(f.db, 'worktrees', {taskId: a.task.id, path: reviewPath, branch: 'kratos/vida-review', baseCommit: a.base, state: 'active', closedReason: null});
+    f.repo.git(f.repo.dir, 'worktree', 'add', '-b', 'nomos/vida-review', reviewPath);
+    const review = insert<Worktree>(f.db, 'worktrees', {taskId: a.task.id, path: reviewPath, branch: 'nomos/vida-review', baseCommit: a.base, state: 'active', closedReason: null});
     finishRun(f.db, startRun(f.db, {taskId: a.task.id, role: 'revisor', provider: 'claude', sessionRef: 'term_rev', metadata: {worktreeId: review.id}}).id, 'done', 'Aprobado');
     const result = await finalize(f, a.task.id);
     assert.equal(result.closed, true);

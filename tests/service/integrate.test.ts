@@ -42,7 +42,7 @@ test('merge limpio: integra con --no-ff en el workspace del proyecto, avanza mas
     assert.deepEqual([event.commit, event.branch, event.files, event.rechecked], [master, 'master', ['Source/Vida.cpp'], false]);
     assert.match(f.events('task.moved').at(-1)!.reason, /^Integrado en master@[0-9a-f]{7}$/);
     const integrator = filtered<Run>(f.db, 'runs', {taskId: a.task.id}).at(-1)!;
-    assert.deepEqual([integrator.provider, integrator.role, integrator.state], ['kratos', 'integrador', 'done']);
+    assert.deepEqual([integrator.provider, integrator.role, integrator.state], ['nomos', 'integrador', 'done']);
     assert.deepEqual(listLeases(f.db), []);
     assert.equal(commands(f, 'checks.run').length, 0, 'base igual: no recomprueba');
   } finally { f.close(); }
@@ -73,7 +73,7 @@ test('conflicto de texto: abortMerge, workspace limpio, Decisión con diff3; «R
 });
 
 test('archivo local sin seguir del usuario: no se sobrescribe ni se reintenta; vuelve al responsable para sacarlo del commit', async () => {
-  const f = integrationFixture({'Config/DefaultEngine.ini': '[Mapas]\nGameMode=Kratos\n'});
+  const f = integrationFixture({'Config/DefaultEngine.ini': '[Mapas]\nGameMode=Nomos\n'});
   try {
     const a = f.addTask('ini');
     mkdirSync(join(f.repo.dir, 'Config'), {recursive: true});
@@ -104,8 +104,8 @@ test('conflicto binario (.uasset): nada se resuelve; Decisión con los shas de c
     assert.match(decision.reason, /^Conflicto binario al integrar en master: BP_Puerta\.uasset$/);
     const version = decision.evidence.find(e => e.kind === 'version')!.ref;
     const ours = f.repo.git(f.repo.dir, 'rev-parse', 'master:Content/BP_Puerta.uasset').slice(0, 7);
-    const theirs = f.repo.git(f.repo.dir, 'rev-parse', 'kratos/mapa:Content/BP_Puerta.uasset').slice(0, 7);
-    assert.ok(version.includes(`master ${ours}`) && version.includes(`kratos/mapa ${theirs}`), version);
+    const theirs = f.repo.git(f.repo.dir, 'rev-parse', 'nomos/mapa:Content/BP_Puerta.uasset').slice(0, 7);
+    assert.ok(version.includes(`master ${ours}`) && version.includes(`nomos/mapa ${theirs}`), version);
     assert.match(version, /antes: Tarea otra \(integro: Gameplay Builder\)/);
     resolveDecision(f.db, decision.id, 'discard', 'usuario');
     assert.equal((await integrate(f, mapa.task.id)).discarded, true);

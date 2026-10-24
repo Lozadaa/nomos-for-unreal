@@ -9,8 +9,8 @@ import type { Launch } from '../../service/src/checks/run.ts';
 const fakeBuild = join(import.meta.dirname, '..', 'fakes', 'unreal-build.mjs');
 
 test('BuildCookRun cocina el mapa del recorrido: sin él, el juego empaquetado no puede entrar (visto en KratosFabTest)', async () => {
-  process.env.KRATOS_FAKE = 'ok';
-  const out = join(import.meta.dirname, '..', '..', '.kratos-test-build-' + process.pid);
+  process.env.NOMOS_FAKE = 'ok';
+  const out = join(import.meta.dirname, '..', '..', '.nomos-test-build-' + process.pid);
   try {
     const result = await buildCookRun('C:/Juego/Juego.uproject', out, {bin: process.execPath, baseArgs: [fakeBuild]}, ['/Game/Mapas/Prueba']);
     assert.match(result.log, / -map=\/Game\/Mapas\/Prueba /);
@@ -24,7 +24,7 @@ test('la traza de Insights solo se pide con walkthrough.trace: true (30 s pesaro
   const record = async (_exe: string, args: string[]): Promise<Launch> => { calls.push(args); return {exitCode: null, seconds: 30, killed: true}; };
   const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: record}});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     await f.run();
     writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({walkthrough: {trace: true}}));
     await f.run();
@@ -46,7 +46,7 @@ test('sin captura, el resumen cita los errores del log del juego (mapa que no se
   };
   const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: noMap}});
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({walkthrough: {map: '/Game/Mapas/Prueba'}}));
     await f.run();
     const failed = f.events('test.failed').find(e => e.check === 'build');

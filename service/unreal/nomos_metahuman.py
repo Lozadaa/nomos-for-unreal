@@ -1,4 +1,4 @@
-"""Kratos · crea y ensambla un MetaHuman por script DENTRO del editor sin GUI (UnrealEditor-Cmd -ExecutePythonScript).
+"""Nomos · crea y ensambla un MetaHuman por script DENTRO del editor sin GUI (UnrealEditor-Cmd -ExecutePythonScript).
 
 Sigue los ejemplos del plugin (MetaHumanCharacter/Content/Python/examples/example_create_asset.py y example_assembly.py):
 asset MetaHumanCharacter nuevo → editar con MetaHumanCharacterEditorSubsystem → auto-rig → build_meta_human (Optimized).
@@ -6,12 +6,12 @@ Comprobado en 5.8.3 (proyecto de sonda): sin rig, build_meta_human no ensambla (
 una petición a la nube; tampoco está el contenido opcional de MetaHuman Creator (texturas): el script lo dice y no inventa nada.
 Cada paso queda en el informe; si uno exige el plugin, la nube o la GUI, se dice en `needs` y el servicio abre Decisión.
 
-Variables: KRATOS_REPORT, KRATOS_NAME, KRATOS_DEST (/Game/MetaHumans por defecto).
+Variables: NOMOS_REPORT, NOMOS_NAME, NOMOS_DEST (/Game/MetaHumans por defecto).
 """
 import json, os, re, time, unreal
 
-NAME = os.environ["KRATOS_NAME"]
-DEST = os.environ.get("KRATOS_DEST") or "/Game/MetaHumans"
+NAME = os.environ["NOMOS_NAME"]
+DEST = os.environ.get("NOMOS_DEST") or "/Game/MetaHumans"
 SOURCE = "/Game/Kratos/MetaHumans"
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "name": NAME, "steps": [], "blueprint": None,
           "needs": None, "errors": [], "ok": False}
@@ -96,6 +96,6 @@ if state.get("character") and state.get("mh"):
     except Exception:  # noqa: BLE001
         pass
 report["ok"] = bool(report["blueprint"]) and not report["errors"]
-with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:
+with open(os.environ["NOMOS_REPORT"], "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2, ensure_ascii=False)
-unreal.log(f"KRATOS_METAHUMAN ok={report['ok']} needs={report['needs']} blueprint={report['blueprint']}")
+unreal.log(f"NOMOS_METAHUMAN ok={report['ok']} needs={report['needs']} blueprint={report['blueprint']}")

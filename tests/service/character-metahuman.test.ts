@@ -11,17 +11,17 @@ import { assetFixture } from './asset-fixture.ts';
 function setup() {
   const f = assetFixture();
   const task = createTask(f.db, {title: 'Héroe MetaHuman propio', area: 'animacion'});
-  const run = (id = 'mh-1') => f.run('character.metahuman', {taskId: task.id, name: 'Kratos_Heroe'}, id);
+  const run = (id = 'mh-1') => f.run('character.metahuman', {taskId: task.id, name: 'Nomos_Heroe'}, id);
   return {...f, exec: f.run, task, run, runs: () => filtered<Run>(f.db, 'runs', {taskId: task.id})};
 }
 
 test('MetaHuman por script: creado y ensamblado, Blueprint en /Game/MetaHumans e informe con nombre', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok';
     const result = await f.run();
     assert.equal(result.ok, true);
-    assert.equal(result.blueprint, '/Game/MetaHumans/Kratos_Heroe/BP_Kratos_Heroe');
+    assert.equal(result.blueprint, '/Game/MetaHumans/Nomos_Heroe/BP_Nomos_Heroe');
     assert.deepEqual(listArtifacts(f.db, {taskId: f.task.id}).map(a => (a.provenance as any).label), ['MetaHuman · informe']);
     assert.equal(f.runs()[0].state, 'done');
     assert.deepEqual(listLeases(f.db), []);
@@ -31,7 +31,7 @@ test('MetaHuman por script: creado y ensamblado, Blueprint en /Game/MetaHumans e
 test('Review Focus 5: si pide la nube o la GUI, la run queda esperando externo con Decisión y guion, sin darse por hecha', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'cloud';
+    process.env.NOMOS_FAKE = 'cloud';
     const result = await f.run();
     assert.equal(result.deferred, true);
     const [decision] = listDecisions(f.db, 'open');
@@ -57,7 +57,7 @@ test('Review Focus 5: si pide la nube o la GUI, la run queda esperando externo c
 test('sin el plugin activo en el proyecto: la misma Decisión, con activar el plugin en el guion', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'noplugin';
+    process.env.NOMOS_FAKE = 'noplugin';
     assert.equal((await f.run()).deferred, true);
     const [decision] = listDecisions(f.db, 'open');
     assert.match(decision.reason, /plugin MetaHumanCharacter/);

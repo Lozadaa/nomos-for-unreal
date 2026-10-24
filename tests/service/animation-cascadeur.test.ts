@@ -25,7 +25,7 @@ function setup() {
 test('camino automático: Unreal exporta, Cascadeur limpia sin ventana (FBX sin mallas, Z arriba, binario) y Unreal importa el clip', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_CSC_FAKE = 'ok';
     const result = await f.run();
     assert.equal(result.ok, true, JSON.stringify(result));
     assert.equal(result.clip, '/Game/Kratos/Cascadeur/MM_Attack_01_cascadeur');
@@ -41,12 +41,12 @@ test('camino automático: Unreal exporta, Cascadeur limpia sin ventana (FBX sin 
 test('Review Focus 7: sin el flag, la run espera con Decisión y guion; el FBX dejado a mano en out/ reanuda solo', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'noflag';
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_CSC_FAKE = 'noflag';
     const first = await f.run();
     assert.equal(first.deferred, true);
     const [decision] = listDecisions(f.db, 'open');
     assert.match(decision.reason, /Cascadeur no terminó solo/);
-    assert.match(decision.options[0].description, /Commands › Kratos › cleanup/);
+    assert.match(decision.options[0].description, /Commands › Nomos › cleanup/);
     const [run] = f.runs();
     assert.equal(run.state, 'running');
     assert.match(getTask(f.db, f.task.id)!.waitReason!, /^Esperando externo: Cascadeur/);
@@ -62,7 +62,7 @@ test('Review Focus 7: sin el flag, la run espera con Decisión y guion; el FBX d
 test('sin licencia de exportación FBX: Capacidades lo dice y la Decisión ofrece exportar a mano o usar solo retarget', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'license';
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_CSC_FAKE = 'license';
     assert.equal((await f.run()).deferred, true);
     const [decision] = listDecisions(f.db, 'open');
     assert.deepEqual(decision.options.map(o => o.label), ['Exportar a mano', 'Usar solo retarget', 'Activar licencia']);
@@ -83,7 +83,7 @@ test('política: Cascadeur solo si falta el clip, el QA rechazó el retarget o l
     await assert.rejects(f.run({why: undefined}), /cascadeur_not_justified/);
     await assert.rejects(f.run({why: 'por_defecto'}), /cascadeur_not_justified/);
     await assert.rejects(f.run({action: 'rig'}), /invalid_cascadeur_payload/);
-    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_CSC_FAKE = 'ok';
     // crear un clip no se hace por script: author va siempre por el camino asistido, aunque haya licencia
     const authored = await f.run({action: 'author', why: 'clip_missing', notes: 'patada giratoria'}, 'csc-2');
     assert.equal(authored.deferred, true);
@@ -94,7 +94,7 @@ test('política: Cascadeur solo si falta el clip, el QA rechazó el retarget o l
 test('el clip de Cascadeur pasa por character.setup (QA) antes de nada; un clip nuevo pide su Decisión solo con ese QA en verde', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'ok';
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_CSC_FAKE = 'ok';
     const result = await f.run();
     const setups = (f.db.prepare("select payload from commands where type='character.setup'").all() as {payload: string}[]).map(r => JSON.parse(r.payload));
     assert.deepEqual(setups, [{taskId: f.task.id, mesh: '/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple', animations: [result.clip]}]);
@@ -105,7 +105,7 @@ test('el clip de Cascadeur pasa por character.setup (QA) antes de nada; un clip 
 test('Review Focus 7 con el editor ocupado al reanudar: no re-exporta ni pisa el FBX hecho a mano', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'noflag';
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_CSC_FAKE = 'noflag';
     await f.run();
     const [run] = f.runs(), out = join(f.dataDir, 'cascadeur', 'out', `${run.id}.fbx`);
     mkdirSync(join(out, '..'), {recursive: true}); writeFileSync(out, 'fbx a mano');
@@ -113,7 +113,7 @@ test('Review Focus 7 con el editor ocupado al reanudar: no re-exporta ni pisa el
     acquire(f.db, holder.id, other.id, ['editor/Juego']);
     assert.equal((await f.run()).deferred, true);
     release(f.db, holder.id);
-    process.env.KRATOS_CSC_FAKE = 'ok';
+    process.env.NOMOS_CSC_FAKE = 'ok';
     assert.equal((await f.run()).ok, true);
     assert.equal(readFileSync(out, 'utf8'), 'fbx a mano');
   } finally { f.close(); }
@@ -122,10 +122,10 @@ test('Review Focus 7 con el editor ocupado al reanudar: no re-exporta ni pisa el
 test('«Activar licencia»: con la licencia ya activa, el trabajo se repite en una run nueva y sigue solo', async () => {
   const f = setup();
   try {
-    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'license';
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_CSC_FAKE = 'license';
     await f.run();
     resolveDecision(f.db, listDecisions(f.db, 'open')[0].id, 'license', 'usuario');
-    process.env.KRATOS_CSC_FAKE = 'ok';
+    process.env.NOMOS_CSC_FAKE = 'ok';
     const again = await f.run();
     assert.equal(again.ok, true, JSON.stringify(again));
     assert.deepEqual(f.runs().map(r => r.state), ['cancelled', 'done']);

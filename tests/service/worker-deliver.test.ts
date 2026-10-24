@@ -14,8 +14,8 @@ const blocked = () => new OrcaError('cli_error',
   'agent_prompt_blocked Terminal prompt request ID: d332469e-28f4-4b47-8810-33e0c9485d5d. Re-issue the exact command with --retry-request d332469e-28f4-4b47-8810-33e0c9485d5d --wait-submit <seconds>');
 
 function setup(t: any, failures: number) {
-  const dir = mkdtempSync(join(tmpdir(), 'kratos-deliver-'));
-  const db = openDb(join(dir, 'kratos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-deliver-'));
+  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
   const task = createTask(db, {title: 'HUD', area: 'ui'});
   const run = startRun(db, {taskId: task.id, role: 'ui', provider: 'claude'});
   updateRun(db, run.id, {cursor: '3', screenFingerprint: 'abc'}, {sessionRef: 'term_viejo'});
@@ -43,9 +43,9 @@ test('Orca bloqueado una vez: reintenta la misma petición con --retry-request y
 
 test('bloqueado dos veces: terminal nuevo con --resume y la orden como argumento; la run sigue con el handle nuevo', async t => {
   const f = setup(t, 2);
-  const line = 'Lee el archivo .kratos-inbox/c1.md y ejecuta lo que dice.';
+  const line = 'Lee el archivo .nomos-inbox/c1.md y ejecuta lo que dice.';
   assert.equal(await deliver(f.db, f.orca, f.run, f.tree, line, f.home), 'term_nuevo');
-  assert.deepEqual(f.calls.slice(2), [['close', 'term_viejo'], ['create', f.tree, `kratos-${f.run.taskId.slice(0, 8)}`,
+  assert.deepEqual(f.calls.slice(2), [['close', 'term_viejo'], ['create', f.tree, `nomos-${f.run.taskId.slice(0, 8)}`,
     `claude --model sonnet --dangerously-skip-permissions --resume f205f691-7dfc-4b40-9ccb-81af5623ab01 "${line}"`]]);
   const run = requireRun(f.db, f.run.id);
   assert.equal(run.sessionRef, 'term_nuevo');

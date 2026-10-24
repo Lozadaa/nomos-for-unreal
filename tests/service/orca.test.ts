@@ -15,17 +15,17 @@ test('repoAdd registra una ruta con espacios una vez y reutiliza su id', async t
 
 test('worktreeCreate obtiene id completo y shell sin lanzar agente ni prompt', async t => {
   const { orca, calls } = fixture(t);
-  assert.deepEqual(await orca.worktreeCreate('repo-1', 'kratos-task', 'codex'), {
+  assert.deepEqual(await orca.worktreeCreate('repo-1', 'nomos-task', 'codex'), {
     worktreeId: 'repo-1::C:/Juego trabajador', path: 'C:/Juego trabajador',
-    branch: 'kratos-task', terminalHandle: 'term_fake' });
+    branch: 'nomos-task', terminalHandle: 'term_fake' });
   assert.deepEqual(calls.map(e => e.command.slice(0, 2)), [['worktree', 'create']]);
 });
 
 test('worktreeCreate sin startupTerminal descubre shell exacto sin repetir create', async t => {
   const { orca, calls } = fixture(t, { FAKE_ORCA_NO_STARTUP: '1' });
-  assert.deepEqual(await orca.worktreeCreate('repo-1', 'kratos-task', 'codex'), {
+  assert.deepEqual(await orca.worktreeCreate('repo-1', 'nomos-task', 'codex'), {
     worktreeId: 'repo-1::C:/Juego trabajador', path: 'C:/Juego trabajador',
-    branch: 'kratos-task', terminalHandle: 'term_fake' });
+    branch: 'nomos-task', terminalHandle: 'term_fake' });
   assert.deepEqual(calls.map(e => e.command.slice(0, 2)), [['worktree', 'create'], ['terminal', 'list']]);
   assert.ok(calls.every(e => e.exitCode === 0 && e.command.includes('--json')));
 });
@@ -42,7 +42,7 @@ for (const [label, terminals] of [
 ] as const) test(`worktreeCreate rechaza terminal ${label} sin repetir create`, async t => {
   const { orca, calls, file } = fixture(t, { FAKE_ORCA_NO_STARTUP: '1' });
   writeFileSync(file, JSON.stringify({ repos: [], tail: [], terminals }));
-  await assert.rejects(orca.worktreeCreate('repo-1', 'kratos-task', 'codex'), code('cli_error'));
+  await assert.rejects(orca.worktreeCreate('repo-1', 'nomos-task', 'codex'), code('cli_error'));
   assert.deepEqual(calls.map(e => e.command.slice(0, 2)), [['worktree', 'create'], ['terminal', 'list']]);
 });
 
@@ -149,7 +149,7 @@ for (const [env, expected] of [
 });
 
 test('bin inexistente informa not_running y una sola finalización', async t => {
-  const { orca, calls } = fixture(t, {}, { bin: join(tmpdir(), 'orca-inexistente-kratos.exe'), args: [] });
+  const { orca, calls } = fixture(t, {}, { bin: join(tmpdir(), 'orca-inexistente-nomos.exe'), args: [] });
   await assert.rejects(orca.repoAdd('C:/Juego'), code('not_running'));
   assert.equal(calls.length, 1);
   assert.equal(calls[0].exitCode, null);

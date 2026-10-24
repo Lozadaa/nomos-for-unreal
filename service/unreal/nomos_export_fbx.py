@@ -1,10 +1,10 @@
-"""Kratos · exporta un clip (AnimSequence) a FBX con su esqueleto, DENTRO del editor sin GUI, para llevarlo a Cascadeur.
+"""Nomos · exporta un clip (AnimSequence) a FBX con su esqueleto, DENTRO del editor sin GUI, para llevarlo a Cascadeur.
 
-Variables: KRATOS_REPORT, KRATOS_CLIP (/Game/...), KRATOS_FBX (ruta de salida).
+Variables: NOMOS_REPORT, NOMOS_CLIP (/Game/...), NOMOS_FBX (ruta de salida).
 """
 import json, os, unreal
 
-CLIP, OUT = os.environ["KRATOS_CLIP"], os.environ["KRATOS_FBX"]
+CLIP, OUT = os.environ["NOMOS_CLIP"], os.environ["NOMOS_FBX"]
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "clip": CLIP, "fbx": OUT, "skeleton": None, "errors": [], "ok": False}
 try:
     anim = unreal.load_asset(CLIP)
@@ -28,6 +28,6 @@ try:
     report["ok"] = True
 except Exception as e:  # noqa: BLE001
     report["errors"].append(str(e))
-with open(os.environ["KRATOS_REPORT"], "w", encoding="utf-8") as f:
+with open(os.environ["NOMOS_REPORT"], "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2, ensure_ascii=False)
-unreal.log(f"KRATOS_EXPORT_FBX ok={report['ok']} fbx={OUT}")
+unreal.log(f"NOMOS_EXPORT_FBX ok={report['ok']} fbx={OUT}")

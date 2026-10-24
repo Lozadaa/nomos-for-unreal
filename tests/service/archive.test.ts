@@ -11,7 +11,7 @@ import { fixture, requestJson } from '../helpers.ts';
 
 test('archivo: informes copiados, manifest verificado y servido sin salir de la carpeta', async t => {
   const {server, db} = await fixture(t);
-  const dataDir = mkdtempSync(join(tmpdir(), 'kratos-archive-'));
+  const dataDir = mkdtempSync(join(tmpdir(), 'nomos-archive-'));
   t.after(() => rmSync(dataDir, {recursive: true, force: true}));
   mkdirSync(join(dataDir, 'artifacts'));
   writeFileSync(join(dataDir, 'artifacts', 'review-1.json'), '{"approved":true}\n');
