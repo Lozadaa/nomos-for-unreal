@@ -8,6 +8,7 @@ import * as launcherVault from './sources/launcherVault.ts';
 import * as fabCache from './sources/fabCache.ts';
 import * as projects from './sources/projects.ts';
 import * as megascans from './sources/megascans.ts';
+import * as engine from './sources/engine.ts';
 
 const rank: Record<CatalogEntry['state'], number> = {owned: 0, downloaded: 1, cached: 2, imported: 3};
 const lists = ['projects', 'formats', 'engineVersions', 'tags'] as const;
@@ -28,7 +29,7 @@ export function scanAll(config: AssetConfig): {inputs: CatalogEntryInput[]; bySo
   const vault = launcherVault.scan(config);
   const byPack = new Map(vault.map(entry => [entry.name, entry]));
   const found = {listings: listings.scan(config), launcherVault: vault, fabCache: fabCache.scan(config),
-    projects: projects.scan(config, byPack), megascans: megascans.scan(config)};
+    projects: projects.scan(config, byPack), megascans: megascans.scan(config), engine: engine.scan(config)};
   const groups = new Map<string, CatalogEntryInput>();
   for (const input of Object.values(found).flat()) {
     const key = input.fabUid ? 'fab:' + input.fabUid : 'path:' + (input.localPath ?? input.name).toLowerCase();

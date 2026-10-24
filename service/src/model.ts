@@ -71,7 +71,7 @@ export type TestRun = Entity & {
 export type CatalogEntry = Entity & {
   name: string; category: string; description: string;
   source: 'fab' | 'megascans' | 'polyhaven' | 'ambientcg' | 'kenney' | 'quaternius'
-    | 'sketchfab' | 'freesound' | 'meshy' | 'blender';
+    | 'sketchfab' | 'freesound' | 'meshy' | 'blender' | 'engine';
   sourceUrl: string | null; fabUid: string | null; entitlementUid: string | null;
   state: 'owned' | 'downloaded' | 'cached' | 'imported'; projects: string[];
   formats: string[]; engineVersions: string[]; license: string | null; aiForbidden: 0 | 1;

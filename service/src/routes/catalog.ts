@@ -47,7 +47,7 @@ export async function catalog({db, req, res, url, dataDir}: Context): Promise<bo
   if (url.pathname !== '/catalog') return false;
   const source = choice(url.searchParams.get('source'), [
     'fab', 'megascans', 'polyhaven', 'ambientcg', 'kenney', 'quaternius',
-    'sketchfab', 'freesound', 'meshy', 'blender'
+    'sketchfab', 'freesound', 'meshy', 'blender', 'engine'
   ]);
   const state = choice(url.searchParams.get('state'), ['owned', 'downloaded', 'cached', 'imported']);
   const q = url.searchParams.get('q')?.trim();

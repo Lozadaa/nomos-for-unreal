@@ -51,7 +51,7 @@ export function applySchema(db: DatabaseSync): void {
       id text primary key, created_at text not null, updated_at text not null,
       name text not null, category text not null, description text not null,
       source text not null check(source in
-        ('fab','megascans','polyhaven','ambientcg','kenney','quaternius','sketchfab','freesound','meshy','blender')),
+        ('fab','megascans','polyhaven','ambientcg','kenney','quaternius','sketchfab','freesound','meshy','blender','engine')),
       source_url text, fab_uid text, entitlement_uid text,
       state text not null check(state in ('owned','downloaded','cached','imported')),
       projects text not null, formats text not null, engine_versions text not null,

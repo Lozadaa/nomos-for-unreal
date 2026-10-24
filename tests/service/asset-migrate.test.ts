@@ -114,6 +114,38 @@ test('caché del plugin: el zip (store/deflate, nombre UTF-8) se descomprime en 
   } finally { f.close(); }
 });
 
+test('plantilla del motor: Maniquíes UE5 conservan /Game/Characters/Mannequins y las de combate /Game/Variant_Combat/Anims', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const manny = await f.run('asset.migrate', {entryId: f.entry('Maniquíes UE5 (Manny y Quinn)').id});
+    assert.equal(manny.ok, true);
+    assert.equal(manny.root, '/Game/Characters');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Manny_Simple.uasset')));
+    const combat = await f.run('asset.migrate', {entryId: f.entry('Animaciones de combate (plantilla Tercera persona)').id});
+    assert.equal(combat.root, '/Game/Variant_Combat/Anims');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'Variant_Combat', 'Anims', 'AM_ComboAttack.uasset')));
+    assert.equal(listCatalog(f.db).find(e => e.id === manny.entryId)!.state, 'imported');
+  } finally { f.close(); }
+});
+
+test('plantilla del motor con destino existente: no sobrescribe, lo dice y verifica lo que hay, sin Decisión', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const mine = join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Manny_Simple.uasset');
+    mkdirSync(join(mine, '..'), {recursive: true}); writeFileSync(mine, 'mío');
+    const result = await f.run('asset.migrate', {entryId: f.entry('Maniquíes UE5 (Manny y Quinn)').id});
+    assert.equal(result.ok, true);
+    assert.equal(result.existing, true);
+    assert.equal(readFileSync(mine, 'utf8'), 'mío');
+    assert.ok(!existsSync(join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Quinn_Simple.uasset')), 'no se mezcla con la carpeta existente');
+    assert.deepEqual(listDecisions(f.db, 'open'), []);
+    const run = f.db.prepare('select summary from runs order by rowid desc limit 1').get() as {summary: string};
+    assert.match(run.summary, /ya existía en Juego; no se sobrescribe/);
+  } finally { f.close(); }
+});
+
 /** ZIP mínimo con deflate y nombres UTF-8 (bit 11), como los que escribe el plugin. */
 function makeZip(files: Record<string, string>): Buffer {
   const locals: Buffer[] = [], centrals: Buffer[] = [];

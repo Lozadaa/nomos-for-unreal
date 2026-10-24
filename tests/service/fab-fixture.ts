@@ -36,8 +36,25 @@ export function fabFixture() {
   touch(join(megascansDir, 'uassetsData.json'), JSON.stringify({assets: [
     {id: '4dlykISk', name: 'Hudson', assetType: 'metahuman-preset'}, {id: 'fmsmkISi', name: 'Emory', assetType: 'metahuman-preset'}]}));
   touch(join(megascansDir, '4dlykISk', '4dlykISk.png'), 'png');
+  const unrealPath = engineFixture(join(root, 'UE_5.8'));
   const config = {projectsDir, vaultDir, megascansDir, fabCacheDirs: [join(root, 'FabLibrary')], listingsDb,
-    launcherLogPath: join(root, 'EpicGamesLauncher.log'), quarantineProject: join(projectsDir, 'KratosFabTest')};
+    launcherLogPath: join(root, 'EpicGamesLauncher.log'), quarantineProject: join(projectsDir, 'KratosFabTest'), unrealPath};
   touch(join(dataDir, 'config.json'), JSON.stringify(config));
-  return {root, dataDir, projectsDir, vaultDir, listingsDb, config, close: () => rmSync(root, {recursive: true, force: true})};
+  return {root, dataDir, projectsDir, vaultDir, listingsDb, config, engineRoot: join(root, 'UE_5.8'), close: () => rmSync(root, {recursive: true, force: true})};
+}
+
+/** Plantillas del motor con los nombres reales de UE 5.8 (archivos vacíos); devuelve la ruta de UnrealEditor-Cmd.exe (no existe). */
+export function engineFixture(engine: string): string {
+  const templates = join(engine, 'Templates');
+  const chars = join(templates, 'TemplateResources', 'High', 'Characters', 'Content', 'Mannequins');
+  for (const file of ['Meshes/SKM_Manny_Simple', 'Meshes/SKM_Quinn_Simple', 'Meshes/SK_Mannequin', 'Anims/Unarmed/ABP_Unarmed',
+    'Anims/Unarmed/BS_Idle_Walk_Run', 'Anims/Unarmed/MM_Idle', 'Anims/Unarmed/Attack/AM_Punch', 'Rigs/CR_Mannequin_Body'])
+    touch(join(chars, ...file.split('/')) + '.uasset');
+  const combat = join(templates, 'TP_ThirdPerson', 'Content', 'Variant_Combat', 'Anims');
+  for (const file of ['ABP_Manny_Combat', 'AM_ChargedAttack', 'AM_ComboAttack']) touch(join(combat, file + '.uasset'));
+  const ue4 = join(templates, 'TemplateResources', 'High', 'Mannequin', 'Content');
+  for (const file of ['Character/Mesh/SK_Mannequin', 'Character/Mesh/UE4_Mannequin_Skeleton', 'Animations/ThirdPersonRun'])
+    touch(join(ue4, ...file.split('/')) + '.uasset');
+  touch(join(engine, 'Engine', 'Build', 'Build.version'), '{"MajorVersion":5,"MinorVersion":8,"PatchVersion":3}');
+  return join(engine, 'Engine', 'Binaries', 'Win64', 'UnrealEditor-Cmd.exe');
 }
