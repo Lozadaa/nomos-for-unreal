@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Handler, WorkerContext } from '../runner.ts';
 import { requireTask, moveTask,setTaskWait } from '../repo/tasks.ts';
-import { filtered, insert, transaction } from '../repo/rows.ts';
+import { filtered, insert, read, transaction } from '../repo/rows.ts';
 import type { Run, Worktree, Command } from '../model.ts';
 import type { ReviewSnapshot } from '../review.ts';
 import { startRun } from '../repo/runs.ts';
@@ -90,7 +90,10 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const created=await orca.worktreeCreate(repoId,'nomos-'+short+suffix,payload.provider);
   transaction(db,()=>{
     run=updateRun(db,run.id,{worktreeId:created.worktreeId},{sessionRef:created.terminalHandle});
-    insert<Worktree>(db,'worktrees',{id:created.worktreeId,taskId:task.id,path:created.path,branch:created.branch,
+    // hito 13: Orca da a un worktree nuevo en la misma ruta el mismo id que al retirado; su fila cerrada se reutiliza
+    if(read<Worktree>(db,'worktrees',created.worktreeId)) db.prepare(`update worktrees set task_id=?,path=?,branch=?,base_commit='',
+      state='active',closed_reason=null,updated_at=? where id=?`).run(task.id,created.path,created.branch,new Date().toISOString(),created.worktreeId);
+    else insert<Worktree>(db,'worktrees',{id:created.worktreeId,taskId:task.id,path:created.path,branch:created.branch,
       baseCommit:'',state:'active',closedReason:null});
     if(!review) db.prepare('update tasks set worktree_id=?,updated_at=? where id=?').run(created.worktreeId,new Date().toISOString(),task.id);
   });

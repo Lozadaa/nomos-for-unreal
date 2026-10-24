@@ -113,6 +113,10 @@ async function reconcile(ctx: WorkerContext, command: Command, taskId: string, d
     for (const t of trees) db.prepare("update worktrees set state='closed',closed_reason=?,updated_at=? where id=?")
       .run(tree === 'discard' ? `Descartado por ${by}` : 'Reconciliada', now, t.id);
     db.prepare('update tasks set worktree_id=null,updated_at=? where id=?').run(now, taskId);
+    // el bloqueo que dejó el fallo de una run de la tarea (arranque o sondeo) ya está atendido; el de una Decisión, no
+    const failures = filtered<Run>(db, 'runs', {taskId}).filter(r => r.state === 'failed').map(r => r.summary).filter((s): s is string => !!s);
+    db.prepare(`update tasks set blocked_reason=null where id=? and decision_id is null and blocked_reason in (${failures.map(() => '?').join(',') || "''"})`)
+      .run(taskId, ...failures);
     if (requireTask(db, taskId).state === 'implementando') moveTask(db, taskId, 'preparada', 'Worker reconciliado');
     closeReconcileDecisions(db, taskId);
     setTaskWait(db, taskId, null);

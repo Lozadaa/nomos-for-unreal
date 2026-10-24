@@ -7,6 +7,7 @@ import { fixture } from './worker-fixture.ts';
 import { requireTask, moveTask } from '../../service/src/repo/tasks.ts';
 import { requireRun } from '../../service/src/repo/worker.ts';
 import { finishRun } from '../../service/src/repo/runs.ts';
+import { workerFailure } from '../../service/src/handlers/worker-failure.ts';
 import { filtered } from '../../service/src/repo/rows.ts';
 import { enqueue, defer, complete } from '../../service/src/commands.ts';
 import { listDecisions, resolveDecision } from '../../service/src/repo/decisions.ts';
@@ -56,6 +57,19 @@ test('cancelar con el árbol limpio deja la run reconciliada y la tarea arranca 
   assert.equal(runs.length,2);assert.equal(runs[1].state,'running');
   assert.equal(requireTask(f.db,f.task.id).state,'implementando');assert.deepEqual(listDecisions(f.db,'open'),[]);
 });
+test('Orca reutiliza la ruta (y el id) del worktree retirado: el arranque siguiente no choca con la fila cerrada',async t=>{
+  // aceptación del hito 13 en KratosFabTest: «UNIQUE constraint failed: worktrees.id» al rearrancar tras cancelar
+  const f=fixture(t);writeFileSync(f.file,JSON.stringify({...f.state(),realRemove:true}));
+  await f.start();const first=f.tree();
+  await f.invoke('worker.stop',{runId:f.run().id});
+  writeFileSync(f.file,JSON.stringify({...f.state(),terminalHandle:'term_2'}));
+  await f.invoke('worker.start',{taskId:f.task.id,provider:'codex',role:'programmer',skills:[],attempt:2});
+  const second=filtered<Run>(f.db,'runs',{taskId:f.task.id})[1];
+  assert.equal(second.state,'running');assert.equal(second.metadata.worktreeId,first.id,'misma ruta, mismo id de Orca');
+  assert.equal(requireTask(f.db,f.task.id).worktreeId,first.id);
+  const branch=execFileSync('git',['-C',first.path,'branch','--show-current'],{encoding:'utf8'}).trim();
+  assert.match(branch,/^nomos\/[0-9a-f]{8}-[0-9a-f]{8}$/,'la rama del worker anterior sigue y la nueva no la pisa');
+});
 test('cancelar con un worker que no cierra reintenta cada 30 s y no toca el árbol',async t=>{
   const f=fixture(t);await f.start();const run=f.run();
   f.ctx.orca={...f.ctx.orca,terminalAlive:async()=>true};
@@ -89,6 +103,13 @@ test('task reconcile desatasca una tarea con run incierta y worktree, con Git re
   const result=await command(f,'task.reconcile',{taskId:f.task.id})();
   assert.equal(result.reconciled,true);reconciled(f,run,tree.id);
   assert.deepEqual(plan(f.db,config).map(p=>p.action),['start']);
+});
+test('task reconcile levanta el bloqueo que dejó el fallo de la run reconciliada (no el de una Decisión)',async t=>{
+  const f=fixture(t);await f.start();const run=f.run(),tree=f.tree();
+  workerFailure(f.db,{runId:run.id},'orca: cli_error: Preparación del worker: algo falló');moveTask(f.db,f.task.id,'preparada');
+  assert.match(requireTask(f.db,f.task.id).blockedReason!,/^orca: cli_error/);
+  assert.equal((await command(f,'task.reconcile',{taskId:f.task.id})()).reconciled,true);
+  reconciled(f,run,tree.id);assert.deepEqual(plan(f.db,config).map(p=>p.action),['start']);
 });
 test('task reconcile con cambios sin registrar abre la Decisión de tres opciones en vez de fallar',async t=>{
   const f=fixture(t);await stuck(f);writeFileSync(join(f.tree().path,'nuevo.txt'),'x\n');
