@@ -130,3 +130,25 @@ Petición literal: «me interesa que las animaciones funcionen en metahuman y to
 6. Clip del maniquí sobre un MetaHuman (preset Hudson): el retarget con `RTG_MH_IKRig` reproduce en PIE sin deformación; si el plugin no trae el retargeter en esta versión, Decisión con guion, nunca una animación rota. (Tarea 2/3.)
 7. Cascadeur sin `--run-script` o sin licencia de exportación: la run queda `esperando_externo` con guion claro y el FBX dejado a mano en `.kratos/cascadeur/out/` reanuda el flujo solo. (Tarea 3b.)
 8. Una animación nueva de Cascadeur nunca llega a `integrando` sin QA visual aprobado y, si es un clip nuevo, sin Decisión del usuario. (Tarea 3b.)
+
+---
+
+## CORRECCIÓN 2 del usuario (vídeo de las animaciones) — 2026-10-24
+
+Petición literal: «graba un video de lo que hiciste de la animaciones». Las capturas fijas no bastan para juzgar una animación: **toda comprobación `animation` deja un vídeo corto del clip reproduciéndose en PIE como artefacto**, el visor lo reproduce, y la aceptación del hito entrega vídeos al usuario.
+
+**Hechos comprobados en este equipo (2026-10-24):** `ffmpeg` 8.1.2 instalado por winget (`C:\Users\richa\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.2-full_build\bin\ffmpeg.exe`, también en el PATH como `ffmpeg`); Unreal 5.8 trae el volcado de fotogramas a paso fijo (`-benchmark -fps=30 -dumpmovie` en el juego lanzado con `-game`) y los protocolos `ImageSequenceProtocol`/`VideoCaptureProtocol` de MovieSceneCapture; Playwright graba vídeo `.webm` de forma nativa (`recordVideo`). `kratos_anim_capture.py` ya congela el clip en tres fracciones con `Shot`.
+
+### Cambios
+
+**Tarea 2 (ampliada): vídeo en la comprobación `animation`.**
+- `kratos_anim_capture.py` graba además la **secuencia completa** del clip a paso fijo: lanzar el juego con `-game -windowed -ResX=1280 -ResY=720 -benchmark -fps=30 -dumpmovie` (o, si el volcado no incluye el personaje por el orden de carga, `Shot` por tick con `t.FixedDeltaTime 0.0333` durante la duración del clip) hasta `Saved/Screenshots/`; duración = el clip entero, con tope de 8 s para clips más largos (y 3 s mínimo para poses/idles). Las tres capturas fijas y la comprobación de deformación se mantienen.
+- `adapters/ffmpeg.ts` (nuevo, ≤ 60 líneas): detecta `ffmpegPath` (`config.json`, por defecto `ffmpeg` del PATH y la ruta de winget), versión, y codifica la secuencia a **MP4 H.264 `yuv420p` a 30 fps** (`-pix_fmt yuv420p -movflags +faststart`); Capacidades: fila «Vídeo (ffmpeg)» `listo | ausente`. Sin ffmpeg, el artefacto es la secuencia de fotogramas comprimida en un zip («Animación · fotogramas») y Capacidades lo dice; nunca se inventa un vídeo.
+- Artefacto `kind: 'video'` con `provenance.label` «Animación · vídeo 1280×720 · <clip>» (nombre derivado, nunca de archivo); `artifactName.ts` lo clasifica (nuevo tipo «Vídeos» en el filtro de Entregas, o dentro de «Capturas» si el registro de glifos no admite uno más: decidir con la prueba de unicidad); el `TestRun animation` lo adjunta junto a las capturas y los informes.
+- **`AssetViewer`** reproduce `mp4|webm` con `<video controls autoplay muted loop playsinline>` a tamaño grande (mismo cuadro que las imágenes); la miniatura de la tarjeta en Entregas es el fotograma del 50 % (ya existe como captura) con un glifo de reproducción superpuesto que pase la prueba de unicidad.
+- El QA visual recibe el vídeo y los tres fotogramas; el brief de QA (`references/brief-qa-visual.md`) lo dice.
+
+**Tarea 4 (aceptación, ampliada):** `docs/capturas-5b/` incluye `heroe-metahuman-ataque-1280x720.mp4` (MetaHuman con `AM_ComboAttack`), `manny-ataque-1280x720.mp4`, `retarget-ue4-a-ue5-1280x720.mp4` y, si Cascadeur llegó a usarse, `cascadeur-antes-despues-1280x720.mp4` (los dos clips en paralelo con ffmpeg `hstack`); además un **vídeo demo del panel** grabado con Playwright (`recordVideo`, 1920×1080): petición → Decisión con candidatos → visor sobre un candidato → Entregas con el vídeo de la animación abierto en el visor, convertido a `demo-5b-panel.mp4`. Todos ≤ 20 MB (ajustar `crf`); rutas en el informe final y en `docs/aceptacion-hito5b.md`. Fable los envía al usuario.
+
+### Review Focus añadido
+9. Un clip que no se reproduce (pose de reposo congelada, `AnimInstance` sin asignar, montaje que no arranca): el vídeo sale estático; la comprobación mide la diferencia media entre fotogramas consecutivos y, por debajo del umbral, **falla** con «la animación no se reproduce» en vez de aprobar. Prueba con fotogramas idénticos en el fake. (Tarea 2.)
