@@ -5,6 +5,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixture } from './worker-fixture.ts';
 import { requireTask } from '../../service/src/repo/tasks.ts';
+import { listEvents } from '../../service/src/store.ts';
+import { listDecisions } from '../../service/src/repo/decisions.ts';
+import { plan } from '../../service/src/scheduler.ts';
 
 const brief='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.';
 const setup=(t:any,config:object={},env:Record<string,string>={})=>{
@@ -30,10 +33,20 @@ test('opencodeModel de config.json decide el modelo del comando y del árbol',as
   assert.equal(f.run().metadata.model,'opencode/deepseek-v4.1-flash-free');
   assert.equal(JSON.parse(readFileSync(join(f.tree().path,'opencode.json'),'utf8')).model,'opencode/deepseek-v4.1-flash-free');
 });
-test('OpenCode fuera del PATH falla la run con un mensaje claro',async t=>{
-  const f=setup(t,{},{FAKE_ORCA_OPENCODE_MISSING:'1'});await start(f);
-  await assert.rejects(poll(f),/OpenCode no está instalado o no está en el PATH del terminal/);
-  assert.equal(f.run().state,'failed');assert.match(f.run().summary!,/OpenCode no está instalado o no está en el PATH del terminal/);
+for(const [env,reason] of [['FAKE_ORCA_OPENCODE_CREDENTIAL','OpenCode rechazó las credenciales: ejecuta opencode auth login'],
+  ['FAKE_ORCA_OPENCODE_MISSING','OpenCode no está instalado o no está en el PATH del terminal']])
+test(`OpenCode que no puede arrancar falla limpio y la tarea pasa a Claude sin Decisión: ${reason}`,async t=>{
+  const f=setup(t,{concurrency:{claude:1,opencode:1}},{[env]:'1'});await start(f);const worktreeId=f.run().metadata.worktreeId;
+  await poll(f);
+  const run=f.run(),task=requireTask(f.db,f.task.id);
+  assert.equal(run.state,'failed');assert.equal(run.summary,reason);assert.equal(run.metadata.uncertain,false);
+  const failed=listEvents(f.db,0).filter(e=>e.type==='worker.failed');
+  assert.deepEqual(failed.map(e=>e.payload),[{runId:run.id,taskId:task.id,provider:'opencode',reason,reassignedTo:'claude'}]);
+  assert.equal(task.state,'preparada');assert.equal(task.assigneeProvider,'claude');assert.equal(task.worktreeId,null);
+  assert.equal(task.blockedReason,null);assert.equal(task.decisionId,null);assert.equal(task.waitReason,reason);
+  assert.deepEqual(f.state().closed,['term_fake']);assert.deepEqual(f.state().removed,[worktreeId]);
+  assert.deepEqual(plan(f.db,{concurrency:{claude:1,opencode:1}}),[{taskId:task.id,action:'start',reason:'Disponible',provider:'claude'}]);
+  assert.deepEqual(listDecisions(f.db,'open'),[]);
 });
 test('la corrección a OpenCode continúa su sesión con opencode run --continue',async t=>{
   const f=setup(t);await start(f);

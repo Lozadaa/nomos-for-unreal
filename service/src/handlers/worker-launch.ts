@@ -27,6 +27,11 @@ export function followUp(provider:string,model:string|undefined,line:string):str
   return provider==='opencode' ? `${opencode(model ?? '',' --continue')} ${line}` : line;
 }
 export const opencodeMissing=(line:string)=>/(['"])opencode\1 (is not recognized|no se reconoce)|\bopencode: (command )?not found/i.test(line);
+/** Hito 12: OpenCode no pudo ni empezar (sin PATH o credencial rechazada); devuelve la causa para el director. */
+export function opencodeFatal(lines:string[]):string|undefined {
+  if(lines.some(opencodeMissing)) return 'OpenCode no está instalado o no está en el PATH del terminal';
+  if(lines.some(line=>/^Error: .*Invalid credential/i.test(line.trim()))) return 'OpenCode rechazó las credenciales: ejecuta opencode auth login';
+}
 export function permissionPrompt(provider:string,lines:string[]):string|null {
   return provider==='claude' ? lines.find(line=>/\bDo you want to\b|\bAllow\b|\(y\/n\)/i.test(line)) ?? null : null;
 }

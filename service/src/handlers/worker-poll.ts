@@ -9,7 +9,8 @@ import { refreshPendingDecision } from '../repo/decisions.ts';
 import { createHash } from 'node:crypto';
 import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './worker-markers.ts';
 import { finishReview } from './review-finish.ts';
-import { permissionPrompt, opencodeMissing } from './worker-launch.ts';
+import { permissionPrompt, opencodeFatal } from './worker-launch.ts';
+import { discardOpencode } from './worker-opencode.ts';
 import { enqueue } from '../commands.ts';
 import { uiCycleKey } from './ui-cycle.ts';
 import { attribute } from '../attribution.ts';
@@ -44,7 +45,8 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   const fresh=observed.filter(marker=>marker.kind==='ASK' ? !snapshot || !seenAsk.includes(compactMarkerText(marker.question))
     : marker.kind!=='DONE' || !seen.includes(markerId(marker)) && !legacy.includes(compactMarkerText(marker.summary)));
   const seenDoneMarkers=[...new Set([...seen,...observed.flatMap(marker=>marker.kind==='DONE' ? [markerId(marker)] : [])])].slice(-32);
-  if(run.provider==='opencode' && lines.some(opencodeMissing)) throw new Error('orca: OpenCode no está instalado o no está en el PATH del terminal');
+  const fatal=run.provider==='opencode' ? opencodeFatal(lines) : undefined;
+  if(fatal) return discardOpencode(ctx,run,fatal);
   const idlePolls=lines.length ? 0 : (run.metadata.idlePolls ?? 0)+1;
   const idle=!lines.length && idlePolls>=2 && !run.metadata.waiting && !blockedNow() ? await orca.terminalIsIdle(run.sessionRef!) : false;
   let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined;

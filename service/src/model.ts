@@ -20,7 +20,7 @@ export type RunMetadata = {
   phase?: 'preparing' | 'running' | 'waiting' | 'finished'; deadlineAt?: string;
   lastOutputAt?: string; correctionCount?: number; pollGeneration?: number;
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
-  uncertain?: boolean;
+  uncertain?: boolean; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
   startCommandId?: string;
   review?: import('./review.ts').ReviewSnapshot;
   implementationGeneration?: number;
