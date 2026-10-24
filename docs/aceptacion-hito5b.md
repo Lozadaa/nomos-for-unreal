@@ -162,3 +162,25 @@ Creator (texturas). Por eso la vía queda **asistida**: Decisión con un guion d
 - `docs/capturas-5b/sonda/manny-ataque-1280x720.mp4`: Manny con `AM_ComboAttack` original.
 - `docs/capturas-5b/sonda/heroe-metahuman-ataque-2-angulos.mp4`: Hudson con `AM_ComboAttack` retargeteado, ya corregido,
   desde dos ángulos.
+
+## Lo que destapó Esquina (2026-10-24)
+
+Dos defectos del servicio que el director de Esquina (UE 5.8.3) estaba sorteando a mano, según su diario.
+
+### 1. La línea base visual no distinguía el mapa por defecto
+- **Síntoma.** J0.4 cambió el mapa por defecto a `L_Lookdev` y `build` falló al 100 % contra la línea base del mapa de la
+  plantilla; J1.1 falló `map` al 57 % (línea base de `L_Lookdev`, captura de `L_Gym`).
+- **Causa.** El nombre de la línea base solo llevaba mapa si el diff tocaba un `.umap` (o lo decía el informe de PIE). Sin él,
+  `outcome.map` era nulo y todas las capturas del mapa por defecto compartían `build-1280x720.png` / `map-1280x720.png`.
+- **Arreglo.** Sin mapa por diff, recorrido ni informe, map y build toman el mapa con el que arranca el juego:
+  `GameDefaultMap` de `Config/DefaultEngine.ini` o, si no está, el último `/Game/` cargado en el log. Se guarda en el TestRun
+  y en la captura, y la línea base es siempre `<check>-<mapa>-<captura>.png`. Una línea base antigua sin mapa se adopta para el
+  mapa por defecto renombrándola, con una línea en el resumen; un mapa elegido por el diff o por `walkthrough.map` no la adopta.
+
+### 2. `animation` sin personaje bloqueaba la puerta
+- **Síntoma.** En J1.2, montajes provisionales sobre secuencias de la plantilla (sin personaje de Kratos) abrieron dos veces
+  «Comprobación no disponible: animation»; el director tuvo que elegir «continuar» en cada lote.
+- **Causa.** La selección por diff pide `animation` ante cualquier clip o montaje; la comprobación, sin `kratos-personaje.json`
+  ni malla con clips en el diff, terminaba `skipped`, y la puerta trata `skipped` como «no se pudo ejecutar».
+- **Arreglo.** «No aplica» ya no es «no disponible»: sin personaje que reproducir, `animation` no se selecciona para ese diff y
+  el resumen del lote dice «animation no aplica». Con personaje, sigue exigida y, si no se puede ejecutar, abre la Decisión.

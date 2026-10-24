@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import type { WorkerContext } from '../runner.ts';
 import type { Artifact, JsonValue, Run, Task, TestRun } from '../model.ts';
@@ -29,7 +29,8 @@ export type CheckInput = {task: Task; run: Run; implementer: Run; project: Proje
 export type Outcome = {
   /** `running`: la máquina terminó y falta un juicio posterior (QA visual del ciclo UMG). */
   result: 'passed' | 'failed' | 'skipped' | 'unavailable' | 'running'; log: string; summary: string[];
-  map?: string | null; config?: string | null; engine?: string | null; blocking?: string[];
+  /** `mapDefault`: nadie eligió el mapa (ni el diff ni el recorrido); es el que el juego carga por defecto. */
+  map?: string | null; mapDefault?: boolean; config?: string | null; engine?: string | null; blocking?: string[];
   artifacts?: {kind: Artifact['kind']; path: string; provenance?: Record<string, JsonValue>; previewPath?: string}[];
 };
 export type Executor = (ctx: WorkerContext, input: CheckInput & {dir: string}, deps: CheckDeps) => Promise<Outcome>;
@@ -92,9 +93,15 @@ function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outc
     const base = basename(shot.path, extname(shot.path)).replace(/^HighresScreenshot\d+$/i, '1280x720');
     // hito 5b: la línea base es de un mapa; un build o un PIE de otro mapa se compara con la suya (o la crea)
     const map = ['map', 'build'].includes(id) && outcome.map ? `${outcome.map.split('/').at(-1)}-` : '';
-    const name = `${id}-${map}${base.startsWith(`${id}-`) ? base.slice(id.length + 1) : base}`;
+    const shotName = base.startsWith(`${id}-`) ? base.slice(id.length + 1) : base, name = `${id}-${map}${shotName}`;
     try {
-      const visual = compareBaseline(shot.path, join(ctx.projectDir, 'docs', 'baseline'), name, tolerance, join(dir, `${name}-diferencia.png`));
+      // la línea base sin mapa de antes es la del mapa por defecto: se adopta renombrándola, no se pierde
+      const dirBase = join(ctx.projectDir, 'docs', 'baseline'), legacy = join(dirBase, `${id}-${shotName}.png`);
+      if (map && outcome.mapDefault && existsSync(legacy) && !existsSync(join(dirBase, `${name}.png`))) {
+        renameSync(legacy, join(dirBase, `${name}.png`));
+        lines.push(`Línea base sin mapa adoptada para ${map.slice(0, -1)}: ${name}`);
+      }
+      const visual = compareBaseline(shot.path, dirBase, name, tolerance, join(dir, `${name}-diferencia.png`));
       lines.push(visual.summary);
       shot.provenance = {...shot.provenance, visual: visual.result, baseline: visual.baseline, ...(visual.ratio === null ? {} : {visualRatio: Number(visual.ratio.toFixed(4))})};
       if (visual.result === 'failed') failed = true;
@@ -103,5 +110,5 @@ function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outc
   }
   if (!lines.length) return outcome;
   return {...outcome, result: failed ? 'failed' : outcome.result, artifacts: [...(outcome.artifacts ?? []), ...extra],
-    summary: failed ? [...lines.filter(l => /difiere|mide/.test(l)), ...outcome.summary] : [...outcome.summary, ...lines]};
+    summary: failed ? [...lines.filter(l => /difiere|mide|adoptada/.test(l)), ...outcome.summary] : [...outcome.summary, ...lines]};
 }

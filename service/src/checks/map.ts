@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { UnrealCmd } from '../adapters/unreal-cmd.ts';
 import { unrealOf, type CheckDeps, type Executor } from './run.ts';
@@ -6,6 +7,16 @@ import { animMap } from './animation.ts';
 
 /** El mapa de juego que toca el diff. El escenario de animación de Kratos no lo es: lo juega y lo graba la comprobación animation. */
 export const gameMap = (files: string[]) => packages(files, f => /\.umap$/i.test(f)).find(p => p !== animMap);
+
+/** El mapa con el que arranca el juego cuando nadie elige otro: `GameDefaultMap` de DefaultEngine.ini o, si no está, el último
+ *  `/Game/` que cargó el log (`LoadMap:` o `Bringing World … up for play`). Esquina J0.4: sin él la línea base no sabía de qué mapa era. */
+export function defaultMap(projectDir: string, log = ''): string | null {
+  let ini = '';
+  try { ini = readFileSync(join(projectDir, 'Config', 'DefaultEngine.ini'), 'utf8'); } catch { /* sin ini, el log */ }
+  const section = /^\[\/Script\/EngineSettings\.GameMapsSettings\]\s*$([\s\S]*?)(?=^\[|(?![\s\S]))/m.exec(ini)?.[1] ?? '';
+  const loaded = [...log.matchAll(/(?:LoadMap: |Bringing World )(\/Game\/[^\s?.]+)/g)].at(-1)?.[1];
+  return /^GameDefaultMap=(\/Game\/[^\s.]+)/m.exec(section)?.[1] ?? loaded ?? null;
+}
 
 /** Juego a resolución fija (`-game <mapa>`, 10 min como máximo): captura con UI y, si `KRATOS_CONTROL`, sin UI. */
 export function capture(unreal: UnrealCmd, uproject: string, map: string | undefined, [width, height]: [number, number],
@@ -31,7 +42,8 @@ export const mapCheck: Executor = async (ctx, {project, files, dir}, deps) => {
   const run = await capture(unreal, project.uproject, map, [1280, 720], shot, deps);
   const pie = run.reportJson as Pie | undefined, log = `${validation.log}\n${run.log}`;
   if (!pie?.ok) return {result: 'failed', log, map, summary: pie?.errors.length ? pie.errors : ['El juego no produjo la captura']};
-  return {result: 'passed', log, map: pie.map ?? map, engine: pie.engine, config: '1280x720',
-    summary: [`${touched.length} assets válidos; captura en ${pie.map ?? map}`],
-    artifacts: [{kind: 'screenshot', path: shot, provenance: {resolution: '1280x720', map: pie.map ?? map ?? null}}]};
+  const played = pie.map ?? map ?? defaultMap(project.dir, run.log);
+  return {result: 'passed', log, map: played, mapDefault: !map, engine: pie.engine, config: '1280x720',
+    summary: [`${touched.length} assets válidos; captura en ${played}`],
+    artifacts: [{kind: 'screenshot', path: shot, provenance: {resolution: '1280x720', map: played}}]};
 };

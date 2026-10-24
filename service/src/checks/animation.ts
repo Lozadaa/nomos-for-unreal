@@ -33,6 +33,9 @@ function fromDiff(files: string[]): CharacterSpec | null {
   return mesh && animations.length ? {mesh, animations} : null;
 }
 
+/** El personaje que probaría `animation`: la ficha del árbol o la malla y los clips del diff; sin él, la comprobación no aplica. */
+export const characterOf = (worktree: string, files: string[]) => readSpec(worktree) ?? fromDiff(files);
+
 /** Diferencia media entre fotogramas (uno de cada tres pares, para no decodificar 240 PNG). */
 export function motionOf(dir: string): number {
   const frames = readdirSync(dir).filter(f => /^frame_\d+\.png$/.test(f)).sort();
@@ -48,7 +51,7 @@ export function motionOf(dir: string): number {
  */
 export function animationCheck(given?: CharacterSpec): Executor {
   return async (ctx, {project, files, dir, worktree}, deps) => {
-    const spec = given ?? readSpec(worktree) ?? fromDiff(files);
+    const spec = given ?? characterOf(worktree, files);
     if (!spec) return {result: 'skipped', log: '', summary: [`Sin personaje que reproducir: falta ${specFile} y el diff no trae malla y clips`]};
     const unreal = unrealOf(ctx, deps), clip = short(spec.animations[0]);
     const setup = await unreal.runPython(project.uproject, join(scripts, 'kratos_character.py'), {KRATOS_MESH: spec.mesh,

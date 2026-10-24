@@ -22,7 +22,7 @@ import { blueprintCheck } from '../checks/blueprint.ts';
 import { assetCheck } from '../checks/asset.ts';
 import { mapCheck } from '../checks/map.ts';
 import { buildCheck } from '../checks/build.ts';
-import { animationCheck } from '../checks/animation.ts';
+import { animationCheck, characterOf } from '../checks/animation.ts';
 
 const executors: Partial<Record<CheckId, Executor>> = {cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
 const returnOption = {id: 'return', label: 'Devolver al responsable', description: 'Enviar la lista al implementador para que lo corrija'};
@@ -90,22 +90,25 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     }
     const files = Array.isArray(payload.files) ? payload.files.filter((f): f is string => typeof f === 'string')
       : tree ? await ctx.git.changedFiles!(tree.path, tree.baseCommit) : [];
-    const ids = selectChecks(files, task.scope), worktree = dir ?? tree?.path ?? project.dir;
+    const worktree = dir ?? tree?.path ?? project.dir, selected = selectChecks(files, task.scope);
+    // los archivos borrados cuentan para elegir comprobaciones, no para validar ni compilar assets que ya no existen
+    const present = files.filter(file => existsSync(join(worktree, file)));
+    // Esquina J1.2: montajes sin personaje montado ni malla en el diff; animation no tiene qué reproducir, no aplica
+    const ids = selected.filter(id => id !== 'animation' || characterOf(worktree, present));
+    const note = ids.length < selected.length ? 'animation no aplica: no hay personaje montado ni malla con clips en el diff' : null;
     let commit: string | null;
     try { commit = await ctx.git.head(worktree); } catch { commit = null; }
     const run = updateRun(ctx.db, checkRun(ctx, command, task, implementer).id, {checks: ids, checksCommit: commit});
     if (!ids.length) {
       const row = recordTestRun(ctx.db, {taskId: task.id, runId: run.id, checkId: 'none', result: 'skipped', commit});
-      appendEvent(ctx.db, 'test.skipped', null, {testRunId: row.id, taskId: task.id, runId: run.id, check: 'none', summary: 'el diff no toca Unreal'});
-      finishRun(ctx.db, run.id, 'done', 'El diff no toca Unreal');
+      appendEvent(ctx.db, 'test.skipped', null, {testRunId: row.id, taskId: task.id, runId: run.id, check: 'none', summary: note ?? 'el diff no toca Unreal'});
+      finishRun(ctx.db, run.id, 'done', note ? `Sin comprobaciones: ${note}` : 'El diff no toca Unreal');
       return {testRunIds: [row.id], passed: true, advanced: advance(ctx, task.id)};
     }
     // tras un reinicio, la fila que se estaba ejecutando vuelve a la cola del lote
     for (const row of filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id, result: 'running'})) updateTestRun(ctx.db, row.id, {result: 'pending'});
     let rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     if (!rows.length) rows = ids.map(id => recordTestRun(ctx.db, {taskId: task.id, runId: run.id, checkId: id, result: 'pending', commit}));
-    // los archivos borrados cuentan para elegir comprobaciones, no para validar ni compilar assets que ya no existen
-    const present = files.filter(file => existsSync(join(worktree, file)));
     const input = {task, run, implementer, project: target, files: present, worktree};
     // hito 5b: el editor y el empaquetado escriben en el árbol (mapa de prueba, clips retargeteados, Build/); lo que el lote
     // cambió se deshace al terminar, para que no entre en la revisión ni frene el cierre. Nunca en el checkout del usuario
@@ -125,7 +128,7 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     if (umg && !rows.some(r => r.result === 'failed')) umgStep(ctx, task, implementer, umg, commit);
     rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     const failed = rows.find(r => r.result === 'failed'), missing = rows.filter(r => ['skipped', 'unavailable'].includes(r.result));
-    finishRun(ctx.db, run.id, failed ? 'failed' : 'done', failed ? `Falló ${failed.checkId}` : 'Comprobaciones terminadas');
+    finishRun(ctx.db, run.id, failed ? 'failed' : 'done', failed ? `Falló ${failed.checkId}` : `Comprobaciones terminadas${note ? ` · ${note}` : ''}`);
     const result = {testRunIds: rows.map(r => r.id), passed: !failed && !missing.length && rows.every(r => r.result === 'passed')};
     if (failed) {
       const detail = failureOf(ctx, failed);
