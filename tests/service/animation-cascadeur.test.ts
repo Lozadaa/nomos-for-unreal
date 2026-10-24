@@ -65,11 +65,12 @@ test('sin licencia de exportación FBX: Capacidades lo dice y la Decisión ofrec
     process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'license';
     assert.equal((await f.run()).deferred, true);
     const [decision] = listDecisions(f.db, 'open');
-    assert.deepEqual(decision.options.map(o => o.id), ['manual', 'retarget']);
+    assert.deepEqual(decision.options.map(o => o.label), ['Exportar a mano', 'Usar solo retarget', 'Activar licencia']);
+    assert.match(decision.options[2].description, /Indie o Pro \(https:\/\/cascadeur\.com\/plans\)/);
     assert.match(decision.reason, /licencia/);
     const check = f.db.prepare("select state, detail from capability_checks where id='cascadeur'").get() as {state: string; detail: string};
     assert.equal(check.state, 'roto');
-    assert.match(check.detail, /exportación FBX/);
+    assert.match(check.detail, /^Plan Basic: solo guarda \.casc; la exportación FBX exige Indie o Pro/);
     resolveDecision(f.db, decision.id, 'retarget', 'usuario');
     assert.deepEqual(await f.run(), {fallback: 'retarget'});
     assert.equal(f.runs()[0].state, 'cancelled');
@@ -115,5 +116,18 @@ test('Review Focus 7 con el editor ocupado al reanudar: no re-exporta ni pisa el
     process.env.KRATOS_CSC_FAKE = 'ok';
     assert.equal((await f.run()).ok, true);
     assert.equal(readFileSync(out, 'utf8'), 'fbx a mano');
+  } finally { f.close(); }
+});
+
+test('«Activar licencia»: con la licencia ya activa, el trabajo se repite en una run nueva y sigue solo', async () => {
+  const f = setup();
+  try {
+    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'license';
+    await f.run();
+    resolveDecision(f.db, listDecisions(f.db, 'open')[0].id, 'license', 'usuario');
+    process.env.KRATOS_CSC_FAKE = 'ok';
+    const again = await f.run();
+    assert.equal(again.ok, true, JSON.stringify(again));
+    assert.deepEqual(f.runs().map(r => r.state), ['cancelled', 'done']);
   } finally { f.close(); }
 });

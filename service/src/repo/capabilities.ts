@@ -75,7 +75,15 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         // Cascadeur: solo cuando falta el clip o el retarget falla; si exporta FBX lo dice la última comprobación real
         ['cascadeur', 'Cascadeur', exists(typeof config.cascadeurPath === 'string' ? config.cascadeurPath : 'C:\\Program Files\\Cascadeur\\cascadeur.exe'), 'cascadeur.exe']
     ];
+    // hito 5b: Git LFS para el contenido pesado (git-lfs viene con Git para Windows en mingw64/bin, junto a cmd/git.exe)
+    const pathDirs = (env.PATH ?? env.Path ?? '').split(';').filter(Boolean);
+    const lfs = onPath('git-lfs.exe') || onPath('git-lfs') || pathDirs.some(p => exists(win32.join(p, 'git.exe')) && exists(win32.join(p, '..', 'mingw64', 'bin', 'git-lfs.exe')));
+    let attributes = '';
+    try { attributes = gameDir ? String(fs.readFileSync(win32.join(gameDir, '.gitattributes'), 'utf8')) : ''; } catch { /* sin .gitattributes */ }
+    values.push(['git_lfs', 'Git LFS', lfs, 'git-lfs']);
     const result: Capability[] = values.map(([id, label, found, detail]) => ({ id, label, state: found ? 'detectado' : 'ausente', detail: detail + (found ? ' detectado' : ' ausente') }));
+    const project = /filter=lfs/.test(attributes) ? 'configurado en el proyecto' : 'sin configurar en el proyecto';
+    result.forEach(c => { if (c.id === 'git_lfs' && c.state !== 'ausente') c.detail += ` · ${project}`; });
     // prueba 29: dos MCP de Unreal a la vez se pisan el editor; se avisa, nunca se elige uno por el usuario
     const servers = gameDir ? unrealServers(fs, gameDir, env.USERPROFILE ?? env.HOME) : [];
     if (servers.length > 1)

@@ -14,6 +14,7 @@ import { appendEvent } from '../store.ts';
 import { checkGate } from '../checks/gate.ts';
 import { attribute, attributionText } from '../attribution.ts';
 import { integrationWorkspace } from '../integration/workspace.ts';
+import { isLfsDecision, lfsGate, onlyAttributes } from '../integration/lfs.ts';
 import { commandRun } from './asset-run.ts';
 import { implementerOf } from './checks.ts';
 
@@ -103,7 +104,7 @@ export const integrateRun: Handler = async (command, ctx) => {
   let {run} = commandRun(ctx, command, {title: `Integrar ${task.title}`, provider: 'kratos', role: 'integrador', taskId: task.id});
   const decision = commandDecision(ctx, task, command);
   if (decision?.state === 'open') { release(ctx.db, run.id); return {deferred: true, reason: `Esperando decisión: ${decision.reason}`}; }
-  if (decision?.state === 'resolved') return afterConflict(ctx, task, run, decision);
+  if (decision?.state === 'resolved' && !isLfsDecision(decision)) return afterConflict(ctx, task, run, decision);
   const ws0 = await integrationWorkspace(ctx, false);
   // una integración a la vez por proyecto: la segunda espera y, al entrar, encuentra la base cambiada
   const lease = acquire(ctx.db, run.id, task.id, [`integration/${ws0.name}`]);
@@ -112,6 +113,9 @@ export const integrateRun: Handler = async (command, ctx) => {
   let state = run.metadata.integration;
   const ws = state ? ws0 : await integrationWorkspace(ctx, true);
   if (!state) {
+    // hito 5b: contenido pesado sin LFS → Decisión antes de meterlo en la historia
+    const gated = await lfsGate(ctx, command, task, run, ws, tree, decision);
+    if (gated) return gated;
     const base = await ctx.git.head(ws.dir);
     const merged = await ctx.git.merge(ws.dir, tree.branch, {noFf: true, message: `Integrar ${task.title} (${tree.branch})`});
     if (!merged.ok) return conflict(ctx, command, task, run, ws, tree);
@@ -119,7 +123,9 @@ export const integrateRun: Handler = async (command, ctx) => {
     run = updateRun(ctx.db, run.id, {integration: state});
   }
   // la rama objetivo cambió desde que nació el worktree: recomprobar el resultado integrado antes de publicarlo
-  if (state.base !== tree.baseCommit && !state.checked) {
+  // (no si lo único nuevo es el .gitattributes de LFS)
+  const moved = state.base !== tree.baseCommit && !await onlyAttributes(ctx, ws.dir, tree.baseCommit, state.base);
+  if (moved && !state.checked) {
     const checks = enqueue(ctx.db, 'checks.run', {taskId: task.id, runId: implementerOf(ctx, task).id, files: state.files, dir: ws.dir},
       `integrate.checks:${run.id}:${state.commit}`);
     const current = read<Command>(ctx.db, 'commands', checks.id)!;
@@ -148,7 +154,7 @@ export const integrateRun: Handler = async (command, ctx) => {
   }
   task = requireTask(ctx.db, task.id);
   appendEvent(ctx.db, 'integration.completed', null, {taskId: task.id, runId: run.id, commit: state.commit, base: state.base,
-    branch: ws.branch, sourceBranch: tree.branch, files: state.files, rechecked: state.base !== tree.baseCommit});
+    branch: ws.branch, sourceBranch: tree.branch, files: state.files, rechecked: moved});
   attribute(ctx.db, task.id, 'integro', run);
   moveTask(ctx.db, task.id, 'cerrando', `Integrado en ${ws.branch}@${short(state.commit)}`);
   finishRun(ctx.db, run.id, 'done', `Integrado en ${ws.branch}@${short(state.commit)}`);

@@ -3,7 +3,9 @@ import { createHash } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { gameSkills } from '../skills-install.ts';
-export type Git = {
+import { gitLfs, type GitLfs } from './git-lfs.ts';
+export type GitRun = (dir: string, args: string[], diff?: boolean, timeoutMs?: number) => Promise<string>;
+export type Git = GitLfs & {
   isRepo(dir: string): Promise<boolean>; currentBranch(dir: string): Promise<string>;
   excludeLocal(dir: string): Promise<void>;
   head(dir: string): Promise<string>; renameBranch(dir: string, name: string): Promise<void>;
@@ -24,14 +26,29 @@ export type Git = {
   filesBetween(dir: string, from: string, to: string): Promise<string[]>;
   advanceBranch(repoDir: string, branch: string, commit: string, expected: string): Promise<void>;
 };
+/** Lo que impide un --ff-only: sin seguir que se sobrescribiría y cambios locales de archivos seguidos (git los sangra con tabulador). */
+function overwritten(text: string): {untracked: string[]; changed: string[]} | null {
+  const found={untracked:[] as string[],changed:[] as string[]};
+  let kind: keyof typeof found | null=null;
+  for(const line of text.split(/\r?\n/)) {
+    if(/untracked working tree files would be overwritten/.test(line)) kind='untracked';
+    else if(/local changes to the following files would be overwritten/.test(line)) kind='changed';
+    else if(line.startsWith('\t')&&kind) found[kind].push(line.trim());
+    else kind=null;
+  }
+  return found.untracked.length||found.changed.length ? found : null;
+}
 export function createGit(): Git {
-  const run = (dir: string, args: string[], diff = false) => new Promise<string>((accept, reject) => {
+  // `hash`: la salida va a un SHA-256 y no a memoria (un diff --binary de 1,4 GB no cabe en una cadena de V8)
+  const spawnGit = (dir: string, args: string[], diff: boolean, timeoutMs: number, hash?: ReturnType<typeof createHash>) => new Promise<string>((accept, reject) => {
     const child = spawn('git', ['-c', 'core.quotepath=false', '-C', dir, ...args], {windowsHide:true,shell:false,env:{...process.env,LC_ALL:'C'}});
     let stdout='', stderr='';
-    child.stdout.on('data', chunk => {stdout+=chunk;}); child.stderr.on('data', chunk => {stderr+=chunk;});
+    const timer = timeoutMs ? setTimeout(() => child.kill(), timeoutMs) : undefined;
+    child.stdout.on('data', chunk => {if (hash) hash.update(chunk); else stdout+=chunk;}); child.stderr.on('data', chunk => {stderr+=chunk;});
     child.on('error',reject);
-    child.on('close',code => code === 0 || diff && code === 1 ? accept(stdout) : reject(new Error(stderr || `git: ${code}`)));
+    child.on('close',code => {clearTimeout(timer); code === 0 || diff && code === 1 ? accept(stdout) : reject(new Error(stderr || `git: ${code}`));});
   });
+  const run: GitRun = (dir, args, diff = false, timeoutMs = 0) => spawnGit(dir, args, diff, timeoutMs);
   const local = (path: string) => /^(\.kratos(?:\/|$)|\.kratos-brief\.md$|\.kratos-inbox(?:\/|$)|\.kratos-review(?:\/|$))/.test(path);
   // hito 7: lo que Unreal genera al compilar o empaquetar no es trabajo del worker ni entra en la revisión
   const generated = (path: string) => /^(Build|Saved|Intermediate|DerivedDataCache|Binaries)\//.test(path);
@@ -58,10 +75,15 @@ export function createGit(): Git {
     async diff(dir,base) {
       if (!base) throw new Error('invalid_base');
       let stat=await run(dir,['diff','--stat',base,...paths]);
-      const fingerprint=createHash('sha256').update(await run(dir,['diff','--binary','--no-ext-diff',base,...paths]));
+      const fingerprint=createHash('sha256');
+      await spawnGit(dir,['diff','--binary','--no-ext-diff',base,...paths],false,0,fingerprint);
+      // los binarios (también renombrados o con cambio de modo, que no dicen «Binary files») se quitan del patch por ruta,
+      // no con una exclusión por archivo: 1.361 rutas no caben en la línea de órdenes de Windows
       const binary=(await run(dir,['diff','--numstat','--no-renames','-z',base,...paths])).split('\0')
-        .filter(record=>record.startsWith('-\t-\t')).map(record=>`:(literal,exclude)${record.slice(4)}`);
-      let patch=await run(dir,['diff','--no-ext-diff',base,...paths,...binary]);
+        .filter(record=>record.startsWith('-\t-\t')).map(record=>record.slice(4));
+      const isBinary=(block:string)=>{const head=block.slice(0,block.indexOf('\n'));
+        return binary.some(p=>head.startsWith(`diff --git a/${p} `)||head.endsWith(` b/${p}`));};
+      let patch=await run(dir,['diff','--no-ext-diff',base,...paths]);
       const untracked=(await run(dir,['ls-files','--others','--exclude-standard','-z'])).split('\0').filter(p=>p&&!local(p)&&!generated(p)).sort();
       for (const file of untracked) {
         fingerprint.update(JSON.stringify([file,createHash('sha256').update(readFileSync(join(dir,file))).digest('hex')]));
@@ -70,7 +92,7 @@ export function createGit(): Git {
         stat+=await run(dir,['diff','--no-index','--stat','--','/dev/null',file],true);
         patch+=await run(dir,['diff','--no-index','--no-ext-diff','--','/dev/null',file],true);
       }
-      patch=patch.split(/(?=^diff --git )/m).filter(block=>!/^Binary files .+ differ$|^GIT binary patch$/m.test(block)).join('');
+      patch=patch.split(/(?=^diff --git )/m).filter(block=>!/^Binary files .+ differ$|^GIT binary patch$/m.test(block)&&!isBinary(block)).join('');
       return {stat,patch,fingerprint:fingerprint.digest('hex')};
     },
     async changedFiles(dir,base) {
@@ -134,23 +156,31 @@ export function createGit(): Git {
       // si la rama está activa en algún checkout (el del usuario), avanzarla allí con --ff-only mantiene su árbol al día
       const trees=(await run(repoDir,['worktree','list','--porcelain'])).split(/\r?\n\r?\n/);
       const owner=trees.find(block=>block.split(/\r?\n/).includes(`branch refs/heads/${branch}`));
-      if(owner) {
-        const dir=owner.split(/\r?\n/)[0].slice('worktree '.length),ff=()=>run(dir,['-c','core.quotepath=false','merge','--ff-only',commit]);
-        try { await ff(); return; } catch(error) {
-          // hito 7: un sin seguir byte a byte igual al que llega (asset que Kratos migró sin versionar) se sustituye;
-          // uno distinto (Config con secretos del usuario) no se toca y el rechazo sigue, ya solo con esos
-          const text=error instanceof Error ? error.message : String(error);
-          if(!/untracked working tree files would be overwritten/.test(text)) throw error;
-          const files=text.split(/\r?\n/).filter(l=>l.startsWith('\t')).map(l=>l.trim());
-          const differ=[];
-          for(const file of files) if((await run(dir,['hash-object','--',file])).trim()!==(await run(dir,['rev-parse',`${commit}:${file}`])).trim()) differ.push(file);
-          // solo se borra si todos son iguales: si el merge sigue sin poder hacerse, nada desaparece del disco
-          if(differ.length) throw new Error(`error: The following untracked working tree files would be overwritten by merge:\n${differ.map(f=>`\t${f}`).join('\n')}`);
-          for(const file of files) rmSync(join(dir,file));
-          await ff();
+      if(!owner) { await run(repoDir,['update-ref',`refs/heads/${branch}`,commit,expected]); return; }
+      const dir=owner.split(/\r?\n/)[0].slice('worktree '.length),ff=()=>run(dir,['merge','--ff-only',commit]);
+      try { await ff(); return; } catch(error) {
+        // hito 7: lo del checkout byte a byte igual a lo que llega (asset que Kratos migró sin versionar, la línea de LiveLink
+        // ya puesta) se sustituye; lo distinto (Config con secretos del usuario) no se toca y el rechazo sigue, ya solo con eso
+        const blocked=overwritten(error instanceof Error ? error.message : String(error));
+        if(!blocked) throw error;
+        const differ={untracked:[] as string[],changed:[] as string[]};
+        for(const kind of ['untracked','changed'] as const) for(let i=0;i<blocked[kind].length;i+=100) {
+          // hash-object aplica los filtros de .gitattributes (LFS) igual que el commit; por lotes, por la línea de órdenes
+          const chunk=blocked[kind].slice(i,i+100);
+          const local=(await run(dir,['hash-object','--',...chunk])).trim().split(/\r?\n/);
+          const incoming=(await run(dir,['rev-parse',...chunk.map(f=>`${commit}:${f}`)])).trim().split(/\r?\n/);
+          chunk.forEach((file,j)=>{ if(local[j]!==incoming[j]) differ[kind].push(file); });
         }
+        // solo se toca algo si todo es igual: si el merge sigue sin poder hacerse, nada desaparece del disco
+        if(differ.untracked.length||differ.changed.length) throw new Error([
+          ...(differ.untracked.length ? ['error: The following untracked working tree files would be overwritten by merge:',...differ.untracked.map(f=>`\t${f}`)] : []),
+          ...(differ.changed.length ? ['error: Your local changes to the following files would be overwritten by merge:',...differ.changed.map(f=>`\t${f}`)] : []),
+        ].join('\n'));
+        for(const file of blocked.untracked) rmSync(join(dir,file));
+        for(let i=0;i<blocked.changed.length;i+=100) await run(dir,['checkout','--',...blocked.changed.slice(i,i+100)]);
+        await ff();
       }
-      else await run(repoDir,['update-ref',`refs/heads/${branch}`,commit,expected]);
     },
+    ...gitLfs(run),
   };
 }

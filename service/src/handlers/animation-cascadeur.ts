@@ -25,6 +25,7 @@ type Payload = {taskId?: unknown; action?: unknown; sourceClip?: unknown; why?: 
   mesh?: unknown; targetSkeleton?: unknown};
 const game = (v: unknown): v is string => typeof v === 'string' && /^\/Game\/[\w/ .-]+$/.test(v) && !v.includes('..');
 const short = (path: string) => path.split('/').at(-1)!.split('.')[0];
+const plans = 'https://cascadeur.com/plans';
 
 function parse(p: Payload) {
   if (!cascadeurReasons.includes(p.why as string)) throw new Error('cascadeur_not_justified');
@@ -74,13 +75,15 @@ function waitExternally(ctx: WorkerContext, task: Task, run: Run, commandId: str
   const out = paths(ctx, run).out;
   updateRun(ctx.db, run.id, {waiting: true, phase: 'waiting', question: detail});
   setTaskWait(ctx.db, task.id, `Esperando externo: Cascadeur (${spec.action})`);
-  if (license) saveCheck(ctx.db, 'cascadeur', {state: 'roto', detail: `Cascadeur abre y procesa, pero la exportación FBX no está en esta licencia: ${detail}`});
+  // la gratuita (Basic) importa y procesa sin ventana, pero bloquea la exportación FBX (comprobado en 2026.2.3)
+  if (license) saveCheck(ctx.db, 'cascadeur', {state: 'roto', detail: `Plan Basic: solo guarda .casc; la exportación FBX exige Indie o Pro (${detail})`});
   const guion = `1. ${license ? 'Activa en Cascadeur una licencia con exportación FBX (la gratuita y la de prueba solo guardan .casc)' : 'Abre Cascadeur'}. `
     + `2. Importa ${paths(ctx, run).input} y aplica ${spec.action} (Commands › Kratos › ${spec.action}). 3. Revisa el resultado. `
     + `4. File › Export Fbx › Without Meshes, FbxUpAxis Z, ASCII off. 5. Guárdalo como ${out}: Kratos sigue solo.`;
   openDecision(ctx.db, {taskId: task.id, reason: license ? `Cascadeur sin exportación FBX por licencia: ${detail}` : `Cascadeur no terminó solo: ${detail}`,
     evidence: [{kind: 'command', ref: commandId}], options: [{id: 'manual', label: license ? 'Exportar a mano' : 'Hacerlo en Cascadeur', description: guion},
-      {id: 'retarget', label: 'Usar solo retarget', description: 'Seguir con el clip retargeteado, sin Cascadeur'}]});
+      {id: 'retarget', label: 'Usar solo retarget', description: 'Seguir con el clip retargeteado, sin Cascadeur'},
+      ...(license ? [{id: 'license', label: 'Activar licencia', description: `Activa Indie o Pro (${plans}) y Kratos vuelve a lanzar el trabajo`}] : [])]});
   return {deferred: true, reason: `Esperando externo: Cascadeur (${spec.action})`};
 }
 
@@ -100,14 +103,16 @@ export function createAnimationCascadeur(deps: CascadeurDeps = {}): Handler {
         // la run sigue «esperando» hasta importar: si el editor está ocupado, el reintento vuelve aquí y nunca re-exporta
         return importBack(ctx, deps, project, task, previous, spec);
       }
-      if (decision?.state === 'resolved' && decision.chosenOptionId === 'retarget') {
+      // con la licencia ya activada, el trabajo se repite desde la exportación de Unreal en una run nueva
+      if (decision?.state === 'resolved' && decision.chosenOptionId === 'license') finishRun(ctx.db, previous.id, 'cancelled', 'Reintento con licencia');
+      else if (decision?.state === 'resolved' && decision.chosenOptionId === 'retarget') {
         finishRun(ctx.db, previous.id, 'cancelled', 'Se usa solo el retarget');
         setTaskWait(ctx.db, task.id, null);
         return {fallback: 'retarget'};
       }
-      return {deferred: true, reason: `Esperando externo: Cascadeur (${spec.action})`};
+      else return {deferred: true, reason: `Esperando externo: Cascadeur (${spec.action})`};
     }
-    const run = previous?.state === 'running' ? previous
+    const run = previous?.state === 'running' && !previous.metadata.waiting ? previous
       : startRun(ctx.db, {taskId: task.id, role: 'animacion', provider: 'kratos', metadata: {commandId: command.id, kind: 'cascadeur'}});
     const p = paths(ctx, run);
     const exported = await withEditor(ctx, project, run, async () => (await unrealFor(deps, ctx).runPython(project.uproject,
