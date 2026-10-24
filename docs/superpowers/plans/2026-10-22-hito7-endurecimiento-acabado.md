@@ -117,3 +117,19 @@
 - Review Focus 1, 2, 6 → Tarea 1; 3, 4 → Tarea 3; 5 → Tareas 2 y 4.
 - Diferencias respecto a la versión anterior y por qué: dos carriles en el ejecutor (hallazgo del hito 5: un build bloqueaba todo); Codex apagado por defecto (regla del usuario) arreglando las fixtures en vez de dejar `codex: 2`; regresión visual con el decodificador PNG propio en vez de Screenshot Comparison; Insights solo como trace; pruebas intermitentes como entregable explícito; opciones de Decisión sin icono repetido (hallazgo de Fable en el hito 4); «Comprobar ahora» con ruta real.
 - Fuera, como dice el plan v2 §9: multiusuario, más hosts/GPU, streaming del editor, modo claro, Gauntlet integrado, hito 5b.
+
+---
+
+## CORRECCIÓN 3 del usuario (visor de assets a detalle) — 2026-10-23
+
+Petición literal: «si le doy click a un asset que me lo agrande en el medio para verlo a detalle no la imagen pequeña y ya». Hoy las tarjetas de Entregas (`views/Entregas.tsx` → `Card`/`Preview`), Catálogo (`views/Catalogo.tsx` → `Preview`) y las miniaturas de opciones de Decisión (`components/DecisionOptions.tsx` → `Thumbnail`) solo muestran una miniatura 4:3 y el clic no hace nada. Se añade a la Tarea 4 (acabado del panel) y se cierra antes del commit de la Tarea 5.
+
+**Files:** Create `panel/src/components/AssetViewer.tsx` (+ `AssetViewer.test.tsx`); Modify `views/Entregas.tsx`, `views/Catalogo.tsx`, `components/DecisionOptions.tsx`; e2e `panel/e2e/visor.spec.ts`; capturas `docs/capturas-7/visor-entregas-1366.png`, `visor-entregas-1920.png`, `visor-catalogo-1920.png`.
+
+- **Un solo componente** `AssetViewer` sobre el `Dialog` de shadcn que ya existe en `components/ui/dialog.tsx` (nada nuevo de npm). Centrado, fondo oscurecido, hasta `90vw × 85vh`. Título = nombre derivado (`artifactName`, o `entry.name` en Catálogo); debajo, en texto discreto, nombre de archivo, ruta, tarea y licencia (lo que hoy va en el `title` de la tarjeta). Nunca el nombre de archivo ni un uuid como título.
+- **Contenido por tipo**: imagen (`png|jpe?g|webp`) a su resolución natural con `object-contain` dentro del cuadro, sin recorte; modelo (`glb|gltf`) con `GlbViewer` ocupando el cuadro, `camera-controls`; registros e informes (`log|txt|md|json`) con el texto completo en un `pre` con scroll y los errores resaltados con `errorLines`; cualquier otro tipo, el glifo del artefacto y un botón «Abrir original». Los expirados de Meshy siguen mostrando `MeshyExpired`.
+- **Abrir y cerrar**: la miniatura es un `button` con `aria-label="Ver {nombre} a tamaño completo"`; `Esc`, clic fuera y botón cierran; el foco vuelve a la tarjeta que lo abrió. Flechas ← → y botones laterales pasan al asset anterior/siguiente **del listado tal y como está filtrado y ordenado**. Botón «Abrir original» (misma URL con token que ya sirve `useArtifactSrc`/`useAuthedSrc`). La apertura usa el `Dialog` (su animación), no `withViewTransition`.
+- En Catálogo, los botones de acción de la tarjeta (preparar, etc.) siguen igual; solo la miniatura abre el visor. En Decisiones, la miniatura de una opción abre el visor **sin elegir la opción**; elegir sigue siendo el clic en la tarjeta de texto.
+- **Pruebas**: Vitest: clic en la miniatura abre el diálogo con la imagen a `object-contain` y el nombre derivado como título; `Esc` cierra y el foco vuelve; → cambia al siguiente del listado filtrado; en Decisiones abrir el visor no llama a `onChoose`. Playwright: abrir un asset en Entregas y otro en Catálogo, comprobar tamaño del cuadro ≥ 60 % del viewport a 1366 y 1920. Capturas con el visor abierto en `docs/capturas-7/`.
+- Reglas de siempre: `useAction` para acciones, ≤ 200 líneas por archivo, sin colores a mano, copy en español, sin dependencias nuevas, prueba de unicidad de glifos si entra alguno nuevo.
+- [ ] Commit `feat: visor de assets a detalle` (antes del commit de la Tarea 5).
