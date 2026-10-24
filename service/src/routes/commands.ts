@@ -29,6 +29,10 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
       || ![undefined, 'metahuman'].includes(p.targetSkeleton as string) || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
     if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
   },
+  'character.metahuman': (db, p) => {
+    if (!text(p.taskId) || !text(p.name) || !/^[A-Za-z]\w{1,40}$/.test(p.name) || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
+    if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
+  },
   'checks.run': (db, p) => {
     if (!text(p.taskId) || !optionalText(p.runId) || p.dir !== undefined || p.files !== undefined
       && (!Array.isArray(p.files) || !p.files.every(f => typeof f === 'string'))) throw new Error('invalid_command_payload');

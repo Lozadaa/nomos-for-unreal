@@ -75,6 +75,14 @@ if (mode === 'hang') {
   }
   write({ok: mode !== 'deform', engine, map: args.find(a => a.startsWith('/Game/')) ?? null, clip: '/Game/Kratos/Retarget/x', length: 3.667,
     frames, errors: [], ...(video ? {video_frames: 12, video_seconds: 3.67} : {})});
+} else if (script.endsWith('kratos_metahuman.py')) {
+  // MetaHuman por script: «ok» lo crea y ensambla; «noplugin», sin el subsistema; «cloud», el ensamblado pide la nube
+  const name = process.env.KRATOS_NAME, ok = mode === 'ok';
+  const steps = [{step: 'subsystem', ok: mode !== 'noplugin', detail: mode === 'noplugin' ? 'MetaHumanCharacterEditorSubsystem no existe: el plugin MetaHumanCharacter no está activo en el proyecto' : 'ok'}];
+  if (mode !== 'noplugin') steps.push({step: 'create', ok: true, detail: `/Game/Kratos/MetaHumans/${name}`},
+    {step: 'build', ok, detail: ok ? 'build_meta_human terminado' : 'El ensamblado necesita iniciar sesión en la nube de MetaHuman'});
+  write({ok, engine, name, steps, blueprint: ok ? `/Game/MetaHumans/${name}/BP_${name}` : null,
+    needs: ok ? null : mode === 'noplugin' ? 'plugin' : 'cloud', errors: ok ? [] : [steps.at(-1).detail]});
 } else if (script.endsWith('kratos_pie_capture.py')) {
   // resolución reducida (÷40) para que las pruebas sean rápidas; la diferencia relativa se conserva
   const width = Math.max(8, Math.round(Number(arg('ResX') ?? 1280) / 40)), height = Math.max(8, Math.round(Number(arg('ResY') ?? 720) / 40));

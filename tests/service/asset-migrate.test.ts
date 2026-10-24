@@ -164,3 +164,21 @@ function makeZip(files: Record<string, string>): Buffer {
   end.writeUInt32LE(directory.length, 12); end.writeUInt32LE(offset, 16);
   return Buffer.concat([...locals, directory, end]);
 }
+
+test('preset MetaHuman de Megascans: copia MetaHumans/<Nombre> y Common sin pisar el Common que ya hay', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const hudson = await f.run('asset.migrate', {entryId: f.entry('Hudson').id});
+    assert.equal(hudson.ok, true, JSON.stringify(hudson));
+    assert.equal(hudson.root, '/Game/MetaHumans/Hudson');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'MetaHumans', 'Hudson', 'BP_Hudson.uasset')));
+    const common = join(f.projectDir, 'Content', 'MetaHumans', 'Common', 'Common', 'MetaHuman_ControlRig.uasset');
+    assert.equal(readFileSync(common, 'utf8'), '4dlykISk');
+    const emory = await f.run('asset.migrate', {entryId: f.entry('Emory').id});
+    assert.equal(emory.ok, true);
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'MetaHumans', 'Emory', 'BP_Emory.uasset')));
+    assert.equal(readFileSync(common, 'utf8'), '4dlykISk', 'el Common compartido no se sobrescribe');
+    assert.deepEqual(listDecisions(f.db, 'open'), []);
+  } finally { f.close(); }
+});

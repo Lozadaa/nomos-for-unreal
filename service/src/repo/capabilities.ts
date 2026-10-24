@@ -32,6 +32,7 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
     let config: {
         unrealPath?: string;
         blenderPath?: string;
+        ffmpegPath?: string;
     } = {};
     try {
         const value = JSON.parse(fs.readFileSync('.kratos/config.json', 'utf8'));
@@ -64,7 +65,12 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         ['fab_plugin', 'Fab', plugin('Fab/Fab.uplugin'), 'Plugin Fab'], ['launcher', 'Epic Games Launcher', launcher, 'Launcher de Epic Games'],
         ['meshy', 'Meshy', Boolean(env.MESHY_API_KEY), 'Configuración de API'],
         ['blender', 'Blender', typeof config.blenderPath === 'string' ? exists(config.blenderPath) : onPath('blender.exe') || onPath('blender'), 'Ejecutable de Blender'],
-        ['git', 'Git', onPath('git.exe') || onPath('git'), 'Ejecutable de Git']
+        ['git', 'Git', onPath('git.exe') || onPath('git'), 'Ejecutable de Git'],
+        // hito 5b: MetaHuman (plugin + IK Rig del cuerpo; los presets los cuenta capabilityList), retarget y vídeo de las animaciones
+        ['metahuman', 'MetaHuman', plugin('MetaHuman/MetaHumanCharacter/MetaHumanCharacter.uplugin') && plugin('MetaHuman/MetaHumanCharacter/Content/Animation/Retargeting/IK_MH_IKRig.uasset'), 'Plugin MetaHumanCharacter'],
+        ['retarget', 'Retarget IK', plugin('Animation/IKRig/IKRig.uplugin'), 'Plugin IK Rig (retarget por lotes)'],
+        ['ffmpeg', 'Vídeo (ffmpeg)', typeof config.ffmpegPath === 'string' ? exists(config.ffmpegPath) : onPath('ffmpeg.exe') || onPath('ffmpeg')
+            || exists(win32.join(env.LOCALAPPDATA ?? '', 'Microsoft', 'WinGet', 'Links', 'ffmpeg.exe')), 'ffmpeg']
     ];
     const result: Capability[] = values.map(([id, label, found, detail]) => ({ id, label, state: found ? 'detectado' : 'ausente', detail: detail + (found ? ' detectado' : ' ausente') }));
     // prueba 29: dos MCP de Unreal a la vez se pisan el editor; se avisa, nunca se elige uno por el usuario

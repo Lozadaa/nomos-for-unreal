@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { CatalogEntry } from '../model.ts';
@@ -27,11 +27,16 @@ export function versionWarning(entry: Pick<CatalogEntry, 'engineVersions'>, engi
   return `Publicado para ${declared}; verificado en ${full}`;
 }
 
+/** Preset MetaHuman de Megascans/Bridge: `Tier0/asset_ue/MetaHumans/{Common,<Nombre>}` se monta en `/Game/MetaHumans`. */
+export const metahuman = (entry: CatalogEntry) => entry.source === 'megascans' && entry.category === 'metahuman-preset';
+const presetRoot = (entry: CatalogEntry) => join(entry.localPath!, 'Tier0', 'asset_ue', 'MetaHumans');
+
 /** Packs del plugin Fab van a `Content/Fab/<pack>`; los del Launcher, a `Content/<pack>` como los deja el propio Launcher.
  *  Plantillas del motor: las compartidas (`TemplateResources/<nivel>/<Mount>/Content`) se montan en `/Game/<Mount>` y las de
  *  proyecto (`<Plantilla>/Content/<ruta>`) conservan su ruta: sus referencias internas (`/Game/Characters/...`) siguen resolviendo. */
 export function packTarget(entry: CatalogEntry): {rel: string; zip: boolean} {
   const source = entry.localPath!, zip = source.toLowerCase().endsWith('.zip');
+  if (metahuman(entry)) return {rel: 'MetaHumans', zip: false};
   if (entry.source === 'engine') {
     const parts = source.split(/[\\/]/), content = parts.lastIndexOf('Content');
     const rel = content === parts.length - 1 ? parts[content - 1] : parts.slice(content + 1).join('/');
@@ -54,7 +59,7 @@ export function createMigrate(deps: AssetDeps = {}): Handler {
   return async (command, ctx) => {
     const payload = command.payload as {entryId?: unknown; targetProject?: unknown};
     const entry = requireEntry(ctx, payload.entryId);
-    if (!['fab', 'engine'].includes(entry.source) || !exists(entry.localPath)) throw new Error('invalid_migrate_source');
+    if (!(['fab', 'engine'].includes(entry.source) || metahuman(entry)) || !exists(entry.localPath)) throw new Error('invalid_migrate_source');
     const project = targetProject(ctx, payload.targetProject);
     const {rel, zip} = packTarget(entry);
     const dest = join(project.dir, 'Content', ...rel.split('/'));
@@ -65,7 +70,9 @@ export function createMigrate(deps: AssetDeps = {}): Handler {
     let replace = false;
     // una plantilla del motor ya copiada no se reemplaza: se verifica lo que hay y se dice
     const existing = entry.source === 'engine' && existsSync(dest);
-    if (!same && !existing && existsSync(dest)) {
+    // el preset trae su carpeta y el Common compartido entre MetaHumans: se copia cada parte que falte, nunca se pisa
+    const preset = metahuman(entry) ? readdirSync(presetRoot(entry), {withFileTypes: true}).filter(d => d.isDirectory()).map(d => d.name) : [];
+    if (!same && !existing && !preset.length && existsSync(dest)) {
       replace = decisionGate(ctx, task, 'replace', `${basename(dest)} ya existe en ${project.name}`, {entryId: entry.id, dest},
         [{id: 'approve', label: 'Reemplazar', description: 'Borrar la carpeta del proyecto y copiar el pack'},
           {id: 'cancel', label: 'Conservar', description: 'Dejar la carpeta actual y no migrar'}]);
@@ -81,17 +88,21 @@ export function createMigrate(deps: AssetDeps = {}): Handler {
     if (!lease.ok) return {deferred: true, reason: leaseWaitReason(lease.conflicts)};
     try {
       if (replace) rmSync(dest, {recursive: true, force: true});
-      if (!same && zip) extractZip(entry.localPath, dest);
+      if (preset.length) {
+        for (const part of preset.filter(part => !existsSync(join(dest, part))))
+          cpSync(join(presetRoot(entry), part), join(dest, part), {recursive: true, errorOnExist: true, force: false});
+      } else if (!same && zip) extractZip(entry.localPath, dest);
       else if (!same && !existing) cpSync(entry.localPath, dest, {recursive: true, errorOnExist: true, force: false});
-      const verified = await unrealFor(deps, ctx).verifyPack(project.uproject, `/Game/${rel}`);
+      const root = preset.length ? `/Game/${rel}/${entry.name}` : `/Game/${rel}`;
+      const verified = await unrealFor(deps, ctx).verifyPack(project.uproject, root);
       const warning = versionWarning(entry, verified.engine);
       const report = {...verified, warning, engineVersions: entry.engineVersions};
       const reportPath = saveReport(ctx, run.id, report);
       const engine = verified.engine?.split('-')[0] ?? null;
       recordTestRun(ctx.db, {taskId: task.id, runId: run.id, result: verified.ok ? 'passed' : 'failed', engineVersion: engine, reportPath});
       addArtifact(ctx.db, {taskId: task.id, runId: run.id, kind: 'report', path: reportPath,
-        provenance: {provider: 'unreal', entryId: entry.id, root: `/Game/${rel}`, engine, label: 'Verificación de pack · informe'}, license: entry.license});
-      const detail = {entryId: entry.id, taskId: task.id, runId: run.id, project: project.name, root: `/Game/${rel}`, engine, warning, existing,
+        provenance: {provider: 'unreal', entryId: entry.id, root, engine, label: 'Verificación de pack · informe'}, license: entry.license});
+      const detail = {entryId: entry.id, taskId: task.id, runId: run.id, project: project.name, root, engine, warning, existing,
         assets: verified.assets.length, missing: verified.missing_dependencies.length};
       if (!verified.ok) {
         appendEvent(ctx.db, 'asset.verify_failed', null, {...detail, errors: verified.errors.slice(0, 5)});

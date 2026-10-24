@@ -36,6 +36,12 @@ export function fabFixture() {
   touch(join(megascansDir, 'uassetsData.json'), JSON.stringify({assets: [
     {id: '4dlykISk', name: 'Hudson', assetType: 'metahuman-preset'}, {id: 'fmsmkISi', name: 'Emory', assetType: 'metahuman-preset'}]}));
   touch(join(megascansDir, '4dlykISk', '4dlykISk.png'), 'png');
+  // preset MetaHuman de Bridge: Tier0/asset_ue/MetaHumans/{Common,<Nombre>} (hito 5b)
+  for (const [id, name] of [['4dlykISk', 'Hudson'], ['fmsmkISi', 'Emory']]) {
+    const mh = join(megascansDir, id, 'Tier0', 'asset_ue', 'MetaHumans');
+    touch(join(mh, name, `BP_${name}.uasset`), name); touch(join(mh, name, 'Body', 'm_tal_ovw_body.uasset'), 'x');
+    touch(join(mh, 'Common', 'Common', 'MetaHuman_ControlRig.uasset'), id);
+  }
   const unrealPath = engineFixture(join(root, 'UE_5.8'));
   const config = {projectsDir, vaultDir, megascansDir, fabCacheDirs: [join(root, 'FabLibrary')], listingsDb,
     launcherLogPath: join(root, 'EpicGamesLauncher.log'), quarantineProject: join(projectsDir, 'KratosFabTest'), unrealPath};
