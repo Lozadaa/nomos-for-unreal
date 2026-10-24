@@ -4,6 +4,7 @@ import { humanError } from '@/lib/errors'
 import { EmptyState as VisualEmpty } from '@/visual/art/EmptyState'
 import { Glyph } from '@/visual/Glyph'
 import { GlbViewer } from '@/components/GlbViewer'
+import { useAssetViewer, viewerType, ViewerButton, type ViewerItem } from '@/components/AssetViewer'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
@@ -46,12 +47,22 @@ function Preview({ a, name }: { a: Artifact; name: string }) {
   )
 }
 
-function Card({ a, task }: { a: Artifact; task: string }) {
+const meta = (a: Artifact, task: string) => [...new Set([fileName(a), a.path, task, a.license ? `Licencia: ${a.license}` : ''])].filter(Boolean)
+
+/** El visor ve el listado en el mismo orden que la vista; un Meshy caducado sigue con su aviso. */
+function viewerItem(a: Artifact, task: string): ViewerItem {
+  const expired = meshyExpired(a)
+  return { id: a.id, name: artifactName(a), meta: meta(a, task), type: expired ? 'other' : viewerType(a.path), modelId: a.id,
+    path: `/artifacts/${encodeURIComponent(a.id)}/file`,
+    fallback: expired ? <MeshyExpired a={a} /> : <Glyph kind="artifact" value={a.kind} size={96} /> }
+}
+
+function Card({ a, task, onOpen }: { a: Artifact; task: string; onOpen: (el: HTMLElement) => void }) {
   const name = artifactName(a)
   return (
     <li className="flex flex-col overflow-hidden rounded-lg border border-subtle bg-background transition-colors duration-(--k-dur-micro) hover:border-strong"
-      title={[fileName(a), a.path, task, a.license].filter(Boolean).join('\n')}>
-      <div className="aspect-[4/3] overflow-hidden border-b border-subtle bg-card"><Preview a={a} name={name} /></div>
+      title={meta(a, task).join('\n')}>
+      <div className="aspect-[4/3] overflow-hidden border-b border-subtle bg-card"><ViewerButton name={name} onOpen={onOpen}><Preview a={a} name={name} /></ViewerButton></div>
       <p className="truncate p-3 text-sm">{name}</p>
     </li>
   )
@@ -65,15 +76,16 @@ export function Entregas() {
   const [type, setType] = useParam('tipo')
   const [orderParam, setOrder] = useParam('orden', 'recientes')
   const order = (orders as readonly string[]).includes(orderParam) ? orderParam as Order : 'recientes'
+  const title = (id: string) => tasks.find((t) => t.id === id)?.title ?? id.slice(0, 8)
+  const shown = (data ?? []).filter((a) => !type || artifactType(a) === type)
+  const groups = groupArtifacts(shown, order, title)
+  const { open, viewer } = useAssetViewer(groups.flatMap((g) => g.items).map((a) => viewerItem(a, title(a.taskId))))
 
   if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron cargar las entregas. {humanError(new Error(error))}</p>
   if (loading) return slow ? <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4" role="status" aria-label="Cargando las entregas">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-56" />)}</div> : null
   if (!data?.length) {
     return <VisualEmpty view="entregas" message="Aún no hay entregas" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
-  const title = (id: string) => tasks.find((t) => t.id === id)?.title ?? id.slice(0, 8)
-  const shown = data.filter((a) => !type || artifactType(a) === type)
-  const groups = groupArtifacts(shown, order, title)
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -92,10 +104,11 @@ export function Entregas() {
         <section key={g.key} aria-label={g.title ?? 'Más recientes'} className="flex flex-col gap-3">
           {g.title && <h2 className="truncate text-sm font-medium">{g.title}</h2>}
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-            {g.items.map((a) => <Card key={a.id} a={a} task={title(a.taskId)} />)}
+            {g.items.map((a) => <Card key={a.id} a={a} task={title(a.taskId)} onOpen={(el) => open(a.id, el)} />)}
           </ul>
         </section>
       ))}
+      {viewer}
     </div>
   )
 }

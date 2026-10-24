@@ -16,12 +16,23 @@ describe('Tarjetas y detalle de una decisión', () => {
       { id: 'a', label: 'Caballero', description: 'Del catálogo', thumbnail: '/catalog/c1/thumbnail', recommended: true },
       { id: 'b', label: 'Buscar otro', description: 'Volver a buscar' }] }
     render(<TooltipProvider><DecisionOptions decision={rich} disabled={false} onChoose={() => {}} /></TooltipProvider>)
-    const [first, second] = screen.getAllByRole('button')
+    const first = screen.getByRole('button', { name: 'Caballero' }), second = screen.getByRole('button', { name: 'Buscar otro' })
     expect(first).toHaveAttribute('data-recommended')
     expect(first.className).toContain('border-primary')
     expect(second).not.toHaveAttribute('data-recommended')
     expect(second.className).not.toContain('border-primary')
-    expect(second.querySelector('img')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Ver Caballero a tamaño completo' }).querySelector('img')).not.toBeNull()
+    expect(screen.queryByRole('button', { name: 'Ver Buscar otro a tamaño completo' })).toBeNull()
+  })
+
+  it('abrir la miniatura en el visor no elige la opción', async () => {
+    const choose = vi.fn()
+    const user = userEvent.setup()
+    const rich: Decision = { ...decision, options: [{ id: 'a', label: 'Caballero', description: 'Del catálogo', thumbnail: '/catalog/c1/thumbnail' }] }
+    render(<TooltipProvider><DecisionOptions decision={rich} disabled={false} onChoose={choose} /></TooltipProvider>)
+    await user.click(screen.getByRole('button', { name: 'Ver Caballero a tamaño completo' }))
+    expect(await screen.findByRole('dialog', { name: 'Caballero' })).toBeInTheDocument()
+    expect(choose).not.toHaveBeenCalled()
   })
 
   it('las opciones son tarjetas de texto: ningún icono repetido, la descripción en el tooltip y elección por teclado', async () => {

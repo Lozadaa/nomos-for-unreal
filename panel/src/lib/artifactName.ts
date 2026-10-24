@@ -60,5 +60,6 @@ export function groupArtifacts(list: Artifact[], order: Order, taskTitle: (id: s
 }
 
 /** Las dos primeras líneas con «error» de un registro de compilación o empaquetado. */
-export const errorLines = (log: string) => log.split(/\r?\n/).filter((line) => /\berror\b/i.test(line)).slice(0, 2)
+export const isErrorLine = (line: string) => /\berror\b/i.test(line)
+export const errorLines = (log: string) => log.split(/\r?\n/).filter(isErrorLine).slice(0, 2)
 export const isBuildLog = (a: Artifact) => artifactType(a) === 'registros' && ['cpp', 'build'].includes(String(prov(a).check))
