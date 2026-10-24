@@ -17,7 +17,7 @@ const home: Record<string, TaskState> = {'checks.run': 'probando', 'ui.cycle': '
 export const uncertainCause = 'orca: resultado incierto tras reinicio';
 
 /** Runs propios de la orden (pruebas, integración): terminan como fallidos, sueltan reservas y sus pruebas en curso fallan. */
-function closeRuns(db: DatabaseSync, commandId: string, cause: string): void {
+export function closeRuns(db: DatabaseSync, commandId: string, cause: string): void {
   const runs = db.prepare(`select id from runs where state='running' and provider in ('unreal','kratos')
     and json_extract(metadata,'$.commandId')=?`).all(commandId).map(r => r.id as string);
   for (const id of runs) {

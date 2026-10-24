@@ -55,3 +55,21 @@ test('handlers genéricos conservan tres intentos predeterminados para fallos re
     assert.equal(db.prepare('select state from commands').get()!.state,'done');assert.equal(count,3);}
   finally {stop();await stop.drained;db.close();}
 });
+test('hito 5b: un fallo definitivo cierra los runs propios de la orden y suelta sus reservas', async () => {
+  const db = openDb(':memory:');
+  const {createTask} = await import('../../service/src/repo/tasks.ts');
+  const {startRun} = await import('../../service/src/repo/runs.ts');
+  const {acquire, listLeases} = await import('../../service/src/leases.ts');
+  const task = createTask(db, {title: 'Integrar héroe', area: 'animacion'});
+  enqueue(db, 'integrar', {}, 'integrar');
+  const stop = startRunner(db, {integrar: async command => {
+    const run = startRun(db, {taskId: task.id, role: 'integrador', provider: 'kratos', metadata: {commandId: command.id}});
+    acquire(db, run.id, task.id, ['integration/Juego']);
+    throw new Error('invalid_merge: Your local changes to the following files would be overwritten by merge');
+  }}, {intervalMs: 1, context: {dataDir: import.meta.dirname}});
+  try {
+    await until(() => db.prepare("select state from commands").get()!.state === 'failed');
+    assert.equal(db.prepare("select state from runs").get()!.state, 'failed');
+    assert.deepEqual(listLeases(db), []);
+  } finally { stop(); await stop.drained; db.close(); }
+});
