@@ -139,3 +139,23 @@ test('UMG sin ciclo aprobado: se encola ui.cycle y la fila queda pendiente', asy
     assert.equal(getTask(f.db, f.task.id)!.state, 'probando');
   } finally { f.close(); }
 });
+
+test('hito 5b: un diff con la ficha del personaje y su clip pasa la comprobación animation y avanza a integrando', async () => {
+  const {join} = await import('node:path');
+  const {writeFileSync} = await import('node:fs');
+  const {filtered} = await import('../../service/src/repo/rows.ts');
+  const ff = {bin: process.execPath, baseArgs: [join(import.meta.dirname, '..', 'fakes', 'ffmpeg.mjs')]};
+  const f = checksFixture({area: 'animacion', files: ['kratos-personaje.json', 'Content/Kratos/Retarget/m_tal_ovw_body/AM_ComboAttack_m_tal_ovw_body.uasset'],
+    deps: {ffmpeg: () => ff}});
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    writeFileSync(join(f.projectDir, 'kratos-personaje.json'), JSON.stringify({mesh: '/Game/MetaHumans/Hudson/BP_Hudson',
+      animations: ['/Game/Variant_Combat/Anims/AM_ComboAttack'], targetSkeleton: 'metahuman'}));
+    const result = await f.run();
+    assert.equal(result.passed, true, JSON.stringify(f.events('test.failed')));
+    const rows = filtered<any>(f.db, 'test_runs', {taskId: f.task.id});
+    assert.deepEqual(rows.map((r: any) => [r.checkId, r.result]), [['animation', 'passed']]);
+    assert.equal(f.db.prepare("select count(*) n from artifacts where kind='video'").get()!.n, 1);
+    assert.equal(result.advanced, true);
+  } finally { f.close(); }
+});

@@ -64,3 +64,23 @@ test('reporte HTML se sirve aislado del panel con sandbox sin scripts', async ()
     assert.equal(response.headers.get('content-security-policy'),"sandbox; default-src 'none'");
   } finally { await f.close(); }
 });
+
+test('hito 5b: el vídeo se sirve como video/mp4 y su miniatura (fotograma del 50 %) por /preview, con las mismas reglas', async () => {
+  const f = await fixture();
+  try {
+    seed(f.db);
+    const root = join(f.dir, 'artifacts');
+    mkdirSync(join(root, 'tests', 'x'), {recursive: true});
+    writeFileSync(join(root, 'tests', 'x', 'anim-1280x720.mp4'), 'mp4'); writeFileSync(join(root, 'tests', 'x', 'anim-1280x720-50.png'), 'png');
+    const video = addArtifact(f.db, {taskId: 'seed-task-06', kind: 'video', path: join(root, 'tests', 'x', 'anim-1280x720.mp4'),
+      previewPath: join(root, 'tests', 'x', 'anim-1280x720-50.png')});
+    assert.equal((await f.request(`/artifacts/${video.id}/file`)).headers.get('content-type'), 'video/mp4');
+    const preview = await f.request(`/artifacts/${video.id}/preview`);
+    assert.equal(preview.status, 200);
+    assert.equal(preview.headers.get('content-type'), 'image/png');
+    const plain = addArtifact(f.db, {taskId: 'seed-task-06', kind: 'report', path: 'x.txt'});
+    assert.equal((await f.request(`/artifacts/${plain.id}/preview`)).status, 404);
+    const outside = addArtifact(f.db, {taskId: 'seed-task-06', kind: 'video', path: 'a.mp4', previewPath: 'C:/Windows/win.ini'});
+    assert.equal((await f.request(`/artifacts/${outside.id}/preview`)).status, 400);
+  } finally { await f.close(); }
+});

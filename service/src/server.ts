@@ -93,7 +93,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         : error instanceof Error ? error.message : "internal_error";
       const code = message === "body_too_large" ? 413 : ["invalid_json", "invalid_url"].includes(message) ? 400
         : ["decision_stale", "not_empty", "invalid_transition"].includes(message) ? 409
-        : message.startsWith("invalid_") || ["unknown_option", "meshy_kind_not_allowed"].includes(message) ? 400
+        : message.startsWith("invalid_") || ["unknown_option", "meshy_kind_not_allowed", "cascadeur_not_justified"].includes(message) ? 400
         : message.startsWith("unknown_") ? 404 : 500;
       if (!res.headersSent) json(res, code, { error: code === 500 ? "internal_error" : message });
     }

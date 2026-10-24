@@ -12,6 +12,7 @@ import type { CheckId } from './select.ts';
 import { checkArtifactLabel, checkReportLabel } from '../artifact-label.ts';
 import { readConfig, visualTolerance } from '../config.ts';
 import { compareBaseline } from './visual.ts';
+import { findFfmpeg, type Ffmpeg } from '../adapters/ffmpeg.ts';
 
 export type CheckDeps = {
   unreal?: (ctx: WorkerContext) => UnrealCmd; build?: (ctx: WorkerContext) => BuildOpts;
@@ -19,6 +20,8 @@ export type CheckDeps = {
   launch?: (exe: string, args: string[], ms: number) => Promise<Launch | void>;
   /** Segundos de juego antes de capturar (30 en el plan; las pruebas usan 0). */
   playSeconds?: number;
+  /** ffmpeg para el vídeo de la comprobación animation (hito 5b); null = no está. */
+  ffmpeg?: (ctx: WorkerContext) => Ffmpeg | null;
 };
 /** Vida del ejecutable: `killed` = Kratos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
 export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};
@@ -27,11 +30,12 @@ export type Outcome = {
   /** `running`: la máquina terminó y falta un juicio posterior (QA visual del ciclo UMG). */
   result: 'passed' | 'failed' | 'skipped' | 'unavailable' | 'running'; log: string; summary: string[];
   map?: string | null; config?: string | null; engine?: string | null; blocking?: string[];
-  artifacts?: {kind: Artifact['kind']; path: string; provenance?: Record<string, JsonValue>}[];
+  artifacts?: {kind: Artifact['kind']; path: string; provenance?: Record<string, JsonValue>; previewPath?: string}[];
 };
 export type Executor = (ctx: WorkerContext, input: CheckInput & {dir: string}, deps: CheckDeps) => Promise<Outcome>;
 
 export const unrealOf = (ctx: WorkerContext, deps: CheckDeps) => deps.unreal?.(ctx) ?? createUnrealCmd({bin: assetConfig(ctx.dataDir).unrealPath});
+export const ffmpegOf = (ctx: WorkerContext, deps: CheckDeps) => deps.ffmpeg ? deps.ffmpeg(ctx) : findFfmpeg((readConfig(ctx.dataDir) as Record<string, unknown>).ffmpegPath);
 export const buildOf = (ctx: WorkerContext, deps: CheckDeps): BuildOpts => deps.build?.(ctx) ?? {engineDir: engineDirOf(assetConfig(ctx.dataDir).unrealPath)};
 /** Resumen del evento (Review Focus 3): el titular y después las líneas con «error» (30 en total); sin errores, las 30 primeras. */
 export const summarize = (lines: string[]) => [lines[0], ...lines.slice(1).filter(l => /error/i.test(l) || !lines.some(m => /error/i.test(m)))]
@@ -71,7 +75,8 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
   for (const artifact of outcome.artifacts ?? [])
     addArtifact(db, {taskId: input.task.id, runId: input.run.id, kind: artifact.kind, path: artifact.path,
       provenance: {check: id, testRunId: row.id, ...artifact.provenance,
-        label: checkArtifactLabel(id, artifact.kind, artifact.path, artifact.provenance as Record<string, unknown>)}});
+        label: (artifact.provenance?.label as string | undefined) ?? checkArtifactLabel(id, artifact.kind, artifact.path, artifact.provenance as Record<string, unknown>)},
+      previewPath: artifact.previewPath ?? null});
   row = updateTestRun(db, row.id, {result: outcome.result, reportPath: logPath, map: outcome.map ?? null, config: outcome.config ?? null,
     engineVersion: outcome.engine?.split('-')[0] ?? engine});
   appendEvent(db, `test.${outcome.result}`, null, {testRunId: row.id, taskId: row.taskId, runId: row.runId, check: id,

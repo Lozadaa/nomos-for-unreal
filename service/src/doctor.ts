@@ -6,6 +6,8 @@ import { createOrca } from './adapters/orca.ts';
 import { createMeshy } from './adapters/meshy.ts';
 import { createUnrealCmd, defaultUnrealCmd } from './adapters/unreal-cmd.ts';
 import { detectCapabilities } from './repo/capabilities.ts';
+import { ffmpegVersion, findFfmpeg, type Ffmpeg } from './adapters/ffmpeg.ts';
+import { readConfig } from './config.ts';
 import { capabilityList, configFs, type CheckResult } from './capability-checks.ts';
 import { readServiceInfo, isAlive } from './service-info.ts';
 import type { Lane } from './commands.ts';
@@ -13,7 +15,7 @@ import { stalledTasks } from './stall.ts';
 
 type Probe = {isRunning?(): Promise<boolean>; open?(): Promise<void>};
 export type CheckDeps = {orca?: Probe; meshy?: {balance(): Promise<number>}; env?: NodeJS.ProcessEnv;
-  unrealPath?: string | null; blenderPath?: string | null; dataDir?: string};
+  unrealPath?: string | null; blenderPath?: string | null; dataDir?: string; ffmpeg?: Ffmpeg | null};
 const run = promisify(execFile);
 const firstLine = async (bin: string, args: string[]) =>
   (await run(bin, args, {timeout: 10_000, windowsHide: true})).stdout.trim().split(/\r?\n/)[0];
@@ -53,6 +55,11 @@ export async function checkCapability(id: string, deps: CheckDeps): Promise<Chec
   if (id === 'blender') {
     try { return {state: 'comprobado', detail: await firstLine(deps.blenderPath || 'blender', ['--version'])}; }
     catch { return {state: 'ausente', detail: 'Blender no encontrado'}; }
+  }
+  if (id === 'ffmpeg') {
+    const ff = deps.ffmpeg !== undefined ? deps.ffmpeg : findFfmpeg(deps.dataDir ? (readConfig(deps.dataDir) as Record<string, unknown>).ffmpegPath : undefined);
+    const version = ff ? await ffmpegVersion(ff) : null;
+    return version ? {state: 'comprobado', detail: `ffmpeg ${version}`} : {state: 'ausente', detail: 'ffmpeg no encontrado: los vídeos de animación salen como zip de fotogramas'};
   }
   const detected = detectCapabilities(env, configFs(deps.dataDir)).find(c => c.id === id);
   if (!detected) throw new Error('unknown_capability');

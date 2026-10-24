@@ -54,7 +54,7 @@ const roleLabels: Record<string, string> = {
 }
 const sourceLabels: Record<string, string> = {
   fab: 'Fab', megascans: 'Megascans', polyhaven: 'Poly Haven', ambientcg: 'ambientCG',
-  kenney: 'Kenney', quaternius: 'Quaternius', sketchfab: 'Sketchfab', freesound: 'Freesound',
+  kenney: 'Kenney', quaternius: 'Quaternius', sketchfab: 'Sketchfab', freesound: 'Freesound', engine: 'Motor',
 }
 const text = (label: string): GlyphSpec => ({ Icon: null, presentation: 'text', label, tone: 'neutral' })
 const ownLabel = (labels: Record<string, string>, value: string) => Object.hasOwn(labels, value) ? labels[value] : value

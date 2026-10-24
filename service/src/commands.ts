@@ -27,7 +27,7 @@ function event(db: DatabaseSync, command: Command, result?: object, kind?: strin
 
 export type Lane = 'normal' | 'long';
 /** Hito 7: lo que abre el editor o empaqueta (hasta 40 min) va al carril largo y no frena sondeos ni arranques. */
-export const laneOf = (type: string): Lane => ['checks.run', 'ui.cycle', 'asset.migrate'].includes(type) ? 'long' : 'normal';
+export const laneOf = (type: string): Lane => ['checks.run', 'ui.cycle', 'asset.migrate', 'character.setup', 'character.metahuman', 'animation.cascadeur'].includes(type) ? 'long' : 'normal';
 
 export function enqueue(db: DatabaseSync, type: string, payload: object,
   idempotencyKey: string, opts: {notBefore?: string} = {}): Command {

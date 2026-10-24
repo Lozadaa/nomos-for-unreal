@@ -114,6 +114,39 @@ test('caché del plugin: el zip (store/deflate, nombre UTF-8) se descomprime en 
   } finally { f.close(); }
 });
 
+test('plantilla del motor: Maniquíes UE5 conservan /Game/Characters/Mannequins y las de combate /Game/Variant_Combat/Anims', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const manny = await f.run('asset.migrate', {entryId: f.entry('Maniquíes UE5 (Manny y Quinn)').id});
+    assert.equal(manny.ok, true);
+    assert.equal(manny.root, '/Game/Characters');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Manny_Simple.uasset')));
+    const combat = await f.run('asset.migrate', {entryId: f.entry('Animaciones de combate (plantilla Tercera persona)').id});
+    assert.equal(combat.root, '/Game/Variant_Combat/Anims');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'Variant_Combat', 'Anims', 'AM_ComboAttack.uasset')));
+    assert.equal(listCatalog(f.db).find(e => e.id === manny.entryId)!.state, 'imported');
+  } finally { f.close(); }
+});
+
+test('plantilla del motor con destino existente: copia lo que falta sin sobrescribir nada, lo dice y verifica, sin Decisión', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const mine = join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Manny_Simple.uasset');
+    mkdirSync(join(mine, '..'), {recursive: true}); writeFileSync(mine, 'mío');
+    const result = await f.run('asset.migrate', {entryId: f.entry('Maniquíes UE5 (Manny y Quinn)').id});
+    assert.equal(result.ok, true);
+    assert.equal(result.existing, true);
+    assert.equal(readFileSync(mine, 'utf8'), 'mío');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Quinn_Simple.uasset')),
+      'lo que falta se copia: un Content/Characters con otro personaje no deja sin maniquíes');
+    assert.deepEqual(listDecisions(f.db, 'open'), []);
+    const run = f.db.prepare('select summary from runs order by rowid desc limit 1').get() as {summary: string};
+    assert.match(run.summary, /ya existía en Juego: solo se copia lo que faltaba, nada se sobrescribe/);
+  } finally { f.close(); }
+});
+
 /** ZIP mínimo con deflate y nombres UTF-8 (bit 11), como los que escribe el plugin. */
 function makeZip(files: Record<string, string>): Buffer {
   const locals: Buffer[] = [], centrals: Buffer[] = [];
@@ -132,3 +165,42 @@ function makeZip(files: Record<string, string>): Buffer {
   end.writeUInt32LE(directory.length, 12); end.writeUInt32LE(offset, 16);
   return Buffer.concat([...locals, directory, end]);
 }
+
+test('preset MetaHuman de Megascans: copia MetaHumans/<Nombre> y Common sin pisar el Common que ya hay', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    writeFileSync(join(f.projectDir, 'Juego.uproject'), JSON.stringify({Plugins: [{Name: 'LiveLink', Enabled: true}]}));
+    const hudson = await f.run('asset.migrate', {entryId: f.entry('Hudson').id});
+    assert.equal(hudson.ok, true, JSON.stringify(hudson));
+    assert.equal(hudson.root, '/Game/MetaHumans/Hudson');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'MetaHumans', 'Hudson', 'BP_Hudson.uasset')));
+    const common = join(f.projectDir, 'Content', 'MetaHumans', 'Common', 'Common', 'MetaHuman_ControlRig.uasset');
+    assert.equal(readFileSync(common, 'utf8'), '4dlykISk');
+    const emory = await f.run('asset.migrate', {entryId: f.entry('Emory').id});
+    assert.equal(emory.ok, true);
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'MetaHumans', 'Emory', 'BP_Emory.uasset')));
+    assert.equal(readFileSync(common, 'utf8'), '4dlykISk', 'el Common compartido no se sobrescribe');
+    assert.deepEqual(listDecisions(f.db, 'open'), []);
+  } finally { f.close(); }
+});
+
+test('preset MetaHuman sin LiveLink en el proyecto: Decisión antes de activarlo en el .uproject; «Activar» lo añade sin tocar el resto', async () => {
+  const f = assetFixture();
+  try {
+    process.env.KRATOS_FAKE = 'ok';
+    const uproject = join(f.projectDir, 'Juego.uproject');
+    writeFileSync(uproject, JSON.stringify({FileVersion: 3, Plugins: [{Name: 'PythonScriptPlugin', Enabled: true}]}, null, '\t'));
+    const hudson = f.entry('Hudson');
+    const first = await f.run('asset.migrate', {entryId: hudson.id}, 'mh');
+    assert.equal(first.deferred, true);
+    const [decision] = listDecisions(f.db, 'open');
+    assert.match(decision.reason, /MetaHuman necesita el plugin LiveLink/);
+    assert.deepEqual(decision.options.map(o => o.id), ['approve', 'cancel']);
+    assert.ok(!existsSync(join(f.projectDir, 'Content', 'MetaHumans')), 'nada se copia antes de decidir');
+    resolveDecision(f.db, decision.id, 'approve', 'usuario');
+    assert.equal((await f.run('asset.migrate', {entryId: hudson.id}, 'mh')).ok, true);
+    const plugins = JSON.parse(readFileSync(uproject, 'utf8')).Plugins;
+    assert.deepEqual(plugins, [{Name: 'PythonScriptPlugin', Enabled: true}, {Name: 'LiveLink', Enabled: true}]);
+  } finally { f.close(); }
+});

@@ -11,7 +11,7 @@ export interface ViewerItem {
   id: string
   name: string
   meta: string[]
-  type: 'image' | 'model' | 'text' | 'other'
+  type: 'image' | 'video' | 'model' | 'text' | 'other'
   path?: string | null
   url?: string | null
   /** Artefacto del servicio que `GlbViewer` carga por id. */
@@ -21,7 +21,7 @@ export interface ViewerItem {
 }
 
 export const viewerType = (path: string): ViewerItem['type'] =>
-  /\.(png|jpe?g|webp)$/i.test(path) ? 'image' : /\.(glb|gltf)$/i.test(path) ? 'model' : /\.(log|txt|md|json)$/i.test(path) ? 'text' : 'other'
+  /\.(png|jpe?g|webp)$/i.test(path) ? 'image' : /\.(mp4|webm)$/i.test(path) ? 'video' : /\.(glb|gltf)$/i.test(path) ? 'model' : /\.(log|txt|md|json)$/i.test(path) ? 'text' : 'other'
 
 /** La miniatura de una tarjeta: abre el visor y no hace nada más (en Decisiones no elige la opción). */
 export function ViewerButton({ name, onOpen, children, className }: {
@@ -50,6 +50,9 @@ function Body({ item, src }: { item: ViewerItem; src: string | null }) {
   if (item.type === 'model' && item.modelId) return <div className="size-full"><GlbViewer id={item.modelId} name={item.name} /></div>
   // resolución natural sin recorte: el cuadro (relative) da el alto y el ancho máximos; una imagen pequeña no se amplía
   if (item.type === 'image' && src) return <img src={src} alt={item.name} className="absolute inset-0 m-auto max-h-full max-w-full object-contain" />
+  // hito 5b: el clip de una animación se ve en bucle, sin sonido, con controles; mismo cuadro que una imagen
+  if (item.type === 'video' && src) return <video src={src} aria-label={item.name} controls autoPlay muted loop playsInline
+    className="absolute inset-0 m-auto max-h-full max-w-full" />
   if (item.type === 'text' && src) return <TextBody src={src} />
   return <div className="flex flex-col items-center gap-4 text-muted-foreground">{item.fallback}</div>
 }

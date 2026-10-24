@@ -57,7 +57,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
       const retry=!!handler && !command.type.startsWith('worker.') && !command.type.startsWith('review.') && !(error instanceof OrcaError)
         && !message.startsWith('invalid_') && !message.startsWith('orca:')
         // decisiones de política (presupuesto, prohibido para IA, Meshy hard surface): reintentar no cambia nada
-        && !['budget_exceeded','asset_ai_forbidden','meshy_kind_not_allowed','meshy_missing_key'].includes(message);
+        && !['budget_exceeded','asset_ai_forbidden','meshy_kind_not_allowed','meshy_missing_key','cascadeur_not_justified'].includes(message);
       fail(db,command.id,message,{retry,kind:failureKind(error)});
     } finally {clearInterval(pulse);}
   }

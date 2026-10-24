@@ -10,7 +10,7 @@ export const orders = ['recientes', 'tarea', 'tipo'] as const
 export type Order = (typeof orders)[number]
 export const orderLabel: Record<Order, string> = { recientes: 'Más recientes', tarea: 'Por tarea', tipo: 'Por tipo' }
 
-const checkNames: Record<string, string> = { cpp: 'Compilación C++', blueprint: 'Blueprints', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado' }
+const checkNames: Record<string, string> = { cpp: 'Compilación C++', blueprint: 'Blueprints', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', animation: 'Animación' }
 const kindNames: Record<string, string> = { model: 'Modelo', texture: 'Textura', screenshot: 'Captura', video: 'Vídeo', build: 'Compilación', report: 'Informe', diff: 'Cambios' }
 const prov = (a: Artifact) => (a.provenance ?? {}) as Record<string, unknown>
 const str = (v: unknown) => typeof v === 'string' && v.trim() ? v : undefined

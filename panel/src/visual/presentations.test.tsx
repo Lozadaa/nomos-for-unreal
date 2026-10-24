@@ -34,3 +34,7 @@ it('un evento resuelto o detenido no anuncia un estado activo que no conoce', ()
   expect(glyphFor('event', 'director.stopped')).toMatchObject({ label: 'Director', tone: 'neutral' })
   expect(glyphFor('event', 'review.completed')).toMatchObject({ label: 'Revisión', tone: 'neutral' })
 })
+
+it('las plantillas del motor se presentan como la pastilla «Motor»', () => {
+  expect(glyphFor('source', 'engine')).toMatchObject({ Icon: null, presentation: 'pill', label: 'Motor' })
+})

@@ -60,3 +60,33 @@ describe('Visor de assets (corrección 3 del usuario)', () => {
     expect(await screen.findByRole('dialog', { name: 'Captura de control 1920×1080' })).toBeInTheDocument()
   })
 })
+
+describe('Vídeo de animación (hito 5b, corrección 2)', () => {
+  const video = a('9', 'video', 'C:/k/tests/x/anim-1280x720.mp4', { label: 'Animación · vídeo 1280×720 · AM_ComboAttack', resolution: '1280x720' })
+
+  it('la tarjeta muestra el fotograma del 50 % con el glifo de vídeo y el visor lo reproduce en bucle, sin sonido y con controles', async () => {
+    vi.mocked(api).mockResolvedValue([{ ...video, previewPath: 'C:/k/tests/x/anim-1280x720-50.png' }])
+    const user = userEvent.setup()
+    at('/')
+    const thumb = await screen.findByRole('button', { name: 'Ver Animación · vídeo 1280×720 · AM_ComboAttack a tamaño completo' })
+    const still = within(thumb).getByRole('img', { name: 'Animación · vídeo 1280×720 · AM_ComboAttack' })
+    expect(still.getAttribute('src')).toContain('/artifacts/9/preview')
+    expect(within(thumb).getByRole('img', { name: 'Vídeo' })).toBeInTheDocument()
+    await user.click(thumb)
+    const dialog = await screen.findByRole('dialog', { name: 'Animación · vídeo 1280×720 · AM_ComboAttack' })
+    const player = dialog.querySelector('video')!
+    expect(player).not.toBeNull()
+    expect(player.getAttribute('src')).toContain('/artifacts/9/file')
+    for (const attr of ['controls', 'autoplay', 'loop', 'playsinline']) expect(player.hasAttribute(attr), attr).toBe(true)
+    expect(player.muted).toBe(true)
+    expect(player.getAttribute('aria-label')).toBe('Animación · vídeo 1280×720 · AM_ComboAttack')
+  })
+
+  it('sin miniatura, la tarjeta del vídeo es su glifo; el filtro Capturas la incluye', async () => {
+    vi.mocked(api).mockResolvedValue([video])
+    at('/?tipo=capturas')
+    const thumb = await screen.findByRole('button', { name: /^Ver Animación · vídeo/ })
+    expect(within(thumb).queryByRole('img', { name: /AM_ComboAttack/ })).toBeNull()
+    expect(within(thumb).getByRole('img', { name: 'Vídeo' })).toBeInTheDocument()
+  })
+})

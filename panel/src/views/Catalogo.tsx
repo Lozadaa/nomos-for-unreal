@@ -36,7 +36,7 @@ export interface CatalogEntry {
 
 const sourceLabel: Record<string, string> = {
   fab: 'Fab', megascans: 'Megascans', polyhaven: 'Poly Haven', ambientcg: 'ambientCG', kenney: 'Kenney',
-  quaternius: 'Quaternius', sketchfab: 'Sketchfab', freesound: 'Freesound', meshy: 'Meshy', blender: 'Blender',
+  quaternius: 'Quaternius', sketchfab: 'Sketchfab', freesound: 'Freesound', meshy: 'Meshy', blender: 'Blender', engine: 'Motor',
 }
 
 type Mode = 'todos' | 'usables' | 'instalados'

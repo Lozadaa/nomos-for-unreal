@@ -28,23 +28,32 @@ export function migrateLeases(db: DatabaseSync): void {
   });
 }
 
+/** Añade `value` al `check(column in (...))` de `table` reconstruyendo la tabla (SQLite no altera checks); conserva rowid, índices y disparadores. */
+function widenCheck(db: DatabaseSync, table: string, column: string, value: string): void {
+  const sql=db.prepare("select sql from sqlite_master where type='table' and name=?").get(table)!.sql as string;
+  if(sql.includes(`'${value}'`)) return;
+  const check=new RegExp(String.raw`check\s*\(\s*${column}\s+in\s*\(([^)]*)\)\s*\)`,'i');
+  if(!check.test(sql)) throw new Error(`invalid_${column}_schema`);
+  const temp=`${table}_migrating`;
+  const definition=sql.replace(check,(_,values)=>`check(${column} in (${values},'${value}'))`)
+    .replace(new RegExp(String.raw`^CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:"${table}"|${table})\s*\(`,'i'),`CREATE TABLE ${temp}(`);
+  if(definition===sql || !definition.startsWith(`CREATE TABLE ${temp}(`)) throw new Error(`invalid_${column}_schema`);
+  const auxiliaries=db.prepare("select sql from sqlite_master where tbl_name=? and type in ('index','trigger') and sql is not null").all(table);
+  const columns=['rowid',...db.prepare(`pragma table_info(${table})`).all().map(row=>'"'+String(row.name).replaceAll('"','""')+'"')].join(',');
+  db.exec(definition);
+  db.exec(`insert into ${temp}(${columns}) select ${columns} from ${table} order by rowid`);
+  db.exec(`drop table ${table}; alter table ${temp} rename to ${table}`);
+  for(const auxiliary of auxiliaries) db.exec(auxiliary.sql as string);
+}
+
 /** Amplía el proveedor persistible sin convertirlo en un adaptador ejecutable. */
 export function migrateWorkerProviders(db:DatabaseSync):void {
-  transaction(db,()=>{
-    const sql=db.prepare("select sql from sqlite_master where type='table' and name='runs'").get()!.sql as string;
-    if(sql.includes("'opencode'")) return;
-    const check=/check\s*\(\s*provider\s+in\s*\(([^)]*)\)\s*\)/i;
-    if(!check.test(sql)) throw new Error('invalid_provider_schema');
-    const definition=sql.replace(check,(_,providers)=>`check(provider in (${providers},'opencode'))`)
-      .replace(/^CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:"runs"|runs)\s*\(/i,'CREATE TABLE runs_migrating(');
-    if(definition===sql || !definition.startsWith('CREATE TABLE runs_migrating(')) throw new Error('invalid_provider_schema');
-    const auxiliaries=db.prepare("select sql from sqlite_master where tbl_name='runs' and type in ('index','trigger') and sql is not null").all();
-    const columns=['rowid',...db.prepare('pragma table_info(runs)').all().map(row=>'"'+String(row.name).replaceAll('"','""')+'"')].join(',');
-    db.exec(definition);
-    db.exec(`insert into runs_migrating(${columns}) select ${columns} from runs order by rowid`);
-    db.exec('drop table runs; alter table runs_migrating rename to runs');
-    for(const auxiliary of auxiliaries) db.exec(auxiliary.sql as string);
-  });
+  transaction(db,()=>widenCheck(db,'runs','provider','opencode'));
+}
+
+/** Hito 5b: plantillas del motor como fuente del catálogo. */
+export function migrateEngineSource(db: DatabaseSync): void {
+  transaction(db, () => widenCheck(db, 'catalog_entries', 'source', 'engine'));
 }
 
 /** Hito 5: cada prueba dice qué comprobación es (cpp, blueprint, asset, map, umg, build). */

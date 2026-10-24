@@ -13,3 +13,4 @@ panel/dist/
 panel/test-results/
 panel/playwright-report/
 !tests/fixtures/**/*.log
+__pycache__/
