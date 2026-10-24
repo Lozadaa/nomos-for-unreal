@@ -12,11 +12,12 @@ import { runCheck, type CheckDeps } from '../checks/run.ts';
 import { animationCheck, specFile, type CharacterSpec } from '../checks/animation.ts';
 import { commandRun, targetProject } from './asset-run.ts';
 
-type Payload = {taskId?: unknown; mesh?: unknown; animations?: unknown; targetSkeleton?: unknown; targetProject?: unknown};
+type Payload = {taskId?: unknown; mesh?: unknown; animations?: unknown; targetSkeleton?: unknown; targetProject?: unknown; newClip?: unknown};
 const gamePath = (v: unknown): v is string => typeof v === 'string' && /^\/Game\/[\p{L}\p{N}_ /.-]+$/u.test(v) && !v.includes('..');
 
 function parse(p: Payload): CharacterSpec & {taskId: string} {
-  if (typeof p.taskId !== 'string' || !gamePath(p.mesh) || !Array.isArray(p.animations) || !p.animations.length
+  // un clip por comprobación: animation captura y graba un solo clip, y el resto quedaría aprobado sin verlo
+  if (typeof p.taskId !== 'string' || !gamePath(p.mesh) || !Array.isArray(p.animations) || p.animations.length !== 1
     || !p.animations.every(gamePath) || ![undefined, 'metahuman'].includes(p.targetSkeleton as string)) throw new Error('invalid_character_payload');
   return {taskId: p.taskId, mesh: p.mesh, animations: p.animations as string[], ...(p.targetSkeleton ? {targetSkeleton: 'metahuman' as const} : {})};
 }
@@ -65,6 +66,10 @@ export function createCharacterSetup(deps: CheckDeps = {}): Handler {
       // el bloqueo lo puso una comprobación anterior de esta misma orden de trabajo: con esta en verde, sobra
       ctx.db.prepare("update tasks set blocked_reason=null,updated_at=? where id=? and blocked_reason like 'Animación rota%'").run(new Date().toISOString(), task.id);
       appendEvent(ctx.db, 'character.ready', null, {taskId: task.id, runId: run.id, testRunId: row.id, mesh: spec.mesh});
+      // un clip nuevo de Cascadeur es una elección creativa: se pregunta ya con su vídeo y su comprobación en verde
+      if (payload.newClip === true) openDecision(ctx.db, {taskId: task.id, reason: `Clip nuevo de Cascadeur: ${spec.animations[0].split('/').at(-1)} · míralo en Entregas`,
+        evidence: [{kind: 'test', ref: row.id}], options: [{id: 'approve', label: 'Usar este clip', description: 'Visto el vídeo de dos ángulos en Entregas'},
+          {id: 'discard', label: 'Descartarlo', description: 'Volver al clip del catálogo'}]});
       return {passed: true, testRunId: row.id};
     }
     finishRun(ctx.db, run.id, 'failed', summary || 'La comprobación animation falló');

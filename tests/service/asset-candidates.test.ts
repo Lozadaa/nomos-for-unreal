@@ -64,7 +64,7 @@ test('elegir Manny encola la migración de maniquíes y del clip y después char
     assert.deepEqual(commands(f), [
       {type: 'asset.migrate', key: `migrate:${chars.id}:Juego`, payload: {entryId: chars.id}},
       {type: 'asset.migrate', key: `migrate:${combat.id}:Juego`, payload: {entryId: combat.id}},
-      {type: 'character.setup', key: `character.setup:${task.id}:${chars.id}:SKM_Manny_Simple`, payload: {taskId: task.id,
+      {type: 'character.setup', key: `character.setup:${task.id}:${chars.id}:SKM_Manny_Simple:AM_ComboAttack`, payload: {taskId: task.id,
         mesh: '/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple', animations: ['/Game/Variant_Combat/Anims/AM_ComboAttack']}},
     ]);
     const after = getTask(f.db, task.id)!;
@@ -101,13 +101,13 @@ test('sin candidatos: Decisión con las dos salidas reales; «Usar maniquí del 
   try {
     upsertEntry(f.db, {name: 'Pack sin esqueleto', category: 'pack', description: '', source: 'fab', license: 'Fab Standard License'});
     const task = hero(f);
-    await f.run('asset.candidates', {taskId: task.id, query: 'dragón', kinds: ['pack']}, 'c');
+    await f.run('asset.candidates', {taskId: task.id, query: 'dragón', kinds: ['pack'], animations: ['AM_ComboAttack']}, 'c');
     const [decision] = listDecisions(f.db, 'open');
     assert.equal(decision.reason, 'Elegir personaje base: ningún candidato en el catálogo');
     assert.deepEqual(decision.options.map(o => [o.id, o.label]), [['fab', 'Buscar en Fab'], ['engine', 'Usar maniquí del motor']]);
     assert.match(decision.options[0].description, /nivel 2, con clics/);
     resolveDecision(f.db, decision.id, 'engine', 'usuario');
-    await f.run('asset.candidates', {taskId: task.id, query: 'dragón', kinds: ['pack']}, 'c');
+    await f.run('asset.candidates', {taskId: task.id, query: 'dragón', kinds: ['pack'], animations: ['AM_ComboAttack']}, 'c');
     assert.equal(commands(f).find(c => c.type === 'character.setup')!.payload.mesh, '/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple');
 
     const other = hero(f);
@@ -135,5 +135,35 @@ test('un preset que ya se llama «MetaHuman …» no repite la palabra en la tar
     await f.run('asset.candidates', {taskId: hero(f).id, query: 'Ada', kinds: ['metahuman-preset']});
     const labels = listDecisions(f.db, 'open')[0].options.map(o => o.label);
     assert.ok(labels.includes('MetaHuman Ada'), labels.join());
+  } finally { f.close(); }
+});
+
+test('sin clips del catálogo: no se encola un character.setup imposible; la tarea se bloquea con el clip que falta y la salida', async () => {
+  const f = assetFixture();
+  try {
+    const task = hero(f);
+    for (const [key, animations] of [['sin', []], ['falta', ['AM_Inexistente']]] as const) {
+      const t = key === 'sin' ? task : hero(f);
+      await f.run('asset.candidates', {taskId: t.id, query: 'héroe con ataque', animations}, key);
+      const decision = listDecisions(f.db, 'open').find(d => d.taskId === t.id)!;
+      resolveDecision(f.db, decision.id, decision.options[0].id, 'usuario');
+      const result = await f.run('asset.candidates', {taskId: t.id, query: 'héroe con ataque', animations}, key);
+      assert.equal(result.ok, true);
+      assert.ok(!commands(f).some(c => c.type === 'character.setup' && c.payload.taskId === t.id), key);
+      assert.match(getTask(f.db, t.id)!.blockedReason!, key === 'sin' ? /Falta el clip/ : /Falta el clip: AM_Inexistente.*asset cascadeur/);
+    }
+  } finally { f.close(); }
+});
+
+test('cada clip pide su propio character.setup: ninguno se aprueba sin capturarlo', async () => {
+  const f = assetFixture();
+  try {
+    const task = hero(f);
+    const payload = {taskId: task.id, query: 'héroe con ataque', animations: ['AM_ComboAttack', 'AM_ChargedAttack']};
+    await f.run('asset.candidates', payload, 'c');
+    resolveDecision(f.db, listDecisions(f.db, 'open')[0].id, listDecisions(f.db, 'open')[0].options[0].id, 'usuario');
+    await f.run('asset.candidates', payload, 'c');
+    const setups = commands(f).filter(c => c.type === 'character.setup');
+    assert.deepEqual(setups.map(c => c.payload.animations), [['/Game/Variant_Combat/Anims/AM_ComboAttack'], ['/Game/Variant_Combat/Anims/AM_ChargedAttack']]);
   } finally { f.close(); }
 });

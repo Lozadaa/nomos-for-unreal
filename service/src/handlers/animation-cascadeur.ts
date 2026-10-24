@@ -8,6 +8,7 @@ import { finishRun, startRun } from '../repo/runs.ts';
 import { updateRun } from '../repo/worker.ts';
 import { addArtifact } from '../repo/artifacts.ts';
 import { listDecisions, openDecision, resolveDecision } from '../repo/decisions.ts';
+import { enqueue } from '../commands.ts';
 import { saveCheck } from '../capability-checks.ts';
 import { readConfig } from '../config.ts';
 import { withEditor } from '../editor/queue.ts';
@@ -20,14 +21,18 @@ export type CascadeurDeps = AssetDeps & {cascadeur?: (ctx: WorkerContext) => Cas
 /** Política (hito 5b): Cascadeur nunca por defecto; solo si falta el clip, el QA rechazó el retarget o lo pide el usuario. */
 export const cascadeurReasons = ['clip_missing', 'retarget_rejected', 'user_request'];
 const actions = ['cleanup', 'author', 'fix-retarget'];
-type Payload = {taskId?: unknown; action?: unknown; sourceClip?: unknown; why?: unknown; notes?: unknown; targetProject?: unknown};
+type Payload = {taskId?: unknown; action?: unknown; sourceClip?: unknown; why?: unknown; notes?: unknown; targetProject?: unknown;
+  mesh?: unknown; targetSkeleton?: unknown};
+const game = (v: unknown): v is string => typeof v === 'string' && /^\/Game\/[\w/ .-]+$/.test(v) && !v.includes('..');
 const short = (path: string) => path.split('/').at(-1)!.split('.')[0];
 
 function parse(p: Payload) {
   if (!cascadeurReasons.includes(p.why as string)) throw new Error('cascadeur_not_justified');
-  if (typeof p.taskId !== 'string' || !actions.includes(p.action as string) || typeof p.sourceClip !== 'string'
-    || !/^\/Game\/[\w/ .-]+$/.test(p.sourceClip) || p.sourceClip.includes('..')) throw new Error('invalid_cascadeur_payload');
-  return {taskId: p.taskId, action: p.action as string, clip: p.sourceClip, notes: typeof p.notes === 'string' ? p.notes : ''};
+  // `mesh`: el personaje sobre el que se comprueba el clip que vuelve (character.setup); sin él no hay QA posible
+  if (typeof p.taskId !== 'string' || !actions.includes(p.action as string) || !game(p.sourceClip) || !game(p.mesh)
+    || ![undefined, 'metahuman'].includes(p.targetSkeleton as string)) throw new Error('invalid_cascadeur_payload');
+  return {taskId: p.taskId, action: p.action as string, clip: p.sourceClip, notes: typeof p.notes === 'string' ? p.notes : '',
+    mesh: p.mesh, targetSkeleton: p.targetSkeleton as 'metahuman' | undefined};
 }
 const paths = (ctx: WorkerContext, run: Run) => {
   const dir = (name: string) => { const d = join(ctx.dataDir, 'cascadeur', name); mkdirSync(d, {recursive: true}); return d; };
@@ -55,12 +60,13 @@ async function importBack(ctx: WorkerContext, deps: CascadeurDeps, project: Proj
     finishRun(ctx.db, run.id, 'failed', 'El FBX de Cascadeur no se pudo importar');
     return {ok: false, errors: result?.errors ?? ['sin informe de importación']};
   }
+  updateRun(ctx.db, run.id, {waiting: false, phase: 'finished'});
   finishRun(ctx.db, run.id, 'done', `Clip de Cascadeur importado: ${result.clip}`);
   setTaskWait(ctx.db, task.id, null);
-  // un clip nuevo es una elección creativa: el usuario lo aprueba (después de la comprobación animation con su vídeo)
-  if (spec.action === 'author') openDecision(ctx.db, {taskId: task.id, reason: `Clip nuevo de Cascadeur: ${short(result.clip)}${spec.notes ? ` · ${spec.notes}` : ''}`,
-    evidence: [{kind: 'clip', ref: result.clip}], options: [{id: 'approve', label: 'Usar este clip', description: 'Aprobado tras ver el vídeo en Entregas'},
-      {id: 'discard', label: 'Descartarlo', description: 'Volver al clip del catálogo'}]});
+  // todo clip que vuelve pasa por la comprobación animation (vídeo y deformación); uno nuevo pide además la Decisión del
+  // usuario, que character.setup abre solo si esa comprobación pasa
+  enqueue(ctx.db, 'character.setup', {taskId: task.id, mesh: spec.mesh, ...(spec.targetSkeleton ? {targetSkeleton: spec.targetSkeleton} : {}),
+    animations: [result.clip], ...(spec.action === 'author' ? {newClip: true} : {})}, `character.setup:${task.id}:cascadeur:${run.id}`);
   return {ok: true, clip: result.clip};
 }
 
@@ -91,7 +97,7 @@ export function createAnimationCascadeur(deps: CascadeurDeps = {}): Handler {
       const decision = decisionOf(ctx, task, command.id);
       if (existsSync(paths(ctx, previous).out)) {
         if (decision?.state === 'open') try { resolveDecision(ctx.db, decision.id, 'manual', 'kratos'); } catch { /* caducada: da igual */ }
-        updateRun(ctx.db, previous.id, {waiting: false, phase: 'running'});
+        // la run sigue «esperando» hasta importar: si el editor está ocupado, el reintento vuelve aquí y nunca re-exporta
         return importBack(ctx, deps, project, task, previous, spec);
       }
       if (decision?.state === 'resolved' && decision.chosenOptionId === 'retarget') {
@@ -110,6 +116,8 @@ export function createAnimationCascadeur(deps: CascadeurDeps = {}): Handler {
     if (!exported?.ok) { finishRun(ctx.db, run.id, 'failed', 'Unreal no exportó el clip a FBX'); return {ok: false, errors: exported?.errors ?? []}; }
     writeFileSync(p.job, JSON.stringify({action: spec.action, notes: spec.notes, input_fbx: p.input, output_fbx: p.out, report: p.report,
       skeleton: exported.skeleton, export: {up_axis: 'Z', mode: 'Binary', meshes: false}}, null, 2), 'utf8');
+    // crear un clip nuevo no se hace por script (el job solo limpia y reexporta): siempre con el animador en Cascadeur
+    if (spec.action === 'author') return waitExternally(ctx, task, run, command.id, spec, false, 'crear un clip nuevo es trabajo de animador en Cascadeur');
     const csc = deps.cascadeur ? deps.cascadeur(ctx) : findCascadeur((readConfig(ctx.dataDir) as Record<string, unknown>).cascadeurPath);
     if (csc) await runJob(csc, p.job).catch(() => null);
     const report = existsSync(p.report) ? JSON.parse(readFileSync(p.report, 'utf8')) : null;

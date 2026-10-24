@@ -113,7 +113,9 @@ export function createMigrate(deps: AssetDeps = {}): Handler {
         for (const part of preset.filter(part => !existsSync(join(dest, part))))
           cpSync(join(presetRoot(entry), part), join(dest, part), {recursive: true, errorOnExist: true, force: false});
       } else if (!same && zip) extractZip(entry.localPath, dest);
-      else if (!same && !existing) cpSync(entry.localPath, dest, {recursive: true, errorOnExist: true, force: false});
+      // plantilla ya presente: se copia solo lo que falta (force: false nunca pisa un archivo del proyecto)
+      else if (!same && existing) cpSync(entry.localPath, dest, {recursive: true, errorOnExist: false, force: false});
+      else if (!same) cpSync(entry.localPath, dest, {recursive: true, errorOnExist: true, force: false});
       const root = preset.length ? `/Game/${rel}/${entry.name}` : `/Game/${rel}`;
       const verified = await unrealFor(deps, ctx).verifyPack(project.uproject, root);
       const warning = versionWarning(entry, verified.engine);
@@ -135,7 +137,7 @@ export function createMigrate(deps: AssetDeps = {}): Handler {
         projects: [...new Set([...entry.projects, project.name])]});
       appendEvent(ctx.db, 'asset.migrated', null, detail);
       moveTask(ctx.db, task.id, 'cerrando'); moveTask(ctx.db, task.id, 'done');
-      const kept = existing ? `/Game/${rel} ya existía en ${project.name}; no se sobrescribe. ` : '';
+      const kept = existing ? `/Game/${rel} ya existía en ${project.name}: solo se copia lo que faltaba, nada se sobrescribe. ` : '';
       finishRun(ctx.db, run.id, 'done', kept + (warning ? `Migrado y verificado. ${warning}` : 'Migrado y verificado sin GUI'));
       return {ok: true, ...detail};
     } catch (error) {

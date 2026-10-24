@@ -59,6 +59,10 @@ ni en ningún informe.
    `MSYS_NO_PATHCONV=1` con `--data` en formato Windows, o PowerShell. Lo dice la referencia de personajes de la skill.
 8. **KratosFabTest sin `Binaries/`.** El editor por lotes se cerraba sin informe. Se compiló el módulo a mano. Pendiente:
    que Kratos lo detecte y lo diga, o compile antes de abrir el editor.
+9. **«Retarget a mano» no podía funcionar.** Al relanzar, Kratos regeneraba los IK Rig y volvía a mapear todas las cadenas
+   (`auto_map_chains(FUZZY, True)`): lo emparejado a mano se perdía. Comprobado en KratosFabTest con el IK Retargeter del
+   caso (e): Spine emparejada a mano con Neck volvía a Spine. Ahora el retargeter existente se reutiliza con sus IK Rig y solo
+   se rellenan las cadenas sin pareja; la misma prueba conserva Spine ← Neck (después se restauró el mapeo original).
 
 ## Hallazgos de la sonda (2026-10-24)
 

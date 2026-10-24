@@ -26,7 +26,7 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   },
   'character.setup': (db, p) => {
     const game = (v: unknown) => text(v) && /^\/Game\/[\p{L}\p{N}_ /.-]+$/u.test(v) && !v.includes('..');
-    if (!text(p.taskId) || !game(p.mesh) || !Array.isArray(p.animations) || !p.animations.length || !p.animations.every(game)
+    if (!text(p.taskId) || !game(p.mesh) || !Array.isArray(p.animations) || p.animations.length !== 1 || !p.animations.every(game)
       || ![undefined, 'metahuman'].includes(p.targetSkeleton as string) || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
     if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
   },
@@ -36,8 +36,9 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   },
   'animation.cascadeur': (db, p) => {
     if (!cascadeurReasons.includes(p.why as string)) throw new Error('cascadeur_not_justified');
-    if (!text(p.taskId) || !['cleanup', 'author', 'fix-retarget'].includes(p.action as string) || !text(p.sourceClip)
-      || !p.sourceClip.startsWith('/Game/') || p.sourceClip.includes('..') || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
+    const game = (v: unknown) => text(v) && v.startsWith('/Game/') && !v.includes('..');
+    if (!text(p.taskId) || !['cleanup', 'author', 'fix-retarget'].includes(p.action as string) || !game(p.sourceClip) || !game(p.mesh)
+      || ![undefined, 'metahuman'].includes(p.targetSkeleton as string) || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
     if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
   },
   'checks.run': (db, p) => {

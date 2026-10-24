@@ -42,11 +42,16 @@ function choose(ctx: WorkerContext, task: Task, project: Project, payload: Paylo
   const bones = listCatalog(ctx.db).filter(e => e.category === 'character' && e.source === 'engine' && e.tags.some(t => skeletons.includes(t)));
   for (const entry of [...new Map([chosen.entry, ...bones, ...found.map(c => c.entry)].map(e => [e.id, e])).values()])
     enqueue(ctx.db, 'asset.migrate', {entryId: entry.id, ...target}, `migrate:${entry.id}:${project.name}`);
-  // después de las migraciones: el carril largo las ejecuta en orden de llegada y character.setup comprueba que la malla existe
-  enqueue(ctx.db, 'character.setup', {taskId: task.id, mesh: chosen.mesh, ...(chosen.targetSkeleton ? {targetSkeleton: chosen.targetSkeleton} : {}),
-    animations: found.map(c => c.path), ...target}, `character.setup:${task.id}:${chosen.id}`);
+  // después de las migraciones: el carril largo las ejecuta en orden de llegada y character.setup comprueba que la malla existe;
+  // un character.setup por clip: la comprobación animation captura y graba un clip, así ninguno se aprueba sin verlo
+  for (const clip of found)
+    enqueue(ctx.db, 'character.setup', {taskId: task.id, mesh: chosen.mesh, ...(chosen.targetSkeleton ? {targetSkeleton: chosen.targetSkeleton} : {}),
+      animations: [clip.path], ...target}, `character.setup:${task.id}:${chosen.id}:${clip.name}`);
   if (requireTask(ctx.db, task.id).state === 'pendiente') moveTask(ctx.db, task.id, 'preparada');
-  setTaskWait(ctx.db, task.id, 'Esperando editor');
+  // sin clips no hay nada que montar: se dice qué falta y la salida (Cascadeur solo con motivo), en vez de esperar al editor
+  if (!found.length) blockTask(ctx.db, task.id, `Falta el clip${missing.length ? `: ${missing.join(', ')} no está en el catálogo` : ' de animación'}`
+    + ' — pide otro clip o créalo con asset cascadeur --why clip_missing');
+  else setTaskWait(ctx.db, task.id, 'Esperando editor');
   appendEvent(ctx.db, 'asset.candidate_chosen', null, {taskId: task.id, entryId: chosen.entry.id, label: chosen.label, missingClips: missing});
   return {ok: true, taskId: task.id, chosen: chosen.label, missingClips: missing};
 }

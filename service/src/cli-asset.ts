@@ -5,11 +5,11 @@ import { request, serviceInfo } from './client.ts';
 
 /** `kratos asset index|search|migrate|prepare|download|generate|candidates|character|metahuman|cascadeur`: envoltorios de GET /catalog y POST /commands. */
 export async function assetCli(argv: string[]): Promise<boolean> {
-  const at = argv.findIndex((arg, i) => arg === 'asset' && !['--data', '--target', '--task', '--animation', '--action', '--why'].includes(argv[i - 1] ?? ''));
+  const at = argv.findIndex((arg, i) => arg === 'asset' && !['--data', '--target', '--task', '--animation', '--action', '--why', '--mesh'].includes(argv[i - 1] ?? ''));
   if (at < 0) return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},
     target: {type: 'string'}, kind: {type: 'string'}, 'params-file': {type: 'string'}, credits: {type: 'string'},
-    'idempotency-key': {type: 'string'}, task: {type: 'string'}, animation: {type: 'string', multiple: true}, metahuman: {type: 'boolean'}, action: {type: 'string'}, why: {type: 'string'}}});
+    'idempotency-key': {type: 'string'}, task: {type: 'string'}, animation: {type: 'string', multiple: true}, metahuman: {type: 'boolean'}, action: {type: 'string'}, why: {type: 'string'}, mesh: {type: 'string'}}});
   const [, action, arg, ...extra] = positionals;
   const call = (path: string, data?: unknown) => request(serviceInfo(resolve(values.data ?? '.kratos')), path, data);
   const minute = new Date().toISOString().slice(0, 16);
@@ -26,8 +26,10 @@ export async function assetCli(argv: string[]): Promise<boolean> {
   else if (action === 'download') result = await send('asset.request_download', {entryId: arg, ...target}, `download:${arg}:${minute}`);
   else if (action === 'cascadeur') {
     // solo si falta el clip (clip_missing), el QA rechazó el retarget (retarget_rejected) o lo pide el usuario (user_request)
-    if (!values.task || !values.action || !values.why) throw new Error('Uso: kratos asset cascadeur /Game/CLIP --task T --action cleanup|author|fix-retarget --why MOTIVO');
-    result = await send('animation.cascadeur', {taskId: values.task, action: values.action, sourceClip: arg, why: values.why, ...target},
+    if (!values.task || !values.action || !values.why || !values.mesh)
+      throw new Error('Uso: kratos asset cascadeur /Game/CLIP --task T --action cleanup|author|fix-retarget --why MOTIVO --mesh /Game/PERSONAJE [--metahuman]');
+    result = await send('animation.cascadeur', {taskId: values.task, action: values.action, sourceClip: arg, why: values.why, mesh: values.mesh,
+      ...(values.metahuman ? {targetSkeleton: 'metahuman'} : {}), ...target},
       `animation.cascadeur:${values.task}:${arg}:${minute}`);
   } else if (action === 'metahuman') {
     if (!values.task) throw new Error('Uso: kratos asset metahuman NOMBRE --task TAREA');

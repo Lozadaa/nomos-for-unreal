@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { createTask, getTask } from '../../service/src/repo/tasks.ts';
 import { listArtifacts } from '../../service/src/repo/artifacts.ts';
 import { listDecisions, resolveDecision } from '../../service/src/repo/decisions.ts';
+import { acquire, release } from '../../service/src/leases.ts';
+import { startRun } from '../../service/src/repo/runs.ts';
 import { filtered } from '../../service/src/repo/rows.ts';
 import type { Run } from '../../service/src/model.ts';
 import { assetFixture } from './asset-fixture.ts';
@@ -15,7 +17,7 @@ const clip = '/Game/Characters/Mannequins/Anims/Unarmed/Attack/MM_Attack_01';
 function setup() {
   const f = assetFixture({cascadeur: () => fakeCsc});
   const task = createTask(f.db, {title: 'Ataque limpio', area: 'animacion'});
-  const payload = {taskId: task.id, action: 'cleanup', sourceClip: clip, why: 'retarget_rejected'};
+  const payload = {taskId: task.id, action: 'cleanup', sourceClip: clip, why: 'retarget_rejected', mesh: '/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple'};
   const run = (extra: object = {}, id = 'csc-1') => f.run('animation.cascadeur', {...payload, ...extra}, id);
   return {...f, task, run, runs: () => filtered<Run>(f.db, 'runs', {taskId: task.id})};
 }
@@ -81,9 +83,37 @@ test('política: Cascadeur solo si falta el clip, el QA rechazó el retarget o l
     await assert.rejects(f.run({why: 'por_defecto'}), /cascadeur_not_justified/);
     await assert.rejects(f.run({action: 'rig'}), /invalid_cascadeur_payload/);
     process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'ok';
+    // crear un clip no se hace por script: author va siempre por el camino asistido, aunque haya licencia
     const authored = await f.run({action: 'author', why: 'clip_missing', notes: 'patada giratoria'}, 'csc-2');
-    assert.equal(authored.ok, true);
-    const [decision] = listDecisions(f.db, 'open');
-    assert.match(decision.reason, /Clip nuevo de Cascadeur/);
+    assert.equal(authored.deferred, true);
+    assert.match(listDecisions(f.db, 'open')[0].reason, /Cascadeur no terminó solo: crear un clip nuevo es trabajo de animador/);
+  } finally { f.close(); }
+});
+
+test('el clip de Cascadeur pasa por character.setup (QA) antes de nada; un clip nuevo pide su Decisión solo con ese QA en verde', async () => {
+  const f = setup();
+  try {
+    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'ok';
+    const result = await f.run();
+    const setups = (f.db.prepare("select payload from commands where type='character.setup'").all() as {payload: string}[]).map(r => JSON.parse(r.payload));
+    assert.deepEqual(setups, [{taskId: f.task.id, mesh: '/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple', animations: [result.clip]}]);
+    assert.equal(listDecisions(f.db, 'open').length, 0, 'cleanup no es un clip nuevo: su puerta es la comprobación animation');
+  } finally { f.close(); }
+});
+
+test('Review Focus 7 con el editor ocupado al reanudar: no re-exporta ni pisa el FBX hecho a mano', async () => {
+  const f = setup();
+  try {
+    process.env.KRATOS_FAKE = 'ok'; process.env.KRATOS_CSC_FAKE = 'noflag';
+    await f.run();
+    const [run] = f.runs(), out = join(f.dataDir, 'cascadeur', 'out', `${run.id}.fbx`);
+    mkdirSync(join(out, '..'), {recursive: true}); writeFileSync(out, 'fbx a mano');
+    const other = createTask(f.db, {title: 'Otra', area: 'assets'}), holder = startRun(f.db, {taskId: other.id, role: 'arte', provider: 'unreal'});
+    acquire(f.db, holder.id, other.id, ['editor/Juego']);
+    assert.equal((await f.run()).deferred, true);
+    release(f.db, holder.id);
+    process.env.KRATOS_CSC_FAKE = 'ok';
+    assert.equal((await f.run()).ok, true);
+    assert.equal(readFileSync(out, 'utf8'), 'fbx a mano');
   } finally { f.close(); }
 });

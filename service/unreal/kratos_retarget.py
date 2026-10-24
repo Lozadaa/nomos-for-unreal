@@ -86,20 +86,31 @@ def retarget(animations, target_mesh_path, dest, source_mesh_path=None, target_r
         report["errors"].append("Sin malla origen o destino para el retarget")
         return report
     report["source_mesh"] = source_mesh.get_path_name()
-    source_rig = auto_rig(source_mesh, dest)
-    target_rig = unreal.load_asset(target_rig_path) if target_rig_path else None
+    rtg_path = f"{dest}/RTG_{short(source_mesh.get_path_name())}_{short(target_mesh.get_path_name())}"
+    # «Retarget a mano»: si el retargeter ya existe, sus IK Rig y su mapeo son del usuario; se reutilizan sin regenerar
+    # nada y solo se rellenan las cadenas sin pareja (force_remap=False). Si no, la regeneración borraría su arreglo.
+    previous = unreal.load_asset(rtg_path)
+    reuse = previous and all(unreal.IKRetargeterController.get_controller(previous).get_ik_rig(side)
+                             for side in (unreal.RetargetSourceOrTarget.SOURCE, unreal.RetargetSourceOrTarget.TARGET))
+    if reuse:
+        old = unreal.IKRetargeterController.get_controller(previous)
+        source_rig, target_rig = old.get_ik_rig(unreal.RetargetSourceOrTarget.SOURCE), old.get_ik_rig(unreal.RetargetSourceOrTarget.TARGET)
+        report["notes"].append("IK Retargeter existente reutilizado: se respeta su mapeo")
+        target_rig_path = None
+    else:
+        source_rig = auto_rig(source_mesh, dest)
+        target_rig = unreal.load_asset(target_rig_path) if target_rig_path else None
     # IK_MH_IKRig es del esqueleto de MetaHuman Creator: sobre un MetaHuman de Megascans/Bridge (metahuman_base_skel en
     # /Game/MetaHumans/Common) deja al personaje de rodillas (comprobado en 5.8.3 con Hudson); se usa un IK Rig propio
-    if target_rig and "/MetaHumans/Common/" in target_mesh.skeleton.get_path_name():
+    if target_rig and target_rig_path and "/MetaHumans/Common/" in target_mesh.skeleton.get_path_name():
         report["notes"] = [f"{short(target_rig_path)} no se usa con un MetaHuman de Megascans: IK Rig propio para {short(target_mesh_path)}"]
         target_rig = None
-    if target_rig and not unreal.IKRigController.get_controller(target_rig).is_skeletal_mesh_compatible(target_mesh):
+    if target_rig and target_rig_path and not unreal.IKRigController.get_controller(target_rig).is_skeletal_mesh_compatible(target_mesh):
         report["errors"].append(f"{short(target_rig_path)} no es compatible con {short(target_mesh_path)}: se crea un IK Rig propio")
         target_rig = None
     target_rig = target_rig or auto_rig(target_mesh, dest)
     report["source_rig"], report["target_rig"] = source_rig.get_path_name(), target_rig.get_path_name()
-    rtg = ensure_asset(f"{dest}/RTG_{short(source_mesh.get_path_name())}_{short(target_mesh.get_path_name())}",
-                       unreal.IKRetargeter, unreal.IKRetargetFactory())
+    rtg = ensure_asset(rtg_path, unreal.IKRetargeter, unreal.IKRetargetFactory())
     ctrl = unreal.IKRetargeterController.get_controller(rtg)
     ctrl.set_ik_rig(unreal.RetargetSourceOrTarget.SOURCE, source_rig)
     ctrl.set_ik_rig(unreal.RetargetSourceOrTarget.TARGET, target_rig)
@@ -109,7 +120,7 @@ def retarget(animations, target_mesh_path, dest, source_mesh_path=None, target_r
         ctrl.add_default_ops()
     ctrl.assign_ik_rig_to_all_ops(unreal.RetargetSourceOrTarget.SOURCE, source_rig)
     ctrl.assign_ik_rig_to_all_ops(unreal.RetargetSourceOrTarget.TARGET, target_rig)
-    ctrl.auto_map_chains(unreal.AutoMapChainType.FUZZY, True)
+    ctrl.auto_map_chains(unreal.AutoMapChainType.FUZZY, not reuse)
     report["root_motion_target"] = fix_roots(ctrl)
     report["retargeter"] = rtg.get_path_name()
     mapped_sources = set()

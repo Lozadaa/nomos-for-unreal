@@ -129,7 +129,7 @@ test('plantilla del motor: Maniquíes UE5 conservan /Game/Characters/Mannequins 
   } finally { f.close(); }
 });
 
-test('plantilla del motor con destino existente: no sobrescribe, lo dice y verifica lo que hay, sin Decisión', async () => {
+test('plantilla del motor con destino existente: copia lo que falta sin sobrescribir nada, lo dice y verifica, sin Decisión', async () => {
   const f = assetFixture();
   try {
     process.env.KRATOS_FAKE = 'ok';
@@ -139,10 +139,11 @@ test('plantilla del motor con destino existente: no sobrescribe, lo dice y verif
     assert.equal(result.ok, true);
     assert.equal(result.existing, true);
     assert.equal(readFileSync(mine, 'utf8'), 'mío');
-    assert.ok(!existsSync(join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Quinn_Simple.uasset')), 'no se mezcla con la carpeta existente');
+    assert.ok(existsSync(join(f.projectDir, 'Content', 'Characters', 'Mannequins', 'Meshes', 'SKM_Quinn_Simple.uasset')),
+      'lo que falta se copia: un Content/Characters con otro personaje no deja sin maniquíes');
     assert.deepEqual(listDecisions(f.db, 'open'), []);
     const run = f.db.prepare('select summary from runs order by rowid desc limit 1').get() as {summary: string};
-    assert.match(run.summary, /ya existía en Juego; no se sobrescribe/);
+    assert.match(run.summary, /ya existía en Juego: solo se copia lo que faltaba, nada se sobrescribe/);
   } finally { f.close(); }
 });
 

@@ -123,6 +123,20 @@ test('un character.setup en verde tras uno roto quita el bloqueo «Animación ro
   } finally { f.close(); }
 });
 
+test('un clip nuevo de Cascadeur (newClip) abre su Decisión de aprobación solo cuando la comprobación animation pasa', async () => {
+  const f = setup();
+  try {
+    process.env.KRATOS_FAKE = 'deform';
+    await f.run({newClip: true}, 'roto');
+    assert.equal(listDecisions(f.db, 'open').length, 0, 'roto: ni se pregunta');
+    process.env.KRATOS_FAKE = 'ok';
+    await f.run({newClip: true}, 'bien');
+    const [decision] = listDecisions(f.db, 'open');
+    assert.match(decision.reason, /^Clip nuevo de Cascadeur: AM_ComboAttack/);
+    assert.deepEqual(decision.options.map(o => o.id), ['approve', 'discard']);
+  } finally { f.close(); }
+});
+
 test('sin ffmpeg: fotogramas en un zip con nombre y el resumen lo dice; nunca un vídeo inventado', async () => {
   const f = setup(null);
   try {
@@ -172,5 +186,6 @@ test('payload inválido', async () => {
     await assert.rejects(f.run({mesh: 'C:/fuera.uasset'}), /invalid_character_payload/);
     await assert.rejects(f.run({animations: []}), /invalid_character_payload/);
     await assert.rejects(f.run({targetSkeleton: 'otro'}), /invalid_character_payload/);
+    await assert.rejects(f.run({animations: [clip, '/Game/Otro/AM_Dos']}), /invalid_character_payload/, 'un clip por comprobación');
   } finally { f.close(); }
 });

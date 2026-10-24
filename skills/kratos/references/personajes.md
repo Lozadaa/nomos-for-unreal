@@ -31,6 +31,10 @@ en formato Windows (`cygpath -w`), o usa PowerShell.
   malla de un MetaHuman estirada hasta el suelo. Con un MetaHuman de Megascans no se usa `IK_MH_IKRig` (es del esqueleto de
   MetaHuman Creator).
 - Cadena principal sin mapear (columna, cuello, cabeza, brazos, piernas): Decisión «Retarget a mano» con guion; la tarea no avanza.
+  Al relanzar, el IK Retargeter que ya existe se reutiliza tal cual: solo se rellenan las cadenas sin pareja, nunca se pisa lo
+  emparejado a mano.
+- Un `character.setup` por clip (`--animation` una vez): cada clip tiene su PIE, su vídeo y su veredicto. Si el clip no está en
+  el catálogo, la tarea se bloquea con «Falta el clip…» y la salida (`asset cascadeur --why clip_missing`).
 - PIE en `/Game/Kratos/Maps/AnimTest` a 1280×720 y 1920×1080, congelado en el 0, 50 y 90 % del clip; vídeo del clip entero a
   30 fps desde dos cámaras (frontal 3/4 y lateral, unidas con `hstack`), MP4 H.264 si hay ffmpeg o zip de fotogramas si no.
 - Falla con: caja del actor > ×3 de la de reposo; huesos con escala 0; pose lejos del original (sondas fuera de cámara);
@@ -50,11 +54,13 @@ un guion de 5 pasos en el editor. Nunca se da por hecho un MetaHuman que no exis
 ## 4. Cascadeur, solo si hace falta
 
 ```sh
-kratos asset cascadeur /Game/.../MM_Attack_01 --task <id> --action cleanup|author|fix-retarget --why clip_missing|retarget_rejected|user_request
+kratos asset cascadeur /Game/.../MM_Attack_01 --task <id> --action cleanup|author|fix-retarget --why clip_missing|retarget_rejected|user_request --mesh /Game/.../BP_Hudson [--metahuman]
 ```
 
 Sin motivo válido, el servicio lo rechaza (`cascadeur_not_justified`). Unreal exporta el clip a FBX, Cascadeur lo procesa sin
-ventana (`--run-python-code`) y exporta solo huesos (Z arriba, binario), y el FBX vuelve a Unreal y pasa por `animation`.
+ventana (`--run-python-code`) y exporta solo huesos (Z arriba, binario). El FBX vuelve a Unreal y el clip importado pasa por
+`character.setup` sobre `--mesh`: sin su comprobación `animation` en verde no se usa.
 La licencia gratuita o de prueba solo guarda `.casc`: Capacidades lo dice y la Decisión ofrece exportar a mano o seguir
-solo con el retarget. Un FBX dejado en `.kratos/cascadeur/out/<run>.fbx` reanuda el flujo. Un clip nuevo (`author`) pasa por
-Decisión del usuario después de ver su vídeo.
+solo con el retarget. Un FBX dejado en `.kratos/cascadeur/out/<run>.fbx` reanuda el flujo. Crear un clip (`author`) es trabajo
+de animador: siempre va por el camino asistido (Decisión con guion y espera de ese FBX). El clip nuevo abre la Decisión
+«Clip nuevo de Cascadeur» solo cuando su comprobación `animation` pasa, para que el usuario lo vea en Entregas.
