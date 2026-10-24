@@ -7,6 +7,7 @@ import { assetPrepare } from './asset-prepare.ts';
 import { assetCandidates } from './asset-candidates.ts';
 import { createCharacterSetup } from './character-setup.ts';
 import { createCharacterMetahuman } from './character-metahuman.ts';
+import { createAnimationCascadeur, type CascadeurDeps } from './animation-cascadeur.ts';
 import type { CheckDeps } from '../checks/run.ts';
 import { createDetect, createRequestDownload, type DownloadDeps } from './asset-download.ts';
 import { createMeshyGenerate, createMeshyPoll, type MeshyDeps } from './asset-meshy.ts';
@@ -20,10 +21,10 @@ const assetIndex: Handler = async (_command, ctx) => {
 };
 
 /** Trabajo de assets de la bandeja de comandos; nunca se llama de forma síncrona desde una ruta. */
-export function createAssetHandlers(deps: AssetDeps & DownloadDeps & MeshyDeps & Pick<CheckDeps, 'ffmpeg' | 'playSeconds'> = {}): Record<string, Handler> {
+export function createAssetHandlers(deps: AssetDeps & DownloadDeps & MeshyDeps & Pick<CheckDeps, 'ffmpeg' | 'playSeconds'> & CascadeurDeps = {}): Record<string, Handler> {
   return {'asset.index': assetIndex, 'asset.migrate': createMigrate(deps), 'asset.prepare': assetPrepare, 'asset.candidates': assetCandidates,
     'character.setup': createCharacterSetup({unreal: deps.unreal, ffmpeg: deps.ffmpeg, playSeconds: deps.playSeconds}),
-    'character.metahuman': createCharacterMetahuman(deps),
+    'character.metahuman': createCharacterMetahuman(deps), 'animation.cascadeur': createAnimationCascadeur(deps),
     'asset.request_download': createRequestDownload(deps), 'asset.detect': createDetect(deps),
     'asset.meshy_generate': createMeshyGenerate(deps), 'asset.meshy_poll': createMeshyPoll(deps)};
 }

@@ -70,3 +70,18 @@ test('CLI asset metahuman: encola character.metahuman en el carril largo; un nom
   assert.deepEqual([command.type, command.lane, command.payload], ['character.metahuman', 'long', {taskId: task.id, name: 'Kratos_Heroe'}]);
   assert.match(cli(dataDir, 'asset', 'metahuman', '../fuera', '--task', task.id).stderr, /invalid_command_payload/);
 });
+
+test('CLI asset cascadeur: encola animation.cascadeur con la acción y el motivo; sin motivo válido, el servicio lo rechaza', async t => {
+  const {dataDir, port} = await cliFixture(t);
+  writeFileSync(join(dataDir, 'config.json'), JSON.stringify({projectsDir: join(dataDir, 'P'), vaultDir: join(dataDir, 'V'),
+    megascansDir: join(dataDir, 'M'), fabCacheDirs: [], listingsDb: join(dataDir, 'none.db'), unrealPath: join(dataDir, 'UE', 'UnrealEditor-Cmd.exe')}));
+  cli(dataDir, 'start', '--port', String(port), '--no-open');
+  const task = await api(dataDir, '/tasks', {title: 'Ataque', spec: '', area: 'animacion', acceptance: []});
+  const out = cli(dataDir, 'asset', 'cascadeur', '/Game/Anims/MM_Attack_01', '--task', task.id, '--action', 'cleanup', '--why', 'retarget_rejected');
+  assert.equal(out.status, 0, out.stderr);
+  const command = (await api(dataDir, '/commands')).find((c: any) => c.id === JSON.parse(out.stdout).commandId);
+  assert.deepEqual([command.type, command.lane, command.payload], ['animation.cascadeur', 'long',
+    {taskId: task.id, action: 'cleanup', sourceClip: '/Game/Anims/MM_Attack_01', why: 'retarget_rejected'}]);
+  assert.match(cli(dataDir, 'asset', 'cascadeur', '/Game/Anims/MM_Attack_01', '--task', task.id, '--action', 'cleanup', '--why', 'porque_si').stderr,
+    /cascadeur_not_justified/);
+});

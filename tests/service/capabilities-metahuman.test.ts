@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
-import { capabilityList } from '../../service/src/capability-checks.ts';
+import { capabilityList, saveCheck } from '../../service/src/capability-checks.ts';
 import { checkCapability } from '../../service/src/doctor.ts';
 import { upsertEntry } from '../../service/src/repo/catalog.ts';
 
@@ -57,4 +57,18 @@ test('Vídeo (ffmpeg): «Comprobar ahora» lee la versión real; sin ffmpeg, aus
   const fake = {bin: process.execPath, baseArgs: [join(import.meta.dirname, '..', 'fakes', 'ffmpeg.mjs')]};
   assert.deepEqual(await checkCapability('ffmpeg', {ffmpeg: fake}), {state: 'comprobado', detail: 'ffmpeg 8.1.2-fake'});
   assert.equal((await checkCapability('ffmpeg', {ffmpeg: null})).state, 'ausente');
+});
+
+test('Cascadeur: presente si está el ejecutable; la última comprobación (p. ej. sin exportación FBX por licencia) manda', () => {
+  const e = engine(true), db = openDb(':memory:');
+  try {
+    const exe = join(e.root, 'Cascadeur', 'cascadeur.exe');
+    writeFileSync(join(e.dataDir, 'config.json'), JSON.stringify({...JSON.parse(readFileSync(join(e.dataDir, 'config.json'), 'utf8')), cascadeurPath: exe}));
+    assert.equal(capabilityList(e.dataDir, db).find(c => c.id === 'cascadeur')!.state, 'ausente');
+    touch(exe);
+    const cas = capabilityList(e.dataDir, db).find(c => c.id === 'cascadeur')!;
+    assert.deepEqual([cas.label, cas.state], ['Cascadeur', 'detectado']);
+    saveCheck(db, 'cascadeur', {state: 'roto', detail: 'Cascadeur abre y procesa, pero la exportación FBX no está en esta licencia'});
+    assert.match(capabilityList(e.dataDir, db).find(c => c.id === 'cascadeur')!.detail, /exportación FBX/);
+  } finally { db.close(); e.close(); }
 });

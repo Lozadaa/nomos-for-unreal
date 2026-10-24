@@ -4,6 +4,7 @@ import { enqueue } from '../commands.ts';
 import { choice, text, type Context } from './context.ts';
 import type { CatalogEntry, Command } from '../model.ts';
 import { finalizePayload, integratePayload } from './task-closing.ts';
+import { cascadeurReasons } from '../handlers/animation-cascadeur.ts';
 
 type Payload = Record<string, unknown>;
 const optionalText = (value: unknown) => value === undefined || text(value);
@@ -31,6 +32,12 @@ const validators: Record<string, (db: Context['db'], payload: Payload) => void> 
   },
   'character.metahuman': (db, p) => {
     if (!text(p.taskId) || !text(p.name) || !/^[A-Za-z]\w{1,40}$/.test(p.name) || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
+    if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
+  },
+  'animation.cascadeur': (db, p) => {
+    if (!cascadeurReasons.includes(p.why as string)) throw new Error('cascadeur_not_justified');
+    if (!text(p.taskId) || !['cleanup', 'author', 'fix-retarget'].includes(p.action as string) || !text(p.sourceClip)
+      || !p.sourceClip.startsWith('/Game/') || p.sourceClip.includes('..') || !optionalText(p.targetProject)) throw new Error('invalid_command_payload');
     if (!read(db, 'tasks', p.taskId)) throw new Error('unknown_task');
   },
   'checks.run': (db, p) => {

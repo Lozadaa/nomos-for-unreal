@@ -33,6 +33,7 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         unrealPath?: string;
         blenderPath?: string;
         ffmpegPath?: string;
+        cascadeurPath?: string;
     } = {};
     try {
         const value = JSON.parse(fs.readFileSync('.kratos/config.json', 'utf8'));
@@ -70,7 +71,9 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         ['metahuman', 'MetaHuman', plugin('MetaHuman/MetaHumanCharacter/MetaHumanCharacter.uplugin') && plugin('MetaHuman/MetaHumanCharacter/Content/Animation/Retargeting/IK_MH_IKRig.uasset'), 'Plugin MetaHumanCharacter'],
         ['retarget', 'Retarget IK', plugin('Animation/IKRig/IKRig.uplugin'), 'Plugin IK Rig (retarget por lotes)'],
         ['ffmpeg', 'Vídeo (ffmpeg)', typeof config.ffmpegPath === 'string' ? exists(config.ffmpegPath) : onPath('ffmpeg.exe') || onPath('ffmpeg')
-            || exists(win32.join(env.LOCALAPPDATA ?? '', 'Microsoft', 'WinGet', 'Links', 'ffmpeg.exe')), 'ffmpeg']
+            || exists(win32.join(env.LOCALAPPDATA ?? '', 'Microsoft', 'WinGet', 'Links', 'ffmpeg.exe')), 'ffmpeg'],
+        // Cascadeur: solo cuando falta el clip o el retarget falla; si exporta FBX lo dice la última comprobación real
+        ['cascadeur', 'Cascadeur', exists(typeof config.cascadeurPath === 'string' ? config.cascadeurPath : 'C:\\Program Files\\Cascadeur\\cascadeur.exe'), 'cascadeur.exe']
     ];
     const result: Capability[] = values.map(([id, label, found, detail]) => ({ id, label, state: found ? 'detectado' : 'ausente', detail: detail + (found ? ' detectado' : ' ausente') }));
     // prueba 29: dos MCP de Unreal a la vez se pisan el editor; se avisa, nunca se elige uno por el usuario

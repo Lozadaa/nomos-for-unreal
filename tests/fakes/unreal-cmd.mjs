@@ -87,6 +87,11 @@ if (mode === 'hang') {
     {step: 'build', ok, detail: ok ? 'build_meta_human terminado' : 'El ensamblado necesita iniciar sesión en la nube de MetaHuman'});
   write({ok, engine, name, steps, blueprint: ok ? `/Game/MetaHumans/${name}/BP_${name}` : null,
     needs: ok ? null : mode === 'noplugin' ? 'plugin' : 'cloud', errors: ok ? [] : [steps.at(-1).detail]});
+} else if (script.endsWith('kratos_export_fbx.py')) {
+  writeFileSync(process.env.KRATOS_FBX, `fbx de ${process.env.KRATOS_CLIP}`);
+  write({ok: true, engine, clip: process.env.KRATOS_CLIP, fbx: process.env.KRATOS_FBX, skeleton: '/Game/Characters/Mannequins/Meshes/SK_Mannequin', errors: []});
+} else if (script.endsWith('kratos_import_anim.py')) {
+  write({ok: true, engine, clip: `${process.env.KRATOS_DEST}/${process.env.KRATOS_NAME}`, length: 1.2, fixed_bones: ['root', 'pelvis'], errors: []});
 } else if (script.endsWith('kratos_pie_capture.py')) {
   // resolución reducida (÷40) para que las pruebas sean rápidas; la diferencia relativa se conserva
   const width = Math.max(8, Math.round(Number(arg('ResX') ?? 1280) / 40)), height = Math.max(8, Math.round(Number(arg('ResY') ?? 720) / 40));
