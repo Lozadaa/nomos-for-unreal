@@ -85,12 +85,14 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   if (!args.includes('--enter')) fail('missing_enter');
   else {
     const text=value('--text');
-    const launch=text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions$/.test(text);
+    const opencode=/^opencode run --auto --model \S+ --title kratos-[0-9a-f]{8} Lee el archivo \.kratos-brief\.md de esta carpeta y ejecuta lo que dice\.$/.test(text);
+    const launch=opencode||text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions$/.test(text);
     if (state.realRepo && launch && !existsSync(join(state.treePath,'.kratos-brief.md'))) {
       fail('missing_brief');
     } else {
     state.tail.push(text);
-    if (state.realRepo && launch) state.tail.push(ready());
+    if (state.realRepo && launch && !opencode) state.tail.push(ready());
+    if (opencode && process.env.FAKE_ORCA_OPENCODE_MISSING) state.tail.push("'opencode' is not recognized as an internal or external command,");
     if (claude && text==='Lee el archivo .kratos-brief.md de esta carpeta y ejecuta lo que dice.')
       state.tail.push('Do you want to allow this command? (y/n)');
     save();

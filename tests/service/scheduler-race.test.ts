@@ -121,13 +121,6 @@ test('política nueva durante preparación suspendida mantiene POST explícito y
   assert.equal(f.db.prepare('select state from commands where id=?').get(cmd.id)!.state,'pending');
   await start();assert.equal(f.run().id,parked.id);assert.equal(f.state().creates,1);
 });
-test('OpenCode explícito espera sin adaptador y no crea run ni recursos',async t=>{
-  const f=fixture(t);
-  const result=await f.invoke('worker.start',{taskId:f.task.id,provider:'opencode',role:'implementacion',skills:[],attempt:1}) as any;
-  assert.equal(result.deferred,true);assert.match(result.reason,/sin adaptador/i);
-  assert.equal(f.run(),undefined);assert.equal(f.state().creates,undefined);assert.equal(f.state().repos.length,0);
-});
-
 test('Decisión externa en preparación local exige POST tras resolver sin arranque automático',async t=>{
   const f=fixture(t),base=createTask(f.db,{title:'Base',area:'qa',state:'done'});
   f.db.prepare("update tasks set state='preparada',assignee_provider='codex',depends_on=? where id=?").run(JSON.stringify([base.id]),f.task.id);

@@ -49,13 +49,8 @@ test('espera idle de Claude nombra el proveedor real',async t=>{
   f.output('Trabajando');await poll(f);writeFileSync(f.file,JSON.stringify({...f.state(),idle:true}));
   await poll(f);await poll(f);assert.match(f.run().metadata.question!,/claude/i);
 });
-test('OpenCode reconocido devuelve indisponibilidad antes de run, Git y Orca',async t=>{
-  const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"opencode":9}}');
-  f.ctx.orca.repoAdd=async()=>{throw new Error('Orca no debe ejecutarse');};
-  f.ctx.git.head=async()=>{throw new Error('Git no debe ejecutarse');};
-  assert.deepEqual(await start(f,'opencode'),{deferred:true,reason:'OpenCode sin adaptador disponible'});
-  assert.equal(f.run(),undefined);assert.deepEqual(f.state().repos,[]);
-  await assert.rejects(start(f,'otro'),/invalid_worker_payload/);
+test('proveedor desconocido no arranca',async t=>{
+  await assert.rejects(start(fixture(t),'otro'),/invalid_worker_payload/);
 });
 test('respuesta y stop Claude conservan sesión y atribuyen mensajes y cierre',async t=>{
   const f=fixture(t,{FAKE_ORCA_MODE:'claude'});await start(f);await poll(f);const original=f.run();

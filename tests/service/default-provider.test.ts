@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { concurrency, readConfig, workerModel } from '../../service/src/config.ts';
+import { concurrency, readConfig, workerModel, opencodeModel } from '../../service/src/config.ts';
 import { chooseProvider } from '../../service/src/scheduler-provider.ts';
 
 const idle={codex:0,claude:0,opencode:0};
@@ -40,4 +40,14 @@ test('una tarea asignada a un proveedor apagado dice cuál y cómo encenderlo, n
     {reason: 'Codex apagado: dale cupo en config.json'});
   assert.deepEqual(chooseProvider('implementacion', {concurrency: {codex: 0, claude: 0}}, idle),
     {reason: 'Sin proveedor habilitado'});
+});
+test('readConfig valida opencodeModel; beam-free gratuito por defecto, nunca el modelo del usuario',t=>{
+  const dir=mkdtempSync(join(tmpdir(),'kratos-opencode-model-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  assert.equal(opencodeModel(readConfig(dir)),'opencode/beam-free');
+  for(const model of ['opencode/deepseek-v4.1-flash-free','opencode-go/claude-haiku-5-5']) {
+    writeFileSync(join(dir,'config.json'),JSON.stringify({opencodeModel:model}));assert.equal(opencodeModel(readConfig(dir)),model);
+  }
+  for(const bad of ['"sonnet"','"openai/gpt-5"','"opencode/"','"opencode/a b"','"opencode/x\\" & del"','1','null']) {
+    writeFileSync(join(dir,'config.json'),`{"opencodeModel":${bad}}`);assert.throws(()=>readConfig(dir),/invalid_worker_config/,bad);
+  }
 });
