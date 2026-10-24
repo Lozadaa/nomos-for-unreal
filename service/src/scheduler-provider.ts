@@ -15,6 +15,8 @@ export function chooseProvider(role:string,config:SchedulerConfig,usage:Record<W
     candidates=preferred ? enabled.filter(p=>p===preferred) : [...enabled].sort((a,b)=>Number(b===first)-Number(a===first));
   }
   const provider=candidates.find(p=>usage[p]<limits[p]);
-  if(!provider) return {reason:candidates.length ? `Sin hueco en ${candidates[0]}` : 'Sin proveedor habilitado'};
+  // hito 7: Codex viene apagado; una tarea que lo pide dice cuál y cómo encenderlo
+  if(!provider) return {reason:candidates.length ? `Sin hueco en ${candidates[0]}`
+    : preferred && limits[preferred]===0 ? `${preferred[0].toUpperCase()}${preferred.slice(1)} apagado: dale cupo en config.json` : 'Sin proveedor habilitado'};
   return {provider,reason:'Disponible',...(role==='revisor' ? {sameProvider:provider===implementer} : {})};
 }

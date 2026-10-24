@@ -62,11 +62,15 @@ test('Chat: el mensaje enviado aparece al instante, pasa a «Recibido» y la res
   await expect(page.getByText('Entendido, lo preparo')).toBeVisible()
 })
 
-test('el botón que lanzó una acción recupera el foco al terminar (Capacidades · Comprobar ahora)', async ({ page }) => {
+test('el botón que lanzó una acción recupera el foco al terminar (Capacidades · Comprobar ahora, comprobación real)', async ({ page }) => {
   await page.goto(url().replace('/#', '/capacidades#'))
-  const button = page.getByRole('button', { name: 'Comprobar ahora' }).first()
+  const button = page.getByRole('list', { name: 'Capacidades' }).getByRole('listitem').filter({ hasText: 'Node.js' }).getByRole('button')
+  // la comprobación se guarda: en el segundo navegador Node ya figura como comprobado
+  await expect(button).toHaveText(/^(Comprobar ahora|Volver a comprobar)$/)
   await button.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('button', { name: 'Comprobando…' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Comprobar ahora' }).first()).toBeFocused({ timeout: 3000 })
+  // la comprobación real de Node responde enseguida: «Comprobando…» puede durar un instante
+  await expect(button).toHaveText('Volver a comprobar', { timeout: 5000 })
+  await expect(button).toBeFocused()
+  await expect(page.getByRole('list', { name: 'Capacidades' }).getByRole('listitem').filter({ hasText: 'Node.js' })).toContainText(/Comprobado · revisado/)
 })

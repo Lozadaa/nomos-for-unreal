@@ -172,7 +172,8 @@ describe('Catálogo', () => {
     await screen.findByText('Bruno')
     const card = (name: string) => screen.getByRole('heading', { name }).closest('li')!
     expect(within(card('Bruno')).getByText(/Prohibido para IA/)).toBeInTheDocument()
-    expect(within(card('Bruno')).queryByRole('button')).toBeNull()
+    // solo la miniatura que abre el visor; ninguna acción
+    expect(within(card('Bruno')).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Ver Bruno a tamaño completo'])
     expect(within(card('Explorador')).getByRole('img', { name: 'Licencia desconocida' })).toBeInTheDocument()
     expect(within(card('Explorador')).getByRole('button', { name: 'Revisar licencia' })).toBeInTheDocument()
     expect(within(card('Instalado')).getByLabelText('Instalado en CrazyPadel')).toBeInTheDocument()
@@ -303,7 +304,7 @@ describe('Capacidades', () => {
     { id: 'blender', label: 'Blender', state: 'ausente', detail: 'Ejecutable de Blender ausente' },
   ]
   it('«Comprobar ahora» queda pendiente y luego anota cuándo se revisó', async () => {
-    serve(() => caps)
+    serve((path) => path === '/capabilities/git/check' ? { ...caps[0], state: 'comprobado', checkedAt: new Date().toISOString() } : caps)
     render(<Capacidades />)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Comprobar ahora' }))

@@ -8,6 +8,7 @@ import { createTask, getTask, requireTask } from '../repo/tasks.ts';
 import { startRun } from '../repo/runs.ts';
 import { enqueue } from '../commands.ts';
 import { appendEvent } from '../store.ts';
+import { orcaDeferral, orcaDown } from './orca-down.ts';
 
 const implementerOf = (db: DatabaseSync, taskId: string): Run | undefined => filtered<Run>(db, 'runs', {taskId})
   .filter(r => (r.provider === 'codex' || r.provider === 'claude') && r.role !== 'revisor').at(-1);
@@ -49,7 +50,16 @@ export const taskContinue: Handler = async (command, ctx) => {
   if (child.parentTaskId !== payload.taskId) throw new Error('invalid_command_payload');
   const original = implementerOf(ctx.db, payload.taskId);
   const tree = original?.metadata.worktreeId ? read<Worktree>(ctx.db, 'worktrees', original.metadata.worktreeId) : undefined;
-  const alive = !!original?.sessionRef && !!tree && existsSync(tree.path) && await ctx.orca.terminalAlive(original.sessionRef);
+  const probe = () => !!original?.sessionRef && !!tree && existsSync(tree.path) ? ctx.orca.terminalAlive(original.sessionRef) : false;
+  let alive: boolean;
+  try { alive = await probe(); } catch (error) {
+    if (!orcaDown(error)) throw error;
+    // Orca cerrado: la hija ya existe y el reintento la reutiliza
+    ctx.db.prepare("update commands set payload=json_set(payload,'$.childId',?),updated_at=? where id=?").run(child.id, new Date().toISOString(), command.id);
+    const waiting = await orcaDeferral(ctx, command, child.id);
+    if (waiting) return waiting;
+    alive = await probe();
+  }
   if (alive) {
     transaction(ctx.db, () => {
       const run = startRun(ctx.db, {taskId: child.id, role: original!.role, provider: original!.provider, sessionRef: original!.sessionRef,

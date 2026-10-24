@@ -111,3 +111,10 @@ test('diff sin cambios de Unreal (p. ej. solo docs/ui-direction.md): ui.cycle no
     assert.equal(filtered<Command>(f.db, 'commands', {type: 'review.start'}).length, 0);
   } finally { f.close(); }
 });
+
+test('hito 7: QA aprobado en revisando encola la revisión de código aunque ya hubo una del primer ciclo (misma run)', async t => {
+  const {f} = await qaReview(t, 'KRATOS_REVIEW {"approved":true,"findings":[]}');
+  const reviews = filtered<Command>(f.db, 'commands', {type: 'review.start'}).filter(c => !payloadOf(c).qa);
+  assert.deepEqual(reviews.map(c => payloadOf(c)), [{taskId: f.task.id, implementerRunId: f.implementer.id}]);
+  assert.equal(reviews[0].idempotencyKey, `review.after-qa:${f.reviewer().id}`);
+});

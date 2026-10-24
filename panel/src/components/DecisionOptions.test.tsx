@@ -11,11 +11,38 @@ const decision: Decision = { id: 'd1', taskId: 't1', createdAt: '', state: 'open
 }
 
 describe('Tarjetas y detalle de una decisión', () => {
-  it('usa Assets si falta el área y conserva descripción y elección por teclado', async () => {
+  it('solo la opción recomendada lleva el acento y solo la que tiene miniatura propia muestra imagen', () => {
+    const rich: Decision = { ...decision, options: [
+      { id: 'a', label: 'Caballero', description: 'Del catálogo', thumbnail: '/catalog/c1/thumbnail', recommended: true },
+      { id: 'b', label: 'Buscar otro', description: 'Volver a buscar' }] }
+    render(<TooltipProvider><DecisionOptions decision={rich} disabled={false} onChoose={() => {}} /></TooltipProvider>)
+    const first = screen.getByRole('button', { name: 'Caballero' }), second = screen.getByRole('button', { name: 'Buscar otro' })
+    expect(first).toHaveAttribute('data-recommended')
+    expect(first.className).toContain('border-primary')
+    expect(second).not.toHaveAttribute('data-recommended')
+    expect(second.className).not.toContain('border-primary')
+    expect(screen.getByRole('button', { name: 'Ver Caballero a tamaño completo' }).querySelector('img')).not.toBeNull()
+    expect(screen.queryByRole('button', { name: 'Ver Buscar otro a tamaño completo' })).toBeNull()
+  })
+
+  it('abrir la miniatura en el visor no elige la opción', async () => {
     const choose = vi.fn()
     const user = userEvent.setup()
-    render(<TooltipProvider><DecisionOptions decision={decision} disabled={false} onChoose={choose} /></TooltipProvider>)
-    expect(screen.getByRole('img', { name: 'Assets' })).toBeInTheDocument()
+    const rich: Decision = { ...decision, options: [{ id: 'a', label: 'Caballero', description: 'Del catálogo', thumbnail: '/catalog/c1/thumbnail' }] }
+    render(<TooltipProvider><DecisionOptions decision={rich} disabled={false} onChoose={choose} /></TooltipProvider>)
+    await user.click(screen.getByRole('button', { name: 'Ver Caballero a tamaño completo' }))
+    expect(await screen.findByRole('dialog', { name: 'Caballero' })).toBeInTheDocument()
+    expect(choose).not.toHaveBeenCalled()
+  })
+
+  it('las opciones son tarjetas de texto: ningún icono repetido, la descripción en el tooltip y elección por teclado', async () => {
+    const choose = vi.fn()
+    const user = userEvent.setup()
+    const two: Decision = { ...decision, options: [...decision.options, { id: 'b', label: 'Opción B', description: 'Otra descripción' }] }
+    const { container } = render(<TooltipProvider><DecisionOptions decision={two} area="assets" disabled={false} onChoose={choose} /></TooltipProvider>)
+    expect(screen.queryAllByRole('img')).toHaveLength(0)
+    expect(container.querySelectorAll('svg')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Opción A' })).toHaveAttribute('aria-description', decision.options[0].description)
     expect(screen.queryByText(decision.options[0].description)).not.toBeInTheDocument()
     await user.tab()
     expect(screen.getByRole('button', { name: 'Opción A' })).toHaveFocus()

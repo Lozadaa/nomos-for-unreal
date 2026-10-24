@@ -26,13 +26,18 @@ export type Orca = {
     Promise<{ worktreeId: string; path: string; branch: string; terminalHandle: string }>;
   terminalWaitIdle(handle: string, timeoutMs: number, pattern?: RegExp): Promise<boolean>;
   terminalIsIdle(handle: string): Promise<boolean>;
-  terminalSend(handle: string, text: string): Promise<void>;
+  terminalSend(handle: string, text: string, retry?: {requestId: string; waitSeconds: number}): Promise<void>;
+  /** Hito 7: terminal nuevo con el agente y su orden como argumento. */ terminalCreate?(path: string, title: string, command: string): Promise<string>;
   terminalRead(handle: string, cursor?: string): Promise<TerminalPage>;
   worktreeRemove(worktreeId: string, force?: boolean): Promise<void>;
   /** Cierra el terminal y el árbol de procesos de su shell (hito 6). */
   terminalClose(handle: string): Promise<void>;
   /** Vivo si Orca aún puede leerlo; un terminal desconocido o cerrado está muerto. */
   terminalAlive(handle: string): Promise<boolean>;
+  /** Hito 7: `orca status` de solo lectura (5 s como máximo); cualquier fallo cuenta como cerrado. */
+  isRunning?(): Promise<boolean>;
+  /** Hito 7: `orca open`, la acción «Abrir Orca». */
+  open?(): Promise<void>;
 };
 function required(value: unknown): string {
   if (typeof value !== 'string' || !value) throw new OrcaError('cli_error', 'Respuesta Orca incompleta');
@@ -142,9 +147,10 @@ export function createOrca(opts: Options = {}): Orca {
           result=>result?.wait?.satisfied===true);
       } catch(error) {if(error instanceof OrcaError && error.code==='timeout' && error.source==='condition') return false;throw error;}
     },
-    async terminalSend(handle, text) {
+    async terminalSend(handle, text, retry) {
       if (/[\r\n"'()]/.test(text)) throw new OrcaError('cli_error', 'Envía el texto mediante un archivo');
-      await run(['terminal', 'send', '--terminal', handle, '--text', text, '--enter'], result => {
+      await run(['terminal', 'send', '--terminal', handle, '--text', text, '--enter',
+        ...(retry ? ['--retry-request', retry.requestId, '--wait-submit', String(retry.waitSeconds)] : [])], result => {
         const accepted = result?.send === undefined ? result?.accepted : result.send?.accepted;
         if (accepted !== true) throw new OrcaError('cli_error', 'El terminal no aceptó el texto');
       });
@@ -169,6 +175,9 @@ export function createOrca(opts: Options = {}): Orca {
       }
       return false;
     },
+    async terminalCreate(path, title, command) {
+      return run(['terminal', 'create', '--worktree', `path:${path}`, '--title', title, '--command', command], r => required(r?.terminal?.handle ?? r?.handle));
+    },
     async terminalClose(handle) {
       await run(['terminal', 'close', '--terminal', handle], () => {});
     },
@@ -176,6 +185,13 @@ export function createOrca(opts: Options = {}): Orca {
       // Orca 1.4.207 sigue leyendo un terminal cerrado: responde ok con `status: "exited"`
       try { return await run(['terminal', 'read', '--terminal', handle, '--limit', '50'], result => result?.terminal?.status !== 'exited'); }
       catch (error) { if (error instanceof OrcaError && error.code === 'cli_error') return false; throw error; }
+    },
+    async isRunning() {
+      try { return await run(['status'], result => result?.app?.running === true && result?.runtime?.reachable !== false, 5000); }
+      catch { return false; }
+    },
+    async open() {
+      await run(['open'], () => {});
     },
     async worktreeRemove(worktreeId, force = false) {
       await run(['worktree', 'rm', '--worktree', `id:${worktreeId}`, ...(force ? ['--force'] : [])], () => {});

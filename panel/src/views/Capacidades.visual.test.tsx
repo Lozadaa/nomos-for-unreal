@@ -96,9 +96,19 @@ describe('Capacidades · datos visuales comprobables', () => {
     expect(screen.queryByRole('region', { name: 'Agentes' })).toBeNull()
   })
 
-  it('mantiene ayuda y comprobación por GET sin afirmar comprobado; devuelve el foco al botón', async () => {
+  it('Orca cerrado ofrece «Abrir Orca», que llama a su comprobación (orca open en el servicio)', async () => {
+    const orca = { ...cap('orca', 'roto', 'Orca'), detail: 'Orca no está abierto', action: { id: 'open', label: 'Abrir Orca' } }
+    mockApi.mockImplementation((async (path: string) => path === '/editors' ? [] : path === '/capabilities/orca/check' ? { ...orca, state: 'comprobado', action: undefined } : [orca]) as typeof api)
+    render(<Capacidades />)
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Abrir Orca' }))
+    await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/capabilities/orca/check', { method: 'POST' }))
+    expect(await screen.findByRole('button', { name: 'Volver a comprobar' })).toBeInTheDocument()
+  })
+
+  it('mantiene la ayuda y comprueba de verdad por POST: muestra Comprobado con fecha y devuelve el foco al botón', async () => {
     const caps = [cap('blender', 'ausente', 'Blender'), cap('git', 'detectado', 'Git')]
-    mockApi.mockImplementation((async (path: string) => path === '/editors' ? [] : caps) as typeof api)
+    const checked = { ...cap('git', 'comprobado', 'Git'), detail: 'git version 2.50', checkedAt: new Date().toISOString() }
+    mockApi.mockImplementation((async (path: string) => path === '/editors' ? [] : path === '/capabilities/git/check' ? checked : caps) as typeof api)
     render(<Capacidades />)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Ver cómo instalar' }))
@@ -108,9 +118,10 @@ describe('Capacidades · datos visuales comprobables', () => {
     expect(check).toHaveAttribute('aria-busy', 'true')
     await waitFor(() => expect(check).toHaveAttribute('aria-busy', 'false'))
     expect(check).toHaveFocus()
-    expect(mockApi.mock.calls.filter(([path]) => path === '/capabilities')).toHaveLength(2)
-    expect(screen.getByText(/Detectado · sin comprobar/)).toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: 'Comprobado' })).toBeNull()
+    expect(mockApi).toHaveBeenCalledWith('/capabilities/git/check', { method: 'POST' })
+    expect(check).toHaveTextContent('Volver a comprobar')
+    expect(screen.getByRole('img', { name: 'Comprobado' })).toBeInTheDocument()
+    expect(screen.getByText(/Comprobado · revisado/)).toBeInTheDocument()
   })
 
   it('muestra el editor por proyecto: libre, y ocupado por el agente con su avatar', async () => {

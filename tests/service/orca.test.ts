@@ -88,13 +88,14 @@ test('terminalSend detecta rechazo explícito del terminal', async t => {
 test('readiness reconoce Ask Codex sin depender del wait', async t => {
   const { orca, calls } = fixture(t);
   await orca.terminalSend('term_fake', '› Ask Codex');
-  assert.equal(await orca.terminalWaitIdle('term_fake', 500), true);
+  // el plazo solo se agota si falla: cada llamada lanza un proceso y bajo carga tarda más de 500 ms (intermitencia del hito 7)
+  assert.equal(await orca.terminalWaitIdle('term_fake', 10_000), true);
   assert.equal(calls.some(e => e.command[1] === 'wait'), false);
 });
 
 test('readiness relee tail tras un falso timeout y registra cada subprocess', async t => {
   const { orca, calls } = fixture(t, { FAKE_ORCA_READY_AFTER_WAIT: '1' });
-  assert.equal(await orca.terminalWaitIdle('term_fake', 5000), true);
+  assert.equal(await orca.terminalWaitIdle('term_fake', 10_000), true);
   assert.deepEqual(calls.map(e => e.command[1]), ['read', 'wait', 'read']);
 });
 
@@ -105,7 +106,7 @@ test('readiness no confirma wait satisfecho sin leer Ask Codex', async t => {
 
 test('readiness relee Ask Codex después de wait satisfecho antes de confirmar', async t => {
   const { orca, calls } = fixture(t, { FAKE_ORCA_SATISFIED: '1', FAKE_ORCA_READY_AFTER_WAIT: '1' });
-  assert.equal(await orca.terminalWaitIdle('term_fake', 5000), true);
+  assert.equal(await orca.terminalWaitIdle('term_fake', 10_000), true);
   assert.deepEqual(calls.map(e => e.command[1]), ['read', 'wait', 'read']);
 });
 

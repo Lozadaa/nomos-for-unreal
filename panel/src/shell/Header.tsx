@@ -1,12 +1,15 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { relativeTime } from '@/lib/time'
+import { useSyncExternalStore } from 'react'
 import type { Status } from '@/api'
+import { onSession, sessionState } from '@/session'
 import { DirectorDot, directorState } from './DirectorDot'
 import { Glyph } from '@/visual/Glyph'
 
 export function Header({ project, status, onCommand, onTogglePause, pausePending = false }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean }) {
-  const state = directorState(status)
+  const session = useSyncExternalStore(onSession, sessionState)
+  const state = directorState(status, session)
   const confirmation = status?.lastAckAt ? relativeTime(status.lastAckAt) : 'sin confirmaciones todavía'
   return (
     <header className="flex h-(--k-header) items-center gap-4 border-b border-subtle bg-background px-6">

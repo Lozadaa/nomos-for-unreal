@@ -7,10 +7,11 @@ export function serviceInfo(dataDir: string): ServiceInfo {
   if (!info) throw new ServiceError("Servicio no disponible; ejecuta /kratos");
   return info;
 }
-export async function request(info: ServiceInfo, path: string, data?: unknown): Promise<any> {
+/** 10 s por orden: con el servicio ocupado (git, Unreal) 1,5 s daba «Servicio no disponible» en falso; el vigilante pide 1,5 s. */
+export async function request(info: ServiceInfo, path: string, data?: unknown, timeoutMs = 10_000): Promise<any> {
   try {
     const response = await fetch(new URL(path, serviceUrl(info)), {
-      method: data === undefined ? "GET" : "POST", signal: AbortSignal.timeout(1500),
+      method: data === undefined ? "GET" : "POST", signal: AbortSignal.timeout(timeoutMs),
       headers: { Authorization: `Bearer ${info.token}`, "Content-Type": "application/json" },
       body: data === undefined ? undefined : JSON.stringify(data) });
     if (!response.ok) {

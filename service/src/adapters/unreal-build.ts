@@ -9,7 +9,9 @@ export type BuildResult = {ok: boolean; log: string; errors: string[]};
 /** Carpeta `Engine` a partir de la ruta de UnrealEditor-Cmd.exe (`Engine/Binaries/Win64/...`). */
 export const engineDirOf = (cmdPath: string | null | undefined) => resolve(dirname(cmdPath || defaultUnrealCmd), '..', '..');
 // MSVC «x.cpp(12): error C2065», enlazador «error LNK2019» y UBT «Error: …»; nunca «0 error(s)»
-export const errorLines = (log: string) => log.split(/\r?\n/).filter(line => /(: error |\berror [A-Z]+\d+|^\s*error:)/i.test(line));
+// hito 7: el cook falla con «LogX: Error: …» (no el eco del resumen, «LogInit: Display: …»), «Cook failed.» y el ExitCode de UAT
+export const errorLines = (log: string) => log.split(/\r?\n/).filter(line => /(: error |\berror [A-Z]+\d+|^\s*error:)/i.test(line)
+  || /^Log\w+: Error: |^Cook failed\.?$|ExitCode=\d+ \(Error_/.test(line));
 
 async function run(script: string, args: string[], opts: BuildOpts, timeoutMs: number) {
   const bin = opts.bin || join(opts.engineDir ?? engineDirOf(null), 'Build', 'BatchFiles', script);
@@ -27,8 +29,9 @@ export async function buildEditorTarget(uproject: string, opts: BuildOpts = {}):
 }
 
 /** Empaqueta con RunUAT BuildCookRun en `outDir`; 40 min por defecto. */
-export async function buildCookRun(uproject: string, outDir: string, opts: BuildOpts = {}): Promise<BuildResult & {exePath?: string}> {
-  const {exitCode, log} = await run('RunUAT.bat', ['BuildCookRun', `-project=${uproject}`, '-platform=Win64',
+export async function buildCookRun(uproject: string, outDir: string, opts: BuildOpts = {}, maps: string[] = []): Promise<BuildResult & {exePath?: string}> {
+  // hito 7: el mapa del recorrido se cocina explícitamente; si no está en la lista del proyecto, el juego no puede entrar
+  const {exitCode, log} = await run('RunUAT.bat', ['BuildCookRun', `-project=${uproject}`, '-platform=Win64', ...(maps.length ? [`-map=${maps.join('+')}`] : []),
     '-clientconfig=Development', '-build', '-cook', '-stage', '-pak', '-archive', `-archivedirectory=${outDir}`, '-unattended'], opts, 40 * 60_000);
   const windows = join(outDir, 'Windows');
   const exe = existsSync(windows) ? readdirSync(windows).find(name => name.toLowerCase().endsWith('.exe')) : undefined;

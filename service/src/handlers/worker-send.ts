@@ -11,6 +11,8 @@ import { dispatchGuard, dispatchBlocked, pauseForDecision } from './worker-decis
 import { streamMarkers, screenMarkers, markerId, compactMarkerText } from './worker-markers.ts';
 import { acquire, release, leaseWaitReason } from '../leases.ts';
 import { dependencyReason } from '../scheduler-state.ts';
+import { limits, readConfig } from '../config.ts';
+import { deliver } from './worker-deliver.ts';
 
 export const workerSend: Handler=async (cmd,ctx)=>{
   const payload=cmd.payload as any,{db,orca}=ctx;
@@ -20,9 +22,9 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   if (!['running','done'].includes(run.state) || reviewer&&run.state==='done') throw new Error('invalid_worker_state');
   if (typeof payload.text!=='string'||!payload.text.trim()) throw new Error('invalid_worker_text');
   if (run.metadata.deadlineAt && Date.now()>=Date.parse(run.metadata.deadlineAt)) throw new Error('orca: tiempo máximo de 4 horas agotado');
-  const correction=run.state==='done',count=run.metadata.correctionCount ?? 0;
-  if (correction && count>=3) {
-    decisionGate(ctx,task,'corrections','Máximo de tres correcciones alcanzado',
+  const correction=run.state==='done',count=run.metadata.correctionCount ?? 0,max=limits(readConfig(ctx.dataDir)).corrections;
+  if (correction && count>=max) {
+    decisionGate(ctx,task,'corrections',max===3 ? 'Máximo de tres correcciones alcanzado' : `Máximo de ${max} correcciones alcanzado`,
       {runId:run.id,correctionCount:count},[{id:'review',label:'Revisar',description:'El director decide cómo continuar'},
         {id:'cancel',label:'Cancelar',description:'No enviar más correcciones'}],false);return;
   }
@@ -43,7 +45,8 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   const relative=`.kratos-inbox/${cmd.id}.md`;
   mkdirSync(join(tree.path,'.kratos-inbox'),{recursive:true});writeFileSync(join(tree.path,relative),payload.text);
   invalidateImplementation(db,run.id);
-  await orca.terminalSend(run.sessionRef!,`Lee el archivo ${relative} y ejecuta lo que dice.`);
+  await deliver(db,orca,run,tree.path,`Lee el archivo ${relative} y ejecuta lo que dice.`);
+  run=requireRun(db,run.id);
   transaction(db,()=>{
     const previous=run.metadata,lastLines=previous.lastLines ?? [];
     const oldDone=previous.markerFence || previous.seenDoneMarkers!==undefined ? []

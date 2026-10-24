@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
+import { logEvent } from "./log.ts";
 
 export type EventRow = { seq: number; id: string; type: string; messageId: string | null; payload: Record<string, unknown>; createdAt: string };
 export type MessageRow = { id: string; text: string; origin: string; createdAt: string; ackedAt: string | null; replyText: string | null; repliedAt: string | null };
@@ -15,7 +16,9 @@ export function appendEvent(db: DatabaseSync, type: string, messageId: string | 
   payload: Record<string, unknown>): { seq: number } {
   const row = db.prepare(`insert into events(id,type,message_id,payload,created_at)
     values (?,?,?,?,?)`).run(randomUUID(), type, messageId, JSON.stringify(payload), new Date().toISOString());
-  return { seq: Number(row.lastInsertRowid) };
+  const seq = Number(row.lastInsertRowid);
+  logEvent(db, { seq, type, messageId, payload });
+  return { seq };
 }
 
 export function createMessage(db: DatabaseSync, text: string, origin: string): { messageId: string; seq: number } {

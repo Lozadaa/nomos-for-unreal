@@ -32,7 +32,7 @@ describe('Entregas · previews y vacío visual', () => {
     expect(image).toHaveAttribute('loading', 'lazy')
     await waitFor(() => expect(container.querySelector('model-viewer')).not.toBeNull())
     const model = container.querySelector('model-viewer')!
-    expect(model).toHaveAttribute('alt', 'Modelo 3D de modelo.glb')
+    expect(model).toHaveAttribute('alt', 'Modelo 3D de Modelo') // hito 7: el nombre del artefacto, nunca el del archivo
     expect(model).toHaveAttribute('src', '/artifacts/model/file?token=fixture-token')
     expect(model).toHaveAttribute('camera-controls')
     expect(model).not.toHaveAttribute('auto-rotate')

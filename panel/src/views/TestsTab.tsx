@@ -4,6 +4,7 @@ import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { useAction } from '@/feel/useAction'
 import { artifactUrl } from '@/hooks/artifact'
+import { artifactName } from '@/lib/artifactName'
 import { humanError } from '@/lib/errors'
 import type { Artifact, TaskDetail, TestRun } from '@/lib/tasks'
 import { Glyph } from '@/visual/Glyph'
@@ -18,16 +19,14 @@ const resultGlyph: Partial<Record<TestRun['result'], [string, string]>> = {
 }
 const resultText: Partial<Record<TestRun['result'], string>> = { skipped: 'Omitida', unavailable: 'No disponible' }
 const tones: Record<string, string> = { neutral: 'text-neutral', info: 'text-info', success: 'text-success', error: 'text-error', warning: 'text-warning', primary: 'text-primary' }
-const kindLabel: Record<string, string> = { screenshot: 'Captura', report: 'Informe', build: 'Compilación' }
 const when = (iso: string) => new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '')
-const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path
 
 function Result({ result }: { result: TestRun['result'] }) {
   const glyph = resultGlyph[result]
   if (!glyph) return <span className="text-xs text-warning">{resultText[result]}</span>
   const spec = glyphFor('taskState', glyph[0])
   const Icon = spec.Icon as ComponentType<SVGProps<SVGSVGElement> & { size?: number }>
-  return <Icon size={16} role="img" aria-label={glyph[1]} aria-hidden={undefined} className={tones[spec.tone]} />
+  return <Icon size={16} role="img" aria-label={glyph[1]} aria-hidden={undefined} className={`transition-colors duration-(--k-dur-standard) ${tones[spec.tone]}`} />
 }
 
 /** Pruebas de la tarea: comprobación · resultado · commit · motor · evidencia; mapa, config y fecha en el detalle. */
@@ -69,7 +68,7 @@ export function TestsTab({ detail, decisionCard }: { detail: TaskDetail; decisio
                   <td>
                     <span className="flex items-center gap-2">
                       {evidence(t).map((a) => (
-                        <a key={a.id} href={artifactUrl(a.id)} target="_blank" rel="noreferrer" aria-label={`${kindLabel[a.kind] ?? a.kind} ${fileName(a.path)}`}
+                        <a key={a.id} href={artifactUrl(a.id)} target="_blank" rel="noreferrer" aria-label={artifactName(a)}
                           className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
                           <Glyph kind="artifact" value={a.kind} />
                         </a>

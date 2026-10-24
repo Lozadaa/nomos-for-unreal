@@ -16,6 +16,7 @@ import { useParam } from '@/hooks/useParam'
 import { useResource } from '@/hooks/useResource'
 import { sendCommand, useIndexCatalog } from '@/hooks/assetCommands'
 import { useAuthedSrc } from '@/hooks/artifact'
+import { useAssetViewer, ViewerButton, type ViewerItem } from '@/components/AssetViewer'
 import { useStatus } from '@/shell/useStatus'
 import { DownloadButton, MigrateButton, StatusIcon, VersionWarning, versionWarning } from './CatalogActions'
 import { PendingDownloads } from './PendingDownloads'
@@ -40,19 +41,27 @@ const sourceLabel: Record<string, string> = {
 
 type Mode = 'todos' | 'usables' | 'instalados'
 
-function Preview({ entry }: { entry: CatalogEntry }) {
+const fileThumb = (e: CatalogEntry) => catalogThumbnailUrl(e.thumbnailPath) ?? catalogThumbnailUrl(e.thumbnail_path)
+/** En el visor: la miniatura a tamaño completo, o el pictograma del área si el asset no trae imagen. */
+const viewerItem = (e: CatalogEntry): ViewerItem => ({ id: e.id, name: e.name, type: e.thumbnailUrl || fileThumb(e) ? 'image' : 'other',
+  path: e.thumbnailUrl ?? null, url: e.thumbnailUrl ? null : fileThumb(e),
+  meta: [sourceLabel[e.source] ?? e.source, e.formats.join(', '), e.license ? `Licencia: ${e.license}` : 'Licencia desconocida'].filter(Boolean),
+  fallback: <AreaPictogram area={catalogArea(e.category)} /> })
+
+function Preview({ entry, onOpen }: { entry: CatalogEntry; onOpen?: (el: HTMLElement) => void }) {
   // la miniatura real llega por /catalog/<id>/thumbnail (con token vía service worker); si no hay, el pictograma del área
   const served = useAuthedSrc(entry.thumbnailUrl ?? null)
-  const url = served ?? catalogThumbnailUrl(entry.thumbnailPath) ?? catalogThumbnailUrl(entry.thumbnail_path)
+  const url = served ?? fileThumb(entry)
   const [failed, setFailed] = useState<string | null>(null)
+  const image = url && failed !== url
+    ? <img src={url} alt={entry.name} loading="lazy" width={400} height={300} className="size-full object-cover" onError={() => setFailed(url)} />
+    : <AreaPictogram area={catalogArea(entry.category)} />
   return <div className="grid aspect-[4/3] place-items-center overflow-hidden rounded-md border border-subtle bg-card">
-    {url && failed !== url
-      ? <img src={url} alt={entry.name} loading="lazy" width={400} height={300} className="size-full object-cover" onError={() => setFailed(url)} />
-      : <AreaPictogram area={catalogArea(entry.category)} />}
+    {onOpen ? <ViewerButton name={entry.name} onOpen={onOpen} className="grid size-full cursor-zoom-in place-items-center outline-offset-2">{image}</ViewerButton> : image}
   </div>
 }
 
-export function CatalogCard({ entry, project }: { entry: CatalogEntry; project?: string }) {
+export function CatalogCard({ entry, project, onOpen }: { entry: CatalogEntry; project?: string; onOpen?: (el: HTMLElement) => void }) {
   const [note, setNote] = useState<string | null>(null)
   const [accepted, setAccepted] = useState(false)
   const [actionDetails, setActionDetails] = useState(false)
@@ -90,7 +99,7 @@ export function CatalogCard({ entry, project }: { entry: CatalogEntry; project?:
   const actionHint = note ?? (accepted ? 'Preparación solicitada. Aparecerá en el proyecto cuando termine.' : `Preparar ${entry.name} para Unreal. Licencia: ${entry.license ?? 'desconocida'}.`)
   return (
     <li data-catalog-card={entry.id} className={cn('flex flex-col gap-3 rounded-lg border border-subtle p-4 transition-colors duration-(--k-dur-micro) hover:border-strong', forbidden && 'opacity-80')}>
-      <Preview entry={entry} />
+      <Preview entry={entry} onOpen={onOpen} />
       <div className="flex flex-col items-start gap-2">
         <Tooltip>
           <TooltipTrigger render={<h3 tabIndex={0} aria-label={entry.name} aria-describedby={metadataId} title={entry.name} className="max-w-full truncate text-sm font-medium outline-offset-2" />}>{title}</TooltipTrigger>
@@ -151,6 +160,7 @@ export function Catalogo() {
     (mode === 'todos' || (mode === 'usables' ? !e.aiForbidden && e.state !== 'imported' : e.state === 'imported')) &&
     (!q || `${e.name} ${e.description} ${e.tags.join(' ')}`.toLowerCase().includes(q))), [data, mode, source, q])
   const sources = useMemo(() => [...new Set((data ?? []).map((e) => e.source))], [data])
+  const { open, viewer } = useAssetViewer(useMemo(() => shown.map(viewerItem), [shown]))
   const clear = () => void animateUpdate(async () => { setQuery(''); await setSource(''); await setMode('todos') })
 
   if (error && !data) return <p role="alert" className="text-sm text-error">No se pudo cargar el catálogo. {humanError(new Error(error))}</p>
@@ -177,7 +187,8 @@ export function Catalogo() {
       </div>
       {shown.length === 0
         ? <div className="rounded-lg border border-subtle"><EmptyState view="catalogo" message="Ningún asset coincide con tu búsqueda" action={{ label: 'Quitar filtros', onClick: clear }} /></div>
-        : <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">{shown.map((e) => <CatalogCard key={e.id} entry={e} project={project} />)}</ul>}
+        : <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">{shown.map((e) => <CatalogCard key={e.id} entry={e} project={project} onOpen={(el) => open(e.id, el)} />)}</ul>}
+      {viewer}
     </div>
   )
 }

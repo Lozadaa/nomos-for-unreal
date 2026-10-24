@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createGit } from '../../service/src/adapters/git.ts';
 import { gameRepo } from './integration-fixture.ts';
@@ -73,5 +73,32 @@ test('status ve cambios sin registrar e ignora los locales de Kratos; worktreeRe
     assert.deepEqual(await git.status(tree.path), {clean: false, files: ['b.txt']});
     await assert.rejects(git.worktreeRemove(repo.dir, tree.path));
     assert.equal(readFileSync(join(tree.path, 'b.txt'), 'utf8'), 'b\n', 'nada se borra');
+  } finally { repo.close(); }
+});
+
+test('hito 7: sin seguir e idéntico al que llega (asset migrado) se sustituye; uno distinto (Config con secreto) se conserva y se rechaza', async () => {
+  const repo = gameRepo(), git = createGit();
+  try {
+    const racket = 'Content/Fab/Raqueta_🎾/raqueta.uasset';
+    const tree = repo.tree('raqueta', {[racket]: 'UASSET', 'Config/DefaultEngine.ini': '[GameMode]\n'});
+    const ws = join(repo.root, 'integracion');
+    await git.worktreeAdd(repo.dir, ws, 'master');
+    const before = await git.head(ws);
+    const commit = (await git.merge(ws, tree.branch, {noFf: true}) as {commit: string}).commit;
+    mkdirSync(join(repo.dir, 'Content', 'Fab', 'Raqueta_🎾'), {recursive: true}); mkdirSync(join(repo.dir, 'Config'), {recursive: true});
+    writeFileSync(join(repo.dir, racket), 'UASSET');
+    writeFileSync(join(repo.dir, 'Config', 'DefaultEngine.ini'), '[Android]\nSecurityToken=secreto\n');
+    await assert.rejects(git.advanceBranch(repo.dir, 'master', commit, before), (e: Error) =>
+      /untracked working tree files would be overwritten/.test(e.message) && /\tConfig\/DefaultEngine\.ini/.test(e.message) && !e.message.includes('Raqueta'));
+    assert.equal(readFileSync(join(repo.dir, 'Config', 'DefaultEngine.ini'), 'utf8'), '[Android]\nSecurityToken=secreto\n');
+
+    rmSync(join(repo.dir, 'Config', 'DefaultEngine.ini'));
+    const only = repo.tree('solo-raqueta', {[racket]: 'UASSET'});
+    await git.checkout(ws, 'master');
+    const ws2 = join(repo.root, 'integracion2'); await git.worktreeAdd(repo.dir, ws2, 'master');
+    const second = (await git.merge(ws2, only.branch, {noFf: true}) as {commit: string}).commit;
+    await git.advanceBranch(repo.dir, 'master', second, before);
+    assert.equal(repo.git(repo.dir, 'rev-parse', 'master'), second);
+    assert.equal(readFileSync(join(repo.dir, racket), 'utf8'), 'UASSET');
   } finally { repo.close(); }
 });

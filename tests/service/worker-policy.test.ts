@@ -19,7 +19,7 @@ test('sin Git abre init_git resoluble sin efectos ni bloqueo stale',async t=>{
   resolveDecision(f.db,decision.id,'initialize','director');assert.equal(getTask(f.db,f.task.id)!.blockedReason,null);
 });
 test('critical por segmentos exige approve exacto y scope nuevo vuelve a pedir',async t=>{
-  const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({criticalSystems:['Docs/Save']}));
+  const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({concurrency:{codex:2},criticalSystems:['Docs/Save']}));
   await f.start();let decision=listDecisions(f.db,'open')[0];assert.ok(decision);
   assert.equal(f.run(),undefined);assert.equal(f.state().repos.length,0);
   resolveDecision(f.db,decision.id,'approve','director');
@@ -28,7 +28,7 @@ test('critical por segmentos exige approve exacto y scope nuevo vuelve a pedir',
   resolveDecision(f.db,decision.id,'approve','director');await f.start();assert.equal(f.run().state,'running');
 });
 test('scope vecino no cruza critical y rutas que escapan se rechazan antes de Orca',async t=>{
-  const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({criticalSystems:['DocsX']}));
+  const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({concurrency:{codex:2},criticalSystems:['DocsX']}));
   f.db.prepare('update tasks set scope=? where id=?').run('["../Secrets"]',f.task.id);
   await assert.rejects(f.start(),/invalid_worker_scope/);assert.equal(f.state().repos.length,0);
   f.db.prepare('update tasks set scope=? where id=?').run('["Docs"]',f.task.id);
@@ -52,7 +52,7 @@ test('budget agotado y config inválida detienen ejecución antes de efectos',as
 });
 
 test('criticalSystems null y attempt negativo se rechazan sin crear run ni recursos',async t=>{
-  const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"criticalSystems":null}');
+  const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":2},"criticalSystems":null}');
   await assert.rejects(f.start(),/invalid_worker_config/);assert.equal(f.state().repos.length,0);
   writeFileSync(join(f.dataDir,'config.json'),'{}');
   await assert.rejects(f.invoke('worker.start',{taskId:f.task.id,provider:'codex',role:'programmer',skills:[],attempt:-1}),/invalid_worker_payload/);
@@ -61,7 +61,7 @@ test('criticalSystems null y attempt negativo se rechazan sin crear run ni recur
 
 for(const scope of ['Source/*','Source/**','Source/Sa?e','Source/[S]ave','Source/{Save,Other}','Source/Save.']) {
   test(`scope ambiguo ${scope} no elude criticalSystems ni crea recursos`,async t=>{
-    const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"criticalSystems":["Source/Save"]}');
+    const f=fixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":2},"criticalSystems":["Source/Save"]}');
     f.db.prepare('update tasks set scope=? where id=?').run(JSON.stringify([scope]),f.task.id);
     await assert.rejects(f.start(),/invalid_worker_scope/);
     assert.equal(f.run(),undefined);assert.equal(f.state().repos.length,0);assert.equal(f.state().creates,undefined);

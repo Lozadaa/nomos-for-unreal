@@ -90,6 +90,14 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
             </SheetDescription>
           )}
           {task && <div className="pt-2"><StageStepper task={task} /></div>}
+          {task?.failure && (
+            <p className="text-sm break-words text-muted-foreground" role="note">
+              <span className="text-error">{task.failure.text}.</span>{task.failure.detail && task.failure.detail !== task.failure.text ? ` ${task.failure.detail}` : ''}
+            </p>
+          )}
+          {task && !task.failure && task.waitReason && statusOf(task) === 'normal' && (
+            <p className="text-sm break-words text-muted-foreground" role="note">{task.waitReason}</p>
+          )}
           {task && statusOf(task) !== 'normal' && task.blockedReason && (
             <p className="text-sm break-words text-muted-foreground" role="note">
               <span className={statusOf(task) === 'decision' ? 'text-warning' : task.state === 'cerrando' ? 'text-warning' : 'text-error'}>{statusText(task)}.</span>{' '}

@@ -41,3 +41,37 @@ test('Claude real (hito 5): KRATOS_DONE sangrado tras una lista con continuacion
   assert.deepEqual((marker as any).commits,['b242d513ab59fe1edda47cace61cd0302b48d9b3']);
   assert.match((marker as any).summary,/no trae Content\/$/);
 });
+
+test('Claude real (hito 7): el terminal parte la línea tras KRATOS_REVIEW y el JSON sigue en las líneas sangradas', () => {
+  const screen = [
+    '⏺ Revisión del HUD terminada.',
+    '  Hallazgo menor. El HUD queda dentro del margen seguro de TV, que es el 5 % por lado.',
+    '  KRATOS_REVIEW',
+    '  {"approved":true,"findings":[{"file":".kratos-review/ui-1280x720.png","line":1,"severity":"menor","note":"Sin',
+    '  ui-direction.md, revisado contra criterios mínimos. Corrección: anclar el HUD con padding del 5 %."}]}',
+    '✻ Cogitated for 31s · done 7:30 PM',
+  ];
+  const found = screenMarkers(screen);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, 'REVIEW');
+  assert.equal((found[0] as {approved: boolean}).approved, true);
+  assert.match((found[0] as {findings: {note: string}[]}).findings[0].note, /Sin ui-direction\.md/);
+  assert.deepEqual(screenMarkers(['⏺ Listo.', '  KRATOS_DONE', '  {"summary":"Hecho","commits":["a1"],"tests":"passed"}']),
+    [{kind: 'DONE', summary: 'Hecho', commits: ['a1'], tests: 'passed'}]);
+  assert.deepEqual(screenMarkers(['⏺ Pregunta.', '  KRATOS_REVIEW', '  sin json']).map(m => m.kind), ['INVALID_REVIEW']);
+});
+
+test('Claude real (hito 7): mensaje largo cuya viñeta ya salió del frame; el DONE sangrado se lee igual', () => {
+  const screen = [
+    '    Config/Windows/WindowsEngine.ini, que sí está versionado. Arranqué el juego',
+    '  - La raqueta: no se puede versionar sin esos assets.',
+    '  Quedan sin seguir Build/ y los dos archivos locales.',
+    '  KRATOS_DONE {"summary":"Archivos locales (DefaultEngine.ini y Content/Fab',
+    '  raqueta) sacados del indice.","commits":["58f477a"],"tests":"passed"}',
+    '✻ Cogitated for 2m 44s · done 8:55 PM',
+    '❯',
+  ];
+  assert.deepEqual(screenMarkers(screen), [{kind: 'DONE', summary: 'Archivos locales (DefaultEngine.ini y Content/Fab raqueta) sacados del indice.', commits: ['58f477a'], tests: 'passed'}]);
+  // la salida de herramienta sigue fuera aunque tampoco se vea su cabecera
+  assert.deepEqual(screenMarkers(['  ⎿  KRATOS_DONE {"summary":"x","commits":[],"tests":"none"}']), []);
+});

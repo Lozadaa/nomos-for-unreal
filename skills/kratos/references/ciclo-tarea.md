@@ -157,6 +157,13 @@ intento original: conserva commandId y autorización, reevalúa políticas y sol
 un bloqueo previo a efectos marcado `policyBlocked:true`. No aumentes attempt para
 eludir una Decisión ni repitas efectos inciertos; failed exige reconciliación.
 
+## Tarea parada
+
+Si una tarea pasa 10 min en implementando, revisando, probando, integrando o cerrando sin run viva ni
+comando pendiente, el servicio abre la Decisión «Tarea parada en …» (`kratos doctor` la
+lista en «Tareas atascadas»). «Retomar» = pide tú el paso de ese estado: `worker send`, `task review`,
+`task check`, `task integrate` o `task finalize`. «Cancelar» = déjala y avisa al usuario.
+
 ## Fallos y continuidad de escucha
 
 `command.failed` lleva commandId/error; GET /commands aporta taskId/runId en payload.

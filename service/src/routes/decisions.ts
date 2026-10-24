@@ -10,7 +10,10 @@ export async function decisions({db, req, res, url}: Context): Promise<boolean> 
       || new Set(options.map(o=>o.id)).size!==options.length || !Array.isArray(evidence)
       || !evidence.every(e=>e && typeof e==='object' && text(e.kind) && text(e.ref))) throw new Error('invalid_decision');
     json(res,201,openDecision(db,{taskId:data.taskId,reason:data.reason,
-      options:options.map(o=>({id:o.id,label:o.label,description:o.description})),
+      // hito 7: la opción puede traer su miniatura (ruta del propio servicio) y marcarse como recomendada
+      options:options.map(o=>({id:o.id,label:o.label,description:o.description,
+        ...(o.recommended===true ? {recommended:true} : {}),
+        ...(typeof o.thumbnail==='string' && o.thumbnail.startsWith('/') && !o.thumbnail.startsWith('//') ? {thumbnail:o.thumbnail} : {})})),
       evidence:evidence.map(e=>({kind:e.kind,ref:e.ref}))}));return true;
   }
   if (req.method === 'GET' && url.pathname === '/decisions') {

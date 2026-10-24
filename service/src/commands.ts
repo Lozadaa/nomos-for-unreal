@@ -14,16 +14,20 @@ function transaction<T>(db: DatabaseSync, action: () => T): T {
 function read(db: DatabaseSync, id: string): Command {
   const row = db.prepare(`select id, created_at as createdAt, updated_at as updatedAt,
     type, payload, idempotency_key as idempotencyKey, state, attempts, error,
-    claimed_by as claimedBy, started_at as startedAt, finished_at as finishedAt, not_before as notBefore
-    from commands where id=?`).get(id)!;
+    claimed_by as claimedBy, started_at as startedAt, finished_at as finishedAt, not_before as notBefore,
+    lane, heartbeat_at as heartbeatAt from commands where id=?`).get(id)!;
   return { ...row, payload: JSON.parse(row.payload as string) } as Command;
 }
 
-function event(db: DatabaseSync, command: Command, result?: object): void {
+function event(db: DatabaseSync, command: Command, result?: object, kind?: string | null): void {
   appendEvent(db, `command.${command.state}`, null, {
-    commandId: command.id, ...command, ...(result === undefined ? {} : { result }),
+    commandId: command.id, ...command, ...(result === undefined ? {} : { result }), ...(kind ? {kind} : {}),
   });
 }
+
+export type Lane = 'normal' | 'long';
+/** Hito 7: lo que abre el editor o empaqueta (hasta 40 min) va al carril largo y no frena sondeos ni arranques. */
+export const laneOf = (type: string): Lane => ['checks.run', 'ui.cycle', 'asset.migrate'].includes(type) ? 'long' : 'normal';
 
 export function enqueue(db: DatabaseSync, type: string, payload: object,
   idempotencyKey: string, opts: {notBefore?: string} = {}): Command {
@@ -31,26 +35,32 @@ export function enqueue(db: DatabaseSync, type: string, payload: object,
     const existing = db.prepare('select id from commands where idempotency_key=?').get(idempotencyKey);
     if (existing) return read(db, existing.id as string);
     const id = randomUUID(), now = new Date().toISOString();
-    db.prepare(`insert into commands(id,created_at,updated_at,type,payload,idempotency_key,state,attempts,not_before)
-      values(?,?,?,?,?,?,'pending',0,?)`).run(id, now, now, type, JSON.stringify(payload), idempotencyKey, opts.notBefore ?? null);
+    db.prepare(`insert into commands(id,created_at,updated_at,type,payload,idempotency_key,state,attempts,not_before,lane)
+      values(?,?,?,?,?,?,'pending',0,?,?)`).run(id, now, now, type, JSON.stringify(payload), idempotencyKey, opts.notBefore ?? null, laneOf(type));
     const command = read(db, id);
     event(db, command);
     return command;
   });
 }
 
-export function claim(db: DatabaseSync, workerId: string): Command | undefined {
+/** Sin `lane`, cualquier carril (compatibilidad con los hitos anteriores). */
+export function claim(db: DatabaseSync, workerId: string, lane?: Lane): Command | undefined {
   return transaction(db, () => {
     const row = db.prepare(`select id from commands where state='pending' and (not_before is null or not_before<=?)
-      order by created_at, rowid limit 1`).get(new Date().toISOString());
+      and (? is null or lane=?) order by created_at, rowid limit 1`).get(new Date().toISOString(), lane ?? null, lane ?? null);
     if (!row) return undefined;
     const now = new Date().toISOString();
     db.prepare(`update commands set state='running', attempts=attempts+1, claimed_by=?,
-      started_at=?, finished_at=null, updated_at=? where id=?`).run(workerId, now, now, row.id);
+      started_at=?, finished_at=null, heartbeat_at=?, updated_at=? where id=?`).run(workerId, now, now, now, row.id);
     const command = read(db, row.id as string);
     event(db, command);
     return command;
   });
+}
+
+/** Latido del comando en curso: la recuperación solo toma los que llevan más de 60 s sin latir. */
+export function beat(db: DatabaseSync, id: string, now = new Date()): void {
+  db.prepare("update commands set heartbeat_at=? where id=? and state='running'").run(now.toISOString(), id);
 }
 
 function running(db: DatabaseSync, id: string): Command {
@@ -90,13 +100,14 @@ export function resumePolicyCommand(db: DatabaseSync,id:string,decisionId:string
     {commandId:id,...read(db,id),resumed:true,decisionId});
 }
 
-export function fail(db: DatabaseSync, id: string, error: string, opts: {retry?: boolean} = {}): void {
+/** `kind` (hito 7): conexión, ejecución o capacidad ausente; viaja en el evento `command.failed`. */
+export function fail(db: DatabaseSync, id: string, error: string, opts: {retry?: boolean; kind?: string} = {}): void {
   transaction(db, () => {
     const command = running(db, id);
     const state = opts.retry !== false && command.attempts < 3 ? 'pending' : 'failed';
-    const now = new Date().toISOString();
-    db.prepare(`update commands set state=?, error=?, claimed_by=null, started_at=null,
-      finished_at=?, updated_at=? where id=?`).run(state, error, state === 'failed' ? now : null, now, id);
-    event(db, read(db, id));
+    const now = new Date().toISOString(), kind = state === 'failed' ? opts.kind ?? 'execution' : null;
+    db.prepare(`update commands set state=?, error=?, failure_kind=?, claimed_by=null, started_at=null,
+      finished_at=?, updated_at=? where id=?`).run(state, error, kind, state === 'failed' ? now : null, now, id);
+    event(db, read(db, id), undefined, kind);
   });
 }

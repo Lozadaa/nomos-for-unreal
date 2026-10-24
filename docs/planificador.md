@@ -5,10 +5,10 @@ El runner comprueba tareas preparadas cada cinco segundos, sin solapar entregas.
 Configurar en el `dataDir` real, normalmente `.kratos/config.json`:
 
 ```json
-{"defaultProvider":"claude","concurrency":{"codex":2,"claude":2,"opencode":0}}
+{"defaultProvider":"claude","concurrency":{"codex":0,"claude":2,"opencode":0}}
 ```
 
-Si falta `concurrency`, se usan esos valores; si falta `defaultProvider`, es `claude`. Con `"codex":0` nunca se lanza Codex. Si existe un objeto explícito, los proveedores omitidos quedan deshabilitados. Los valores deben ser enteros no negativos. OpenCode es un proveedor válido para configuración y asignación; incluso con un límite positivo queda excluido de la selección porque aún no tiene adaptador. Una petición explícita espera con «OpenCode sin adaptador disponible», sin crear run ni recursos. La lectura compartida conserva otros campos; corregir JSON inválido permite que el siguiente tick vuelva a planificar.
+Si falta `concurrency`, se usan esos valores (desde el hito 7 **Codex queda apagado por defecto**; para usarlo hay que darle cupo, por ejemplo `"codex":2`); si falta `defaultProvider`, es `claude`. Con `"codex":0` nunca se lanza Codex. Si existe un objeto explícito, los proveedores omitidos quedan deshabilitados. Los valores deben ser enteros no negativos. OpenCode es un proveedor válido para configuración y asignación; incluso con un límite positivo queda excluido de la selección porque aún no tiene adaptador. Una petición explícita espera con «OpenCode sin adaptador disponible», sin crear run ni recursos. La lectura compartida conserva otros campos; corregir JSON inválido permite que el siguiente tick vuelva a planificar.
 
 Crear la tarea con `POST /tasks` permite asignar `assigneeRole` y `assigneeProvider` antes de prepararla. Los roles `arte`, `ui` y `qa` prefieren siempre Claude; los demás prefieren `defaultProvider` (Claude por defecto) y usan el otro proveedor solo si el preferido no tiene hueco. Un proveedor asignado explícitamente debe tener cupo. La elección pura de revisor exige el proveedor opuesto cuando ambos están habilitados; con uno habilitado señala `sameProvider`.
 

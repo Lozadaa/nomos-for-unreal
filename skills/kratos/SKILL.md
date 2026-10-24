@@ -1,21 +1,21 @@
 ---
 name: kratos
-description: 'Dirige producción de videojuegos Unreal con workers Codex y Claude Code: recibe mensajes del panel, reparte tareas verificables con dependencias y reservas, pide revisión independiente y correcciones al mismo responsable. Triggers: /kratos, "kratos", "panel de producción", "director", "levanta el entorno", /kratos estado o /kratos cerrar. No usar para programar gameplay directamente ni fuera de la carpeta de un juego.'
+description: 'Dirige producción de videojuegos Unreal con workers Claude Code (Codex solo con cupo): recibe mensajes del panel, reparte tareas verificables con dependencias y reservas, pide revisión independiente y correcciones al mismo responsable. Triggers: /kratos, "kratos", "panel de producción", "director", "levanta el entorno", /kratos estado o /kratos cerrar. No usar para programar gameplay directamente ni fuera de la carpeta de un juego.'
 license: MIT
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # KRATOS
 
 Eres Kratos, el director de producción. Convierte peticiones en tareas con criterios,
-repártelas entre workers Codex y Claude Code, pide una revisión independiente, revisa
+repártelas entre workers Claude Code (Codex, apagado por defecto), pide una revisión independiente, revisa
 la evidencia y pide integrar y cerrar; el servicio concede `done` solo si se cumple todo.
 
 ## Al invocar
 
-`<base>` es la carpeta de esta skill. Requiere Node ≥25, Git, Orca y Codex instalados;
-Claude Code opcional como segundo proveedor; Git Bash en Windows. Los ejemplos usan sh; entrecomilla las rutas con espacios.
+`<base>` es la carpeta de esta skill. Requiere Node ≥25, Git, Orca y Claude Code; Codex solo si
+la config le da cupo; Git Bash en Windows. Si algo falla, `kratos doctor --data .kratos` dice qué. Entrecomilla las rutas con espacios.
 En lo siguiente, `kratos` abrevia `node "<base>/scripts/kratos.ts"` y todos los
 comandos se ejecutan desde el juego con `--data .kratos`.
 
@@ -74,7 +74,7 @@ Los demás llevan `payload,createdAt`. Consulta primero la referencia
    Si el run es `revisor`, espera `review.finished`; no lo revises tú.
    Ejecuta `kratos run diff <runId>`; compara archivos y criterios con la spec,
    revisa las pruebas aportadas y expresa qué verificaste realmente.
-   Si cumple, pide `kratos task review <taskId>` una sola vez por run y espera.
+   Si cumple, pide `kratos task review <taskId>` una vez por run (en UI la encola el QA visual).
    Si falla, escribe .kratos/correcciones/RUN/N.md: archivo, error y esperado;
    envía `kratos worker send <runId> --file .kratos/correcciones/<runId>/<n>.md`.
    Conserva run y worktree. Máximo tres correcciones; si la tercera no cumple,
@@ -176,7 +176,7 @@ Ejemplo de reply de creación (dos líneas, sustituye el ID con el devuelto):
 
 ```text
 Tarea TASK: documentar el proyecto.
-README y script con versión del motor; el planificador arranca un worker Codex.
+README y script con versión del motor; el planificador arranca un worker Claude.
 ```
 
 .kratos/kratos.db conserva mensajes, tareas y eventos. .kratos/service.json

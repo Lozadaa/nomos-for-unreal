@@ -9,8 +9,9 @@ import { getTask } from '../../service/src/repo/tasks.ts';
 import { startRun } from '../../service/src/repo/runs.ts';
 import { listEvents } from '../../service/src/store.ts';
 
-async function until(check:()=>boolean) {
-  for(let i=0;i<300&&!check();i++) await delay(10);
+async function until(check:()=>boolean,ms=15_000) {
+  // por tiempo, no por vueltas: el timeout de Orca falso (500 ms) más sus procesos tarda más con carga
+  for(const end=Date.now()+ms;Date.now()<end&&!check();) await delay(10);
   assert.ok(check(),'No llegó resultado del runner');
 }
 test('reinicio no repite start/send inciertos, falla run y libera poll de solo lectura',async t=>{

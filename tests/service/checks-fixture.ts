@@ -33,7 +33,8 @@ export function checksFixture(opts: {files?: string[]; state?: Task['state']; ar
       : {bin: process.execPath, baseArgs: [join(fakes, 'unreal-cmd.mjs')], engineDir}),
     build: () => opts.engine === false ? {bin: join(root, 'no', 'Build.bat')} : {bin: process.execPath, baseArgs: [join(fakes, 'unreal-build.mjs')]},
     launch: async exe => { mkdirSync(join(dirname(exe), 'Juego', 'Saved', 'Screenshots'), {recursive: true});
-      writeFileSync(join(dirname(exe), 'Juego', 'Saved', 'Screenshots', 'HighresScreenshot00000.png'), 'png'); },
+      writeFileSync(join(dirname(exe), 'Juego', 'Saved', 'Screenshots', 'HighresScreenshot00000.png'), 'png');
+      return {exitCode: null, seconds: 30, killed: true}; },
     playSeconds: 0, ...opts.deps,
   };
   const handlers = createCheckHandlers(deps);

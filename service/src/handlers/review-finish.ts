@@ -38,7 +38,12 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
       updateTestRun(db,qa.testRunId,{result});
       appendEvent(db,`test.${result}`,null,{testRunId:qa.testRunId,taskId:run.taskId,runId:run.id,check:'umg',
         summary:marker.approved ? 'QA visual aprobado' : marker.findings.map(f=>`${f.file}:${f.line} [${f.severity}] ${f.note}`).slice(0,30).join('\n')});
-      if(marker.approved) {advance(ctx,run.taskId);return;}
+      if(marker.approved) {
+        // hito 7: tras el QA la revisión de código la encola el servicio; clave por QA porque la de la run ya existe tras una corrección
+        if(!advance(ctx,run.taskId) && task.state==='revisando' && !task.reviewApproved)
+          enqueue(db,'review.start',{taskId:run.taskId,implementerRunId:implementer!.id},`review.after-qa:${run.id}`);
+        return;
+      }
     } else {
       db.prepare('update tasks set review_approved=? where id=?').run(marker.approved ? 1 : 0,run.taskId);
       attribute(db,run.taskId,'reviso',run);

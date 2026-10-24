@@ -5,6 +5,9 @@ export type Capability = {
     label: string;
     state: 'ausente' | 'detectado' | 'comprobado' | 'roto';
     detail: string;
+    /** Hito 7: fecha de la última comprobación real y acción que la arregla (Orca: «Abrir Orca»). */
+    checkedAt?: string;
+    action?: {id: string; label: string};
 };
 type FileSystem = {
     existsSync: (path: string) => boolean;
@@ -55,6 +58,7 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         string
     ][] = [
         ['node', 'Node.js', Number(process.versions.node.split('.')[0]) >= 25, 'Node.js ' + process.versions.node],
+        ['orca', 'Orca', onPath('orca.exe') || onPath('orca'), 'CLI de Orca'],
         ['unreal', 'Unreal Engine', exists(unreal), 'Editor de Unreal'],
         ['unreal_mcp', 'Unreal MCP', plugin('Experimental/ModelContextProtocol/ModelContextProtocol.uplugin') && plugin('Experimental/Toolsets/AllToolsets/AllToolsets.uplugin'), 'Plugins MCP y herramientas'],
         ['fab_plugin', 'Fab', plugin('Fab/Fab.uplugin'), 'Plugin Fab'], ['launcher', 'Epic Games Launcher', launcher, 'Launcher de Epic Games'],

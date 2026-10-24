@@ -39,7 +39,7 @@ describe('TestsTab · tabla de pruebas con metadatos y evidencia', () => {
     expect(within(rows[0]).getByText('abc1234')).toBeInTheDocument()
     expect(within(rows[0]).getByText('5.8.3')).toBeInTheDocument()
     const links = within(rows[0]).getAllByRole('link')
-    expect(links.map((l) => l.getAttribute('aria-label'))).toEqual(['Informe log.txt', 'Captura map-1280x720.png'])
+    expect(links.map((l) => l.getAttribute('aria-label'))).toEqual(['Mapa · registro', 'Captura de control']) // hito 7: sin nombres de archivo
     expect(links[0].getAttribute('href')).toMatch(/^\/artifacts\/x1\/file\?token=/)
     for (const r of rows) expect(visibleWords(r)).toBeLessThanOrEqual(7)
     expect(within(rows[0]).getByRole('button', { name: /Detalle/ }).getAttribute('aria-label')).toMatch(/^Detalle: mapa \/Game\/Maps\/Nivel1 · config 1280x720 · \d\d\/10 \d\d:00$/)

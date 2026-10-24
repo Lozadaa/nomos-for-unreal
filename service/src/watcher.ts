@@ -46,9 +46,9 @@ export async function watch(dataDir: string, session: string, opts: {types?:stri
       const began = Date.now();
       try {
         const info = serviceInfo(dataDir);
-        await request(info, "/director/heartbeat", { session, started: startedToken !== info.token });
+        await request(info, "/director/heartbeat", { session, started: startedToken !== info.token }, 1500);
         startedToken = info.token;
-        const state: Status = await request(info, "/status");
+        const state: Status = await request(info, "/status", undefined, 1500);
         await readPending(info, Math.max(transportCursor,Math.min(state.lastAckSeq,checkpoint.cursor)),async event=>{
           if(event.seq<=transportCursor) return;
           const selected=types.includes(event.type) && event.seq>(event.type==='message.received' ? state.lastAckSeq : checkpoint.cursor);

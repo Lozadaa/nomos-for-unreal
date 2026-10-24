@@ -18,6 +18,17 @@ test('Git excluye .kratos-review tracked/untracked del diff y lo ignora localmen
   await f.ctx.git.excludeLocal(tree.path);
   assert.match(execFileSync('git',['-C',tree.path,'check-ignore','--no-index','.kratos-review/diff.patch'],{encoding:'utf8',windowsHide:true}),/diff.patch/);
 });
+test('hito 7: el diff de revisión no lleva el contenido de Config sin seguir ni lo generado por Unreal; rutas con emoji legibles',async t=>{
+  const f=await reviewFixture(t),tree=f.implementerTree;
+  mkdirSync(join(tree.path,'Config'),{recursive:true});writeFileSync(join(tree.path,'Config/DefaultEngine.ini'),'[Android]\nSecurityToken=SECRETO123\n');
+  mkdirSync(join(tree.path,'Build/Windows'),{recursive:true});writeFileSync(join(tree.path,'Build/Windows/EditorOpenOrder.log'),'RUTA_LOCAL');
+  mkdirSync(join(tree.path,'Content/Fab/Raqueta_🎾'),{recursive:true});writeFileSync(join(tree.path,'Content/Fab/Raqueta_🎾/notas.txt'),'raqueta');
+  const diff=await f.ctx.git.diff(tree.path,tree.baseCommit);
+  assert.doesNotMatch(diff.patch,/SECRETO123|RUTA_LOCAL/);
+  // el revisor sabe que existen, sin ver su contenido
+  assert.match(diff.stat,/Config\/DefaultEngine\.ini/);
+  assert.match(diff.patch,/Raqueta_🎾\/notas\.txt/);
+});
 test('intención review reserva proveedor FIFO sin leases y run existente no cuenta dos veces',async t=>{
   const f=await reviewFixture(t);f.db.prepare('update tasks set leases=? where id=?').run('["Docs"]',f.task.id);
   const cmd=enqueue(f.db,'review.start',{taskId:f.task.id,implementerRunId:f.implementer.id,provider:'codex'},'queued-review');

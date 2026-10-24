@@ -18,7 +18,10 @@ import type { AgentAvatarState } from '@/visual/art/AgentAvatar'
 import { EmptyState } from '@/visual/art/EmptyState'
 import { EditorQueue, type NamedAgent } from './EditorQueue'
 
-interface Capability { id: string; label: string; state: 'ausente' | 'detectado' | 'comprobado' | 'roto'; detail: string }
+interface Capability {
+  id: string; label: string; state: 'ausente' | 'detectado' | 'comprobado' | 'roto'; detail: string
+  checkedAt?: string; action?: { id: string; label: string }
+}
 
 const look: Record<Capability['state'], { tone: Tone; text: string; action: string }> = {
   ausente: { tone: 'neutral', text: 'No instalado', action: 'Ver cómo instalar' },
@@ -41,12 +44,13 @@ function CapabilityState({ state }: { state: Capability['state'] }) {
   return <Icon size={16} role="img" aria-label={look[state].text} aria-hidden={undefined} className={`shrink-0 ${tones[look[state].tone]}`} />
 }
 
-function Row({ cap, checkedAt, onChecked, now }: { cap: Capability; checkedAt?: number; onChecked: (list: Capability[]) => void; now: number }) {
+function Row({ cap, onChecked, now }: { cap: Capability; onChecked: (cap: Capability) => void; now: number }) {
   const [help, setHelp] = useState(false)
   const l = look[cap.state]
   const provider = Object.hasOwn(capabilityProvider, cap.id) ? capabilityProvider[cap.id] : undefined
-  // «Comprobar» vuelve a detectar en el equipo: el servicio solo distingue presente/ausente, así que no se promete más que eso
-  const check = useAction(() => api<Capability[]>('/capabilities').then((list) => { onChecked(list); return list }))
+  // comprobación real en el servicio (versión, `orca open`, saldo de Meshy…), guardada con fecha
+  const check = useAction(() => api<Capability>(`/capabilities/${encodeURIComponent(cap.id)}/check`, { method: 'POST' })
+    .then((next) => { onChecked(next); return next }))
   const onClick = cap.state === 'ausente' ? () => setHelp((v) => !v) : () => void check.fire()
   return (
     <li className="flex flex-col border-b border-subtle last:border-b-0">
@@ -56,9 +60,9 @@ function Row({ cap, checkedAt, onChecked, now }: { cap: Capability; checkedAt?: 
           {provider && <Glyph kind="provider" value={provider} />}
           {(!provider || cap.label !== glyphFor('provider', provider).label) && <span>{cap.label}</span>}
         </span>
-        <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.text}{checkedAt ? ` · revisado ${relativeTime(new Date(checkedAt).toISOString(), now)}` : ''}</span>
+        <span className="min-w-0 flex-1 truncate text-muted-foreground" title={cap.detail}>{l.text}{cap.checkedAt ? ` · revisado ${relativeTime(cap.checkedAt, now)}` : ''}</span>
         <Button variant="outline" size="sm" disabled={check.pending} aria-busy={check.pending} aria-expanded={cap.state === 'ausente' ? help : undefined} onClick={onClick}>
-          {check.pending ? 'Comprobando…' : l.action}
+          {check.pending ? 'Comprobando…' : cap.action?.label ?? l.action}
         </Button>
       </div>
       {help && cap.state === 'ausente' && <p className="px-4 pb-3 pl-10 text-sm text-muted-foreground">{cap.detail}. Instálalo y pulsa «Comprobar ahora».</p>}
@@ -78,7 +82,7 @@ export function Capacidades() {
     const agents = assignAgentNames([...runs]
       .sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id.localeCompare(b.id))
       .map((run) => ({
-        id: run.id, provider: run.provider, role: run.role, area: byTask.get(run.taskId)?.area,
+        id: run.id, provider: run.provider, role: run.role, area: byTask.get(run.taskId)?.area, skills: run.metadata?.confirmedSkills,
         state: (run.state === 'running' ? run.waiting || waiting[run.taskId]?.runId === run.id ? 'waiting' : 'running' : 'idle') as AgentAvatarState,
       })))
     const providers = new Map<string, AvatarGroupAgent[]>()
@@ -90,7 +94,6 @@ export function Capacidades() {
     const named = new Map<string, NamedAgent>(agents.map((a) => [a.id, a]))
     return { list: [...providers].map(([provider, agents]) => ({ provider, agents })), named }
   }, [runs, tasks, waiting])
-  const [checked, setChecked] = useState<Record<string, number>>({})
   const slow = useAfter(loading)
   const now = useNow(10000)
 
@@ -104,7 +107,7 @@ export function Capacidades() {
           {groups.list.map(({ provider, agents }) => <li key={provider} className="flex flex-col gap-3 rounded-lg border border-subtle p-4">
             <AvatarGroup agents={agents} size={48} />
             <ul aria-label={`Nombres de ${glyphFor('provider', provider).label}`} className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {agents.map((agent) => <li key={agent.id} title={glyphFor('provider', provider).label}>{agent.name}</li>)}
+              {agents.map((agent) => <li key={agent.id} title={agent.skills?.length ? `${glyphFor('provider', provider).label} · skills confirmadas: ${agent.skills.join(', ')}` : glyphFor('provider', provider).label}>{agent.name}</li>)}
             </ul>
           </li>)}
         </ul>
@@ -112,8 +115,8 @@ export function Capacidades() {
       <EditorQueue agents={groups.named} />
       {!data?.length ? <EmptyState view="capacidades" /> : <ul aria-label="Capacidades" className="overflow-hidden rounded-lg border border-subtle">
         {data?.map((cap) => (
-          <Row key={cap.id} cap={cap} checkedAt={checked[cap.id]} now={now}
-            onChecked={(list) => { mutate(() => list); setChecked((c) => ({ ...c, [cap.id]: Date.now() })) }} />
+          <Row key={cap.id} cap={cap} now={now}
+            onChecked={(next) => mutate((list) => (list ?? []).map((c) => c.id === next.id ? next : c))} />
         ))}
       </ul>}
     </div>

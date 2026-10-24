@@ -5,7 +5,7 @@ import { mkdtempSync,rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applySchema } from '../../service/src/schema.ts';
-import { migrateWorker,migrateLeases } from '../../service/src/migrations.ts';
+import { migrateWorker,migrateLeases,migrateLanes } from '../../service/src/migrations.ts';
 import { openDb } from '../../service/src/db.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { startRun,finishRun } from '../../service/src/repo/runs.ts';
@@ -15,7 +15,7 @@ test('migración reconoce OpenCode y conserva campos rowid metadata e idempotenc
   const dir=mkdtempSync(join(tmpdir(),'kratos-provider-schema-')),file=join(dir,'db.sqlite');
   let db=new DatabaseSync(file);
   try {
-    applySchema(db);migrateWorker(db);migrateLeases(db);
+    applySchema(db);migrateWorker(db);migrateLeases(db);migrateLanes(db);
     db.exec(`create table events(seq integer primary key autoincrement,id text not null unique,
       type text not null,message_id text,payload text not null,created_at text not null)`);
     const task=createTask(db,{title:'Histórico',area:'qa'});

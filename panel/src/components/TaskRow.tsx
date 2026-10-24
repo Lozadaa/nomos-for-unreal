@@ -5,7 +5,7 @@ import { nameFor } from '@/feel/transitions'
 import { relativeTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
-import { areaLabel, isTemp, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Run, type Task } from '@/lib/tasks'
+import { areaLabel, isTemp, providerLabel, rowReason, shortId, stageLabel, statusOf, statusText, toneOf, type Run, type Task } from '@/lib/tasks'
 import { Glyph } from '@/visual/Glyph'
 import { AgentAvatar } from '@/visual/art/AgentAvatar'
 import { agentName } from '@/visual/art/agentName'
@@ -24,7 +24,9 @@ function TaskRowView({ task, run, agent, now, open, onOpen }: {
   const status = statusOf(task)
   const provider = implementer ? providerLabel[implementer] ?? implementer : 'Sin responsable'
   const identity = [areaLabel[task.area], statusText(task), provider, `Etapa: ${stageLabel[task.state]}`, ...(implementer ? [name] : [])]
-  const description = `${identity.join(' · ')}${task.blockedReason ? ` · ${task.blockedReason}` : ''}${waiting ? ` · Esperando respuesta${waitingSignal?.runId === run?.id ? `: ${waitingSignal.question}` : ''}` : ''}`
+  const reason = rowReason(task)
+  const detail = task.failure ? task.failure.text : task.waitReason
+  const description = `${identity.join(' · ')}${task.blockedReason ? ` · ${task.blockedReason}` : ''}${detail ? ` · ${detail}` : ''}${waiting ? ` · Esperando respuesta${waitingSignal?.runId === run?.id ? `: ${waitingSignal.question}` : ''}` : ''}`
   return (
     <Tooltip>
       <TooltipTrigger render={<button
@@ -44,6 +46,7 @@ function TaskRowView({ task, run, agent, now, open, onOpen }: {
           <span data-task-title className="truncate font-medium" title={task.title}
             style={{ viewTransitionName: open ? undefined : nameFor('task', task.id), viewTransitionClass: 'k-title' } as React.CSSProperties}>{task.title}</span>
           <span data-task-id-text className="shrink-0 font-mono text-xs text-muted-foreground">{temp ? 'enviando' : shortId(task.id)}</span>
+          {reason && <span data-task-reason className={cn('shrink-0 text-xs', task.failure ? 'text-error' : 'text-muted-foreground')}>{reason}</span>}
         </span>
         {implementer ? (
           <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
