@@ -32,10 +32,10 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
   const flags: Record<string,string[]>={
-    'task.create':['title','area','spec-file','leases','depends','role','provider'],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
+    'task.create':['title','area','spec-file','leases','depends','role','provider','message'],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
     'task.integrate':[],'task.finalize':[],'task.continue':['file','text'],
-    'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key'],'worker.stop':[],
-    'run.diff':[],'run.output':['since'],'decision.open':['file'],'decision.list':['state'],'decision.resolve':['option','by']};
+    'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key','message'],'worker.stop':[],
+    'run.diff':[],'run.output':['since'],'decision.open':['file','message'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
   const options=Object.fromEntries(['data',...allowed].map(key=>[key,{type:'string' as const}]));
   const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options});
@@ -44,6 +44,8 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (extra.length || needsId && !rawId || !needsId && rawId) throw new Error('Uso: argumentos incorrectos');
   const id=rawId ? encodeURIComponent(rawId) : '',dataDir=resolve(values.data ?? '.kratos');
   const call=(path: string,data?: unknown,timeoutMs?: number)=>request(serviceInfo(dataDir),path,data,timeoutMs);
+  // hito 10: lo que el director crea por un mensaje del chat se enlaza a él (sin --message, el servicio lo infiere)
+  const message=values.message===undefined ? {} : {messageId:required(values.message,'--message')};
   let result: unknown;
   if (group==='task') {
     if (action==='show') result=await call('/tasks/'+id);
@@ -67,7 +69,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
         const list=(value?:string)=>value===undefined ? undefined : value.split(',').map(s=>s.trim()).filter(Boolean);
         for(const dep of list(values.depends) ?? []) await call('/tasks/'+encodeURIComponent(dep));
         const task=await call('/tasks',{title,area,...(parsed ?? {spec:'',acceptance:[]}),leases:list(values.leases),
-          assigneeRole:values.role,assigneeProvider:values.provider});
+          assigneeRole:values.role,assigneeProvider:values.provider,...message});
         if(values.depends!==undefined) await call('/tasks/'+encodeURIComponent(task.id)+'/depends',{dependsOn:list(values.depends)});
         result=parsed ? await call('/tasks/'+encodeURIComponent(task.id)+'/spec',{...parsed,area}) : task;
       }
@@ -84,7 +86,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     if (action==='send') {
       if ((values.file===undefined)===(values.text===undefined)) throw new Error('Uso: elige --file o --text');
       const text=required(values.file===undefined ? values.text : readFileSync(values.file,'utf8'),'texto');
-      result=await call('/runs/'+id+'/message',{text,...(values['idempotency-key']===undefined ? {} : {idempotencyKey:required(values['idempotency-key'],'clave')})});
+      result=await call('/runs/'+id+'/message',{text,...message,...(values['idempotency-key']===undefined ? {} : {idempotencyKey:required(values['idempotency-key'],'clave')})});
     }
     if (action==='stop') result=await call('/runs/'+id+'/stop',{});
   }
@@ -93,7 +95,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     if (action==='open') {
       const data=JSON.parse(readFileSync(required(values.file,'--file'),'utf8'));
       if (!data || typeof data!=='object' || Array.isArray(data)) throw new Error('Uso: JSON de Decisión inválido');
-      result=await call('/decisions',{...data,taskId:rawId});
+      result=await call('/decisions',{...data,taskId:rawId,...message});
     }
     if (action==='list') {
       if (values.state!==undefined && !['open','resolved','stale'].includes(values.state)) throw new Error('Uso: estado inválido');

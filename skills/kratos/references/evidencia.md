@@ -31,9 +31,15 @@ las capturas, además, `resolution`, `map`, `widget`, `control` (captura sin UI)
 | cpp | `Build.bat <Juego>Editor Win64 Development` | 20 min |
 | blueprint | `kratos_compile_bp.py`: carga, compila y comprueba referencias | 10 min |
 | asset | `verifyPack` del hito 4 + escala y materiales | 3 min por carpeta |
-| map | `kratos_validate.py` (Data Validation) y juego `-game` 30 s con captura 1280×720 | 10 min |
+| map | `kratos_validate.py` (Data Validation) y juego `-game` 30 s con captura 1280×720 y 3 vistas del rig | 10 min |
 | umg | `ui.cycle`: capturas con y sin UI a dos resoluciones + QA visual | 10 min por resolución |
 | build | `RunUAT BuildCookRun` + arranque 30 s con `HighResShot` | 40 min |
+
+**Varios puntos de vista (hito 10).** map y build entregan 4 vistas: la del jugador (`provenance.view=player`, la única que
+juzga la regresión visual) y tres de una cámara libre que orbita al pawn: `left` y `right` (3/4 a 3,5 m y 1,6 m de altura)
+y `top` (picado a 6 m y 45°), más una hoja de contactos 2×2 `*-hoja.jpg` (`provenance.sheet=true`, necesita ffmpeg).
+En build el ejecutable da la del jugador y el editor (`-game`, mismo mapa) las otras tres. `config.json: checks.views`
+(4 por defecto; `1` = solo la del jugador). Si las vistas extra pasan de 90 s se entregan las que haya y se anota en el resumen.
 
 Línea base visual de map y build: `docs/baseline/<check>-<mapa>-<captura>.png`, siempre con
 mapa. Si ni el diff ni el informe lo dicen, es `GameDefaultMap` de `Config/DefaultEngine.ini`

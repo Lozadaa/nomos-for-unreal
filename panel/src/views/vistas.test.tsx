@@ -40,27 +40,33 @@ beforeEach(() => { resetStore(); seq = 0; mockApi.mockReset(); vi.mocked(toasts.
 afterEach(cleanup)
 
 describe('Chat: burbuja optimista', () => {
-  it('muestra «Enviado», pasa a «Recibido» con el acuse y la respuesta aparece sin duplicar el mensaje', async () => {
+  it('muestra «Enviando…», pasa a «Recibido HH:MM» y «Leído por Kratos HH:MM» y la respuesta aparece sin duplicar el mensaje', async () => {
     const post = deferred<{ messageId: string }>()
-    serve((path, init) => (path === '/messages' && init?.method === 'POST' ? post.promise : []))
+    let listed: unknown[] = []
+    serve((path, init) => (path === '/messages' && init?.method === 'POST' ? post.promise : listed))
     render(<Chat />)
-    expect(screen.getByText('Cuéntale a Kratos qué quieres construir')).toBeInTheDocument()
+    expect(await screen.findByText('Cuéntale a Kratos qué quieres construir')).toBeInTheDocument()
     const user = userEvent.setup()
     await user.type(screen.getByLabelText('Mensaje para Kratos'), 'Hola Kratos')
     await user.click(screen.getByRole('button', { name: 'Enviar' }))
 
     // el servidor aún no ha respondido y la burbuja ya está, con su estado
     expect(await screen.findByText('Hola Kratos')).toBeInTheDocument()
-    expect(screen.getByText(/Enviado · esperando confirmación de Kratos/)).toBeInTheDocument()
+    expect(screen.getByText('Enviando…', { selector: 'li span' })).toBeInTheDocument()
     expect(screen.getByLabelText('Mensaje para Kratos')).toHaveValue('')
 
+    // hito 10: el chat se vuelve a pedir con cada evento y muestra estados reales con hora
+    const sent = { id: 'm1', text: 'Hola Kratos', createdAt: new Date().toISOString(), state: 'recibido', readAt: null, typingAt: null, repliedAt: null, timedOut: false, replies: [], links: [] }
     await act(async () => { post.resolve({ messageId: 'm1' }) })
+    listed = [sent]
     act(() => { ingest(event('message.received', { messageId: 'm1', payload: { text: 'Hola Kratos', origin: 'web' } })) })
+    expect(await screen.findByText(/^Recibido \d\d:\d\d$/)).toBeInTheDocument()
     expect(screen.getAllByText('Hola Kratos')).toHaveLength(1)
-    act(() => { ingest(event('message.acked', { messageId: 'm1' })) })
-    expect(screen.getByText(/Recibido · Kratos lo atenderá en breve/)).toBeInTheDocument()
-    act(() => { ingest(event('reply.published', { messageId: 'm1', payload: { text: 'Hecho, lo preparo' } })) })
-    expect(screen.getByText('Hecho, lo preparo')).toBeInTheDocument()
+    listed = [{ ...sent, state: 'respondido', readAt: sent.createdAt, repliedAt: sent.createdAt, replies: [{ text: 'Hecho, lo preparo', at: sent.createdAt }] }]
+    act(() => { ingest(event('message.replied', { messageId: 'm1', payload: { text: 'Hecho, lo preparo' } })) })
+    expect(await screen.findByText('Hecho, lo preparo')).toBeInTheDocument()
+    expect(screen.getByText(/^Leído por Kratos \d\d:\d\d$/)).toBeInTheDocument()
+    expect(screen.queryByText(/lo atenderá en breve/)).toBeNull()
   })
 
   it('si el evento llega antes que la respuesta del POST, no se ve el mensaje duplicado', async () => {
@@ -85,7 +91,7 @@ describe('Chat: burbuja optimista', () => {
     await user.type(screen.getByLabelText('Mensaje para Kratos'), 'Se pierde?')
     await user.click(screen.getByRole('button', { name: 'Enviar' }))
     await waitFor(() => expect(screen.getByLabelText('Mensaje para Kratos')).toHaveValue('Se pierde?'), { timeout: 2000 })
-    expect(screen.queryByText(/Enviado · esperando/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Enviando…', { selector: 'li span' })).not.toBeInTheDocument()
     expect(await screen.findByRole('alert')).toHaveTextContent('El servicio falló')
   })
 })

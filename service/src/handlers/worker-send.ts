@@ -63,8 +63,10 @@ export const workerSend: Handler=async (cmd,ctx)=>{
       correctionCount:count+(correction?1:0),pollGeneration:(run.metadata.pollGeneration ?? 0)+1},
       {state:'running',finishedAt:null,summary:null});
     moveTask(db,run.taskId,reviewer ? 'revisando' : 'implementando');queuePoll(db,run);
-    appendEvent(db,'worker.message_sent',null,{taskId:run.taskId,runId:run.id,provider:run.provider,
-      path:relative,commandId:cmd.id,correctionCount:run.metadata.correctionCount});
+    // hito 10: una corrección que el director manda por un mensaje del chat queda enlazada a él
+    const messageId=typeof payload.messageId==='string' ? payload.messageId : null;
+    appendEvent(db,'worker.message_sent',messageId,{taskId:run.taskId,runId:run.id,provider:run.provider,
+      path:relative,commandId:cmd.id,correctionCount:run.metadata.correctionCount,...(messageId ? {messageId} : {})});
     if(dispatchBlocked(db,guard)) pauseForDecision(db,task.id,run.id);
   });
 };

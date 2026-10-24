@@ -8,6 +8,7 @@ import { enqueue } from '../commands.ts';
 import { implementerOf } from '../handlers/checks.ts';
 import type { WorkerContext } from '../runner.ts';
 import { taskFailures } from '../failure-kind.ts';
+import { linkedMessage } from '../chat.ts';
 
 export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   const checks = /^\/tasks\/([^/]+)\/checks$/.exec(url.pathname);
@@ -60,6 +61,6 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     assigneeProvider: data.assigneeProvider as string | undefined ?? null,
     scope: data.scope === undefined ? [] : normalizedPaths(data.scope),
     leases: data.leases === undefined ? [] : normalizedPaths(data.leases)
-  }));
+  }, linkedMessage(db, data.messageId)));
   return true;
 }

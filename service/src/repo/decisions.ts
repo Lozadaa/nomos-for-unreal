@@ -14,7 +14,7 @@ function openedContext(db: DatabaseSync, id: string): {
     const event = db.prepare("select payload from events where type='decision.opened' and json_extract(payload,'$.decisionId')=? order by seq desc limit 1").get(id);
     return event ? JSON.parse(event.payload as string) : undefined;
 }
-export function openDecision(db: DatabaseSync, input: Input<Decision> & Pick<Decision, 'taskId' | 'reason' | 'options'>): Decision {
+export function openDecision(db: DatabaseSync, input: Input<Decision> & Pick<Decision, 'taskId' | 'reason' | 'options'>, messageId: string | null = null): Decision {
     return transaction(db, () => {
         const task = requireTask(db, input.taskId);
         let priorBlockedReason = task.blockedReason;
@@ -28,7 +28,7 @@ export function openDecision(db: DatabaseSync, input: Input<Decision> & Pick<Dec
         }
         const d = insert<Decision>(db, 'decisions', { evidence: [], chosenOptionId: null, resolvedBy: null, resolvedAt: null, contextHash: '', state: 'open', ...input });
         db.prepare('update tasks set decision_id=?,blocked_reason=?,updated_at=? where id=?').run(d.id, priorBlockedReason ?? d.reason, d.updatedAt, d.taskId);
-        appendEvent(db, 'decision.opened', null, { taskId: d.taskId, decisionId: d.id, reason: d.reason, priorBlockedReason });
+        appendEvent(db, 'decision.opened', messageId, { taskId: d.taskId, decisionId: d.id, reason: d.reason, priorBlockedReason, ...(messageId ? { messageId } : {}) });
         db.prepare('update decisions set context_hash=? where id=?').run(hash(db, d.taskId), d.id);
         return read<Decision>(db, 'decisions', d.id)!;
     });

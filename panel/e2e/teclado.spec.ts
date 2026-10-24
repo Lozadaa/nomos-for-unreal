@@ -43,6 +43,8 @@ test('Producción y detalle: Tab llega a una fila con foco visible, Enter abre, 
 test('Catálogo: filtros y búsqueda con teclado y foco visible', async ({ page }) => {
   await page.goto(url().replace('/#', '/catalogo#'))
   await expect(page.getByRole('link', { name: /^Catálogo/ }).first()).toHaveAttribute('aria-current', 'page')
+  // con la batería entera cargando el equipo, el buscador puede pintarse después del primer Tab
+  await expect(page.getByLabel('Buscar asset')).toBeVisible()
   await tabUntil(page, (label) => label === 'Buscar asset')
   expect(await focusVisible(page)).toBe(true)
   await page.keyboard.type('zzz-no-existe')

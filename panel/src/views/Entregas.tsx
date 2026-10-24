@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { humanError } from '@/lib/errors'
 import { EmptyState as VisualEmpty } from '@/visual/art/EmptyState'
@@ -8,77 +7,80 @@ import { useAssetViewer, viewerType, ViewerButton, type ViewerItem } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { animateUpdate, withViewTransition } from '@/feel/transitions'
-import { useArtifactSrc, useAuthedSrc } from '@/hooks/artifact'
+import { useAuthedSrc } from '@/hooks/artifact'
 import { useAfter } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
 import { useResource } from '@/hooks/useResource'
-import { artifactName, artifactType, artifactTypeLabel, artifactTypes, errorLines, fileName, groupArtifacts, isBuildLog, orderLabel, orders, type Order } from '@/lib/artifactName'
+import { artifactName } from '@/lib/artifactName'
+import { deliveryType, deliveryTypeLabel, deliveryTypes, duration, setCaption, taskSections, viewerName, viewLabel, type TaskSection, type VisualSet } from '@/lib/deliveries'
 import type { Artifact } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { MeshyExpired, meshyExpired } from './MeshyExpired'
+import { ReportsRow } from './EntregasInformes'
 
-const isImage = (a: Artifact) => /\.(png|jpe?g|webp)$/i.test(a.path)
-const isModel = (a: Artifact) => /\.(glb|gltf)$/i.test(a.path)
+const file = (a: Artifact) => `/artifacts/${encodeURIComponent(a.id)}/file`
+const prov = (a: Artifact) => (a.provenance ?? {}) as Record<string, unknown>
+const grid = 'grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4'
+const orders = { tarea: 'Por tarea', recientes: 'Más recientes' } as const
 
-/** Las dos primeras líneas con «error» de un registro de compilación, leídas del propio log. */
-function useErrorLines(a: Artifact): string[] {
-  const src = useArtifactSrc(a.id)
-  const [lines, setLines] = useState<string[]>([])
-  useEffect(() => {
-    if (!src || !isBuildLog(a)) return
-    let alive = true
-    fetch(src).then((r) => r.ok ? r.text() : '').then((text) => { if (alive) setLines(errorLines(text)) }, () => {})
-    return () => { alive = false }
-  }, [src, a])
-  return lines
+/** Lo que dice el visor bajo el título: tarea, resolución, mapa y licencia; nunca archivos ni rutas. */
+const meta = (a: Artifact, task: string) => [task, String(prov(a).resolution ?? '').replace('x', '×'), String(prov(a).map ?? '').split('/').pop(),
+  a.license ? `Licencia: ${a.license}` : ''].filter(Boolean) as string[]
+
+function viewerItems(sections: TaskSection[], title: (id: string) => string): ViewerItem[] {
+  const one = (a: Artifact, set?: VisualSet): ViewerItem => ({ id: a.id, name: viewerName(a), meta: meta(a, title(a.taskId)),
+    type: meshyExpired(a) ? 'other' : viewerType(a.path), path: file(a), modelId: a.id,
+    group: set && set.items.length > 1 ? set.key : undefined, angle: viewLabel(a),
+    fallback: meshyExpired(a) ? <MeshyExpired a={a} /> : <Glyph kind="artifact" value={a.kind} size={96} /> })
+  return sections.flatMap((s) => [...s.visuals.flatMap((set) => set.items.map((a) => one(a, set))), ...s.models.map((a) => one(a))])
 }
 
-/** Hito 5b: el vídeo de una animación se reconoce por su fotograma del 50 % con el glifo de vídeo del registro encima. */
-function VideoStill({ a, name }: { a: Artifact; name: string }) {
-  const still = useAuthedSrc(a.previewPath ? `/artifacts/${encodeURIComponent(a.id)}/preview` : null)
+/** Portada 16:9: la hoja de contactos, la vista del jugador o el fotograma del vídeo con su duración. */
+function Cover({ set, caption }: { set: VisualSet; caption: string }) {
+  const a = set.cover, video = a.kind === 'video'
+  const src = useAuthedSrc(video ? (a.previewPath ? `/artifacts/${encodeURIComponent(a.id)}/preview` : null) : file(a))
+  const length = video ? duration(prov(a).seconds) : null
   return <div className="relative size-full">
-    {still && <img src={still} alt={name} width={400} height={300} className="size-full object-cover" loading="lazy" />}
-    <span className={still ? 'absolute inset-0 grid place-items-center' : 'grid size-full place-items-center text-muted-foreground'}>
-      <span className={still ? 'rounded-full bg-background/80 p-2' : undefined}><Glyph kind="artifact" value="video" size={still ? 24 : 48} /></span>
-    </span>
+    {src ? <img src={src} alt={caption} width={480} height={270} className="size-full object-cover" loading="lazy" />
+      : <span className="grid size-full place-items-center text-muted-foreground"><Glyph kind="artifact" value={a.kind} size={48} /></span>}
+    {video && src && <span className="absolute inset-0 grid place-items-center"><span className="rounded-full bg-background/80 p-2"><Glyph kind="artifact" value="video" size={24} /></span></span>}
+    {length && <span className="absolute right-2 bottom-2 rounded-sm bg-background/80 px-1.5 font-mono text-xs tabular-nums">{length}</span>}
   </div>
 }
 
-function Preview({ a, name }: { a: Artifact; name: string }) {
-  const src = useArtifactSrc(a.id)
-  const errors = useErrorLines(a)
-  if (meshyExpired(a)) return <MeshyExpired a={a} />
-  if (a.kind === 'video') return <VideoStill a={a} name={name} />
-  if (isModel(a)) return <GlbViewer id={a.id} name={name} />
-  if (isImage(a) && src) return <img src={src} alt={name} width={400} height={300} className="size-full object-cover" loading="lazy" />
+function Card({ caption, onOpen, children }: { caption: string; onOpen: (el: HTMLElement) => void; children: React.ReactNode }) {
   return (
-    <div className="flex size-full flex-col items-center justify-center gap-3 p-3 text-muted-foreground">
-      <Glyph kind="artifact" value={a.kind} size={48} />
-      {errors.length > 0 && <pre aria-label="Primeros errores" className="w-full overflow-hidden font-mono text-[11px] leading-4 whitespace-pre-wrap text-error">{errors.join('\n')}</pre>}
-    </div>
-  )
-}
-
-const meta = (a: Artifact, task: string) => [...new Set([fileName(a), a.path, task, a.license ? `Licencia: ${a.license}` : ''])].filter(Boolean)
-
-/** El visor ve el listado en el mismo orden que la vista; un Meshy caducado sigue con su aviso. */
-function viewerItem(a: Artifact, task: string): ViewerItem {
-  const expired = meshyExpired(a)
-  return { id: a.id, name: artifactName(a), meta: meta(a, task), type: expired ? 'other' : viewerType(a.path), modelId: a.id,
-    path: `/artifacts/${encodeURIComponent(a.id)}/file`,
-    fallback: expired ? <MeshyExpired a={a} /> : <Glyph kind="artifact" value={a.kind} size={96} /> }
-}
-
-function Card({ a, task, onOpen }: { a: Artifact; task: string; onOpen: (el: HTMLElement) => void }) {
-  const name = artifactName(a)
-  return (
-    <li className="flex flex-col overflow-hidden rounded-lg border border-subtle bg-background transition-colors duration-(--k-dur-micro) hover:border-strong"
-      title={meta(a, task).join('\n')}>
-      <div className="aspect-[4/3] overflow-hidden border-b border-subtle bg-card"><ViewerButton name={name} onOpen={onOpen}><Preview a={a} name={name} /></ViewerButton></div>
-      <p className="truncate p-3 text-sm">{name}</p>
+    <li className="flex flex-col overflow-hidden rounded-lg border border-subtle bg-background transition-colors duration-(--k-dur-micro) hover:border-strong">
+      <div className="aspect-video overflow-hidden border-b border-subtle bg-card"><ViewerButton name={caption} onOpen={onOpen}>{children}</ViewerButton></div>
+      <p className="truncate px-3 py-2 text-sm">{caption}</p>
     </li>
   )
 }
+
+function Section({ s, open }: { s: TaskSection; open: (id: string, el: HTMLElement) => void }) {
+  return (
+    <section aria-label={s.title} className="flex flex-col gap-3">
+      <h2 className="truncate text-sm font-medium">{s.title}</h2>
+      {s.visuals.length > 0 && <ul data-part="visuales" aria-label="Capturas y vídeos" className={grid}>
+        {s.visuals.map((set) => {
+          const caption = setCaption(set)
+          return <Card key={set.key} caption={caption} onOpen={(el) => open(set.items[0].id, el)}><Cover set={set} caption={caption} /></Card>
+        })}
+      </ul>}
+      {s.models.length > 0 && <ul data-part="modelos" aria-label="Modelos" className={grid}>
+        {s.models.map((a) => <Card key={a.id} caption={artifactName(a)} onOpen={(el) => open(a.id, el)}>
+          {meshyExpired(a) ? <MeshyExpired a={a} /> : <GlbViewer id={a.id} name={artifactName(a)} />}
+        </Card>)}
+      </ul>}
+      {s.reports.length > 0 && <ReportsRow items={s.reports} />}
+    </section>
+  )
+}
+
+/** «Más recientes»: una sola sección con todo, lo visual primero. */
+const flat = (sections: TaskSection[]): TaskSection[] => sections.length ? [{ taskId: '', title: 'Más recientes', newest: sections[0].newest,
+  visuals: sections.flatMap((s) => s.visuals).sort((a, b) => b.cover.createdAt.localeCompare(a.cover.createdAt)),
+  models: sections.flatMap((s) => s.models), reports: sections.flatMap((s) => s.reports) }] : []
 
 export function Entregas() {
   const { data, loading, error } = useResource<Artifact[]>('/artifacts', /^artifact\./)
@@ -86,15 +88,16 @@ export function Entregas() {
   const navigate = useNavigate()
   const slow = useAfter(loading)
   const [type, setType] = useParam('tipo')
-  const [orderParam, setOrder] = useParam('orden', 'recientes')
-  const order = (orders as readonly string[]).includes(orderParam) ? orderParam as Order : 'recientes'
-  const title = (id: string) => tasks.find((t) => t.id === id)?.title ?? id.slice(0, 8)
-  const shown = (data ?? []).filter((a) => !type || artifactType(a) === type)
-  const groups = groupArtifacts(shown, order, title)
-  const { open, viewer } = useAssetViewer(groups.flatMap((g) => g.items).map((a) => viewerItem(a, title(a.taskId))))
+  const [orderParam, setOrder] = useParam('orden', 'tarea')
+  const order = orderParam === 'recientes' ? 'recientes' : 'tarea'
+  const title = (id: string) => tasks.find((t) => t.id === id)?.title ?? 'Tarea sin título'
+  const shown = (data ?? []).filter((a) => !type || deliveryType(a) === type)
+  const byTask = taskSections(shown, title)
+  const sections = order === 'tarea' ? byTask : flat(byTask)
+  const { open, viewer } = useAssetViewer(viewerItems(sections, title))
 
   if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron cargar las entregas. {humanError(new Error(error))}</p>
-  if (loading) return slow ? <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4" role="status" aria-label="Cargando las entregas">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-56" />)}</div> : null
+  if (loading) return slow ? <div className={grid} role="status" aria-label="Cargando las entregas">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-video" />)}</div> : null
   if (!data?.length) {
     return <VisualEmpty view="entregas" message="Aún no hay entregas" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
@@ -104,22 +107,15 @@ export function Entregas() {
         <ToggleGroup aria-label="Filtrar por tipo" value={[type || 'todos']} variant="outline" size="sm" spacing={0}
           onValueChange={(v) => void animateUpdate(() => setType(v[0] === 'todos' ? '' : v[0] ?? ''))}>
           <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
-          {artifactTypes.map((t) => <ToggleGroupItem key={t} value={t}>{artifactTypeLabel[t]}</ToggleGroupItem>)}
+          {deliveryTypes.map((t) => <ToggleGroupItem key={t} value={t}>{deliveryTypeLabel[t]}</ToggleGroupItem>)}
         </ToggleGroup>
         <select aria-label="Ordenar entregas" value={order} onChange={(e) => void animateUpdate(() => setOrder(e.target.value))}
           className="ml-auto h-8 rounded-md border border-subtle bg-background px-2 text-sm">
-          {orders.map((o) => <option key={o} value={o}>{orderLabel[o]}</option>)}
+          {Object.entries(orders).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </div>
       {shown.length === 0 && <p className="text-sm text-muted-foreground">Ninguna entrega de este tipo.</p>}
-      {groups.map((g) => (
-        <section key={g.key} aria-label={g.title ?? 'Más recientes'} className="flex flex-col gap-3">
-          {g.title && <h2 className="truncate text-sm font-medium">{g.title}</h2>}
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-            {g.items.map((a) => <Card key={a.id} a={a} task={title(a.taskId)} onOpen={(el) => open(a.id, el)} />)}
-          </ul>
-        </section>
-      ))}
+      {sections.map((s) => <Section key={s.taskId || 'todas'} s={s} open={open} />)}
       {viewer}
     </div>
   )

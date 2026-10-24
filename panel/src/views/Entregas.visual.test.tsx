@@ -7,7 +7,7 @@ import type { Artifact } from '@/lib/tasks'
 vi.mock('@/api', () => ({ token: 'fixture-token', api: vi.fn() }))
 vi.mock('@google/model-viewer', () => ({}))
 import { api } from '@/api'
-import { resetStore } from '@/store'
+import { addOptimistic, resetStore } from '@/store'
 import { Entregas } from './Entregas'
 
 const mockApi = vi.mocked(api)
@@ -21,7 +21,7 @@ beforeEach(() => { resetStore(); mockApi.mockReset() })
 afterEach(cleanup)
 
 describe('Entregas · previews y vacío visual', () => {
-  it('usa archivos reales para modelo e imagen y FileText para informe, sin letras de extensión gigantes', async () => {
+  it('usa archivos reales para modelo e imagen, el informe plegado, sin letras de extensión gigantes', async () => {
     mockApi.mockResolvedValue([
       artifact('model', 'model', 'modelo.glb'), artifact('capture', 'screenshot', 'captura.png'),
       artifact('report', 'report', 'informe.txt'), artifact('video', 'video', 'recorrido.mp4'),
@@ -36,13 +36,13 @@ describe('Entregas · previews y vacío visual', () => {
     expect(model).toHaveAttribute('src', '/artifacts/model/file?token=fixture-token')
     expect(model).toHaveAttribute('camera-controls')
     expect(model).not.toHaveAttribute('auto-rotate')
-    expect(screen.getByRole('img', { name: 'Informe' })).toHaveAttribute('width', '48')
-    expect(screen.getByRole('img', { name: 'Informe' })).toHaveClass('lucide-file-text')
+    // hito 10: el informe va plegado en «Informes y registros», no como tarjeta
+    expect(screen.queryByRole('img', { name: 'Informe' })).toBeNull()
+    expect(screen.getByText('Informes y registros')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Vídeo' })).toHaveClass('lucide-film')
     expect(screen.queryByText('TXT')).toBeNull()
     expect(screen.queryByText('MP4')).toBeNull()
     expect(screen.queryByText(/MIT|captura\.png|informe\.txt/)).toBeNull()
-    expect(container.querySelector('li[title]')!.getAttribute('title')).toMatch(/MIT/)
   })
 
   it('vacío: un icono de48, una frase y una acción que navega al compositor', async () => {
@@ -57,15 +57,17 @@ describe('Entregas · previews y vacío visual', () => {
     await waitFor(() => expect(router.state.location.search).toBe('?nueva=1'))
   })
 
-  it('por tarea: la más reciente primero y, dentro, las capturas antes que los informes, con su resolución', async () => {
+  it('por tarea: la más reciente primero; las capturas de una comprobación son una tarjeta y el informe queda plegado', async () => {
+    for (const [id, title] of [['t1', 'Diseñar HUD'], ['t2', 'Componer plaza']]) addOptimistic({ id, title } as never)
     const shot = (id: string, taskId: string, resolution: string, createdAt: string): Artifact => ({ ...artifact(id, 'screenshot', `C:/d/tests/x/ui-${resolution}.png`), taskId, createdAt,
       runId: 'run12345abcdef', provenance: { resolution, map: '/Game/Maps/Nivel1', testRunId: 'x', check: 'umg' } } as Artifact)
     mockApi.mockResolvedValue([shot('a', 't1', '1280x720', '1'), { ...artifact('r', 'report', 'review-uuid.json'), createdAt: '3' }, shot('b', 't1', '1920x1080', '2'),
       { ...artifact('c', 'report', 'informe.txt'), taskId: 't2', createdAt: '4' }])
-    const router = createMemoryRouter([{ path: '/', element: <Entregas /> }], { initialEntries: ['/?orden=tarea'] })
-    render(<RouterProvider router={router} />)
+    render(<RouterProvider router={createMemoryRouter([{ path: '/', element: <Entregas /> }])} />)
     const groups = await screen.findAllByRole('region')
-    expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual(['t2', 't1'])
-    expect([...groups[1].querySelectorAll('li p')].map((p) => p.textContent)).toEqual(['Captura UMG 1920×1080', 'Captura UMG 1280×720', 'Revisión · informe'])
+    expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual(['Componer plaza', 'Diseñar HUD'])
+    expect([...groups[1].querySelectorAll('li p')].map((p) => p.textContent)).toEqual(['UMG · 2 capturas'])
+    expect(groups[1].querySelector('details')!.open).toBe(false)
   })
+
 })

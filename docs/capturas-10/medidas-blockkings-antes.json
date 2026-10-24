@@ -1,0 +1,98 @@
+{
+  "revision": "2768cec",
+  "datos": "copia de un .kratos real",
+  "medidas": {
+    "produccion": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 390
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 390
+      }
+    },
+    "actividad": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 39
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 39
+      }
+    },
+    "entregas": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 0,
+        "cardsPerRow": 0
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 0,
+        "cardsPerRow": 0
+      }
+    },
+    "catalogo": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 88
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 88
+      }
+    },
+    "chat": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 11
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 11
+      }
+    },
+    "decisiones": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 48
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 48
+      }
+    },
+    "presupuesto": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 0
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 5
+      }
+    },
+    "capacidades": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 285
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 290
+      }
+    },
+    "estilo": {
+      "1366": {
+        "contentWidth": 1318,
+        "words": 443
+      },
+      "1920": {
+        "contentWidth": 1352,
+        "words": 443
+      }
+    }
+  }
+}

@@ -54,7 +54,7 @@ export function ackEvent(db: DatabaseSync, seq: number, session: string): void {
     db.prepare("update director set last_ack_seq=max(last_ack_seq,?) where id=1").run(seq);
     if (message.ackedAt) return;
     db.prepare("update messages set acked_at=? where id=?").run(new Date().toISOString(), message.id);
-    appendEvent(db, "message.acked", message.id, { seq, session });
+    appendEvent(db, "message.read", message.id, { seq, session });
   });
 }
 
@@ -63,7 +63,7 @@ export function publishReply(db: DatabaseSync, messageId: string, text: string):
     if (!getMessage(db, messageId)) throw new Error("unknown_message");
     db.prepare("update messages set reply_text=?,replied_at=? where id=?")
       .run(text, new Date().toISOString(), messageId);
-    return appendEvent(db, "reply.published", messageId, { messageId, text });
+    return appendEvent(db, "message.replied", messageId, { messageId, text });
   });
 }
 

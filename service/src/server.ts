@@ -1,6 +1,9 @@
 import * as http from "node:http";
 import type { DatabaseSync } from "node:sqlite";
 import { createMessage, getMessage, ackEvent, publishReply, heartbeat, status, appendEvent } from "./store.ts";
+import { checkTyping, listMessages, startTyping } from "./chat.ts";
+import { listProjects, projectCapture, register, unregister } from "./projects.ts";
+import { readFile } from "node:fs/promises";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
 import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
@@ -41,12 +44,27 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         return json(res, 403, { error: "forbidden_origin" });
       }
       if (method === "GET" && path === "/health") return json(res, 200, { ok: true });
+      // hito 10: el panel de otro proyecto se abre en http://127.0.0.1:<puerto>/ y pide aquí su token. Solo el propio origen
+      // (Host 127.0.0.1:<puerto>, sin Origin ajeno, y fetch del mismo sitio): otra web ni un rebinding de DNS lo leen
+      if (method === "GET" && path === "/session") {
+        const own = `127.0.0.1:${(server.address() as { port: number }).port}`, site = req.headers["sec-fetch-site"];
+        if (req.headers.host !== own || (site && !["same-origin", "none"].includes(String(site)))) return json(res, 403, { error: "forbidden_origin" });
+        res.setHeader("Cache-Control", "no-store");
+        return json(res, 200, { token });
+      }
       if (await panelStatic(req, res, path)) return;
       if (method === "GET" && (path === "/" || path.startsWith("/web/"))) {
         return await staticFile(res, webDir, path === "/" ? "index.html" : path.slice(5));
       }
       if (!authorized(req, url, token)) return json(res, 401, { error: "unauthorized" });
       if (await production({db, req, res, url, dataDir})) return;
+      if (method === "GET" && path === "/projects") return json(res, 200, dataDir ? listProjects(dataDir) : []);
+      if (method === "GET" && parts.length === 4 && parts[1] === "projects" && parts[3] === "capture") {
+        const file = projectCapture(Number(parts[2]));
+        if (!file) return json(res, 404, { error: "unknown_file" });
+        res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
+        return res.end(await readFile(file));
+      }
       if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
@@ -54,6 +72,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         if (!Number.isSafeInteger(since) || since < 0) return json(res, 400, { error: "invalid_seq" });
         return streamEvents(db, req, res, since, streams);
       }
+      if (method === "GET" && path === "/messages") return json(res, 200, listMessages(db));
       if (method === "GET" && parts.length === 3 && parts[1] === "messages") {
         const message = getMessage(db, parts[2]);
         return json(res, message ? 200 : 404, message || { error: "unknown_message" });
@@ -76,6 +95,8 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         if (path === "/messages") return json(res, 201, createMessage(db, data.text, "web"));
         if (parts.length === 4) return json(res, 201, publishReply(db, parts[2], data.text));
       }
+      // hito 10: el director avisa de que empieza a redactar la respuesta
+      if (parts.length === 4 && parts[1] === "messages" && parts[3] === "typing") return json(res, 200, startTyping(db, parts[2]));
       if (path === "/director/heartbeat" || (parts[1] === "events" && parts[3] === "ack")) {
         if (typeof data.session !== "string" || !data.session.trim()) return json(res, 400, { error: "empty_session" });
         if (path === "/director/heartbeat") {
@@ -126,6 +147,8 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   } catch (error) { db.close(); throw error; }
   const port = (server.address() as { port: number }).port;
   const info = { pid: process.pid, port, token, startedAt: new Date().toISOString() };
+  // registro de proyectos de la máquina (nombre, carpeta, puerto, pid; nunca el token): portada y selector del panel
+  try { register(opts.dataDir, port); } catch { /* sin registro, el panel sigue funcionando solo con este proyecto */ }
   const temporary = file + `.${process.pid}.tmp`;
   writeFileSync(temporary, JSON.stringify(info), { mode: 0o600 }); renameSync(temporary, file);
   // jobs de Meshy cobrados cuya respuesta se perdió: se reconcilian antes de que nadie cree otro
@@ -133,7 +156,12 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
     appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));
   runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers(),...createCheckHandlers(),...createClosingHandlers()},
     {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});
+  // chat en vivo: leído y sin respuesta en 3 min → director.typing_timeout (el panel dice «sigue trabajando»)
+  const typing = setInterval(() => { try { checkTyping(db); } catch { /* base ocupada: el siguiente pase lo ve */ } }, 15_000);
+  typing.unref();
   server.once("close", async () => {
+    clearInterval(typing);
+    try { unregister(opts.dataDir); } catch { /* registro ilegible: caduca solo por pid */ }
     runner!();await runner!.drained;
     db.close();
     if (readServiceInfo(opts.dataDir)?.token === token) rmSync(file, { force: true });

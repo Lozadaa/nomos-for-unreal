@@ -80,15 +80,17 @@ describe('useRuns · ejecuciones observadas en los eventos', () => {
   it('descarta la respuesta inicial atrasada si run.finished llegó mientras se leía', async () => {
     const initial = deferred<ReturnType<typeof response>>()
     const final = deferred<ReturnType<typeof response>>()
-    mockApi.mockReturnValueOnce(initial.promise).mockReturnValueOnce(final.promise)
+    // por ruta: el store también pide /tasks y no debe llevarse la respuesta del run
+    const replies = [initial.promise, final.promise]
+    mockApi.mockImplementation(((path: string) => path === '/runs/r1' ? replies.shift()! : Promise.resolve([])) as typeof api)
     const { result } = renderHook(() => useRuns())
     act(() => { ingest(event('run.started', 'r1')) })
-    expect(runCalls()).toHaveLength(1)
+    await waitFor(() => expect(runCalls()).toHaveLength(1))
     act(() => { ingest(event('run.finished', 'r1')) })
     expect(runCalls()).toHaveLength(1)
     await act(async () => { initial.resolve(response('r1')) })
     expect(result.current).toEqual([])
-    expect(runCalls()).toHaveLength(2)
+    await waitFor(() => expect(runCalls()).toHaveLength(2))
     await act(async () => { final.resolve(response('r1', 'done')) })
     expect(result.current).toEqual([run('r1', 'done')])
   })
@@ -97,6 +99,7 @@ describe('useRuns · ejecuciones observadas en los eventos', () => {
     mockApi.mockRejectedValueOnce(new Error('unknown_run'))
     const { result } = renderHook(() => useRuns())
     act(() => { ingest(event('task.activity', 'r1')) })
+    await waitFor(() => expect(runCalls()).toHaveLength(1))
     await act(async () => { await Promise.resolve() })
     expect(result.current).toEqual([])
     act(() => { ingest(event('task.activity', 'r1')) })
@@ -111,6 +114,7 @@ describe('useRuns · ejecuciones observadas en los eventos', () => {
     mockApi.mockReturnValue(pending.promise)
     const { unmount } = renderHook(() => useRuns())
     act(() => { ingest(event('run.started', 'r1')); ingest(event('run.finished', 'r1')) })
+    await waitFor(() => expect(runCalls()).toHaveLength(1))
     unmount()
     await act(async () => { pending.resolve(response('r1')) })
     act(() => { ingest(event('task.activity', 'r2')) })
@@ -136,6 +140,17 @@ describe('useRuns · ejecuciones observadas en los eventos', () => {
     act(() => { ingest(event('worker.output', 'r1')) })
     await waitFor(() => expect(result.current[0]?.waiting).toBe(false))
     act(() => { ingest(event('worker.output', 'r1')) })
+    expect(runCalls()).toHaveLength(3)
+  })
+
+  it('hito 10: la reproducción del SSE llega a ráfagas; cada run se lee una vez cuando la ráfaga se calma', async () => {
+    mockApi.mockImplementation((async (path: string) => response(path.split('/').at(-1)!, 'running', true)) as typeof api)
+    const { result } = renderHook(() => useRuns())
+    for (let burst = 0; burst < 4; burst++) {
+      act(() => { for (const id of ['r1', 'r2', 'r3']) { ingest(event('run.started', id)); ingest(event('worker.output', id)); ingest(event('worker.waiting', id)) } })
+    }
+    await waitFor(() => expect(result.current).toHaveLength(3))
+    await new Promise((done) => setTimeout(done, 400))
     expect(runCalls()).toHaveLength(3)
   })
 })

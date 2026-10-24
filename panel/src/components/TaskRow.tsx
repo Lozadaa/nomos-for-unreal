@@ -7,13 +7,21 @@ import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
 import { areaLabel, isTemp, providerLabel, rowReason, shortId, stageLabel, statusOf, statusText, toneOf, type Run, type Task } from '@/lib/tasks'
 import { Glyph } from '@/visual/Glyph'
+import { useAuthedSrc } from '@/hooks/artifact'
 import { AgentAvatar } from '@/visual/art/AgentAvatar'
 import { agentName } from '@/visual/art/agentName'
 
-export const rowColumns = 'grid grid-cols-[20px_36px_minmax(0,1fr)_auto_64px] items-center gap-x-4'
+export const rowColumns = 'grid grid-cols-[20px_36px_minmax(0,1fr)_auto_64px_64px] items-center gap-x-4'
 
-function TaskRowView({ task, run, agent, now, open, onOpen }: {
+/** Hito 10: la última entrega visual de la tarea, en miniatura 16:9; sin entrega, el hueco queda vacío. */
+function Thumb({ path, title }: { path?: string | null; title: string }) {
+  const src = useAuthedSrc(path ?? null)
+  return <span className="block h-9 w-16 overflow-hidden rounded-sm bg-card">{src && <img src={src} alt={`Última entrega de ${title}`} width={64} height={36} loading="lazy" className="size-full object-cover" />}</span>
+}
+
+function TaskRowView({ task, run, agent, now, open, onOpen, thumb }: {
   task: Task; run?: Run & { waiting?: boolean }; agent?: { name: string; ordinal?: number }; now: number; open: boolean; onOpen: (task: Task, from: HTMLElement) => void
+  thumb?: string | null
 }) {
   const temp = isTemp(task.id)
   const waitingSignal = useStore((s) => s.waiting[task.id])
@@ -55,6 +63,7 @@ function TaskRowView({ task, run, agent, now, open, onOpen }: {
             {waiting && <span className="sr-only">Esperando respuesta</span>}
           </span>
         ) : <span className="text-xs text-muted-foreground">Sin responsable</span>}
+        <Thumb path={thumb} title={task.title} />
         <time dateTime={task.updatedAt} className="text-right text-xs text-muted-foreground tabular-nums">{temp ? 'ahora' : relativeTime(task.updatedAt, now).replace(/^hace /, '')}</time>
       </TooltipTrigger>
       <TooltipContent role="tooltip">{description}</TooltipContent>

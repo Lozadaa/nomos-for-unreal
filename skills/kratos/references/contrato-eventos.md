@@ -34,8 +34,10 @@ No hay CORS para orígenes ajenos. CSP impide scripts externos. No se usan frame
 | Tipo | Payload | Productor |
 |---|---|---|
 | `message.received` | `{text,origin}` | POST mensaje, origin `web` |
-| `message.acked` | `{seq,session}` | POST ack; repetir no duplica el evento |
-| `reply.published` | `{messageId,text}` | POST reply |
+| `message.read` | `{seq,session}` | POST ack (antes `message.acked`); repetir no duplica el evento |
+| `director.typing` | `{messageId,since}` | `kratos typing ID` / POST `/messages/:id/typing`: el director empieza a redactar |
+| `director.typing_timeout` | `{messageId}` | leído y sin respuesta en 3 min; el panel dice «sigue trabajando» |
+| `message.replied` | `{messageId,text}` | POST reply (antes `reply.published`); puede haber varias: acuse corto y cierre |
 | `director.started` | `{session}` | Vigilante: heartbeat con started true |
 | `director.stopped` | `{session}` | POST admin/stop; sesión null si nunca hubo director |
 | `run.finished` | `{taskId,runId,state,summary}` | Fin de vuelta del run; no cierra tarea |
@@ -141,3 +143,32 @@ devuelve `{capabilities,skills,concurrency}`: inventario local de `dirname(dataD
 del scheduler. Contrato completo: `docs/skills-workspace.md` del repositorio Kratos.
 `run.skills` enumera lo solicitado; `metadata.confirmedSkills` solo existe tras un marcador
 válido. Ausente significa desconocido; `[]` significa ninguna declarada por el worker.
+
+## Chat en vivo
+
+El usuario ve en el panel el estado real de su mensaje, con hora: Recibido → Leído por Kratos (ack) →
+Kratos está escribiendo… (`kratos typing <messageId>`) → la respuesta. Si a los 60 s no hay ack, el panel
+lo dice en ámbar («no ha leído tu mensaje todavía»); si tras el ack pasan 3 min sin `reply`, el servicio
+emite `director.typing_timeout` y el panel muestra «sigue trabajando en tu mensaje».
+
+Responde en dos tiempos: un acuse corto en < 1 min («Entendido: creo 3 tareas…»), trabaja, y cierra con
+lo creado («Listo: J1.6, J1.7 y J1.8 creadas»). Cada `reply` es una burbuja; el texto admite Markdown
+(negrita, cursiva, listas, tablas simples, código en línea y enlaces `/tareas/<id>`, que se muestran
+con el título). Pasa `--message <messageId>` a `task create`, `decision open` y `worker send`; sin él,
+el servicio enlaza al último mensaje leído en los últimos 15 min. `GET /messages` devuelve
+`{id,text,createdAt,state,readAt,typingAt,repliedAt,timedOut,replies,links}` y el vigilante entrega los
+`message.*` antes que el resto de cada lote.
+
+## Panel por proyecto
+
+Cada juego arranca su propio servicio (`kratos start --data .kratos` en la carpeta del juego) con puerto y token
+propios. Al arrancar se apunta en `%LOCALAPPDATA%\kratos\projects.json` (nombre del `.uproject`, carpeta, puerto,
+pid; nunca el token) y al parar se borra; una entrada cuyo pid ya no existe caduca en el siguiente arranque.
+`GET /projects` (con token) devuelve los proyectos con tareas vivas, Decisiones abiertas y si hay captura;
+`GET /projects/<puerto>/capture` sirve la última captura de cada uno.
+
+El panel abre la portada `/proyectos` la primera vez de la sesión si hay más de un proyecto, y la cabecera lleva
+el nombre del `.uproject` con un selector. Abrir otro juego es ir a `http://127.0.0.1:<puerto>/`: ese panel pide su
+token a su propio servicio (`GET /session`, solo para su mismo origen: Host `127.0.0.1:<puerto>` y nada de webs
+ajenas). Para dar al usuario el panel correcto, pásale la URL que imprime `kratos start` en la carpeta de su juego,
+o dile que abra cualquiera y elija el juego en la portada.

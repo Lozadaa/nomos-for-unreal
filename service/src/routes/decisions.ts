@@ -1,6 +1,7 @@
 import { body, json } from '../http.ts';
 import { listDecisions, resolveDecision, openDecision } from '../repo/decisions.ts';
 import { choice, text, id, type Context } from './context.ts';
+import { linkedMessage } from '../chat.ts';
 
 export async function decisions({db, req, res, url}: Context): Promise<boolean> {
   if (req.method==='POST' && url.pathname==='/decisions') {
@@ -14,7 +15,7 @@ export async function decisions({db, req, res, url}: Context): Promise<boolean> 
       options:options.map(o=>({id:o.id,label:o.label,description:o.description,
         ...(o.recommended===true ? {recommended:true} : {}),
         ...(typeof o.thumbnail==='string' && o.thumbnail.startsWith('/') && !o.thumbnail.startsWith('//') ? {thumbnail:o.thumbnail} : {})})),
-      evidence:evidence.map(e=>({kind:e.kind,ref:e.ref}))}));return true;
+      evidence:evidence.map(e=>({kind:e.kind,ref:e.ref}))},linkedMessage(db,data.messageId)));return true;
   }
   if (req.method === 'GET' && url.pathname === '/decisions') {
     const state = choice(url.searchParams.get('state'), ['open', 'resolved', 'stale']);

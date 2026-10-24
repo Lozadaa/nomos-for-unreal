@@ -113,8 +113,10 @@ export function eventText(e: KratosEvent, providers?: Providers): string {
     case 'run.finished': return `Ejecución terminada (${String(p.state)})${p.summary ? ` · ${String(p.summary)}` : ''}`
     case 'artifact.created': return 'Nuevo asset'
     case 'message.received': return 'Mensaje recibido'
-    case 'message.acked': return 'Kratos confirmó el mensaje'
-    case 'reply.published': return 'Kratos respondió'
+    case 'message.acked': case 'message.read': return 'Kratos leyó el mensaje'
+    case 'director.typing': return 'Kratos empezó a responder'
+    case 'director.typing_timeout': return 'Kratos sigue trabajando en el mensaje'
+    case 'reply.published': case 'message.replied': return 'Kratos respondió'
     case 'director.started': return 'Kratos empezó a escuchar'
     case 'director.stopped': return 'Kratos dejó de escuchar'
     default: return e.type

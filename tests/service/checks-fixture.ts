@@ -35,6 +35,8 @@ export function checksFixture(opts: {files?: string[]; state?: Task['state']; ar
     launch: async exe => { mkdirSync(join(dirname(exe), 'Juego', 'Saved', 'Screenshots'), {recursive: true});
       writeFileSync(join(dirname(exe), 'Juego', 'Saved', 'Screenshots', 'HighresScreenshot00000.png'), 'png');
       return {exitCode: null, seconds: 30, killed: true}; },
+    // ffmpeg falso por defecto: la hoja de contactos (hito 10) no depende del ffmpeg de la máquina
+    ffmpeg: () => ({bin: process.execPath, baseArgs: [join(fakes, 'ffmpeg.mjs')]}),
     playSeconds: 0, ...opts.deps,
   };
   const handlers = createCheckHandlers(deps);

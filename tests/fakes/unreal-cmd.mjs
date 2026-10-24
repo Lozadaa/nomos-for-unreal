@@ -100,8 +100,12 @@ if (mode === 'hang') {
     png(process.env.KRATOS_SHOT, width, height, mode !== 'noui');
     if (process.env.KRATOS_CONTROL) png(process.env.KRATOS_CONTROL, width, height, false);
     const map = args.find(a => a.startsWith('/Game/')) ?? '/Game/Maps/Nivel1';
+    // hito 10: las vistas del rig; «views_slow» imita un editor que pasa de 90 s y solo deja la primera
+    const requested = JSON.parse(process.env.KRATOS_VIEWS || '[]'), done = mode === 'views_slow' ? requested.slice(0, 1) : requested;
+    for (const v of done) png(v.path, width, height, false, v.view.length);
     write({ok: true, engine, map, widgets: mode === 'noui' ? [] : ['WBP_Vida_C'], screenshot: process.env.KRATOS_SHOT,
-      control: process.env.KRATOS_CONTROL || null, errors: []});
+      control: process.env.KRATOS_CONTROL || null, errors: [], views: Object.fromEntries(done.map(v => [v.view, v.path])),
+      ...(mode === 'views_slow' ? {views_note: `Vistas extra cortadas a los 90 s: ${done.length} de ${requested.length}`} : {})});
   }
 } else {
   const root = process.env.KRATOS_ROOT;

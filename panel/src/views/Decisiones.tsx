@@ -78,7 +78,7 @@ export function Decisiones() {
       <h2 className="text-sm text-muted-foreground" role="status">
         {open.length === 0 ? 'No tienes decisiones pendientes' : open.length === 1 ? 'Tienes 1 decisión pendiente' : `Tienes ${open.length} decisiones pendientes`}
       </h2>
-      <div className="grid grid-cols-[360px_minmax(0,1fr)] gap-6">
+      <div className="grid grid-cols-[360px_minmax(0,var(--k-prose))] gap-6">
         <ul aria-label="Bandeja de decisiones" className="flex flex-col overflow-hidden rounded-lg border border-subtle">
           {list.map((d) => {
             const t = tasks.find((x) => x.id === d.taskId)

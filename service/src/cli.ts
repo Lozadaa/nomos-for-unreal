@@ -27,13 +27,13 @@ async function main() {
     force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false } } });
   const [command, ...args] = positionals; const dataDir = resolve(values.data!);
   const session = values.session?.trim(); const port = Number(values.port);
-  const commands = ["start", "status", "vigila", "ack", "reply", "stop", "seed", "doctor"];
+  const commands = ["start", "status", "vigila", "ack", "typing", "reply", "stop", "seed", "doctor"];
   if (!commands.includes(command) || !Number.isInteger(port) || port < 1 || port > 65535
     || (["ack", "vigila"].includes(command) && !session) || (values.types!==undefined && command!=='vigila')
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
-    || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim()))
+    || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim())) || (command === "typing" && args.length !== 1)
     || (["start", "status", "vigila", "stop", "seed", "doctor"].includes(command) && args.length)) {
-    throw new Error("Uso: kratos start|status|vigila --session ID|ack SEQ --session ID|reply ID TEXTO|stop|seed [--force]|doctor [--data CARPETA]");
+    throw new Error("Uso: kratos start|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor [--data CARPETA]");
   }
   if (command === "doctor") {
     mkdirSync(dataDir, { recursive: true });
@@ -76,6 +76,7 @@ async function main() {
   const info = serviceInfo(dataDir);
   if (command === "status") console.log(JSON.stringify(await request(info, "/status")));
   if (command === "ack") console.log(JSON.stringify(await request(info, `/events/${args[0]}/ack`, { session })));
+  if (command === "typing") console.log(JSON.stringify(await request(info, `/messages/${encodeURIComponent(args[0])}/typing`, {})));
   if (command === "reply") console.log(JSON.stringify(await request(info, `/messages/${encodeURIComponent(args[0])}/reply`, { text: args.slice(1).join(" ") })));
   if (command === "stop") {
     await request(info, "/admin/stop", {});

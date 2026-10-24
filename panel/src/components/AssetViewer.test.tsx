@@ -33,7 +33,7 @@ describe('Visor de assets (corrección 3 del usuario)', () => {
     expect(img.className).toContain('object-contain')
     expect(img.className).not.toContain('object-cover')
     expect(within(dialog).getByRole('heading').textContent).not.toMatch(/Highres|\.png|[0-9a-f]{8}-/)
-    expect(within(dialog).getByText(/HighresScreenshot00000\.png/)).toBeInTheDocument()
+    expect(dialog.textContent).not.toMatch(/Highres|\.png|C:\//) // hito 10: ni archivos ni rutas en pantalla
     expect(within(dialog).getByRole('link', { name: 'Abrir original' })).toHaveAttribute('href', expect.stringContaining('token=tok'))
   })
 
@@ -82,9 +82,9 @@ describe('Vídeo de animación (hito 5b, corrección 2)', () => {
     expect(player.getAttribute('aria-label')).toBe('Animación · vídeo 1280×720 · AM_ComboAttack')
   })
 
-  it('sin miniatura, la tarjeta del vídeo es su glifo; el filtro Capturas la incluye', async () => {
+  it('sin miniatura, la tarjeta del vídeo es su glifo; el filtro Vídeos la incluye', async () => {
     vi.mocked(api).mockResolvedValue([video])
-    at('/?tipo=capturas')
+    at('/?tipo=videos')
     const thumb = await screen.findByRole('button', { name: /^Ver Animación · vídeo/ })
     expect(within(thumb).queryByRole('img', { name: /AM_ComboAttack/ })).toBeNull()
     expect(within(thumb).getByRole('img', { name: 'Vídeo' })).toBeInTheDocument()

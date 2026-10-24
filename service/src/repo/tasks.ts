@@ -3,11 +3,12 @@ import type { Task, TaskState } from '../model.ts';
 import { appendEvent } from '../store.ts';
 import { insert, read, filtered, transaction, type Input } from './rows.ts';
 import { checkGate } from '../checks/gate.ts';
-export function createTask(db: DatabaseSync, input: Input<Task> & Pick<Task, 'title' | 'area'>): Task {
+/** `messageId`: el mensaje del chat por el que el director la crea (hito 10). */
+export function createTask(db: DatabaseSync, input: Input<Task> & Pick<Task, 'title' | 'area'>, messageId: string | null = null): Task {
     return transaction(db, () => {
         const task = insert<Task>(db, 'tasks', { spec: '', acceptance: [], scope: [], leases: [], reviewApproved: 0, waitReason: null, state: 'pendiente', blockedReason: null, decisionId: null,
             assigneeRole: null, assigneeProvider: null, parentTaskId: null, dependsOn: [], worktreeId: null, budgetId: null, ...input });
-        appendEvent(db, 'task.created', null, { taskId: task.id });
+        appendEvent(db, 'task.created', messageId, { taskId: task.id, ...(messageId ? { messageId } : {}) });
         return task;
     });
 }

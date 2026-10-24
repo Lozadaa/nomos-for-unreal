@@ -16,7 +16,25 @@ Actualizado el 2026-10-23 en `hito7-acabado` (sobre `main@eed03ed` con los hitos
 | 7 · Endurecimiento y acabado | Tareas 1-5 en `hito7-acabado` (sin push ni merge) | `docs/auditoria-7-cierre.md`, `docs/recorrido-mvp.md`, `docs/capturas-7/`, sección «Hito 7» |
 | 8 · Interfaz viva | En `main` | `docs/auditoria-8-cierre.md`, `docs/medicion-8.json`, `docs/capturas-8/` |
 | 9 · Lenguaje visual | En `main` | `docs/auditoria-9-cierre.md`, `docs/capturas-9/`, `docs/diseno/glifos.md` |
+| 10 · Panel para revisar sin leer | Tareas 1-6 en `Lozadaa/hito10-panel-revisar` (sin push ni merge) | `docs/auditoria-10-revisar.md`, `docs/capturas-10/`, sección «Hito 10» |
 
+
+## Hito 10 — panel para revisar sin leer
+
+**Hecho** (rama `Lozadaa/hito10-panel-revisar`): ancho completo con 72ch solo para texto corrido; Entregas por tarea con
+capturas y vídeos primero, una tarjeta por comprobación con su hoja de contactos y galería de ángulos, informes plegados
+con veredicto de una línea; map y build con 4 vistas (jugador + rig 3/4 izquierda, 3/4 derecha y picado) y hoja 2×2,
+probado en KratosFabTest; portada `/proyectos` y selector en la cabecera, registro de proyectos sin tokens y `GET /session`
+del propio origen; chat en vivo (estados con hora, «escribiendo», tarjetas de lo creado, Markdown seguro, sin scroll
+horizontal); revisión con datos reales de Block Kings (Entregas y Presupuesto ya cargan, 170 → 85 lecturas de runs,
+`/messages` 0,64 → 0,003 s, miniatura en la fila de Producción).
+Correcciones de Fable: la tarjeta de cada proyecto enseña su última captura real (el service worker no cubría
+`/projects/:puerto/capture`) o un marcador con el nombre si no hay o no carga; el subrayado de la pestaña activa se
+recoloca cuando cambian los anchos y desaparece en la portada.
+
+```
+node panel/scripts/capturas-10.ts <etiqueta> [--datos <copia de .kratos>] [--proyecto <nombre>]
+```
 
 ## Hito 7 — endurecimiento y acabado (cierre del MVP)
 
