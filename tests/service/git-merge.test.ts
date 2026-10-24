@@ -121,3 +121,17 @@ test('hito 5b: un cambio local igual al que llega (LiveLink ya puesto) no frena 
     assert.equal(repo.git(repo.dir, 'status', '--porcelain'), '');
   } finally { repo.close(); }
 });
+
+test('hito 5b: discard deja como en HEAD lo que tocó un lote de pruebas (mapa re-guardado, clip nuevo, Build/)', async () => {
+  const repo = gameRepo(), git = createGit();
+  try {
+    const tree = repo.tree('heroe', {'Content/Kratos/Maps/AnimTest.umap': 'MAPA'});
+    writeFileSync(join(tree.path, 'Content', 'Kratos', 'Maps', 'AnimTest.umap'), 'MAPA RE-GUARDADO');
+    mkdirSync(join(tree.path, 'Build', 'Windows'), {recursive: true});
+    writeFileSync(join(tree.path, 'Build', 'Windows', 'Juego.exe'), 'exe');
+    writeFileSync(join(tree.path, 'Content', 'Kratos', 'Clip2.uasset'), 'clip');
+    await git.discard(tree.path, (await git.status(tree.path)).files);
+    assert.deepEqual(await git.status(tree.path), {clean: true, files: []});
+    assert.equal(readFileSync(join(tree.path, 'Content', 'Kratos', 'Maps', 'AnimTest.umap'), 'utf8'), 'MAPA');
+  } finally { repo.close(); }
+});

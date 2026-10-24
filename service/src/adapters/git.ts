@@ -21,6 +21,8 @@ export type Git = GitLfs & {
   worktreeAdd(repoDir: string, path: string, ref: string): Promise<void>;
   worktreeRemove(repoDir: string, path: string): Promise<void>;
   status(dir: string): Promise<{clean: boolean; files: string[]}>;
+  /** Deshace en `dir` esos archivos: los seguidos vuelven a HEAD, los nuevos se borran (lo que escribió un lote de pruebas). */
+  discard(dir: string, files: string[]): Promise<void>;
   branchExists(dir: string, branch: string): Promise<boolean>;
   contains(dir: string, branch: string, commit: string): Promise<boolean>;
   filesBetween(dir: string, from: string, to: string): Promise<string[]>;
@@ -145,6 +147,13 @@ export function createGit(): Git {
       const files=(await run(dir,['status','--porcelain','-z','--untracked-files=all'])).split('\0').filter(Boolean)
         .map(record=>record.slice(3)).filter(path=>path&&!local(path));
       return {clean:!files.length,files};
+    },
+    async discard(dir,files) {
+      for(let i=0;i<files.length;i+=100) {
+        const chunk=files.slice(i,i+100),tracked=new Set((await run(dir,['ls-files','-z','--',...chunk])).split('\0').filter(Boolean));
+        if(tracked.size) await run(dir,['checkout','HEAD','--',...tracked]);
+        for(const file of chunk) if(!tracked.has(file)) rmSync(join(dir,file),{force:true});
+      }
     },
     async branchExists(dir,branch) {
       try {await run(dir,['rev-parse','--verify','--quiet',`refs/heads/${branch}`]);return true;} catch {return false;}

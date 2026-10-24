@@ -28,6 +28,9 @@ export const workerSend: Handler=async (cmd,ctx)=>{
       {runId:run.id,correctionCount:count},[{id:'review',label:'Revisar',description:'El director decide cómo continuar'},
         {id:'cancel',label:'Cancelar',description:'No enviar más correcciones'}],false);return;
   }
+  // hito 5b: el bloqueo del límite solo existe por count>=max; si `limits.corrections` ya permite otra, sobra
+  if (correction && /^Máximo de (tres|\d+) correcciones alcanzado$/.test(task.blockedReason ?? ''))
+    db.prepare('update tasks set blocked_reason=null,updated_at=? where id=? and decision_id is null').run(new Date().toISOString(),task.id);
   if (correction && !await workerPolicy(ctx,task,`correction:${run.id}:${count+1}`)) return;
   if (dispatchBlocked(db,guard) || requireTask(db,task.id).blockedReason) return pauseForDecision(db,task.id,run.id);
   const dependency=dependencyReason(db,requireTask(db,task.id));

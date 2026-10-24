@@ -84,13 +84,15 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
   return row;
 }
 
-/** Regresión visual (hito 7) de cada captura contra `<juego>/docs/baseline/<check>-<captura>.png`. */
+/** Regresión visual (hito 7) de cada captura contra `<juego>/docs/baseline/<check>-[<mapa>-]<captura>.png`. */
 function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outcome): Outcome {
   const tolerance = visualTolerance(readConfig(ctx.dataDir)), lines: string[] = [], extra: NonNullable<Outcome['artifacts']> = [];
   let failed = false;
   for (const shot of (outcome.artifacts ?? []).filter(a => a.kind === 'screenshot')) {
     const base = basename(shot.path, extname(shot.path)).replace(/^HighresScreenshot\d+$/i, '1280x720');
-    const name = base.startsWith(`${id}-`) ? base : `${id}-${base}`;
+    // hito 5b: la línea base es de un mapa; un build o un PIE de otro mapa se compara con la suya (o la crea)
+    const map = outcome.map ? `${outcome.map.split('/').at(-1)}-` : '';
+    const name = base.startsWith(`${id}-`) ? base : `${id}-${map}${base}`;
     try {
       const visual = compareBaseline(shot.path, join(ctx.projectDir, 'docs', 'baseline'), name, tolerance, join(dir, `${name}-diferencia.png`));
       lines.push(visual.summary);
