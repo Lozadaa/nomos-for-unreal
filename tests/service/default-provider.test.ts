@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { concurrency, readConfig, workerModel, opencodeModel } from '../../service/src/config.ts';
 import { chooseProvider } from '../../service/src/scheduler-provider.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const idle={codex:0,claude:0,opencode:0};
 test('Claude es el proveedor por defecto; Codex apagado salvo que config.json lo habilite',()=>{
@@ -20,12 +21,12 @@ test('Claude es el proveedor por defecto; Codex apagado salvo que config.json lo
   assert.deepEqual(chooseProvider('revisor',{concurrency:{claude:2}},idle,'claude'),{provider:'claude',reason:'Disponible',sameProvider:true});
 });
 test('readConfig valida defaultProvider',t=>{
-  const dir=mkdtempSync(join(tmpdir(),'nomos-default-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  const dir=mkdtempSync(join(tmpdir(),'nomos-default-'));t.after(()=>removeDir(dir));
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"codex"}');assert.equal(readConfig(dir).defaultProvider,'codex');
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"otro"}');assert.throws(()=>readConfig(dir),/invalid_worker_config/);
 });
 test('readConfig valida workerModel; sonnet por defecto',t=>{
-  const dir=mkdtempSync(join(tmpdir(),'nomos-model-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  const dir=mkdtempSync(join(tmpdir(),'nomos-model-'));t.after(()=>removeDir(dir));
   assert.equal(workerModel(readConfig(dir)),'sonnet');
   for(const model of ['sonnet','opus','haiku']) {
     writeFileSync(join(dir,'config.json'),JSON.stringify({workerModel:model}));assert.equal(workerModel(readConfig(dir)),model);
@@ -42,7 +43,7 @@ test('una tarea asignada a un proveedor apagado dice cuál y cómo encenderlo, n
     {reason: 'Sin proveedor habilitado'});
 });
 test('readConfig valida opencodeModel; beam-free gratuito por defecto, nunca el modelo del usuario',t=>{
-  const dir=mkdtempSync(join(tmpdir(),'nomos-opencode-model-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  const dir=mkdtempSync(join(tmpdir(),'nomos-opencode-model-'));t.after(()=>removeDir(dir));
   assert.equal(opencodeModel(readConfig(dir)),'opencode/beam-free');
   for(const model of ['opencode/deepseek-v4.1-flash-free','opencode-go/claude-haiku-5-5']) {
     writeFileSync(join(dir,'config.json'),JSON.stringify({opencodeModel:model}));assert.equal(opencodeModel(readConfig(dir)),model);

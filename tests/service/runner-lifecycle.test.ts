@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
 import { openDb } from '../../service/src/db.ts';
 import { enqueue } from '../../service/src/commands.ts';
 import { start } from '../../service/src/server.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('servicio arranca runner una vez y admin stop drena antes de cerrar SQLite y borrar service.json',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'nomos-lifecycle-')),file=join(dir,'nomos.db');
@@ -41,6 +42,6 @@ test('servicio arranca runner una vez y admin stop drena antes de cerrar SQLite 
   } finally {
     controller.abort();
     release();await fetch(base+'/admin/stop',{method:'POST',headers:{Authorization:`Bearer ${info.token}`}}).catch(()=>{});
-    await delay(50);rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});
+    await delay(50);removeDir(dir);
   }
 });

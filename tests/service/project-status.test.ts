@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { openDb } from '../../service/src/db.ts';
 import { createServer } from '../../service/src/server.ts';
+import { removeDir } from '../remove-dir.ts';
 
 async function statusOf(dataDir: string) {
   const db = openDb(':memory:');
@@ -32,7 +33,7 @@ test('/status expone el proyecto del .uproject de la carpeta de datos', () => {
       // en la propia carpeta de datos
       writeFileSync(join(data, 'Otro.uproject'), '{}');
       assert.deepEqual((await statusOf(data)).project, {name: 'Otro', uproject: 'Otro.uproject'});
-    } finally { rmSync(root, {recursive: true, force: true}); }
+    } finally { removeDir(root); }
   })();
 });
 
@@ -42,7 +43,7 @@ test('/status sin .uproject deja el proyecto en null', async () => {
     const data = join(root, '.nomos');
     mkdirSync(data);
     assert.equal((await statusOf(data)).project, null);
-  } finally { rmSync(root, {recursive: true, force: true}); }
+  } finally { removeDir(root); }
 });
 
 test('/status dice el disco libre de la unidad del proyecto (hito 19)', async () => {
@@ -53,5 +54,5 @@ test('/status dice el disco libre de la unidad del proyecto (hito 19)', async ()
     assert.ok(Number.isFinite(disk.free) && disk.free > 0);
     assert.match(disk.text, /^Disco: [\d.,]+ GB libres( · ejecuta nomos clean)?$/);
     assert.equal(disk.low, disk.free < 30 * 1024 ** 3);
-  } finally { rmSync(root, {recursive: true, force: true}); }
+  } finally { removeDir(root); }
 });

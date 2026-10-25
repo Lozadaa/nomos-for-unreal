@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as http from "node:http";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { panelStatic } from "../../service/src/static.ts";
+import { removeDir } from "../remove-dir.ts";
 
 async function withPanel(run: (get: (path: string, accept?: string) => Promise<Response>) => Promise<void>, build = true) {
   const dir = mkdtempSync(join(tmpdir(), "nomos-panel-"));
@@ -23,7 +24,7 @@ async function withPanel(run: (get: (path: string, accept?: string) => Promise<R
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${(server.address() as any).port}`;
   try { await run((path, accept) => fetch(base + path, { headers: accept ? { Accept: accept } : {} })); }
-  finally { await new Promise<void>((r) => server.close(() => r())); rmSync(dir, { recursive: true, force: true }); }
+  finally { await new Promise<void>((r) => server.close(() => r())); removeDir(dir); }
 }
 
 test("sirve index.html en / y los archivos de dist con su tipo", () => withPanel(async (get) => {

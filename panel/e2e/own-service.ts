@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { removeDir } from '../../tests/remove-dir.ts'
 
 const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 
@@ -33,6 +34,6 @@ export function ownService(port: number, project = 'CrazyPadel', registry?: stri
   return {
     origin: `http://127.0.0.1:${port}`, data, start, stop,
     url: (t: string) => `http://127.0.0.1:${port}/#token=${t}`,
-    dispose() { stop(); setTimeout(() => rmSync(root, { recursive: true, force: true }), 500) },
+    dispose() { stop(); removeDir(root) },
   }
 }

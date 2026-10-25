@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
 import { capabilityList, saveCheck } from '../../service/src/capability-checks.ts';
 import { checkCapability } from '../../service/src/doctor.ts';
 import { upsertEntry } from '../../service/src/repo/catalog.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const touch = (file: string) => { mkdirSync(join(file, '..'), {recursive: true}); writeFileSync(file, ''); };
 
@@ -21,7 +22,7 @@ function engine(withPlugins: boolean) {
   }
   mkdirSync(dataDir, {recursive: true});
   writeFileSync(join(dataDir, 'config.json'), JSON.stringify({unrealPath: cmd, ffmpegPath: join(root, 'no', 'ffmpeg.exe')}));
-  return {root, dataDir, close: () => rmSync(root, {recursive: true, force: true})};
+  return {root, dataDir, close: () => removeDir(root)};
 }
 
 test('MetaHuman listo con plugin, IK_MH_IKRig y presets indexados; Retarget IK con IKRig', () => {

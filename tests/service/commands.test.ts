@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { openDb } from '../../service/src/db.ts';
 import { enqueue, claim, complete, fail } from '../../service/src/commands.ts';
 import { listEvents } from '../../service/src/store.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('enqueue conserva el comando y emite un solo evento por clave', () => {
   const db = openDb(':memory:');
@@ -134,6 +135,6 @@ test('dos workers compiten por un comando en conexiones SQLite independientes', 
     assert.equal(listEvents(db, 0).filter(e => e.type === 'command.running').length, 1);
   } finally {
     await Promise.all(workers.map(w => w.terminate()));
-    db.close(); rmSync(dir, { recursive: true, force: true });
+    db.close(); removeDir(dir);
   }
 });

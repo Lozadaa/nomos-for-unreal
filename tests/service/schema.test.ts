@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "../../service/src/db.ts";
+import { removeDir } from "../remove-dir.ts";
 
 const tables = ["tasks", "runs", "worktrees", "decisions", "budgets", "spends",
   "artifacts", "test_runs", "catalog_entries", "commands"];
@@ -29,7 +30,7 @@ test("openDb permite reabrir el mismo archivo sin perder datos", () => {
     const second = openDb(path);
     try { assert.equal(second.prepare("select count(*) as n from tasks").get()?.n, 1); }
     finally { second.close(); }
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+  } finally { removeDir(dir); }
 });
 
 test("tasks.state rechaza estados fuera del contrato mediante CHECK", () => {

@@ -18,7 +18,7 @@ async function stopChild(child: ChildProcess) {
 export const cliPath = join(import.meta.dirname, "../service/src/cli.ts");
 export function cli(dataDir: string, ...args: string[]) {
   return spawnSync(process.execPath, [cliPath, ...args, "--data", dataDir], {
-    encoding: "utf8", timeout: 30_000, windowsHide: true });
+    encoding: "utf8", timeout: 60_000, windowsHide: true });
 }
 /** Para el servicio de la carpeta aunque no responda a tiempo (con carga, `isAlive` caducaba y quedaba vivo): `stop` y, si sigue, su árbol. */
 export function stopService(dataDir: string) {

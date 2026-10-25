@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { removeDir } from '../../tests/remove-dir.ts'
 import { dirname, join, resolve } from 'node:path'
 import { ownService } from './own-service'
 
@@ -22,7 +23,7 @@ test.beforeAll(({ browserName }) => {
   mkdirSync(build(), { recursive: true }); writeFileSync(join(build(), 'Juego.exe'), 'MZ')
   token = service.start()
 })
-test.afterAll(() => { service.stop(); rmSync(root, { recursive: true, force: true }) })
+test.afterAll(() => { service.stop(); removeDir(root) })
 test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
 test('sin build-info.json: «Origen desconocido» discreto', async ({ page }) => {

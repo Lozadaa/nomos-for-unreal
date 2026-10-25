@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -12,6 +12,7 @@ import { recordTestRun } from '../../service/src/repo/artifacts.ts';
 import { listEvents } from '../../service/src/store.ts';
 import type { WorkerContext } from '../../service/src/runner.ts';
 import type { Command, Task, Worktree } from '../../service/src/model.ts';
+import { removeDir } from '../remove-dir.ts';
 
 /** Repo Git real `Juego` (rama master, Juego.uproject) con un worktree de tarea `nomos/<n>` ya committeado. */
 export function gameRepo() {
@@ -42,7 +43,7 @@ export function gameRepo() {
     git(dir, 'add', '.'); git(dir, 'commit', '-m', 'Cambio en master');
     return git(dir, 'rev-parse', 'HEAD');
   };
-  return {root, dir, git, tree, commitMaster, close() { rmSync(root, {recursive: true, force: true, maxRetries: 3}); }};
+  return {root, dir, git, tree, commitMaster, close() { removeDir(root); }};
 }
 
 /** Servicio sin HTTP sobre `gameRepo`: tarea aprobada en `integrando` con su worktree y run implementador terminado. */

@@ -77,14 +77,14 @@ async function main() {
         ...(values["new-token"] ? ["--new-token"] : [])],
         { detached: true, stdio: "ignore", windowsHide: true });
       let failed = false; child.on("error", () => { failed = true; }); child.unref();
-      // con el equipo cargado (compilaciones, otros agentes) cargar el servicio pasa de 5 s
-      const deadline = Date.now() + 15_000;
+      // con el equipo cargado (compilaciones, otros agentes, otra suite) cargar el servicio pasa de 15 s
+      const deadline = Date.now() + 30_000;
       while (Date.now() < deadline && !failed) {
         info = readServiceInfo(dataDir);
         if (info && await isAlive(info)) break;
         await sleep(100);
       }
-      if (!info || !await isAlive(info)) throw new ServiceError("No se pudo arrancar el servicio en quince segundos");
+      if (!info || !await isAlive(info)) throw new ServiceError("No se pudo arrancar el servicio en treinta segundos");
     }
     const url = serviceUrl(info!); console.log(`URL ${url}`);
     console.log(active ? "YA_ACTIVO" : "ARRANCADO");

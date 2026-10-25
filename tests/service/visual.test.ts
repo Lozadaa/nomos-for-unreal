@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { decodePng, type Rgba } from '../../service/src/checks/png.ts';
 import { compareBaseline, encodePng } from '../../service/src/checks/visual.ts';
+import { removeDir } from '../remove-dir.ts';
 
 /** HUD sintético 200×100: fondo con degradado y barra de vida verde de 100 px a `health` %. */
 function hud(health: number, brightness = 0, noise = 0): Rgba {
@@ -46,5 +47,5 @@ test('sin línea base la crea y no juzga; variación de render pasa; la barra de
     assert.notDeepEqual(at(150, 60), [255, 0, 0]);
     assert.equal(compareBaseline(shot('tolerante', hud(50)), baselines, 'build-1280x720', 0.05, join(dir, 'diff-4.png')).result, 'passed',
       'la tolerancia viene de config.json');
-  } finally { rmSync(dir, {recursive: true, force: true}); }
+  } finally { removeDir(dir); }
 });

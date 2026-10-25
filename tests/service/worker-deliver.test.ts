@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -9,13 +9,14 @@ import { createTask } from '../../service/src/repo/tasks.ts';
 import { startRun } from '../../service/src/repo/runs.ts';
 import { requireRun, updateRun } from '../../service/src/repo/worker.ts';
 import { deliver } from '../../service/src/handlers/worker-deliver.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const blocked = () => new OrcaError('cli_error',
   'agent_prompt_blocked Terminal prompt request ID: d332469e-28f4-4b47-8810-33e0c9485d5d. Re-issue the exact command with --retry-request d332469e-28f4-4b47-8810-33e0c9485d5d --wait-submit <seconds>');
 
 function setup(t: any, failures: number) {
   const dir = mkdtempSync(join(tmpdir(), 'nomos-deliver-'));
-  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
+  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); removeDir(dir); });
   const task = createTask(db, {title: 'HUD', area: 'ui'});
   const run = startRun(db, {taskId: task.id, role: 'ui', provider: 'claude'});
   updateRun(db, run.id, {cursor: '3', screenFingerprint: 'abc'}, {sessionRef: 'term_viejo'});

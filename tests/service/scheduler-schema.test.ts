@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync,rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applySchema } from '../../service/src/schema.ts';
@@ -10,6 +10,7 @@ import { openDb } from '../../service/src/db.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { startRun,finishRun } from '../../service/src/repo/runs.ts';
 import { enqueue } from '../../service/src/commands.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('migración reconoce OpenCode y conserva campos rowid metadata e idempotencia al reabrir',()=>{
   const dir=mkdtempSync(join(tmpdir(),'nomos-provider-schema-')),file=join(dir,'db.sqlite');
@@ -39,5 +40,5 @@ test('migración reconoce OpenCode y conserva campos rowid metadata e idempotenc
     db.close();db=openDb(file);
     assert.deepEqual(db.prepare('select rowid,* from runs order by rowid').all(),migrated);
     assert.equal(db.prepare("select count(*) n from sqlite_master where name like 'runs_migrating%'").get()!.n,0);
-  } finally {db.close();rmSync(dir,{recursive:true,force:true});}
+  } finally {db.close();removeDir(dir);}
 });

@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { cliPath } from './cli-helpers.ts';
+import { removeDir } from './remove-dir.ts';
 
 // hito 16: el vigilante distingue ocupado (vivo y lento) de caído
 async function watch(t: test.TestContext, service: object, ms: number) {
@@ -15,7 +16,7 @@ async function watch(t: test.TestContext, service: object, ms: number) {
   writeFileSync(join(dataDir, 'service.json'), JSON.stringify({ token: 'b'.repeat(48), startedAt: new Date().toISOString(), ...service }));
   const child = spawn(process.execPath, [cliPath, 'vigila', '--session', 'director', '--data', dataDir], { windowsHide: true });
   let output = ''; child.stdout.on('data', chunk => { output += chunk; });
-  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  t.after(() => removeDir(dataDir));
   await delay(ms);
   const exited = once(child, 'exit'); child.kill(); await exited;
   return output.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));

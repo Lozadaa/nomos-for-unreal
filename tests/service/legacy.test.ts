@@ -2,7 +2,7 @@
 import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -16,10 +16,11 @@ import { gameSkills, installSkills } from '../../service/src/skills-install.ts';
 import { readSpec } from '../../service/src/checks/animation.ts';
 import { selectChecks } from '../../service/src/checks/select.ts';
 import { readServiceInfo } from '../../service/src/service-info.ts';
+import { removeDir } from '../remove-dir.ts';
 
 function folder(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'nomos-legacy-'));
-  t.after(() => rmSync(root, {recursive: true, force: true, maxRetries: 5}));
+  t.after(() => removeDir(root));
   return root;
 }
 /** Para el servicio y espera a que retire su service.json (antes de que folder() borre la carpeta). */

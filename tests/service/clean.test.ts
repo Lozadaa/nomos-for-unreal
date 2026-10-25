@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -10,6 +10,7 @@ import { insert, read } from '../../service/src/repo/rows.ts';
 import { applyClean, planClean } from '../../service/src/clean.ts';
 import type { Worktree } from '../../service/src/model.ts';
 import { cliPath } from '../cli-helpers.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const hours = (n: number) => new Date(Date.now() - n * 3600_000);
 /** Archivo de `bytes` dentro de `dir`; con `old`, todo lo de dentro dos horas atrás. */
@@ -45,7 +46,7 @@ function fixture(t: {after: (fn: () => void) => void}) {
     if (opts.done) db.prepare("update tasks set state='done' where id=?").run(task.id);
     return insert<Worktree>(db, 'worktrees', {id: `repo-1::${path}`, taskId: task.id, path, branch, baseCommit: '', state: 'active', closedReason: null});
   };
-  t.after(() => { db.close(); rmSync(root, {recursive: true, force: true, maxRetries: 5, retryDelay: 100}); });
+  t.after(() => { db.close(); removeDir(root); });
   return {root, game, data, db, git, worker};
 }
 
@@ -90,7 +91,7 @@ test('worktrees: retira los de tareas cerradas integradas y limpia sus paquetes;
   assert.equal(touched(dirty.path), false, 'con cambios sin commit no se toca nada');
   assert.equal(touched(live.path), false, 'la tarea sigue viva');
   const removed: string[] = [];
-  const freed = await applyClean(plan, {db: f.db, orca: {worktreeRemove: async (id: string) => { removed.push(id); rmSync(done.path, {recursive: true, force: true}); }}});
+  const freed = await applyClean(plan, {db: f.db, orca: {worktreeRemove: async (id: string) => { removed.push(id); removeDir(done.path); }}});
   assert.deepEqual(removed, [done.id]);
   assert.equal(read<Worktree>(f.db, 'worktrees', done.id)!.state, 'closed');
   assert.ok(freed >= 2000);

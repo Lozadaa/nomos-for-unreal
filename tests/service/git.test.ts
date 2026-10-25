@@ -1,16 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createGit } from '../../service/src/adapters/git.ts';
+import { removeDir } from '../remove-dir.ts';
 export function repository(t: any) {
   const dir=mkdtempSync(join(tmpdir(),'nomos-git-'));
   const git=(...args:string[]) => execFileSync('git',['-C',dir,...args],{encoding:'utf8',windowsHide:true});
   git('init');git('config','core.autocrlf','false');git('config','user.name','Nomos test');git('config','user.email','test@example.invalid');
   writeFileSync(join(dir,'tracked.txt'),'antes\n');git('add','.');git('commit','-m','Base');
-  t.after(()=>rmSync(dir,{recursive:true,force:true,maxRetries:3}));
+  t.after(()=>removeDir(dir));
   return {dir,git};
 }
 test('Git exige raíz exacta y muestra diferencias committeadas, pendientes, nuevas y binarias',async t=>{

@@ -18,6 +18,7 @@ import { meshyServer } from '../fakes/meshy-server.ts';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { removeDir } from '../remove-dir.ts';
 
 async function setup(opts: Parameters<typeof meshyServer>[0] = {}, credits: number | null = 100) {
   const fake = await meshyServer(opts), db = openDb(':memory:'), dataDir = mkdtempSync(join(tmpdir(), 'nomos-meshy-'));
@@ -31,7 +32,7 @@ async function setup(opts: Parameters<typeof meshyServer>[0] = {}, credits: numb
     generate(command('asset.meshy_generate', {taskId: task.id, kind: 'text', params, estimatedCredits: 20, ...over}, key), ctx) as Promise<any>;
   const tick = (runId: string) => poll(command('asset.meshy_poll', {runId}), ctx) as Promise<any>;
   const runs = () => filtered<Run>(db, 'runs', {provider: 'meshy'});
-  return {fake, db, ctx, task, gen, tick, runs, deps, async close() { await fake.close(); db.close(); rmSync(dataDir, {recursive: true, force: true}); }};
+  return {fake, db, ctx, task, gen, tick, runs, deps, async close() { await fake.close(); db.close(); removeDir(dataDir); }};
 }
 const types = (db: any) => listEvents(db, 0).map(e => e.type);
 

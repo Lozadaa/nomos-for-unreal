@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { logDay, writeLog } from '../../service/src/log.ts';
 import { openDb } from '../../service/src/db.ts';
 import { appendEvent } from '../../service/src/store.ts';
 import { enqueue } from '../../service/src/commands.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('una línea JSON por registro, un archivo por día y fuera lo de más de 14 días al cambiar de día', () => {
   const dir = mkdtempSync(join(tmpdir(), 'nomos-log-'));
@@ -23,7 +24,7 @@ test('una línea JSON por registro, un archivo por día y fuera lo de más de 14
     const lines = readFileSync(join(dir, 'logs', '2026-10-23.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
     assert.deepEqual(lines.map(l => l.type), ['a', 'b']);
     assert.equal(lines[0].at, new Date(2026, 9, 23, 23, 59).toISOString());
-  } finally { rmSync(dir, {recursive: true, force: true}); }
+  } finally { removeDir(dir); }
 });
 
 test('cada evento y cada comando del servicio queda en <dataDir>/logs; una base en memoria no escribe nada', () => {
@@ -39,5 +40,5 @@ test('cada evento y cada comando del servicio queda en <dataDir>/logs; una base 
     const memory = openDb(':memory:');
     appendEvent(memory, 'task.created', null, {});
     memory.close();
-  } finally { db.close(); rmSync(dir, {recursive: true, force: true}); }
+  } finally { db.close(); removeDir(dir); }
 });

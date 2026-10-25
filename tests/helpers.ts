@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
@@ -6,6 +6,7 @@ import type { Server } from "node:http";
 import type { TestContext } from "node:test";
 import { openDb } from "../service/src/db.ts";
 import { createServer } from "../service/src/server.ts";
+import { removeDir } from "./remove-dir.ts";
 
 export const token = "a".repeat(48);
 export function baseUrl(server: Server): string {
@@ -25,7 +26,7 @@ export async function fixture(t: TestContext, webDir?: string) {
   t.after(async () => {
     server.closeAllConnections();
     await new Promise<void>(resolve => server.close(() => resolve()));
-    db.close(); rmSync(web, { recursive: true, force: true });
+    db.close(); removeDir(web);
   });
   return { server, db, web };
 }

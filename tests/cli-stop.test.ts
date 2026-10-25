@@ -11,6 +11,7 @@ import { start } from '../service/src/server.ts';
 import { openDb } from '../service/src/db.ts';
 import { enqueue } from '../service/src/commands.ts';
 import { readServiceInfo, isAlive } from '../service/src/service-info.ts';
+import { removeDir } from './remove-dir.ts';
 
 function stopCli(dataDir: string) {
   const child=spawn(process.execPath,[cliPath,'stop','--data',dataDir],{windowsHide:true});
@@ -42,7 +43,7 @@ test('CLI stop espera drenaje real mayor que dos segundos con health vivo hasta 
   } finally {
     release();await cli?.done;
     await until(async()=>!existsSync(join(dir,'service.json')));
-    rmSync(dir,{recursive:true,force:true});
+    removeDir(dir);
   }
 });
 
@@ -63,5 +64,5 @@ test('CLI no borra service.json ni anuncia detenido cuando health cae antes de b
     assert.equal(cli.child.exitCode,null);assert.doesNotMatch(cli.output().stdout,/DETENIDO/);
     retire();await retiring;
     assert.equal(await cli.done,0,cli.output().stderr);assert.equal(cli.output().stdout.trim(),'DETENIDO');
-  } finally {retire();await retiring;await cli.done;server.close();rmSync(dir,{recursive:true,force:true});}
+  } finally {retire();await retiring;await cli.done;server.close();removeDir(dir);}
 });

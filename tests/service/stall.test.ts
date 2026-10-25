@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -8,11 +8,12 @@ import { enqueue } from '../../service/src/commands.ts';
 import { createTask, moveTask, requireTask } from '../../service/src/repo/tasks.ts';
 import { sweepStalls, stalledTasks } from '../../service/src/stall.ts';
 import { doctor } from '../../service/src/doctor.ts';
+import { removeDir } from '../remove-dir.ts';
 
 // recorrido del hito 7: QA visual aprobado y la tarea quedó en «revisando» sin ningún comando ni run
 test('atasco: estado activo sin comando pendiente ni run viva → doctor lo marca y se abre una sola Decisión', async t => {
   const dir = mkdtempSync(join(tmpdir(), 'nomos-stall-'));
-  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
+  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); removeDir(dir); });
   const task = createTask(db, {title: 'HUD de vida', area: 'ui'});
   moveTask(db, task.id, 'revisando');
   const later = Date.now() + 11 * 60_000;
@@ -34,7 +35,7 @@ test('atasco: estado activo sin comando pendiente ni run viva → doctor lo marc
 
 test('implementando con la run del responsable caída (envío fallido) y sin comandos también es atasco', async t => {
   const dir = mkdtempSync(join(tmpdir(), 'nomos-stall-'));
-  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true}); });
+  const db = openDb(join(dir, 'nomos.db')); t.after(() => { db.close(); removeDir(dir); });
   const task = createTask(db, {title: 'HUD de vida', area: 'ui'});
   moveTask(db, task.id, 'implementando');
   assert.deepEqual(stalledTasks(db, Date.now() + 11 * 60_000).map(s => s.state), ['implementando']);

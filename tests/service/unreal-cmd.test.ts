@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createUnrealCmd } from '../../service/src/adapters/unreal-cmd.ts';
 import { waitFor } from './wait.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const fake = join(import.meta.dirname, '..', 'fakes', 'unreal-cmd.mjs');
 const uproject = 'C:/Unreal Projects/Nude_Tennis_Racket_🎾/Juego.uproject';
@@ -48,7 +49,7 @@ test('tiempo máximo: unreal_timeout y el proceso queda muerto', async () => {
     const pid = Number(readFileSync(pidFile, 'utf8'));
     const alive = () => { try { process.kill(pid, 0); return true; } catch { return false; } };
     await waitFor(() => !alive(), 5000);
-  } finally { rmSync(dir, {recursive: true, force: true}); }
+  } finally { removeDir(dir); }
 });
 
 test('sin ejecutable: unreal_missing', async () => {
