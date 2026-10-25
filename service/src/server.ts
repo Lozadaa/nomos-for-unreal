@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { openDb } from "./db.ts";
 import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
+import { repairArtifactPaths } from "./repair-paths.ts";
 import { writeLog } from "./log.ts";
 import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
 import { parseArgs } from "node:util";
@@ -137,6 +138,8 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const migrated = migratedFrom(opts.dataDir);
   rmSync(file, { force: true });
   const db = openDb(dbFile(opts.dataDir));
+  // hito 15: rutas absolutas de una carpeta de datos que se movió → relativas (idempotente)
+  repairArtifactPaths(db, opts.dataDir);
   db.exec("update director set alive_at=null where id=1");
   const token = randomBytes(24).toString("hex");
   let runner: ReturnType<typeof startRunner> | undefined;
