@@ -149,8 +149,8 @@ Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta 
 
 ## Solución de problemas (Troubleshooting)
 
-`{"error":"service_down"}` sale una vez por caída real (sin proceso o sin `/health` en 5 s); ocupado no imprime nada,
-así que no lo filtres: arranca el servicio. No es petición ni genera ack/reply. Si falla una operación, conserva los IDs, consulta antes de reenviar y usa
+`{"error":"service_down"}` sale una vez por caída real (sin proceso o puerto cerrado tras 3 `/health` en 15 s): arranca el servicio;
+`{"warn":"service_slow","ms":N}` (máx. 1/min) es vivo pero lento: no arranques otro. No es petición ni genera ack/reply. Si falla una operación, conserva los IDs, consulta antes de reenviar y usa
 claves de idempotencia estables.
 
 El cursor de eventos vive en .nomos/watcher-cursors.json, separado de `lastAckSeq`; rearmar

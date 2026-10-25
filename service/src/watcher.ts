@@ -1,4 +1,5 @@
 import { setTimeout as sleep } from "node:timers/promises";
+import { connect } from "node:net";
 import { acquireLock } from "./lock.ts";
 import { serviceInfo, request } from "./client.ts";
 import { readServiceInfo, type ServiceInfo } from "./service-info.ts";
@@ -36,18 +37,34 @@ async function readPending(info: ServiceInfo, since: number, consume: (events: E
 }
 
 /**
- * hito 16: un plazo vencido no es una caída. Caído = sin `service.json`, su pid ya no existe o `/health` no contesta en 5 s;
- * con el proceso vivo y `/health` al día solo está ocupado (un diff largo, Unreal cargando) y el vigilante calla.
+ * hito 16: un plazo vencido no es una caída. hito 18: tampoco un `/health` lento (el 02:59:40 de Block Kings): se reintenta
+ * tres veces en 15 s y solo es caída si no hay `service.json`, su pid ya no existe o el puerto no acepta conexiones;
+ * con el pid vivo y el puerto abierto es `slow` (cuánto tardó en contestar, o los 15 s si no llegó a hacerlo).
  */
-export async function serviceDown(dataDir: string, healthMs = 5000): Promise<boolean> {
+export type Health = { state: 'up' } | { state: 'down' } | { state: 'slow'; ms: number };
+export async function probeService(dataDir: string, healthMs = 5000, tries = 3): Promise<Health> {
   const info = readServiceInfo(dataDir);
-  if (!info) return true;
-  try { process.kill(info.pid, 0); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EPERM') return true; }
-  try {
-    const response = await fetch(`http://127.0.0.1:${info.port}/health`, { signal: AbortSignal.timeout(healthMs) });
-    return !response.ok;
-  } catch { return true; }
+  if (!info) return { state: 'down' };
+  const began = Date.now();
+  for (let attempt = 0; attempt < tries; attempt++) {
+    if (!pidAlive(info.pid)) return { state: 'down' };
+    const sent = Date.now();
+    try {
+      const response = await fetch(`http://127.0.0.1:${info.port}/health`, { signal: AbortSignal.timeout(healthMs) });
+      if (response.ok) return attempt ? { state: 'slow', ms: Date.now() - began } : { state: 'up' };
+    } catch { /* plazo vencido o conexión rechazada: se reintenta */ }
+    if (attempt < tries - 1) await sleep(Math.max(0, healthMs - (Date.now() - sent)));
+  }
+  return await portOpen(info.port) && pidAlive(info.pid) ? { state: 'slow', ms: Date.now() - began } : { state: 'down' };
 }
+function pidAlive(pid: number): boolean {
+  try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === 'EPERM'; }
+}
+const portOpen = (port: number) => new Promise<boolean>(resolve => {
+  const socket = connect({ port, host: '127.0.0.1', timeout: 2000 });
+  const done = (open: boolean) => { socket.destroy(); resolve(open); };
+  socket.once('connect', () => done(true)).once('error', () => done(false)).once('timeout', () => done(false));
+});
 
 /** Orden de salida de un lote: primero `message.*` (el usuario espera), después el resto; cada grupo en su orden. */
 export const byPriority=<T extends {type:string}>(batch: T[]): T[]=>[...batch.filter(e=>e.type.startsWith('message.')),...batch.filter(e=>!e.type.startsWith('message.'))];
@@ -57,7 +74,7 @@ export async function watch(dataDir: string, session: string, opts: {types?:stri
   const release = acquireLock(dataDir, "watcher");
   process.once("exit", release);
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => process.exit(0));
-  let transportCursor=0; let startedToken = ""; let down = false;
+  let transportCursor=0; let startedToken = ""; let down = false; let slowAt = 0;
   try {
     const checkpoint=deliveryCheckpoint(dataDir,session,types);
     while (true) {
@@ -84,10 +101,11 @@ export async function watch(dataDir: string, session: string, opts: {types?:stri
         down = false;
       } catch(error) {
         if(error instanceof CheckpointError) throw error;
-        // una línea por caída real; ocupado no imprime nada (el director no tiene que filtrar a mano)
-        const gone = await serviceDown(dataDir);
-        if(gone && !down) console.log(JSON.stringify({ error: "service_down" }));
-        down = gone;
+        // una línea por caída real; ocupado calla y lento avisa como mucho una vez por minuto
+        const health = await probeService(dataDir);
+        if(health.state === 'down' && !down) console.log(JSON.stringify({ error: "service_down" }));
+        if(health.state === 'slow' && Date.now() - slowAt >= 60_000) { slowAt = Date.now(); console.log(JSON.stringify({ warn: "service_slow", ms: health.ms })); }
+        down = health.state === 'down';
       }
       await sleep(Math.max(0, 2000 - (Date.now() - began)));
     }

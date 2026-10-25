@@ -51,7 +51,8 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
       if (origin && origin !== `http://127.0.0.1:${(server.address() as { port: number }).port}`) {
         return json(res, 403, { error: "forbidden_origin" });
       }
-      if (method === "GET" && path === "/health") return json(res, 200, { ok: true });
+      // hito 18: sin base ni Git; si tarda, es que el bucle de eventos está parado (ver docs/aceptacion-hito18.md)
+      if (method === "GET" && path === "/health") return json(res, 200, { ok: true, pid: process.pid, uptime: Math.round(process.uptime()) });
       // hito 10: el panel de otro proyecto se abre en http://127.0.0.1:<puerto>/ y pide aquí su token. Solo el propio origen
       // (Host 127.0.0.1:<puerto>, sin Origin ajeno, y fetch del mismo sitio): otra web ni un rebinding de DNS lo leen
       if (method === "GET" && path === "/session") {

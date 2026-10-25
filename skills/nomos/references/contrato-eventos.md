@@ -130,6 +130,8 @@ suprimir eventos del director. Error real de lectura/permisos/guardado detiene c
 Hito 16: un plazo vencido (servicio ocupado con un diff largo o Unreal cargando) no es una caída;
 el vigilante comprueba el pid de `service.json` y `GET /health` con 5 s y solo si falla imprime
 `{"error":"service_down"}`, una vez por caída (vuelve a avisar tras recuperarse y caer otra vez).
+Hito 18: reintenta `/health` 3 veces en 15 s; caída solo con el pid muerto o el puerto cerrado. Vivo y lento:
+`{"warn":"service_slow","ms":N}` como mucho una vez por minuto; no es caída ni pide arrancar otro servicio.
 Conserva archivo previo/temporal para diagnosticar, corrige disco/permisos y rearma
 la misma sesión/tipos; si recuperas desde cero, espera reentregas e inspecciona estado.
 

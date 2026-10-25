@@ -42,3 +42,29 @@ test('servicio caído: service_down una sola vez por caída, no cada 2 s', { tim
   const lines = await watch(t, { pid: 999999, port }, 7000);
   assert.deepEqual(lines, [{ error: 'service_down' }]);
 });
+
+// hito 18: un /health que tarda 6 s una vez (bucle ocupado) no es una caída; como mucho un aviso service_slow
+test('/health tarda 6 s una vez con el pid vivo: service_slow, nunca service_down', { timeout: 40_000 }, async t => {
+  let first = true;
+  const server = createServer((req, res) => {
+    if (req.url === '/health') {
+      const late = first; first = false;
+      return setTimeout(() => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); }, late ? 6000 : 0);
+    }
+    res.writeHead(503, { 'Content-Type': 'application/json' }); res.end('{"error":"busy"}');
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  const lines = await watch(t, { pid: process.pid, port: (server.address() as { port: number }).port }, 16_000);
+  assert.equal(lines.some(line => line.error === 'service_down'), false, JSON.stringify(lines));
+  const slow = lines.filter(line => line.warn === 'service_slow');
+  assert.equal(slow.length, 1, 'una vez por minuto: ' + JSON.stringify(lines));
+  assert.ok(Number.isInteger(slow[0].ms) && slow[0].ms >= 5000, JSON.stringify(slow));
+});
+
+test('pid vivo pero el puerto no acepta conexiones: service_down tras los reintentos', { timeout: 40_000 }, async t => {
+  const server = createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const port = (server.address() as { port: number }).port; server.close(); await once(server, 'close');
+  const lines = await watch(t, { pid: process.pid, port }, 16_000);
+  assert.deepEqual(lines, [{ error: 'service_down' }]);
+});
