@@ -4,6 +4,7 @@ import { basename, dirname, join } from 'node:path';
 import { buildCookRun, errorLines } from '../adapters/unreal-build.ts';
 import { quote } from '../adapters/process.ts';
 import { readConfig } from '../config.ts';
+import { writeBuildInfo } from '../build-info.ts';
 import { capture, defaultMap, gameMap } from './map.ts';
 import { contactSheet, viewCount, viewsEnv, viewShots } from './views.ts';
 import { buildOf, ffmpegOf, unrealOf, type Executor, type Launch, type Outcome } from './run.ts';
@@ -53,14 +54,23 @@ export const launch = (exe: string, args: string[], ms: number): Promise<Launch>
   child.once('exit', code => { clearTimeout(timer); accept({exitCode: code, seconds: (Date.now() - start) / 1000, killed: false}); });
 });
 
+/** Hito 17: el paquete dice de qué commit salió; sin git legible no se inventa origen. */
+async function stamp(ctx: Parameters<Executor>[0], dir: string, tree: string, task: string, run: string): Promise<void> {
+  let commit: string;
+  try { commit = await ctx.git.head(tree); } catch { return; }
+  const branch = await Promise.resolve().then(() => ctx.git.currentBranch(tree)).catch(() => null);
+  writeBuildInfo(dir, {commit, branch: branch ?? null, builtAt: new Date().toISOString(), task, run});
+}
+
 /** Build (hito 7): BuildCookRun (40 min), arranque fuera del editor con el recorrido y 20 s de vida mínima; log y traza como evidencia. */
-export const buildCheck: Executor = async (ctx, {project, files, dir}, deps) => {
+export const buildCheck: Executor = async (ctx, {project, files, dir, worktree, task, run}, deps) => {
   const out = join(dir, 'build');
   const config = readConfig(ctx.dataDir) as {walkthrough?: {map?: unknown; commands?: unknown}};
   const map = typeof config.walkthrough?.map === 'string' ? config.walkthrough.map : gameMap(files);
   const result = await buildCookRun(project.uproject, out, buildOf(ctx, deps), map ? [map] : []);
   if (!result.ok || !result.exePath) return {result: 'failed', log: result.log, config: 'Development Win64',
     summary: result.errors.length ? result.errors : ['El empaquetado no produjo un ejecutable']};
+  await stamp(ctx, dirname(result.exePath), worktree, task.id, run.id);
   const commands = Array.isArray(config.walkthrough?.commands) ? config.walkthrough.commands as string[] : undefined;
   // la traza de Insights (cpu, gpu, memoria) de 30 s pesó ~0,9 GB en KratosFabTest: solo con `walkthrough.trace: true`
   const tracefile = (config.walkthrough as {trace?: unknown} | undefined)?.trace === true ? join(dir, 'traza.utrace') : undefined;

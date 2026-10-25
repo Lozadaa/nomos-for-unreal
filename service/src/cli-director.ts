@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { request, serviceInfo } from './client.ts';
 import { parseTaskSpec } from './task-spec.ts';
 import { areas } from './routes/context.ts';
+import { buildSummary } from './build-info.ts';
 
 const groups=['task','worker','run','decision'];
 function commandIndex(argv: string[]): number {
@@ -33,7 +34,8 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},stop:{type:'boolean'},status:{type:'boolean'}}});
     if (positionals.length!==1 || (values.stop && values.status)) throw new Error('Uso: nomos play [--stop|--status]');
     const info=serviceInfo(resolve(values.data ?? '.nomos'));
-    if (values.status) {console.log(JSON.stringify(await request(info,'/play')));return true;}
+    // hito 17: la línea humana («Build de abc1234, 12 min, anterior a main») va con el JSON de siempre
+    if (values.status) {const now=await request(info,'/play');console.log(JSON.stringify({...now,...(now.build ? {text:buildSummary(now.build)} : {})}));return true;}
     if (values.stop) {console.log(JSON.stringify(await request(info,'/play/stop',{})));return true;}
     try {console.log(JSON.stringify(await request(info,'/play',{})));}
     catch (error) {

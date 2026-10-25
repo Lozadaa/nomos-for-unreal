@@ -7,6 +7,9 @@ import { useStore } from '@/store'
 export interface PlayBuild {
   path: string; builtAt: string; size: number; check: string | null; testRunId: string | null
   task: { id: string; code: string | null; title: string } | null
+  /** Hito 17: `build-info.json` del paquete; `stale` si no incluye la punta de main. */
+  origin?: { commit: string; branch: string | null; builtAt: string; task: string | null; run: string | null } | null
+  commit?: string; stale?: boolean
 }
 export interface PlayInfo {
   build: PlayBuild | null

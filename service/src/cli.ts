@@ -11,6 +11,7 @@ import { seed } from "./seed.ts";
 import { directorCli } from './cli-director.ts';
 import { assetCli } from './cli-asset.ts';
 import { skillsCli } from './skills-install.ts';
+import { buildCli } from './build-info.ts';
 import { doctor, renderDoctor } from './doctor.ts';
 import { dataDirFor, dbFile, legacyEnv } from './legacy.ts';
 
@@ -35,7 +36,7 @@ async function withData(argv: string[]): Promise<string[]> {
 async function main() {
   for (const name of legacyEnv()) console.warn(`Aviso: ${name} ahora se llama NOMOS_${name.slice(7)}`);
   const argv = await withData(process.argv.slice(2));
-  if (skillsCli(argv) || await directorCli(argv) || await assetCli(argv)) return;
+  if (skillsCli(argv) || buildCli(argv) || await directorCli(argv) || await assetCli(argv)) return;
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" },
     force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false },

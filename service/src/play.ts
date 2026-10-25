@@ -4,9 +4,12 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { readConfig } from './config.ts';
 import { appendEvent } from './store.ts';
+import { mainBranch, readBuildInfo, staleBuild, type BuildInfo } from './build-info.ts';
 
 export type BuildTask = {id: string; code: string | null; title: string};
-export type Build = {path: string; builtAt: string; size: number; task: BuildTask | null; check: string | null; testRunId: string | null};
+export type Build = {path: string; builtAt: string; size: number; task: BuildTask | null; check: string | null; testRunId: string | null;
+  /** Hito 17: `build-info.json` junto al ejecutable; `stale` si su commit no contiene la punta de main. */
+  origin: BuildInfo | null; commit?: string; stale?: boolean};
 export type Running = {pid: number; since: string; path: string; builtAt: string};
 type Candidate = {path: string; taskId?: string; testRunId?: string; check?: string};
 
@@ -70,10 +73,18 @@ export function latestBuild(dataDir: string, db: DatabaseSync): {build: Build | 
       const at = builtAt(real, game.name);
       if (best && at <= best.at) continue;
       best = {at, build: {path: c.path, builtAt: new Date(at).toISOString(), size: statSync(real).size, task: taskOf(db, c),
-        check: c.check ?? null, testRunId: c.testRunId ?? null}};
+        check: c.check ?? null, testRunId: c.testRunId ?? null, origin: null}};
     } catch { /* no existe o ilegible */ }
   }
-  return best ? {build: best.build, reason: null} : {build: null, reason: 'Todavía no hay ninguna build'};
+  return best ? {build: withOrigin(best.build, game.dir, dataDir), reason: null} : {build: null, reason: 'Todavía no hay ninguna build'};
+}
+
+function withOrigin(build: Build, repo: string, dataDir: string): Build {
+  const origin = readBuildInfo(dirname(realpathSync(build.path)));
+  if (!origin) return build;
+  const main = mainBranch(repo, (readConfig(dataDir) as {targetBranch?: unknown}).targetBranch);
+  const stale = main ? staleBuild(repo, main, origin.commit) : undefined;
+  return {...build, origin, commit: origin.commit, ...(stale === undefined ? {} : {stale})};
 }
 
 /** Argumentos de `config.json: play`: `map` (/Game/…) primero y después `args` (por defecto ventana 1920×1080). */
