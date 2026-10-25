@@ -109,6 +109,7 @@ export function eventText(e: NomosEvent, providers?: Providers): string {
     case 'task.moved': return `${p.from ? `Pasó de ${stage(p.from)} a` : 'Pasó a'} ${stage(p.state ?? p.to)}${p.reason ? ` · ${String(p.reason)}` : ''}`
     case 'task.blocked': return `Bloqueada: ${String(p.reason)}`
     case 'decision.opened': return `Se pidió una decisión: ${String(p.reason)}`
+    case 'decision.updated': return `La decisión se repitió: ${String(p.reason)} · ${String(p.seenCount)} veces`
     case 'decision.resolved': return `Decisión resuelta por ${String(p.by)}`
     case 'run.started': return `Ejecución iniciada${provider ? ` con ${providerLabel[provider] ?? provider}` : ''}`
     case 'run.finished': return `Ejecución terminada (${String(p.state)})${p.summary ? ` · ${String(p.summary)}` : ''}`

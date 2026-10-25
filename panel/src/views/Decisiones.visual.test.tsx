@@ -65,6 +65,22 @@ describe('Opciones visuales de decisión', () => {
     expect(api).toHaveBeenCalledWith('/decisions/d1/resolve', { method: 'POST', body: { optionId: 'b', by: 'director' } })
   })
 
+  it('hito 20: una Decisión repetida dice cuántas veces se vio, sin pasarse del presupuesto', async () => {
+    const repeated = { ...decision, seenCount: 4 }
+    vi.mocked(api).mockImplementation(async (path: string) => path === '/tasks' ? [task] : path === '/decisions' ? [repeated] : {})
+    await act(async () => { await refresh() })
+    render(<MemoryRouter><Decisiones /></MemoryRouter>)
+    const card = await screen.findByRole('region', { name: 'Decisión' })
+    expect(card).toHaveTextContent('Visto 4 veces')
+    expect(visibleWords(card)).toBeLessThanOrEqual(budgets.decisionCard)
+    const detail: TaskDetail = { task, decision: repeated, runs: [], events: [], artifacts: [], testRuns: [] }
+    vi.mocked(api).mockImplementation(async (path: string) => path.startsWith('/tasks/') ? detail : {})
+    render(<TaskSheet id={task.id} task={task} onClose={() => {}} />)
+    const sheet = await screen.findByRole('region', { name: 'Decisión pendiente' })
+    expect(sheet).toHaveTextContent('Visto 4 veces')
+    expect(visibleWords(sheet)).toBeLessThanOrEqual(budgets.decisionCard)
+  })
+
   it('mantiene el presupuesto tras elegir una etiqueta larga', async () => {
     await act(async () => { await refresh() })
     render(<MemoryRouter><Decisiones /></MemoryRouter>)

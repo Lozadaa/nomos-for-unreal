@@ -62,6 +62,8 @@ export type Decision = Entity & {
   options: { id: string; label: string; description: string; recommended?: boolean; thumbnail?: string }[];
   chosenOptionId: string | null; resolvedBy: string | null; resolvedAt: string | null;
   contextHash: string; state: 'open' | 'resolved' | 'stale';
+  /** Hito 20: veces que se repitió el mismo problema (una Decisión por problema, no por intento). */
+  seenCount: number;
 };
 export type Budget = Entity & {
   scope: 'workspace' | 'task'; scopeId: string; meshyCredits: number | null;

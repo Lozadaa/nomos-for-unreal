@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { api } from '@/api'
-import { DecisionDetails, DecisionOptions, decisionText } from '@/components/DecisionOptions'
+import { DecisionDetails, DecisionOptions, decisionText, repeatText } from '@/components/DecisionOptions'
 import { useAction } from '@/feel/useAction'
 import { humanError } from '@/lib/errors'
 import type { Decision, Task } from '@/lib/tasks'
@@ -27,6 +27,7 @@ export function DecisionCard({ decision, task, onStale }: { decision: Decision; 
         <h3 aria-label={decision.reason} title={decision.reason} className="text-base font-medium">{decisionText(decision).reason}</h3>
         <DecisionDetails decision={decision} taskTitle={task.title} />
       </div>
+      {repeatText(decision) && <p className="text-xs text-muted-foreground">{repeatText(decision)}</p>}
       <DecisionOptions decision={decision} area={task.area} selected={chosen} disabled={action.pending} onChoose={choose} />
       {action.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
       {action.error && !action.pending && <p className="text-xs text-error" role="alert">No se registró la elección. {humanError(action.error)}</p>}
