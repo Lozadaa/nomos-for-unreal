@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fixture } from './worker-fixture.ts';
 import { openDb } from '../../service/src/db.ts';
 import { createWorkerHandlers } from '../../service/src/handlers/worker.ts';
@@ -52,6 +53,9 @@ for(const origin of ['stream','screen'] as const) test(`DONE observado en ${orig
   await poll(f);assert.equal(f.run().state,'running');assert.equal(f.run().metadata.correctionCount,1);
   screen(f,['Cabecera cambiada','• NOMOS_DONE {"summary":"Primera versión","commits":["abc"],"tests":"passed"}','» Ask Codex']);
   await poll(f);assert.equal(f.run().state,'running');
+  // hito 18: el DONE de la corrección cuenta con un commit posterior al envío
+  writeFileSync(join(f.tree().path,'corregido.txt'),'x');
+  for(const args of [['add','corregido.txt'],['commit','-m','Corrige']]) execFileSync('git',['-C',f.tree().path,...args],{windowsHide:true});
   screen(f,['• NOMOS_DONE {"summary":"Corregido","commits":["def"],"tests":"passed"}']);
   await poll(f);assert.equal(f.run().state,'done');assert.equal(f.run().summary,'Corregido');
   assert.equal(f.run().id,first.id);assert.equal(f.run().sessionRef,first.sessionRef);assert.equal(f.state().creates,1);

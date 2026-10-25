@@ -46,8 +46,9 @@ test('Claude detecta permiso y marcadores con viñetas en source screen sin alte
 });
 test('espera idle de Claude nombra el proveedor real',async t=>{
   const f=fixture(t,{FAKE_ORCA_MODE:'claude'});await start(f);await poll(f);
-  f.output('Trabajando');await poll(f);writeFileSync(f.file,JSON.stringify({...f.state(),idle:true}));
-  await poll(f);await poll(f);assert.match(f.run().metadata.question!,/claude/i);
+  // hito 18: 30 s quieto (6 sondeos) y una pregunta al final
+  f.output('¿Sigo con la parte B?');await poll(f);writeFileSync(f.file,JSON.stringify({...f.state(),idle:true}));
+  for(let i=0;i<6;i++) await poll(f);assert.match(f.run().metadata.question!,/claude/i);
 });
 test('proveedor desconocido no arranca',async t=>{
   await assert.rejects(start(fixture(t),'otro'),/invalid_worker_payload/);

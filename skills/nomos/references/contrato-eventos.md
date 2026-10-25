@@ -41,7 +41,9 @@ No hay CORS para orígenes ajenos. CSP impide scripts externos. No se usan frame
 | `director.started` | `{session}` | Vigilante: heartbeat con started true |
 | `director.stopped` | `{session}` | POST admin/stop; sesión null si nunca hubo director |
 | `run.finished` | `{taskId,runId,state,summary}` | Fin de vuelta del run; no cierra tarea |
-| `worker.waiting` | `{taskId,runId,question,lastLines}` | Pregunta o terminal idle actual |
+| `worker.waiting` | `{taskId,runId,question,lastLines}` | Pregunta, permiso al final de la salida o terminal quieto 30 s con pregunta/prompt al final; una vez por espera |
+| `worker.done_ignored` | `{taskId,runId,provider,reason}` | Hito 18: NOMOS_DONE con commits declarados tras una corrección sin commit nuevo; la run sigue viva |
+| `review.auto_requested` | `{taskId,commit,reason,decisionId?}` | Hito 18: Nomos pidió la revisión (`commits tras DONE` o la opción de una Decisión) |
 | `worker.skills_missing` | `{taskId,runId,provider,required,confirmed,missing}` | NOMOS_SKILLS válido con diferencia; no bloquea |
 | `command.failed` | `{commandId,...command}` | Error terminal; payload de command conserva taskId/runId |
 
@@ -130,6 +132,8 @@ suprimir eventos del director. Error real de lectura/permisos/guardado detiene c
 Hito 16: un plazo vencido (servicio ocupado con un diff largo o Unreal cargando) no es una caída;
 el vigilante comprueba el pid de `service.json` y `GET /health` con 5 s y solo si falla imprime
 `{"error":"service_down"}`, una vez por caída (vuelve a avisar tras recuperarse y caer otra vez).
+Hito 18: reintenta `/health` 3 veces en 15 s; caída solo con el pid muerto o el puerto cerrado. Vivo y lento:
+`{"warn":"service_slow","ms":N}` como mucho una vez por minuto; no es caída ni pide arrancar otro servicio.
 Conserva archivo previo/temporal para diagnosticar, corrige disco/permisos y rearma
 la misma sesión/tipos; si recuperas desde cero, espera reentregas e inspecciona estado.
 

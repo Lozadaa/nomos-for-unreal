@@ -85,7 +85,8 @@ test("página y health públicos; rutas web fuera del directorio y orígenes aje
   const page = await fetch(baseUrl(server));
   assert.equal(page.status, 200); assert.match(page.headers.get("content-type")!, /text\/html/);
   assert.match(await page.text(), /id="director"/);
-  assert.deepEqual(await (await fetch(baseUrl(server) + "/health")).json(), { ok: true });
+  const health = await (await fetch(baseUrl(server) + "/health")).json();
+  assert.deepEqual({ ...health, uptime: typeof health.uptime }, { ok: true, pid: process.pid, uptime: "number" });
   const foreign = await fetch(baseUrl(server) + "/status", {
     headers: { Authorization: `Bearer ${token}`, Origin: "https://ajeno.example" } });
   assert.equal(foreign.status, 403);

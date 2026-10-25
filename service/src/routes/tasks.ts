@@ -1,7 +1,7 @@
 import { body, json } from '../http.ts';
 import { createTask, listTasks, requireTask } from '../repo/tasks.ts';
 import { filtered, read } from '../repo/rows.ts';
-import { appendEvent, listEvents } from '../store.ts';
+import { appendEvent, eventsOf } from '../store.ts';
 import { areas, states, choice, text, id, type Context } from './context.ts';
 import { normalizedPaths } from '../handlers/worker-policy.ts';
 import { enqueue } from '../commands.ts';
@@ -28,7 +28,7 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     json(res, 200, {
       task: failure ? {...task, failure} : task,
       runs: filtered(db, 'runs', {taskId: task.id}),
-      events: listEvents(db, 0).filter(e => e.payload.taskId === task.id),
+      events: eventsOf(db, 'taskId', task.id),
       artifacts: filtered(db, 'artifacts', {taskId: task.id}),
       testRuns: filtered(db, 'test_runs', {taskId: task.id}),
       decision: task.decisionId ? read(db, 'decisions', task.decisionId) ?? null : null

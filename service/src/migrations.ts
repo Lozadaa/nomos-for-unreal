@@ -124,3 +124,11 @@ export function migratePriority(db: DatabaseSync): void {
 export function migrateNomos(db: DatabaseSync): void {
   transaction(db, () => migrateBrand(db, (table, column, value) => widenCheck(db, table, column, value)));
 }
+
+/**
+ * Hito 18: con la base de Block Kings (100 000 eventos, 13 000 comandos) los pendientes del director y las pausas tardaban
+ * 20-50 ms cada consulta y una pasada del planificador ~100 ms (18 ms con índice), todo con el bucle de eventos parado.
+ */
+export function migrateIndexes(db: DatabaseSync): void {
+  db.exec('create index if not exists events_type on events(type, seq); create index if not exists commands_type on commands(type, state)');
+}

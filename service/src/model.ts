@@ -28,6 +28,8 @@ export type RunMetadata = {
   /** hito 13: el barrido ya cerró (o encontró cerrado) su terminal de Orca */ terminalClosed?: boolean;
   /** hito 17: run terminada cuyo terminal sigue vivo y trabajando (no en reposo): ocupa hueco del cupo */ terminalBusy?: boolean;
   review?: import('./review.ts').ReviewSnapshot;
+  /** hito 18: HEAD de su árbol al dar NOMOS_DONE; commits posteriores sin otra marca → Nomos pide la revisión */ doneCommit?: string;
+  /** hito 18: HEAD al enviar la última corrección; y la última espera avisada (pregunta + última línea) */ correctionHead?: string; lastWaitingKey?: string;
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];
   confirmedSkills?: string[]; seenAskMarkers?: string[];

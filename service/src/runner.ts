@@ -8,7 +8,7 @@ import { appendEvent } from './store.ts';
 import { databaseDirectory } from './routes/index.ts';
 import { dirname, resolve } from 'node:path';
 import { closeRuns, recoverCommands } from './recovery.ts';
-import { openStallDecisions } from './stall.ts';
+import { sweepStalls } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
 import { failureKind } from './failure-kind.ts';
@@ -81,8 +81,8 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
         try {recoverCommands(db,{owner});} catch(error) {
           appendEvent(db,'recovery.error',null,{reason:error instanceof Error ? error.message : String(error)});
         }
-        // hito 7: estado activo sin nada que lo mueva → Decisión, en vez de esperar en silencio
-        try {openStallDecisions(db);} catch(error) {
+        // hito 7: estado activo sin nada que lo mueva → Decisión; hito 18: o la revisión pedida sola si hubo commits tras DONE
+        try {await sweepStalls(context);} catch(error) {
           appendEvent(db,'stall.error',null,{reason:error instanceof Error ? error.message : String(error)});
         }
         if(handlers['worker.start']) try {schedule(db,readConfig(dataDir),context);} catch(error) {

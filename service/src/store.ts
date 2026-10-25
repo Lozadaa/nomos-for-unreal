@@ -35,15 +35,25 @@ export function getMessage(db: DatabaseSync, id: string): MessageRow | undefined
     reply_text as replyText,replied_at as repliedAt from messages where id=?`).get(id) as MessageRow | undefined;
 }
 
-export function listEvents(db: DatabaseSync, sinceSeq: number): EventRow[] {
+export function listEvents(db: DatabaseSync, sinceSeq: number, limit = -1): EventRow[] {
   const rows = db.prepare(`select seq,id,type,message_id as messageId,payload,
-    created_at as createdAt from events where seq>? order by seq`).all(sinceSeq);
+    created_at as createdAt from events where seq>? order by seq limit ?`).all(sinceSeq, limit);
+  return rows.map(row => ({ ...row, payload: JSON.parse(row.payload as string) })) as EventRow[];
+}
+
+/** Hito 18: los eventos de una tarea o run los filtra SQLite; parsear 100 000 para quedarse con 300 paraba el servicio 0,5 s. */
+export function eventsOf(db: DatabaseSync, key: "taskId" | "runId", id: string, sinceSeq = 0, type?: string): EventRow[] {
+  const rows = db.prepare(`select seq,id,type,message_id as messageId,payload,created_at as createdAt from events
+    where seq>? and json_extract(payload,'$.${key}')=? ${type ? "and type=?" : ""} order by seq`).all(sinceSeq, id, ...(type ? [type] : []));
   return rows.map(row => ({ ...row, payload: JSON.parse(row.payload as string) })) as EventRow[];
 }
 
 export function pendingEvents(db: DatabaseSync): EventRow[] {
   const director = db.prepare("select last_ack_seq from director where id=1").get()!;
-  return listEvents(db, Number(director.last_ack_seq)).filter(e => e.type === "message.received");
+  // hito 18: filtra en SQL; leer y parsear todo lo posterior al último ack (48 000 eventos en Block Kings) costaba 0,2 s por /status
+  const rows = db.prepare(`select seq,id,type,message_id as messageId,payload,created_at as createdAt from events
+    where seq>? and type='message.received' order by seq`).all(Number(director.last_ack_seq));
+  return rows.map(row => ({ ...row, payload: JSON.parse(row.payload as string) })) as EventRow[];
 }
 
 export function ackEvent(db: DatabaseSync, seq: number, session: string): void {

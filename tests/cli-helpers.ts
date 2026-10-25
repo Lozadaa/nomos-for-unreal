@@ -32,7 +32,8 @@ export async function cliFixture(t: TestContext) {
     childrenByDir.delete(dataDir);
     const info = readServiceInfo(dataDir);
     if (info && await isAlive(info)) cli(dataDir, "stop");
-    rmSync(dataDir, { recursive: true, force: true });
+    // Windows: el proceso del servicio puede tardar un instante en soltar nomos.db tras `stop` (EPERM)
+    rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   });
   const port = await freePort();
   return { dataDir, port };

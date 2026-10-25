@@ -32,6 +32,13 @@ export function opencodeFatal(lines:string[]):string|undefined {
   if(lines.some(opencodeMissing)) return 'OpenCode no está instalado o no está en el PATH del terminal';
   if(lines.some(line=>/^Error: .*Invalid credential/i.test(line.trim()))) return 'OpenCode rechazó las credenciales: ejecuta opencode auth login';
 }
+/** Hito 18: solo al final de la salida (las opciones del permiso ocupan unas líneas) y con forma de pregunta; en el código no. */
 export function permissionPrompt(provider:string,lines:string[]):string|null {
-  return provider==='claude' ? lines.find(line=>/\bDo you want to\b|\bAllow\b|\(y\/n\)/i.test(line)) ?? null : null;
+  return provider==='claude' ? lines.filter(line=>line.trim()).slice(-6)
+    .find(line=>/\bDo you want to\b|\bAllow\b|\(y\/n\)/i.test(line) && /\?\s*$|\(y\/n\)/i.test(line)) ?? null : null;
+}
+/** Hito 18: la última línea con texto es una pregunta o un prompt vacío (`>`, `›`, el marco o el pie de Claude). */
+export function asksForInput(lines:string[]):boolean {
+  const last=(lines.filter(line=>line.trim()).at(-1) ?? '').replace(/[│┃╭╮╰╯─━┌┐└┘|]/g,'').trim();
+  return !last || /[?？]$/.test(last) || /^[>❯›](\s|$)/.test(last) || /bypass permissions on|for shortcuts/.test(last);
 }

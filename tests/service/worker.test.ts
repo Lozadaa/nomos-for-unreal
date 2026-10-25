@@ -60,9 +60,9 @@ test('poll vence a las cuatro horas sin renovar plazo ni borrar el worktree',asy
   assert.ok(readFileSync(join(f.tree().path,'.nomos-brief.md'),'utf8'));
 });
 
-test('idle actual tras dos polls vacíos emite waiting; Ask histórico ocupado no basta',async t=>{
-  const f=fixture(t);await f.start();const run=f.run();
-  for(let i=0;i<4;i++) await f.invoke('worker.poll',{runId:run.id,generation:0});
+test('idle actual tras seis polls vacíos con prompt al final emite waiting; Ask histórico ocupado no basta',async t=>{
+  const f=fixture(t);await f.start();const run=f.run();f.output('› Ask Codex');
+  for(let i=0;i<8;i++) await f.invoke('worker.poll',{runId:run.id,generation:0});
   assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.waiting').length,0);
   writeFileSync(f.file,JSON.stringify({...f.state(),idle:true}));
   for(let i=0;i<3;i++) await f.invoke('worker.poll',{runId:run.id,generation:0});

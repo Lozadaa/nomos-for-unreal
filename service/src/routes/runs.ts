@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { body, json } from '../http.ts';
 import { enqueue } from '../commands.ts';
-import { listEvents } from '../store.ts';
+import { eventsOf } from '../store.ts';
 import { linkedMessage } from '../chat.ts';
 
 const withMessage=(messageId: string | null)=>messageId ? {messageId} : {};
@@ -31,7 +31,7 @@ export async function runs({db,req,res,url}: Context): Promise<boolean> {
   if (req.method==='GET' && action==='output') {
     const value=url.searchParams.get('since'),since=value===null ? 0 : Number(value);
     if (value!==null && !/^\d+$/.test(value) || !Number.isSafeInteger(since) || since<0) throw new Error('invalid_seq');
-    json(res,200,listEvents(db,since).filter(e=>e.type==='worker.output' && e.payload.runId===run.id));return true;
+    json(res,200,eventsOf(db,'runId',run.id,since,'worker.output'));return true;
   }
   if (req.method==='GET' && action==='diff') {
     if ([...url.searchParams].length) throw new Error('invalid_diff_query');

@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import type { WorkerContext } from './runner.ts';
 import type { Artifact, Run, Task, TestRun, Worktree } from './model.ts';
 import { filtered, read } from './repo/rows.ts';
-import { listEvents } from './store.ts';
+import { eventsOf } from './store.ts';
 import { agentName } from './attribution.ts';
 import { locatedPath } from './data-paths.ts';
 
@@ -51,7 +51,7 @@ export async function preserveTask(ctx: WorkerContext, task: Task, writer: Archi
   if (existing) return {dir, manifest: existing};
   const tree = task.worktreeId ? read<Worktree>(ctx.db, 'worktrees', task.worktreeId) : undefined;
   const runs = filtered<Run>(ctx.db, 'runs', {taskId: task.id});
-  const events = listEvents(ctx.db, 0).filter(e => e.payload.taskId === task.id);
+  const events = eventsOf(ctx.db, 'taskId', task.id);
   const files: Record<string, string | Buffer> = {
     'conversacion.jsonl': events.filter(e => chat(e.type)).map(e => JSON.stringify(e)).join('\n') + '\n',
     'eventos.jsonl': events.map(e => JSON.stringify(e)).join('\n') + '\n',
