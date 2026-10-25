@@ -25,7 +25,7 @@ function ReportLine({ a }: { a: Artifact }) {
       <Glyph kind="artifact" value={a.kind} size={16} />
       <span className={bad(line) ? 'shrink-0 text-error' : 'shrink-0'}>{line}</span>
       {error && <span title={error} className="min-w-0 truncate font-mono text-xs text-error">{error.trim()}</span>}
-      {src && <a href={src} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'ml-auto shrink-0' })}>Abrir original</a>}
+      {src && !(a.provenance as { removed?: unknown } | null)?.removed && <a href={src} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'ml-auto shrink-0' })}>Abrir original</a>}
     </li>
   )
 }

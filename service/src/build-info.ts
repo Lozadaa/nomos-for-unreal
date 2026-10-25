@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
+import { cleanSource } from './retention.ts';
 
 /** Hito 17: de qué commit sale un paquete. Vive junto al ejecutable como `build-info.json`. */
 export type BuildInfo = {commit: string; branch: string | null; builtAt: string; task: string | null; run: string | null};
@@ -57,7 +58,12 @@ export function buildCli(argv: string[]): boolean {
   const words = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--data');
   if (words[0] !== 'build') return false;
   if (words[1] !== 'stamp' || words.length !== 3) throw new Error('Uso: nomos build stamp <carpeta del paquete>');
-  const info = stampBuild(resolve(words[2]), process.cwd());
+  const dir = resolve(words[2]), info = stampBuild(dir, process.cwd());
   console.log(`Build estampada: ${info.commit.slice(0, 7)}${info.branch ? ` (${info.branch})` : ''}`);
+  // hito 19: copiada a Build/Windows-actual, los paquetes del árbol empaquetado sobran
+  if (basename(dir) === 'Windows-actual' && basename(dirname(dir)) === 'Build') {
+    const gone = cleanSource(process.cwd(), dir);
+    if (gone.length) console.log(`Paquetes retirados del árbol: ${gone.length}`);
+  }
   return true;
 }

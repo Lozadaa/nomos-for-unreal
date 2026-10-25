@@ -44,3 +44,14 @@ test('/status sin .uproject deja el proyecto en null', async () => {
     assert.equal((await statusOf(data)).project, null);
   } finally { rmSync(root, {recursive: true, force: true}); }
 });
+
+test('/status dice el disco libre de la unidad del proyecto (hito 19)', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'nomos-project-'));
+  try {
+    const data = join(root, '.nomos'); mkdirSync(data);
+    const {disk} = await statusOf(data);
+    assert.ok(Number.isFinite(disk.free) && disk.free > 0);
+    assert.match(disk.text, /^Disco: [\d.,]+ GB libres( · ejecuta nomos clean)?$/);
+    assert.equal(disk.low, disk.free < 30 * 1024 ** 3);
+  } finally { rmSync(root, {recursive: true, force: true}); }
+});

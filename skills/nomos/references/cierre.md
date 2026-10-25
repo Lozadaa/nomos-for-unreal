@@ -95,6 +95,23 @@ otras `Build/Windows-*`, los artefactos `build` y los paquetes de la comprobaci�
   desde el panel. Argumentos en `config.json: play.args` (por defecto `-windowed -ResX=1920
   -ResY=1080`) y mapa opcional en `play.map` (`/Game/...`).
 
+## Disco
+
+Regla del usuario: «No dejes históricos de paquete anda limpiando». Solo se conserva
+`Build/Windows-actual/` del proyecto.
+
+- La comprobación `build` borra su paquete (`.nomos/artifacts/tests/<id>/build/`) al terminar,
+  pase o falle; quedan `log.txt`, capturas, hoja, log del juego y vídeo. Con menos de 10 GB
+  libres no empaqueta: sale «no disponible» con «ejecuta nomos clean».
+- `nomos build stamp Build/Windows-actual` borra del árbol desde el que estampas
+  `Saved/StagedBuilds`, `Saved/Paquete-*` y su propio `Build/Windows-actual`.
+- `nomos status` trae `disk.text` («Disco: 24 GB libres · ejecuta nomos clean» por debajo de 30 GB).
+  Entonces `nomos clean --dry-run --data .nomos` (lista y suma), y `nomos clean --data .nomos`:
+  paquetes de las comprobaciones, `Saved/StagedBuilds`, `Saved/Paquete-*`, `Build/Windows-*`
+  (salvo el actual del proyecto), `Saved/Video*` y copias de `.nomos/integration/` que no son
+  worktree de Git; retira los worktrees de tareas `done` con la rama en main. Nada cambiado en
+  los últimos 30 min ni worktrees con cambios sin commit. Di al usuario los GB liberados.
+
 ## Pausa
 
 `nomos pausar` hace que el planificador no encole arranques: las tareas quedan
