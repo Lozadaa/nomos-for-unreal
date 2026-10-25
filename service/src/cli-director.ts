@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { request, serviceInfo } from './client.ts';
 import { parseTaskSpec } from './task-spec.ts';
 import { areas } from './routes/context.ts';
@@ -54,6 +55,19 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   }
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
+  if (group==='worker' && action==='turn') {
+    // hito 22: el worker pide Unreal; --wait pregunta cada 5 s hasta que el planificador se lo concede
+    const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},wait:{type:'boolean'},release:{type:'boolean'}}});
+    if (positionals.length!==3 || !values.wait===!values.release) throw new Error('Uso: nomos worker turn TAREA --wait|--release');
+    const info=serviceInfo(resolve(values.data ?? '.nomos')),path='/tasks/'+encodeURIComponent(positionals[2])+'/turn';
+    if (values.release) {console.log(JSON.stringify(await request(info,path+'/release',{})));return true;}
+    for (let last='';;) {
+      const answer=await request(info,path,{});
+      if (answer.granted) {console.log(JSON.stringify(answer));return true;}
+      if (answer.reason!==last) console.error(last=answer.reason);
+      await sleep(5000);
+    }
+  }
   const flags: Record<string,string[]>={
     'task.create':['title','area','spec-file','leases','depends','role','provider','message','priority'],'task.priority':[],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
     'task.integrate':[],'task.hold':['motivo','hasta'],'task.finalize':[],'task.reconcile':[],'task.continue':['file','text'],

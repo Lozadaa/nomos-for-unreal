@@ -11,9 +11,11 @@ import { closeRuns, recoverCommands } from './recovery.ts';
 import { sweepStalls } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
+import type { MachineProbe } from './machine.ts';
 import { failureKind } from './failure-kind.ts';
 import { closeIdleTerminals, refreshBusyTerminals, sweepIntervalMs, sweepTerminals } from './sweep.ts';
-export type WorkerContext = {db: DatabaseSync; orca: Orca; git: Git; dataDir: string; projectDir: string};
+/** `probe` (hito 22): RAM libre y editores vivos; las pruebas la inyectan. */
+export type WorkerContext = {db: DatabaseSync; orca: Orca; git: Git; dataDir: string; projectDir: string; probe?: MachineProbe};
 export type Handler = (command: Command, context: WorkerContext) => Promise<object | void>;
 export type RunnerStop = (() => void) & {drained: Promise<void>};
 const lanes: Lane[] = ['normal', 'long'];

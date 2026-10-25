@@ -27,7 +27,7 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 - Si corriges después de NOMOS_DONE, commitea y repite la marca; tras una corrección, una marca sin commit nuevo solo cuenta con commits [].
 - Si necesitas una decisión, imprime una línea NOMOS_ASK seguida de JSON con question string y espera.
 - Los marcadores deben comenzar la línea; no los repitas como ejemplos de salida.
-
+{{turn}}
 Formato de cierre: `NOMOS_DONE {"summary":"Resumen","commits":[],"tests":"passed"}`.
 Formato de pregunta: `NOMOS_ASK {"question":"Tu pregunta"}`.
 

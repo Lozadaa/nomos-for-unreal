@@ -22,6 +22,7 @@ import { startRunner, type Handler } from './runner.ts';
 import { workerProcesses } from './sweep.ts';
 import { activeHolds } from './hold.ts';
 import { capacityNote } from './scheduler-state.ts';
+import { machineWaits } from './scheduler.ts';
 import { readConfig } from './config.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 import { createAssetHandlers } from './handlers/asset.ts';
@@ -76,7 +77,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
       }
-      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), disk: diskOf(dataDir) });
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), disk: diskOf(dataDir) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);
