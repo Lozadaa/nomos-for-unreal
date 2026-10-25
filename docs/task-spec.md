@@ -29,7 +29,8 @@ Las rutas son relativas al juego, literales, sin absolutos, `..`, glob ni segmen
 ambiguos. Los directorios se normalizan como prefijos por segmentos. No tocar se
 mantiene en el encargo y en el brief; no constituye una columna independiente.
 
-`worker start ID` usa codex, implementacion, skills vacías y attempt 1 por defecto.
+`worker start ID` usa claude, implementacion y skills vacías por defecto. Sin `--attempt`
+(hito 21) repite el intento vivo o, si el último ya terminó, arranca el siguiente.
 `--attempt N` es explícito; no concede permiso para duplicar worktrees.
 Si una política bloqueó antes de crear run o recursos, resuelve la Decisión y repite
 `worker start ID --attempt N` con el mismo N. El POST puede reactivar el mismo

@@ -115,3 +115,26 @@ test('nuevas rutas autentican primero y decisiones abiertas se resuelven sin nac
     assert.equal((await f.request('/decisions/'+decision.id+'/resolve',{optionId:'answer',by:'nomos'})).status,200);
   } finally {await f.close();}
 });
+
+test('hito 21: worker start sin intento arranca el siguiente tras uno cerrado y repite el vivo',async()=>{
+  const f=await fixture(true);
+  try {
+    const task=createTask(f.db,{title:'Juego',area:'qa'}),url='/tasks/'+task.id;
+    await f.request(url+'/spec',{spec:'Cambio',acceptance:['Existe'],area:'qa',scope:['Docs']});
+    const payload={provider:'claude',role:'implementacion',skills:[]};
+    const first=(await (await f.request(url+'/worker',payload)).json()).commandId;
+    assert.equal((await (await f.request(url+'/worker',payload)).json()).commandId,first,'sin arrancar aún: el mismo');
+    const old=startRun(f.db,{taskId:task.id,provider:'claude',role:'implementacion',metadata:{startCommandId:first}});
+    f.db.prepare("update commands set state='done' where id=?").run(first);
+    finishRun(f.db,old.id,'done','Hecho');f.db.prepare("update tasks set state='preparada' where id=?").run(task.id);
+    const second=(await (await f.request(url+'/worker',payload)).json()).commandId;
+    assert.notEqual(second,first);
+    const row=f.db.prepare('select * from commands where id=?').get(second)!;
+    assert.equal(row.idempotency_key,'worker.start:'+task.id+':2');assert.equal(JSON.parse(row.payload as string).attempt,2);
+    startRun(f.db,{taskId:task.id,provider:'claude',role:'implementacion',attempt:2,metadata:{startCommandId:second}});
+    f.db.prepare("update tasks set state='implementando' where id=?").run(task.id);
+    assert.equal((await (await f.request(url+'/worker',payload)).json()).commandId,second);
+    assert.equal(f.db.prepare('select count(*) n from commands').get()!.n,2);
+    assert.equal(f.db.prepare('select count(*) n from runs').get()!.n,2);
+  } finally {await f.close();}
+});

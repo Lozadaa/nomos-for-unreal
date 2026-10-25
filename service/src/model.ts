@@ -13,7 +13,9 @@ export type Task = Entity & {
   leases: string[]; reviewApproved: 0 | 1; waitReason: string | null;
   attribution: Attribution; archivePath: string | null;
   /** hito 13: mayor arranca antes; empate por fecha de creación */ priority: number;
+  /** hito 21: espera deliberada del director (`nomos task hold`) */ hold: Hold | null;
 };
+export type Hold = {reason: string; at: string; sinceSeq: number; until?: string; untilEvent?: string};
 /** Quién hizo qué en la tarea (hito 6): implemento, reviso, genero, integro, verifico. */
 export type Attribution = Record<string, {runId: string; provider: string; agentName: string; at: string}[]>;
 export type RunMetadata = {

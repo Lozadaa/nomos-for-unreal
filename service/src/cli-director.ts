@@ -56,7 +56,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   const action=argv[index+1];
   const flags: Record<string,string[]>={
     'task.create':['title','area','spec-file','leases','depends','role','provider','message','priority'],'task.priority':[],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
-    'task.integrate':[],'task.finalize':[],'task.reconcile':[],'task.continue':['file','text'],
+    'task.integrate':[],'task.hold':['motivo','hasta'],'task.finalize':[],'task.reconcile':[],'task.continue':['file','text'],
     'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key','message'],'worker.stop':[],
     'run.diff':[],'run.output':['since'],'decision.open':['file','message'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
@@ -79,6 +79,9 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     // la revisión calcula el diff antes de responder: con 1,5 GB de contenido tarda más de los 10 s por defecto
     else if(action==='review') result=await call('/tasks/'+id+'/review',{},120_000);
     else if(action==='check') result=await call('/tasks/'+id+'/checks',values.run===undefined ? {} : {runId:required(values.run,'--run')});
+    // hito 21: --hasta N (minutos) o un tipo de evento (integration.completed); pedir la integración la levanta
+    else if(action==='hold') result=await call('/tasks/'+id+'/hold',{reason:required(values.motivo,'--motivo'),
+      ...(values.hasta===undefined ? {} : {until:/^\d+$/.test(values.hasta) ? integer(values.hasta) : values.hasta})});
     else if(action==='integrate' || action==='finalize' || action==='reconcile') result=await call('/tasks/'+id+'/'+action,{});
     else if(action==='continue') {
       if ((values.file===undefined)===(values.text===undefined)) throw new Error('Uso: elige --file o --text');
@@ -106,10 +109,11 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (group==='worker') {
     if (action==='start') {
       const provider=values.provider ?? 'claude',role=required(values.role ?? 'implementacion','--role');
-      const attempt=integer(values.attempt ?? '1');
+      // hito 21: sin --attempt decide el servicio (el intento vivo o el siguiente al último cerrado)
+      const attempt=values.attempt===undefined ? undefined : integer(values.attempt);
       const skills=values.skills===undefined || values.skills==='' ? [] : values.skills.split(',').map(s=>s.trim());
-      if (!['codex','claude','opencode'].includes(provider) || attempt<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
-      result=await call('/tasks/'+id+'/worker',{provider,role,skills,attempt});
+      if (!['codex','claude','opencode'].includes(provider) || (attempt ?? 1)<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
+      result=await call('/tasks/'+id+'/worker',{provider,role,skills,...(attempt===undefined ? {} : {attempt})});
     }
     if (action==='send') {
       if ((values.file===undefined)===(values.text===undefined)) throw new Error('Uso: elige --file o --text');

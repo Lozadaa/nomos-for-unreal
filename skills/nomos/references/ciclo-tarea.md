@@ -70,8 +70,8 @@ Entre ambos comandos, guarda `{taskId,messageId,specFile}` en
 `task spec TASK --spec-file ARCHIVO` prepara una tarea existente sin run activo.
 Entrega contexto/skills mediante la plantilla brief-worker.md enlazada desde SKILL.md.
 
-Conserva commandId devuelto al arrancar. `worker start` usa attempt 1 y clave
-`worker.start:TASK:1`: un reintento idéntico recupera el mismo comando.
+Conserva commandId. Sin `--attempt`, `worker start` usa el intento vivo (repetir recupera el mismo
+comando) o, si el último ya terminó, el siguiente; nunca devuelve el arranque de un intento cerrado.
 No incrementes attempt para eludir un fallo de efecto incierto. Si la creación se
 interrumpió antes de guardar su ID, consulta `GET /tasks` y evidencia de eventos:
 `task create` no tiene clave de idempotencia; repetirlo puede crear otra tarea.
@@ -183,8 +183,10 @@ Una tarea que quedó atascada («Requiere reconciliar worker existente») se des
 Tras 10 min en implementando…cerrando sin run viva ni comando pendiente (`nomos doctor`: «Tareas atascadas»):
 si corriges después de NOMOS_DONE, repite la marca; si no, Nomos pide la revisión al ver tus commits
 (`review.auto_requested`, con el terminal quieto). Si no, abre una Decisión con el paso exacto («Pedir la revisión del commit X»,
-«El worker no dio NOMOS_DONE: leer su terminal»): la recomendada lo ejecuta Nomos. «Tarea parada en …»/«Retomar» = pide tú
-`worker send`, `task review`, `task check`, `task integrate` o `task finalize`. «Cancelar» = déjala y avisa al usuario.
+«El worker no dio NOMOS_DONE: leer su terminal», «Revisión aprobada: falta pedir la integración» tras 30 min): la recomendada
+lo ejecuta Nomos. «Tarea parada en …»/«Retomar» = Nomos no ejecuta nada, pide tú el paso. «Cancelar» = déjala y avisa al usuario.
+Espera a propósito (un Unreal pesado a la vez): `nomos task hold ID --motivo "…" [--hasta MIN|tipo.evento]`; mientras dure no hay
+Decisión de atasco y status/panel dicen «En espera: motivo». `task integrate` la levanta.
 
 ## Fallos y continuidad de escucha
 
@@ -193,7 +195,6 @@ Consulta causa, tarea y run; informa al usuario. Timeout o envío con efecto inc
 requieren reconciliar terminal/worktree antes de repetir; silencio no prueba caída.
 No envíes ack para eventos del director ni interpretes service_down como trabajo.
 
-Rearma Monitor cada 30 minutos con sesión/tipos iguales mientras existan Run activo,
-pregunta o Decisión abierta. Dos expiraciones sin mensajes solo apagan escucha si
-tampoco hay trabajo activo. Sin Monitor disponible, reconoce esa limitación.
+Rearma Monitor cada 30 minutos con la misma sesión mientras existan Run activo, pregunta o Decisión
+abierta. Dos expiraciones sin mensajes solo apagan escucha si tampoco hay trabajo activo. Sin Monitor, dilo.
 El checkpoint garantiza entrega recuperable, no acción exactamente una vez: lee contrato-eventos.md antes de reanudar.

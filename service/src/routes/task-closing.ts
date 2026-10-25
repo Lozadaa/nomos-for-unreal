@@ -8,6 +8,7 @@ import { id, text, type Context } from './context.ts';
 import { archiveDir, taskArchive, verifyArchive } from '../archive.ts';
 import { file } from './artifacts.ts';
 import { createContinuation } from '../handlers/continue.ts';
+import { liftHold } from '../hold.ts';
 
 type Db = Context['db'];
 /** Orden viva de ese tipo para la tarea, o una nueva con clave numerada (reintegrar tras resolver un conflicto). */
@@ -28,7 +29,13 @@ export function integratePayload(db: Db, taskId: unknown): Task {
   if (task.state === 'revisando' && task.reviewApproved === 1 && !task.acceptance.some(a => a.startsWith('check:')))
     task = moveTask(db, task.id, 'integrando', 'Revisión aprobada; sin pruebas exigidas');
   if (task.state !== 'integrando' || task.reviewApproved !== 1) throw new Error('invalid_transition');
+  liftHold(db, task.id, 'integración pedida');
   return task;
+}
+/** `nomos task integrate` y, hito 21, la opción «Pedir la integración» de un atasco. */
+export function requestIntegration(db: Db, taskId: string): {commandId: string; state: string} {
+  const task = integratePayload(db, taskId), run = implementerOf({db} as WorkerContext, task);
+  return queue(db, 'integrate.run', task, {taskId: task.id, runId: run.id}, `integrate:${task.id}:${run.id}`);
 }
 export function finalizePayload(db: Db, taskId: unknown): Task {
   if (typeof taskId !== 'string' || !taskId.trim()) throw new Error('invalid_command_payload');
@@ -66,8 +73,6 @@ export async function taskClosing({db, req, res, url, dataDir}: Context): Promis
     json(res, 202, queue(db, 'finalize.run', task, {taskId: task.id}, `finalize:${task.id}`));
     return true;
   }
-  const task = integratePayload(db, taskId);
-  const run = implementerOf({db} as WorkerContext, task);
-  json(res, 202, queue(db, 'integrate.run', task, {taskId: task.id, runId: run.id}, `integrate:${task.id}:${run.id}`));
+  json(res, 202, requestIntegration(db, taskId));
   return true;
 }

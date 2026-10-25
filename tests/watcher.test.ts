@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { appendEvent, createMessage, ackEvent } from '../service/src/store.ts';
 import { requestJson } from './helpers.ts';
 import { until } from './cli-helpers.ts';
-import { setup, start, checkpoint, defaultKey } from './watcher-fixture.ts';
+import { setup, start, checkpoint, defaultKey, legacyDefaultKey } from './watcher-fixture.ts';
 
 test('defaults entregan cuatro tipos conservando payload y ACK solo de mensajes',async t=>{
   const {db,server,dataDir}=await setup(t);
@@ -59,8 +59,28 @@ test('types reemplaza defaults y normaliza orden, espacios y duplicados por susc
   // A new event proves the rearmed subscription is listening, without timeout assertions.
   const fresh=appendEvent(db,'worker.waiting',null,{question:'new'});await second.wait(fresh.seq);
   assert.deepEqual(second.lines().map(e=>e.seq),[fresh.seq]);await second.stop();
-  const third=start(t,dataDir);await third.wait(3);
-  assert.deepEqual(third.lines().slice(0,3).map(e=>e.seq),[1,2,3]);
+  // hito 21: el cursor es de la sesión; otra lista de tipos no reentrega la historia (antes, [1,2,3])
+  const third=start(t,dataDir);const later=appendEvent(db,'command.failed',null,{commandId:'d'});await third.wait(later.seq);
+  assert.deepEqual(third.lines().map(e=>e.seq),[later.seq]);
+});
+
+test('hito 21: una Decisión llega aunque --types no la nombre',async t=>{
+  const {db,dataDir}=await setup(t);
+  const opened=appendEvent(db,'decision.opened',null,{decisionId:'d1'});
+  const updated=appendEvent(db,'decision.updated',null,{decisionId:'d1'});
+  const watcher=start(t,dataDir,'--types','run.finished');await watcher.wait(updated.seq);
+  assert.deepEqual(watcher.lines().map(e=>e.seq),[opened.seq,updated.seq]);
+});
+
+test('hito 21: los cursores v1 (sesión + tipos) migran al último entregado a la sesión',async t=>{
+  const {db,dataDir}=await setup(t);
+  for(let i=0;i<10;i++) appendEvent(db,'run.finished',null,{n:i});
+  writeFileSync(join(dataDir,'watcher-cursors.json'),JSON.stringify({version:1,cursors:{
+    '["director",["run.finished"]]':9,[legacyDefaultKey]:4,'["otra",["run.finished"]]':2}}));
+  const watcher=start(t,dataDir,'--types','run.finished,worker.waiting');await watcher.wait(10);
+  assert.deepEqual(watcher.lines().map(e=>e.seq),[10]);
+  await until(async()=>watcher.saved().version===2 && watcher.saved().cursors.director>=10);
+  assert.equal(watcher.saved().cursors.otra,2);
 });
 
 test('types inválidos fallan antes de adquirir lock o contactar servicio',async t=>{

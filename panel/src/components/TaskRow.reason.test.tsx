@@ -17,6 +17,8 @@ describe('motivo corto en la fila (hito 7)', () => {
     expect(rowReason(task({ waitReason: 'Editor de KratosFabTest: ocupado por qa · unreal' }))).toBe('Esperando reserva')
     expect(rowReason(task({ waitReason: 'Depende de Diseñar HUD (implementando)' }))).toBe('Depende de…')
     expect(rowReason(task({ waitReason: 'Director en pausa' }))).toBe('Director en pausa')
+    // hito 21: la espera deliberada del director (`nomos task hold`)
+    expect(rowReason(task({ waitReason: 'En espera: Un Unreal pesado a la vez' }))).toBe('En espera')
     expect(rowReason(task({ waitReason: 'Esperando reserva: x', failure: { kind: 'connection', text: 'Orca no está abierto · reintento cada 30 s', detail: null, at: '' } }))).toBe('Sin conexión')
     for (const kind of ['execution', 'cancel_requested', 'cancel_confirmed', 'capability_missing'] as const)
       expect(rowReason(task({ failure: { kind, text: '', detail: null, at: '' } }))!.split(' ').length).toBeLessThanOrEqual(3)

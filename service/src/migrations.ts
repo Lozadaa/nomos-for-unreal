@@ -121,6 +121,13 @@ export function migratePriority(db: DatabaseSync): void {
   });
 }
 
+/** Hito 21: espera deliberada del director sobre una tarea (JSON, ver hold.ts). */
+export function migrateHold(db: DatabaseSync): void {
+  transaction(db, () => {
+    if (!db.prepare('pragma table_info(tasks)').all().some(row => row.name === 'hold')) db.exec('alter table tasks add column hold text');
+  });
+}
+
 /** Hito 11: el proveedor del propio servicio pasa a `nomos` en las bases anteriores al renombrado (ver legacy.ts). */
 export function migrateNomos(db: DatabaseSync): void {
   transaction(db, () => migrateBrand(db, (table, column, value) => widenCheck(db, table, column, value)));

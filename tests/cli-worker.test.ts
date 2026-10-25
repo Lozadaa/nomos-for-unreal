@@ -52,6 +52,10 @@ test('CLI workers/runs y decisiones transportan texto literal y exponen comandos
   const command=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(started.stdout).commandId);
   assert.equal(command.idempotencyKey,'worker.start:'+task.id+':3');
   assert.deepEqual(command.payload,{taskId:task.id,provider:'claude',role:'implementacion',skills:['tdd','qa'],attempt:3});
+  // hito 21: sin --attempt, el intento vivo (3) o, si el servicio ya lo dio por fallido, el siguiente; nunca un «1» por defecto
+  const again=cli(dataDir,'worker','start',task.id,'--skills','tdd,qa');assert.equal(again.status,0,again.stderr);
+  const repeated=(await api(dataDir,'/commands')).find((c:any)=>c.id===JSON.parse(again.stdout).commandId);
+  assert.ok(repeated.payload.attempt>=3,JSON.stringify(repeated.payload));
   const db=openDb(join(dataDir,'nomos.db'));const run=startRun(db,{taskId:task.id,provider:'codex',role:'implementacion'});
   const event=appendEvent(db,'worker.output',null,{taskId:task.id,runId:run.id,lines:['hola']});db.close();
   const text='Corrige "texto"\n$(literal) 🎾',file=join(dataDir,'send.md');writeFileSync(file,text);
