@@ -9,6 +9,7 @@ import { implementerOf } from '../handlers/checks.ts';
 import type { WorkerContext } from '../runner.ts';
 import { taskFailures } from '../failure-kind.ts';
 import { linkedMessage } from '../chat.ts';
+import { holdTask, withHold } from '../hold.ts';
 
 export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   const checks = /^\/tasks\/([^/]+)\/checks$/.exec(url.pathname);
@@ -26,13 +27,20 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
   if (req.method === 'GET' && match) {
     const task = requireTask(db, id(match[1])), failure = taskFailures(db).get(task.id);
     json(res, 200, {
-      task: failure ? {...task, failure} : task,
+      task: withHold(db, failure ? {...task, failure} : task),
       runs: filtered(db, 'runs', {taskId: task.id}),
       events: eventsOf(db, 'taskId', task.id),
       artifacts: filtered(db, 'artifacts', {taskId: task.id}),
       testRuns: filtered(db, 'test_runs', {taskId: task.id}),
       decision: task.decisionId ? read(db, 'decisions', task.decisionId) ?? null : null
     });
+    return true;
+  }
+  const held = /^\/tasks\/([^/]+)\/hold$/.exec(url.pathname);
+  if (req.method === 'POST' && held) {
+    // hito 21: espera deliberada; `until` en minutos (entero) o un tipo de evento
+    const data = await body(req);
+    json(res, 200, withHold(db, holdTask(db, id(held[1]), data.reason as string, data.until as number | string | undefined)));
     return true;
   }
   const priority = /^\/tasks\/([^/]+)\/priority$/.exec(url.pathname);
@@ -51,7 +59,7 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     json(res, 200, listTasks(db, {
       area: choice(url.searchParams.get('area'), areas),
       state: choice(url.searchParams.get('state'), states)
-    }).map(task => failures.has(task.id) ? {...task, failure: failures.get(task.id)} : task));
+    }).map(task => withHold(db, failures.has(task.id) ? {...task, failure: failures.get(task.id)} : task)));
     return true;
   }
   if (req.method !== 'POST') return false;

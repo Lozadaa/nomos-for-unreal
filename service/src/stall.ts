@@ -8,6 +8,9 @@ import { reviewTarget } from './review.ts';
 import { requestReview } from './review-request.ts';
 import { terminalBusy } from './sweep.ts';
 import { appendEvent } from './store.ts';
+import { activeHold } from './hold.ts';
+import { requireTask } from './repo/tasks.ts';
+import { requestIntegration } from './routes/task-closing.ts';
 
 /** Estados en los que el servicio (o el director) siempre tiene un paso siguiente encolado o en marcha. */
 const active = ['implementando', 'revisando', 'probando', 'integrando', 'cerrando'];
@@ -15,20 +18,25 @@ const active = ['implementando', 'revisando', 'probando', 'integrando', 'cerrand
 export const resume: Record<string, string> = {implementando: 'worker send <run> --file <corrección>', revisando: 'task review',
   probando: 'task check', integrando: 'task integrate', cerrando: 'task finalize'};
 export type Stall = {taskId: string; title: string; state: string; quietSeconds: number};
+/** Hito 21: con la revisión aprobada, esperar la integración es a menudo deliberado (un Unreal pesado a la vez). */
+export const approvedQuietMs = 30 * 60_000;
 
 /**
  * Hito 7: tarea en estado activo, sin Decisión, bloqueo ni espera, sin run viva ni comando pendiente
  * y sin cambios desde hace `quietMs`. Nada la va a mover: es un atasco.
  */
 export function stalledTasks(db: DatabaseSync, now = Date.now(), quietMs = 10 * 60_000): Stall[] {
-  const rows = db.prepare(`select t.id,t.title,t.state,max(t.updated_at,coalesce((select max(coalesce(finished_at,updated_at)) from runs where task_id=t.id),'')) at
+  const rows = db.prepare(`select t.id,t.title,t.state,t.hold,t.review_approved,max(t.updated_at,coalesce((select max(coalesce(finished_at,updated_at)) from runs where task_id=t.id),'')) at
     from tasks t where t.state in (${active.map(() => '?').join(',')}) and t.decision_id is null and t.blocked_reason is null and t.wait_reason is null
     and not exists (select 1 from runs where task_id=t.id and state='running')
     and not exists (select 1 from commands c where c.state in ('pending','running') and (json_extract(c.payload,'$.taskId')=t.id
       or json_extract(c.payload,'$.runId') in (select id from runs where task_id=t.id)))`).all(...active);
   return rows.flatMap(r => {
     const quiet = now - Date.parse(r.at as string);
-    return quiet >= quietMs ? [{taskId: r.id as string, title: r.title as string, state: r.state as string, quietSeconds: Math.round(quiet / 1000)}] : [];
+    // hito 21: la espera marcada por el director (`nomos task hold`) no es un atasco mientras dure
+    if (r.hold && activeHold(db, {hold: JSON.parse(r.hold as string)}, now)) return [];
+    const threshold = r.state === 'revisando' && r.review_approved ? Math.max(quietMs, approvedQuietMs) : quietMs;
+    return quiet >= threshold ? [{taskId: r.id as string, title: r.title as string, state: r.state as string, quietSeconds: Math.round(quiet / 1000)}] : [];
   });
 }
 
@@ -41,6 +49,12 @@ const cancel = {id: 'cancelar', label: 'Cancelar', description: 'Dejar la tarea 
  * Decisión nombra el commit. En «implementando» sin marca, leer su terminal. Lo demás, el paso del director de siempre.
  */
 async function nextStep(ctx: WorkerContext, s: Stall): Promise<Step> {
+  // hito 21: revisión aprobada (o pruebas superadas) y nadie pidió la integración: ese es el paso, no otra revisión
+  const task = requireTask(ctx.db, s.taskId);
+  if (s.state === 'integrando' || s.state === 'revisando' && task.reviewApproved === 1) {
+    return {reason: `${s.state === 'revisando' ? 'Revisión aprobada' : 'Lista para integrar'}: falta pedir la integración`,
+      step: {id: 'integrar', label: 'Pedir la integración', description: 'Nomos pide la integración (nomos task integrate)', ref: s.taskId}};
+  }
   const runs = filtered<Run>(ctx.db, 'runs', {taskId: s.taskId}), last = runs.filter(r => r.role !== 'revisor' && r.provider !== 'unreal').at(-1);
   if (s.state === 'implementando' && last?.sessionRef && last.state !== 'done') return {reason: 'El worker no dio NOMOS_DONE: leer su terminal',
     step: {id: 'leer_terminal', label: 'Leer su terminal', description: 'Nomos lee la pantalla del worker y la deja en la actividad de la tarea', ref: last.id}};
@@ -65,12 +79,13 @@ async function nextStep(ctx: WorkerContext, s: Stall): Promise<Step> {
 /** El paso de la opción recomendada, una vez por Decisión resuelta con ella. */
 async function runChosenSteps(ctx: WorkerContext): Promise<void> {
   const {db} = ctx;
-  const chosen = db.prepare(`select * from decisions d where state='resolved' and chosen_option_id in ('pedir_revision','leer_terminal')
+  const chosen = db.prepare(`select * from decisions d where state='resolved' and chosen_option_id in ('pedir_revision','leer_terminal','integrar')
     and not exists (select 1 from events where type='stall.step_done' and json_extract(payload,'$.decisionId')=d.id)`).all().map(r => decode<Decision>(r));
   for (const d of chosen) {
     const ref = d.evidence.find(e => e.kind === 'paso')?.ref ?? '';
     try {
-      if (d.chosenOptionId === 'pedir_revision') {
+      if (d.chosenOptionId === 'integrar') requestIntegration(db, d.taskId);
+      else if (d.chosenOptionId === 'pedir_revision') {
         const commandId = await requestReview(db, ctx.dataDir, ctx.git, d.taskId);
         const commit = await ctx.git.head(reviewTarget(db, d.taskId).tree.path).catch(() => ref);
         appendEvent(db, 'review.auto_requested', null, {taskId: d.taskId, commit, reason: 'decisión', decisionId: d.id, commandId});
@@ -104,7 +119,7 @@ export async function sweepStalls(ctx: WorkerContext, now = Date.now()): Promise
     openDecision(db, {taskId: s.taskId, reason: step.reason,
       evidence: [{kind: 'estado', ref: s.state}, ...(step.step ? [{kind: 'paso', ref: step.step.ref}] : [])],
       options: step.step ? [{id: step.step.id, label: step.step.label, description: step.step.description, recommended: true}, cancel]
-        : [{id: 'retomar', label: 'Retomar', description: `El director pide el paso que falta (nomos ${resume[s.state]})`}, cancel]});
+        : [{id: 'retomar', label: 'Retomar', description: `Nomos no ejecuta nada: el director pide el paso que falta (nomos ${resume[s.state]})`}, cancel]});
   }
   return stalls.length;
 }
