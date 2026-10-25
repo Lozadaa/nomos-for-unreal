@@ -103,8 +103,8 @@ blockedReason; `esperando_worker` es latestStatus/metadata, no un estado Task nu
    incluyendo cambios pendientes. Binarios figuran en stat; no se inventa su contenido.
 2. Revisa cada criterio y las rutas cambiadas contra scope/No tocar. Lee las pruebas
    y ejecuta lo que corresponda; no conviertas «tests: passed» del worker en evidencia propia.
-3. Si cumple, publica por reply al mensaje original el resultado y los límites de
-   verificación; deja `revisando`. No marques done ni hagas merge/push.
+3. Si cumple, publica por reply el resultado y los límites de verificación; deja `revisando`. No marques done
+   ni hagas merge/push. Lo visual o jugable lo aprueba el usuario en «Por aprobar» (referencia de aprobación, enlazada desde SKILL.md).
 4. Si no cumple, crea `.nomos/correcciones/RUN/1.md` (luego 2.md y 3.md).
    Especifica archivo, problema observado y resultado comprobable esperado.
    Envía `nomos worker send RUN --file .nomos/correcciones/RUN/1.md --idempotency-key correccion-RUN-1`.

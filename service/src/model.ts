@@ -50,6 +50,7 @@ export type RunMetadata = {
   // hito 5b: contenido pesado al integrar (Decisión de Git LFS)
   lfs?: 'sin' | 'configurando' | 'listo';
   continuationOf?: string; busyAttempts?: number;
+  /** hito 22: «En qué fijarte» que el worker deja al entregar (NOMOS_DONE `focus`), para «Por aprobar». */ focus?: string[];
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;

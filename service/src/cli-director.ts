@@ -7,7 +7,7 @@ import { parseTaskSpec } from './task-spec.ts';
 import { areas } from './routes/context.ts';
 import { buildSummary } from './build-info.ts';
 
-const groups=['task','worker','run','decision'];
+const groups=['task','worker','run','decision','approval'];
 function commandIndex(argv: string[]): number {
   for (let i=0;i<argv.length;i++) {
     if (['--data','--port','--session'].includes(argv[i])) {i++;continue;}
@@ -55,6 +55,18 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   }
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
+  if (group==='approval') {
+    // hito 22: «Por aprobar»; changes y comment llevan el texto del usuario tal cual
+    const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},text:{type:'string'},file:{type:'string'}}});
+    const [, ,rawId,...rest]=positionals,call=(path:string,data?:unknown)=>request(serviceInfo(resolve(values.data ?? '.nomos')),path,data);
+    const text=values.file!==undefined ? readFileSync(values.file,'utf8') : values.text;
+    if (rest.length || !['list','request','approve','changes','comment'].includes(action) || (action==='list')!==!rawId && action!=='comment'
+      || ['changes','comment'].includes(action) && !text?.trim()) throw new Error('Uso: nomos approval list|request ID|approve ID|changes ID --text T|comment [ID] --text T');
+    const id=rawId ? encodeURIComponent(rawId) : '';
+    console.log(JSON.stringify(action==='list' ? await call('/approvals') : action==='request' ? await call(`/tasks/${id}/approval`,{}) : action==='approve' ? await call(`/approvals/${id}/approve`,{})
+      : await call(id ? `/approvals/${id}/${action}` : '/approvals/comment',{text})));
+    return true;
+  }
   if (group==='worker' && action==='turn') {
     // hito 22: el worker pide Unreal; --wait pregunta cada 5 s hasta que el planificador se lo concede
     const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},wait:{type:'boolean'},release:{type:'boolean'}}});

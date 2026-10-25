@@ -137,7 +137,7 @@ y [evidencia](references/evidencia.md).
 ## Cerrar
 
 Cuando una tarea llega a `integrando` (revisión aprobada y pruebas en verde; sin pruebas exigidas basta
-la revisión), pide `nomos task integrate <id>`; para retenerla a propósito, `task hold` (ciclo-tarea.md). Ante `integration.completed`,
+la revisión), pide `nomos task integrate <id>` (lo visual, tras el «Aprobar» del usuario: [aprobación](references/aprobacion.md)). Ante `integration.completed`,
 pide `nomos task finalize <id>`. Ante `task.closing_blocked`, lee `condition` y `reason`
 y publica el motivo; si hay Decisión (conflicto, cambios sin registrar), preséntala y
 espera la elección: nunca elijas «Descartar» por tu cuenta. Nomos **nunca** concede

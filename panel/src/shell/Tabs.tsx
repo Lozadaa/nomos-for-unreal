@@ -2,9 +2,12 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
+import { useResource } from '@/hooks/useResource'
+import type { Approvals } from '@/lib/approvals'
 
 export const views = [
   { to: '/', label: 'Producción' },
+  { to: '/aprobar', label: 'Por aprobar' },
   { to: '/actividad', label: 'Actividad' },
   { to: '/entregas', label: 'Entregas' },
   { to: '/catalogo', label: 'Catálogo' },
@@ -20,6 +23,8 @@ export function Tabs() {
   const { pathname } = useLocation()
   const [bar, setBar] = useState({ x: 0, w: 0 })
   const pending = useStore((s) => s.tasks.filter((t) => t.decisionId).length)
+  // hito 22: lo que espera la aprobación del usuario
+  const approvals = useResource<Approvals>('/approvals', /^approval\./).data?.pending ?? 0
 
   // indicador deslizante bajo la pestaña activa (transición de 180 ms en CSS)
   // se recoloca también cuando una pestaña cambia de ancho (el contador de Decisiones llega después, carga la fuente,
@@ -37,7 +42,7 @@ export function Tabs() {
     observer.observe(nav.current)
     for (const link of nav.current.querySelectorAll('a')) observer.observe(link)
     return () => observer.disconnect()
-  }, [pathname, pending])
+  }, [pathname, pending, approvals])
 
   return (
     <nav ref={nav} aria-label="Vistas" className="relative flex h-(--k-tabs) items-stretch gap-1 border-b border-subtle px-6">
@@ -53,6 +58,7 @@ export function Tabs() {
         >
           {v.label}
           {v.to === '/decisiones' && pending > 0 && <span className="ml-2 font-mono text-xs text-warning" aria-label={`${pending} pendientes`}>{pending}</span>}
+          {v.to === '/aprobar' && approvals > 0 && <span className="ml-2 font-mono text-xs text-warning" aria-label={`${approvals} por aprobar`}>{approvals}</span>}
         </NavLink>
       ))}
       <span

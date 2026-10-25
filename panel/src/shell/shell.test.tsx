@@ -48,7 +48,7 @@ describe('Tabs', () => {
   it('Producción es la ruta raíz y no queda activa en otras rutas', () => {
     at('/')
     expect(screen.getByRole('link', { name: 'Producción' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getAllByRole('link')).toHaveLength(9)
+    expect(screen.getAllByRole('link')).toHaveLength(10)
   })
 })
 

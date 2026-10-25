@@ -5,7 +5,9 @@ import { join } from 'node:path';
 export class CheckpointError extends Error {}
 export const defaultTypes=['message.received','run.finished','worker.waiting','command.failed'];
 /** Hito 21: una Decisión abierta o actualizada siempre llega al director, la nombre o no la lista de tipos. */
-export const requiredTypes=['decision.opened','decision.updated'];
+export const requiredTypes=['decision.opened','decision.updated',
+  // hito 22: lo que el usuario decide en «Por aprobar» siempre llega al director
+  'approval.requested','approval.approved','approval.changes_requested','approval.commented'];
 export function normalizeTypes(types: string[]=defaultTypes): string[] {
   const listed=types.map(type=>type.trim()),result=[...new Set([...listed,...requiredTypes])].sort();
   if (!listed.length || result.some(type=>! /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/.test(type))) {
