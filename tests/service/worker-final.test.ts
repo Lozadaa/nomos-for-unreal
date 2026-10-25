@@ -14,7 +14,8 @@ test('hang local IsIdle falla comando, bloquea tarea y no encola otro poll',asyn
   const hanging=createOrca({...f.orcaOptions,timeoutMs:100,env:{...f.orcaOptions.env,FAKE_ORCA_HANG:'1'}});
   f.ctx.orca.terminalRead=async()=>({text:'',cursor:'0',source:'stream'});
   f.ctx.orca.terminalIsIdle=hanging.terminalIsIdle;
-  updateRun(f.db,f.run().id,{idlePolls:1});
+  // hito 18: el reposo cuenta tras 6 sondeos sin salida y con un prompt al final
+  updateRun(f.db,f.run().id,{idlePolls:5,lastLines:['› Ask Codex']});
   f.db.prepare("delete from commands where type='worker.poll'").run();
   const cmd=enqueue(f.db,'worker.poll',{runId:f.run().id},'hang-poll');
   const stop=startRunner(f.db,f.handlers,{intervalMs:5,context:f.ctx});

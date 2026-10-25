@@ -41,7 +41,9 @@ No hay CORS para orígenes ajenos. CSP impide scripts externos. No se usan frame
 | `director.started` | `{session}` | Vigilante: heartbeat con started true |
 | `director.stopped` | `{session}` | POST admin/stop; sesión null si nunca hubo director |
 | `run.finished` | `{taskId,runId,state,summary}` | Fin de vuelta del run; no cierra tarea |
-| `worker.waiting` | `{taskId,runId,question,lastLines}` | Pregunta o terminal idle actual |
+| `worker.waiting` | `{taskId,runId,question,lastLines}` | Pregunta, permiso al final de la salida o terminal quieto 30 s con pregunta/prompt al final; una vez por espera |
+| `worker.done_ignored` | `{taskId,runId,provider,reason}` | Hito 18: NOMOS_DONE con commits declarados tras una corrección sin commit nuevo; la run sigue viva |
+| `review.auto_requested` | `{taskId,commit,reason,decisionId?}` | Hito 18: Nomos pidió la revisión (`commits tras DONE` o la opción de una Decisión) |
 | `worker.skills_missing` | `{taskId,runId,provider,required,confirmed,missing}` | NOMOS_SKILLS válido con diferencia; no bloquea |
 | `command.failed` | `{commandId,...command}` | Error terminal; payload de command conserva taskId/runId |
 

@@ -9,7 +9,7 @@ import { refreshPendingDecision } from '../repo/decisions.ts';
 import { createHash } from 'node:crypto';
 import { streamMarkers, screenMarkers, markerId, compactMarkerText, inboxMarkers } from './worker-markers.ts';
 import { finishReview } from './review-finish.ts';
-import { permissionPrompt, opencodeFatal } from './worker-launch.ts';
+import { permissionPrompt, opencodeFatal, asksForInput } from './worker-launch.ts';
 import { discardOpencode } from './worker-opencode.ts';
 import { enqueue } from '../commands.ts';
 import { uiCycleKey } from './ui-cycle.ts';
@@ -48,7 +48,9 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   const fatal=run.provider==='opencode' ? opencodeFatal(lines) : undefined;
   if(fatal) return discardOpencode(ctx,run,fatal);
   const idlePolls=lines.length ? 0 : (run.metadata.idlePolls ?? 0)+1;
-  const idle=!lines.length && idlePolls>=2 && !run.metadata.waiting && !blockedNow() ? await orca.terminalIsIdle(run.sessionRef!) : false;
+  // hito 18: «espera instrucciones» solo tras 30 s sin salida (6 sondeos), con Orca en reposo y una pregunta o un prompt al final
+  const idle=!lines.length && idlePolls>=6 && !run.metadata.waiting && !blockedNow() && asksForInput(run.metadata.lastLines ?? [])
+    ? await orca.terminalIsIdle(run.sessionRef!) : false;
   // hito 18: el HEAD de la marca; si después aparecen commits sin otra marca, el barrido de atascos pide la revisión
   const doneCommit=run.role!=='revisor' && fresh.some(m=>m.kind==='DONE')
     ? await (async()=>ctx.git.head(runTree(db,run).path))().catch(()=>undefined) : undefined;
@@ -66,9 +68,11 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       ...(page.limited!==undefined ? {limited:page.limited} : {}),...(page.truncated!==undefined ? {truncated:page.truncated} : {})});
     if (stream.oldestCursor) appendEvent(db,'worker.output_gap',null,
       {runId:run.id,taskId:run.taskId,provider:run.provider,requestedCursor:previous.cursor ?? '0',oldestCursor:stream.oldestCursor});
+    // hito 18: la misma espera (misma pregunta, misma última línea) se avisa una vez, aunque entre medias haya salida
     const waiting=(question:string)=>{
-      run=updateRun(db,run.id,{waiting:true,question,phase:run.metadata.phase==='preparing' ? 'preparing' : 'waiting'});
-      if (!previous.waiting || previous.question!==question) appendEvent(db,'worker.waiting',null,
+      const key=JSON.stringify([question,lastLines.filter(l=>l.trim()).at(-1) ?? '']);
+      run=updateRun(db,run.id,{waiting:true,question,lastWaitingKey:key,phase:run.metadata.phase==='preparing' ? 'preparing' : 'waiting'});
+      if (previous.lastWaitingKey!==key && (!previous.waiting || previous.question!==question)) appendEvent(db,'worker.waiting',null,
         {runId:run.id,taskId:run.taskId,provider:run.provider,question,lastLines});
     };
     for(const marker of fresh) if(marker.kind==='SKILLS') {
@@ -82,6 +86,11 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       if(marker.kind==='SKILLS') continue;
       if (marker.kind==='DONE') {
         if(run.role==='revisor') continue;
+        // hito 18: tras una corrección, una marca con commits declarados solo cuenta si HEAD avanzó desde el envío
+        if(run.metadata.correctionHead && marker.commits.length && doneCommit===run.metadata.correctionHead) {
+          appendEvent(db,'worker.done_ignored',null,{runId:run.id,taskId:run.taskId,provider:run.provider,reason:'sin commit tras la corrección'});
+          continue;
+        }
         finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:'',...(doneCommit ? {doneCommit} : {})});
         moveTask(db,run.taskId,'revisando');attribute(db,run.taskId,'implemento',run);refreshPendingDecision(db,run.taskId);
         // hito 5: toda pantalla UMG pasa por capturas y QA visual antes de cerrarse

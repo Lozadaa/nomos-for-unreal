@@ -51,6 +51,8 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   // un worktree de antes del hito 11 solo excluye la bandeja con el nombre anterior: la carpeta se ignora sola para que nunca se commitee
   writeFileSync(join(tree.path,'.nomos-inbox','.gitignore'),'*\n');
   invalidateImplementation(db,run.id);
+  // hito 18: el HEAD al mandar la corrección; un NOMOS_DONE con commits declarados que no lo mueve es el viejo
+  const correctionHead=correction && !reviewer ? await (async()=>ctx.git.head(tree.path))().catch(()=>undefined) : undefined;
   await deliver(db,orca,run,tree.path,`Lee el archivo ${relative} y ejecuta lo que dice.`);
   run=requireRun(db,run.id);
   transaction(db,()=>{
@@ -62,7 +64,7 @@ export const workerSend: Handler=async (cmd,ctx)=>{
       ? [...new Set([...(previous.legacyDoneSummaries ?? []),compactMarkerText(run.summary)])].slice(-4)
       : previous.legacyDoneSummaries;
     run=updateRun(db,run.id,{waiting:false,question:undefined,phase:'running',markerBuffer:'',idlePolls:0,
-      seenDoneMarkers,legacyDoneSummaries,
+      seenDoneMarkers,legacyDoneSummaries,lastWaitingKey:undefined,...(correction && !reviewer ? {correctionHead} : {}),
       correctionCount:count+(correction?1:0),pollGeneration:(run.metadata.pollGeneration ?? 0)+1},
       {state:'running',finishedAt:null,summary:null});
     moveTask(db,run.taskId,reviewer ? 'revisando' : 'implementando');queuePoll(db,run);
