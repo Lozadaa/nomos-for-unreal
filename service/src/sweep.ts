@@ -50,3 +50,16 @@ export async function sweepTerminals(db: DatabaseSync, orca: Orca): Promise<Work
 
 /** La última cuenta del barrido (`nomos status`); `null` antes del primero. */
 export const workerProcesses = (db: DatabaseSync): WorkerProcesses | null => counts.get(db) ?? null;
+/**
+ * Hito 17: antes de cada pasada del planificador, las runs terminadas cuyo terminal sigue vivo y no está en reposo
+ * (el worker sigue con una corrección, fusionando o empaquetando) quedan `terminalBusy` y ocupan hueco del cupo.
+ */
+// ponytail: dos llamadas a Orca por run terminada con terminal abierto en cada pasada (5 s); espaciarlas si Orca se resiente
+export async function refreshBusyTerminals(db: DatabaseSync, orca: Orca): Promise<void> {
+  for (const run of tracked(db).filter(r => r.state !== 'running' && (r.provider === 'claude' || r.provider === 'codex'))) {
+    let busy: boolean;
+    try { busy = await orca.terminalAlive(run.sessionRef!) && !await orca.terminalIsIdle(run.sessionRef!); }
+    catch { continue; /* Orca no responde: se conserva lo último que se supo */ }
+    if (busy !== !!run.metadata.terminalBusy) updateRun(db, run.id, {terminalBusy: busy});
+  }
+}

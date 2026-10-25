@@ -3,7 +3,7 @@ import type { WorkerContext } from './runner.ts';
 import type { SchedulerConfig,WorkerProvider } from './config.ts';
 import { listTasks,requireTask,setTaskWait } from './repo/tasks.ts';
 import { enqueue } from './commands.ts';
-import { automaticReason,conflicts,dependencyReason,nextAttempt,reservations } from './scheduler-state.ts';
+import { automaticReason,busyReason,conflicts,dependencyReason,nextAttempt,reservations } from './scheduler-state.ts';
 import { chooseProvider } from './scheduler-provider.ts';
 import { leaseWaitReason } from './leases.ts';
 import { normalizedPaths } from './handlers/worker-policy.ts';
@@ -24,7 +24,8 @@ export function plan(db:DatabaseSync,config:SchedulerConfig): PlanDecision[] {
     const implementer=['codex','claude','opencode'].includes(implementation?.provider ?? '') ? implementation!.provider as WorkerProvider : undefined;
     const selected=chooseProvider(task.assigneeRole ?? 'implementacion',config,usage,implementer,
       task.assigneeProvider==='codex'||task.assigneeProvider==='claude'||task.assigneeProvider==='opencode' ? task.assigneeProvider : undefined);
-    if(!selected.provider) return wait(selected.reason);
+    // hito 17: si el hueco lo ocupa un worker terminado que sigue trabajando, se dice quién
+    if(!selected.provider) return wait(busyReason(db,/^Sin hueco en (\w+)$/.exec(selected.reason)?.[1] ?? '') ?? selected.reason);
     usage[selected.provider]++;
     leases.push(...normalizedPaths(task.leases).map(path=>({path,taskId:task.id,runId:`plan:${task.id}`})));
     return {taskId:task.id,action:'start',reason:selected.reason,provider:selected.provider};

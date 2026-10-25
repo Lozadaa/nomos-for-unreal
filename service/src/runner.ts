@@ -12,7 +12,7 @@ import { openStallDecisions } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
 import { failureKind } from './failure-kind.ts';
-import { closeIdleTerminals, sweepIntervalMs, sweepTerminals } from './sweep.ts';
+import { closeIdleTerminals, refreshBusyTerminals, sweepIntervalMs, sweepTerminals } from './sweep.ts';
 export type WorkerContext = {db: DatabaseSync; orca: Orca; git: Git; dataDir: string; projectDir: string};
 export type Handler = (command: Command, context: WorkerContext) => Promise<object | void>;
 export type RunnerStop = (() => void) & {drained: Promise<void>};
@@ -72,6 +72,8 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
       if(lane==='normal' && (Date.now()>=nextSweep || Date.now()>=nextSchedule)) try {
         if(Date.now()>=nextSweep) {nextSweep=Date.now()+sweepIntervalMs;await sweepTerminals(db,context.orca);}
         else await closeIdleTerminals(db,context.orca);
+        // hito 17: el cupo cuenta los workers terminados que siguen trabajando en su terminal
+        if(Date.now()>=nextSchedule) await refreshBusyTerminals(db,context.orca);
       } catch(error) {appendEvent(db,'sweep.error',null,{reason:error instanceof Error ? error.message : String(error)});}
       if(lane==='normal' && Date.now()>=nextSchedule) {
         nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000);

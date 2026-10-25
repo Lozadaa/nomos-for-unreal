@@ -40,11 +40,11 @@ function builtAt(exe: string, name: string): number {
   return newest;
 }
 
-const code = (title: string) => /^([A-Z]{1,4}\d+(?:\.\d+)*)\s/.exec(title)?.[1] ?? null;
+export const taskCode = (title: string) => /^([A-Z]{1,4}\d+(?:\.\d+)*)\s/.exec(title)?.[1] ?? null;
 function taskOf(db: DatabaseSync, c: Candidate): BuildTask | null {
   const taskId = c.taskId ?? (c.testRunId ? db.prepare('select task_id from test_runs where id=?').get(c.testRunId)?.task_id as string | undefined : undefined);
   const row = taskId ? db.prepare('select id,title from tasks where id=?').get(taskId) : undefined;
-  return row ? {id: row.id as string, code: code(row.title as string), title: row.title as string} : null;
+  return row ? {id: row.id as string, code: taskCode(row.title as string), title: row.title as string} : null;
 }
 
 /**
