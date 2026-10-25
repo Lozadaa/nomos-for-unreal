@@ -20,12 +20,14 @@ const heading = '## Relevo por límite de tiempo';
 /** Cuándo toca relevar: `orca.maxWorkerMinutes` (240) desde el arranque, menos 15 min. */
 export const relayAt = (run: Run, max: number) => Date.parse(run.startedAt) + Math.max(0, max - relayLeadMinutes) * 60_000;
 
-/** El brief del árbol con la nota de continuación (la de un relevo anterior se sustituye). */
-function continuationBrief(path: string, run: Run, head: string, subject: string): void {
+const notes = [heading, '## Continuación tras un reinicio'];
+/** El brief del árbol con la nota de continuación (la de un relevo o un reinicio anterior se sustituye). */
+export function continuationBrief(path: string, run: Run, head: string, subject: string, title = heading,
+  why = 'Otro worker empezó esta tarea en este mismo árbol y llegó al límite de tiempo de su terminal.'): void {
   const file = join(path, '.nomos-brief.md'), base = existsSync(file) ? readFileSync(file, 'utf8') : '';
   const lines = (run.metadata.lastLines ?? []).filter(l => l.trim()).slice(-15);
-  writeFileSync(file, [base.split(`\n${heading}\n`)[0].trimEnd(), '', heading, '',
-    'Otro worker empezó esta tarea en este mismo árbol y llegó al límite de tiempo de su terminal.',
+  const kept = notes.reduce((text, note) => text.split(`\n${note}\n`)[0], base);
+  writeFileSync(file, [kept.trimEnd(), '', title, '', why,
     `Último commit: ${head.slice(0, 7)} ${subject}`.trimEnd(), '', 'Lo último que decía su terminal:', '', '```', ...lines, '```', '',
     'Continúa donde lo dejó; no repitas lo hecho. Mira `git log` y `git diff` para ver lo que ya hay.', ''].join('\n'));
 }

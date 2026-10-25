@@ -58,7 +58,9 @@ test('types reemplaza defaults y normaliza orden, espacios y duplicados por susc
   await until(async()=>db.prepare('select session from director').get()!.session==='director');
   // A new event proves the rearmed subscription is listening, without timeout assertions.
   const fresh=appendEvent(db,'worker.waiting',null,{question:'new'});await second.wait(fresh.seq);
-  assert.deepEqual(second.lines().map(e=>e.seq),[fresh.seq]);await second.stop();
+  assert.deepEqual(second.lines().map(e=>e.seq),[fresh.seq]);
+  // hito 22: el cursor se fuerza a disco tras imprimir; se para cuando ya está guardado
+  await until(async()=>Object.values(second.saved().cursors).some(v=>Number(v)>=fresh.seq));await second.stop();
   // hito 21: el cursor es de la sesión; otra lista de tipos no reentrega la historia (antes, [1,2,3])
   const third=start(t,dataDir);const later=appendEvent(db,'command.failed',null,{commandId:'d'});await third.wait(later.seq);
   assert.deepEqual(third.lines().map(e=>e.seq),[later.seq]);

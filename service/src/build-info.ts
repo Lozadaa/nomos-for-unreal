@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { writeAtomic } from './atomic.ts';
 import { basename, dirname, join, resolve } from 'node:path';
 import { cleanSource } from './retention.ts';
 
@@ -11,7 +12,7 @@ const text = (v: unknown) => typeof v === 'string' ? v : null;
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, {cwd, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'ignore']}).trim();
 
 export function writeBuildInfo(dir: string, info: BuildInfo): BuildInfo {
-  writeFileSync(file(dir), JSON.stringify(info, null, 2) + '\n');
+  writeAtomic(file(dir), JSON.stringify(info, null, 2) + '\n');
   return info;
 }
 

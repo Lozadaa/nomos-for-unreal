@@ -6,7 +6,7 @@ import { listProjects, projectCapture, register, unregister } from "./projects.t
 import { readFile } from "node:fs/promises";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
-import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { openDb } from "./db.ts";
 import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
@@ -31,6 +31,7 @@ import { createClosingHandlers } from './handlers/closing.ts';
 import { recoverMeshy } from './handlers/asset-meshy.ts';
 import { createMeshy } from './adapters/meshy.ts';
 import { diskOf } from './retention.ts';
+import { writeAtomic } from './atomic.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 /** Hito 17: «cupo lleno: J1.10 corrigiendo» si un worker terminado sigue ocupando hueco; config ilegible = sin nota. */
@@ -164,8 +165,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const info = { pid: process.pid, port, token, startedAt: new Date().toISOString(), ...(migrated ? { migrated_from: migrated } : {}) };
   // registro de proyectos de la máquina (nombre, carpeta, puerto, pid; nunca el token): portada y selector del panel
   try { register(opts.dataDir, port); } catch { /* sin registro, el panel sigue funcionando solo con este proyecto */ }
-  const temporary = file + `.${process.pid}.tmp`;
-  writeFileSync(temporary, JSON.stringify(info), { mode: 0o600 }); renameSync(temporary, file);
+  writeAtomic(file, JSON.stringify(info), 0o600);
   // jobs de Meshy cobrados cuya respuesta se perdió: se reconcilian antes de que nadie cree otro
   if(!opts.runner?.handlers && process.env.MESHY_API_KEY) void recoverMeshy(db,createMeshy()).catch(error=>
     appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));

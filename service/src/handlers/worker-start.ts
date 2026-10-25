@@ -15,7 +15,7 @@ import { requireGameProject } from '../project-root.ts';
 import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
-import { readConfig, workerModel, opencodeModel, maxWorkerMinutes } from '../config.ts';
+import { readConfig, workerModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
 import { launchPlan, briefLine } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
@@ -87,7 +87,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     workerFailure(db,{...payload,runId:run.id,conflicts:currentReservation.conflicts},'lease_conflict');return;
   }
   const suffix=review ? '-review-'+run.id.slice(0,8) : '';
-  const created=await orca.worktreeCreate(repoId,'nomos-'+short+suffix,payload.provider);
+  const created=await orca.worktreeCreate(repoId,'nomos-'+short+suffix,payload.provider,orcaCreateTimeoutMs(config));
   transaction(db,()=>{
     run=updateRun(db,run.id,{worktreeId:created.worktreeId},{sessionRef:created.terminalHandle});
     // hito 13: Orca da a un worktree nuevo en la misma ruta el mismo id que al retirado; su fila cerrada se reutiliza

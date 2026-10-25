@@ -24,3 +24,10 @@ nomos worker turn <taskId> --release   # al cerrar Unreal
 ```
 
 En los briefs que escribas, usa esa orden; nunca un bucle propio de espera de RAM (`esperar-maquina.ps1`).
+
+## Tras un reinicio
+
+El servicio cierra solo las runs con el terminal muerto (`terminal_handle_stale`) y las relanza en el mismo worktree
+con nota de continuación (`run.recovered`); no hace falta `worker start`. Con `nomos autostart on` (tarea programada
+«Nomos - arranque») los servicios registrados vuelven al iniciar sesión; `nomos autostart status` dice si está
+instalada. El director sigue teniendo que volver a abrir su sesión y su vigilante.

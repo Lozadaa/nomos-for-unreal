@@ -50,10 +50,18 @@ if (process.env.FAKE_ORCA_HANG === '1') {
       execFileSync('git',['-C',state.realRepo,'worktree','add','-b',value('--name'),path],{windowsHide:true});
       state.creates=(state.creates ?? 0)+1; save();
     }
-    emit({ worktree: { id: `repo-1::${path}`, path,
+    const answer = () => emit({ worktree: { id: `repo-1::${path}`, path,
       branch: value('--name') }, ...(process.env.FAKE_ORCA_NO_STARTUP ? {} :
       { startupTerminal: { spawned: true, handle: state.terminalHandle ?? 'term_fake' } }) });
+    // hito 22: en frío Orca tarda; el árbol ya existe (salvo createFailsEarly) aunque la respuesta no haya llegado
+    if (state.createDelayMs) {
+      if (!state.createFailsEarly) { state.worktrees = [...(state.worktrees ?? []), { id: `repo-1::${path}`, repoId: 'repo-1', path,
+        branch: `refs/heads/${value('--name')}`, displayName: value('--name') }]; save(); }
+      setTimeout(answer, state.createDelayMs);
+    } else answer();
   }
+} else if (args[0] === 'worktree' && args[1] === 'list') {
+  emit({ worktrees: state.worktrees ?? [] });
 } else if (args[0] === 'worktree' && args[1] === 'rm') {
   if (value('--worktree') !== `id:repo-1::${state.treePath ?? 'C:/Juego trabajador'}`) fail('invalid_selector');
   else if ((state.rmBusy ?? 0) > 0 && !args.includes('--force')) {
@@ -80,6 +88,8 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   emit({ closed: true, handle: value('--terminal') });
 } else if (args[0] === 'terminal' && args[1] === 'read') {
   if (value('--limit') !== '50') fail('missing_limit');
+  // hito 22: tras un reinicio del PC el terminal ya no existe en Orca
+  else if ((state.gone ?? []).includes(value('--terminal'))) fail('terminal_handle_stale', 'Terminal handle is stale');
   else if ((state.closed ?? []).includes(value('--terminal'))) emit({ terminal: { handle: value('--terminal'), status: 'exited', tail: [], nextCursor: '0' } });
   else {
     const screen=!args.includes('--cursor') && Array.isArray(state.screen);

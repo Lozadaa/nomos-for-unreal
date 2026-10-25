@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { writeAtomic } from './atomic.ts';
 import { join } from 'node:path';
 
 export class CheckpointError extends Error {}
@@ -11,15 +12,6 @@ export function normalizeTypes(types: string[]=defaultTypes): string[] {
     throw new Error('Uso: --types requiere tipos separados por comas, sin entradas vacías');
   }
   return result;
-}
-/** En Windows renombrar sobre un archivo que otro proceso tiene abierto (antivirus, indexador, un lector) da EPERM un instante. */
-function replace(from: string, to: string): void {
-  for (let attempt = 0; ; attempt++) {
-    try { renameSync(from, to); return; } catch (error) {
-      if (attempt >= 20 || !['EPERM', 'EBUSY', 'EACCES'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
-    }
-  }
 }
 function valid(value: unknown): value is number {return Number.isSafeInteger(value) && Number(value)>=0;}
 /**
@@ -54,10 +46,10 @@ export function deliveryCheckpoint(dataDir: string,session: string) {
   let cursor=cursors[key] ?? 0;
   return {get cursor(){return cursor;},advance(seq: number) {
     if(seq<=cursor) return;
-    const next={...cursors,[key]:seq},temporary=path+'.tmp';
+    const next={...cursors,[key]:seq};
     try {
-      writeFileSync(temporary,JSON.stringify({version:2,cursors:next})+'\n',{encoding:'utf8',mode:0o600});
-      replace(temporary,path);
+      // hito 22: temporal propio, fsync y rename (el reinicio del 25 dejó este archivo lleno de ceros)
+      writeAtomic(path,JSON.stringify({version:2,cursors:next})+'\n',0o600);
     } catch(error) {
       throw new CheckpointError(`watcher_checkpoint_error: entrega ${seq} sin guardar; no continuar: ${(error as Error).message}`);
     }

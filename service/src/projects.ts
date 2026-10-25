@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { readJson, writeAtomic } from './atomic.ts';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { projectInfo } from './project-root.ts';
@@ -15,12 +16,12 @@ const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catc
 const same = (a: string, b: string) => process.platform === 'win32' ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b);
 
 function read(): Entry[] {
-  try { const list = JSON.parse(readFileSync(registryFile(), 'utf8')); return Array.isArray(list) ? list : []; } catch { return []; }
+  const list = readJson<unknown>(registryFile(), []); return Array.isArray(list) ? list : [];
 }
 function write(list: Entry[]): void {
-  const file = registryFile(), temporary = `${file}.${process.pid}.tmp`;
+  const file = registryFile();
   mkdirSync(dirname(file), {recursive: true});
-  writeFileSync(temporary, JSON.stringify(list, null, 2)); renameSync(temporary, file);
+  writeAtomic(file, JSON.stringify(list, null, 2));
 }
 
 /** Al arrancar: este proyecto con su puerto y pid; fuera las entradas de procesos que ya no existen. Nunca el token. */
