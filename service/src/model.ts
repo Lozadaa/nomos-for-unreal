@@ -26,6 +26,7 @@ export type RunMetadata = {
   /** hito 13: reintentos de cerrar el terminal y de retirar el worktree al reconciliar; la cancelación que ya la paró */
   closeAttempts?: number; removeAttempts?: number; stopCommandId?: string;
   /** hito 13: el barrido ya cerró (o encontró cerrado) su terminal de Orca */ terminalClosed?: boolean;
+  /** hito 17: run terminada cuyo terminal sigue vivo y trabajando (no en reposo): ocupa hueco del cupo */ terminalBusy?: boolean;
   review?: import('./review.ts').ReviewSnapshot;
   implementationGeneration?: number;
   screenFingerprint?: string; seenDoneMarkers?: string[]; legacyDoneSummaries?: string[];

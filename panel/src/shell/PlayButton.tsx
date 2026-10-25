@@ -12,6 +12,21 @@ const dateTime = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'shor
 export const buildLabel = (build: PlayBuild, now = Date.now()) =>
   `Build del ${dateTime.format(new Date(build.builtAt))} (${relativeTime(build.builtAt, now)}) · ${buildSource(build)}`
 
+/** Hito 17: si la build es anterior a main (aviso) o no dice de qué commit sale (discreto); al día, nada. */
+export function originNote(build: PlayBuild): { text: string; tone: 'warning' | 'muted' } | null {
+  if (!build.origin) return { text: 'Origen desconocido', tone: 'muted' }
+  return build.stale ? { text: 'Esta build no incluye los últimos cambios de main', tone: 'warning' } : null
+}
+// en el tooltip (fondo invertido) el aviso lleva un punto del color de aviso en vez de texto de color: se lee en los dos temas
+const Note = ({ build, tip = false }: { build: PlayBuild; tip?: boolean }) => {
+  const note = originNote(build)
+  if (!note) return null
+  if (!tip) return <span className={note.tone === 'warning' ? 'text-warning' : 'text-muted-foreground'}>{note.text}</span>
+  return note.tone === 'warning'
+    ? <span className="inline-flex items-center gap-1.5 font-medium"><span aria-hidden className="size-2 rounded-full bg-warning" />{note.text}</span>
+    : <span className="opacity-70">{note.text}</span>
+}
+
 export function elapsed(since: string, now = Date.now()): string {
   const s = Math.max(0, Math.floor((now - Date.parse(since)) / 1000)), two = (n: number) => String(n).padStart(2, '0')
   const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60
@@ -33,7 +48,9 @@ export function PlayButton({ play, starting = false, onPlay, onStop, now, classN
   const state = running ? 'playing' : starting ? 'starting' : build ? 'ready' : 'none'
   const fresh = !!build && (!play?.lastPlayedBuiltAt || build.builtAt > play.lastPlayedBuiltAt)
   const label = running ? `Jugando · ${elapsed(running.since, now)} · Detener` : starting ? 'Arrancando…' : 'Jugar'
-  const tip = running ? 'Pulsa para cerrar el juego' : build ? buildLabel(build, now) : play?.reason ?? 'Comprobando la última build…'
+  const tip = running ? 'Pulsa para cerrar el juego'
+    : build ? <span className="flex flex-col gap-0.5"><span>{buildLabel(build, now)}</span><Note build={build} tip /></span>
+    : play?.reason ?? 'Comprobando la última build…'
   return (
     <span className="inline-flex items-center gap-3">
     <Tooltip>
@@ -64,6 +81,7 @@ export function LastBuildLine(props: PlayProps) {
       <p className="text-sm text-muted-foreground">
         {build ? `Última build: ${relativeTime(build.builtAt, props.now)} · ${buildSource(build)}` : props.play?.reason ?? 'Comprobando la última build…'}
       </p>
+      {build && <p className="text-sm"><Note build={build} /></p>}
     </div>
   )
 }

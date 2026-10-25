@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { buildLabel, buildSource, elapsed, LastBuildLine, PlayButton } from './PlayButton'
+import { buildLabel, buildSource, elapsed, LastBuildLine, originNote, PlayButton } from './PlayButton'
 import type { PlayInfo } from './usePlay'
 
 const now = Date.parse('2026-10-24T23:30:00Z')
@@ -80,5 +80,38 @@ describe('textos de la build', () => {
     render(<TooltipProvider><LastBuildLine play={info()} onPlay={() => {}} onStop={() => {}} now={now} /></TooltipProvider>)
     expect(screen.getByText('Última build: hace 12 min · J1.6')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Jugar' })).toBeInTheDocument()
+  })
+})
+
+describe('origen de la build (hito 17)', () => {
+  const line = (b: PlayInfo['build']) =>
+    render(<TooltipProvider><LastBuildLine play={info({ build: b })} onPlay={() => {}} onStop={() => {}} now={now} /></TooltipProvider>)
+  const origin = { commit: 'abcdef1234567', branch: 'main', builtAt: build.builtAt, task: null, run: null }
+
+  it('anterior a main: aviso con el color de aviso de los tokens y Jugar sigue funcionando', () => {
+    line({ ...build, origin, commit: origin.commit, stale: true })
+    const note = screen.getByText('Esta build no incluye los últimos cambios de main')
+    expect(note).toHaveClass('text-warning')
+    expect(screen.getByRole('button', { name: 'Jugar' })).toBeEnabled()
+    expect(originNote({ ...build, origin, stale: true })).toEqual({ text: 'Esta build no incluye los últimos cambios de main', tone: 'warning' })
+  })
+
+  it('al día con main: sin aviso ni «Origen desconocido»', () => {
+    line({ ...build, origin, commit: origin.commit, stale: false })
+    expect(screen.queryByText('Esta build no incluye los últimos cambios de main')).toBeNull()
+    expect(screen.queryByText('Origen desconocido')).toBeNull()
+    expect(originNote({ ...build, origin, stale: false })).toBeNull()
+  })
+
+  it('sin build-info.json: «Origen desconocido» discreto', () => {
+    line({ ...build, origin: null })
+    const note = screen.getByText('Origen desconocido')
+    expect(note).toHaveClass('text-muted-foreground')
+    expect(note).not.toHaveClass('text-warning')
+  })
+
+  it('el aviso nunca enseña el commit ni rutas', () => {
+    line({ ...build, origin, commit: origin.commit, stale: true })
+    expect(document.body.textContent).not.toMatch(/abcdef1|Windows-actual|build-info/)
   })
 })

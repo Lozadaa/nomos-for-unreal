@@ -79,11 +79,18 @@ otras `Build/Windows-*`, los artefactos `build` y los paquetes de la comprobaci�
 `.nomos/artifacts/tests/`. La fecha es la del `.exe` o la del `.pak` más nuevo del paquete.
 
 - Al cerrar (`task.done`) una tarea que toque `Source/`, `Content/` o `Config/`, deja
-  `Build/Windows-actual/<Proyecto>.exe` al día: empaqueta (BuildCookRun, Development Win64)
-  y copia el contenido de la carpeta `Windows/` del paquete en `Build/Windows-actual/`.
+  `Build/Windows-actual/<Proyecto>.exe` al día: **fusiona main** en el árbol que empaquetas,
+  empaqueta (BuildCookRun, Development Win64) y copia el contenido de la carpeta `Windows/`
+  del paquete en `Build/Windows-actual/`.
+- **Origen (hito 17).** Cada paquete lleva `build-info.json` junto al ejecutable
+  (`{commit, branch, builtAt, task, run}`). La comprobación `build` lo escribe sola; quien
+  empaqueta a mano (director o worker) lo escribe desde el árbol empaquetado con
+  `nomos build stamp <carpeta del paquete>` (lee HEAD del cwd), p. ej. `nomos build stamp Build/Windows-actual`.
 - Antes de avisar de que algo está «listo para probar», `nomos play --status --data .nomos`:
-  `build.builtAt` debe ser posterior a la integración (`integration.completed`). Si es anterior
-  o `build` es `null` (`reason` dice por qué), empaqueta primero y vuelve a comprobarlo.
+  `build.stale` debe ser `false` (`text`: «…, al día con main»). `stale: true` («anterior a main»)
+  = el paquete no incluye la punta de main: fusiona main y re-empaqueta. Sin `build.origin`
+  (paquete sin estampar) o con `build` `null` (`reason` dice por qué), empaqueta o estampa y vuelve a mirarlo.
+  El panel avisa «Esta build no incluye los últimos cambios de main»; Jugar sigue funcionando.
 - `nomos play` lanza la partida y `nomos play --stop` la cierra; lanzar es cosa del usuario
   desde el panel. Argumentos en `config.json: play.args` (por defecto `-windowed -ResX=1920
   -ResY=1080`) y mapa opcional en `play.map` (`/Game/...`).

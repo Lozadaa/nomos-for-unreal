@@ -17,7 +17,9 @@ test('CLI play --status|play|play --stop usan /play y dicen por qué no hay buil
   writeFileSync(join(dataDir, 'config.json'), JSON.stringify({play: {args: ['espera.mjs']}}));
   const started = cli(dataDir, 'play'); assert.equal(started.status, 0, started.stderr);
   const pid = JSON.parse(started.stdout).running.pid;
-  assert.equal(JSON.parse(cli(dataDir, 'play', '--status').stdout).running.pid, pid);
+  const status = JSON.parse(cli(dataDir, 'play', '--status').stdout);
+  assert.equal(status.running.pid, pid);
+  assert.match(status.text, /^Build de origen desconocido, \d+ (min|h|d)$/, 'hito 17: sin build-info.json no se inventa origen');
   const twice = cli(dataDir, 'play'); assert.notEqual(twice.status, 0); assert.ok(twice.stderr.includes(`Ya hay una partida abierta (pid ${pid})`), twice.stderr);
   assert.equal(JSON.parse(cli(dataDir, 'play', '--stop').stdout).running, null);
   assert.notEqual(cli(dataDir, 'play', '--stop', '--status').status, 0, 'una sola opción');

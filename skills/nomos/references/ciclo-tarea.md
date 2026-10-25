@@ -14,6 +14,7 @@ dependencias y asignación mientras la tarea sigue pendiente y solo después apl
 `POST /tasks` (con `leases`, `assigneeRole`, `assigneeProvider`), después
 `POST /tasks/TASK/depends` con `{ "dependsOn": ["BASE"] }` y por último `/spec`. Consulta `docs/planificador.md` del repositorio
 Nomos para cupos, reservas y esperas. No aumentes attempt para eludir bloqueos.
+El cupo cuenta workers vivos (hito 17): una run terminada cuyo terminal sigue trabajando, o con una corrección encolada, ocupa hueco hasta que su terminal vuelve al reposo o se cierra; `nomos status` lo dice en `capacity` («cupo lleno: J1.10 corrigiendo»). No cierres ese terminal para liberar hueco: espera su marca de fin.
 Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode solo corre si
 la tarea lo pide (`--provider opencode`) y tiene cupo; tareas sencillas sin Unreal, revisor
 siempre Claude y modelo barato (reglas en la referencia OpenCode de la skill).

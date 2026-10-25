@@ -20,6 +20,8 @@ import { panelStatic } from "./static.ts";
 import { projectInfo } from "./project-root.ts";
 import { startRunner, type Handler } from './runner.ts';
 import { workerProcesses } from './sweep.ts';
+import { capacityNote } from './scheduler-state.ts';
+import { readConfig } from './config.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 import { createAssetHandlers } from './handlers/asset.ts';
 import { createCheckHandlers } from './handlers/checks.ts';
@@ -27,6 +29,9 @@ import { createClosingHandlers } from './handlers/closing.ts';
 import { recoverMeshy } from './handlers/asset-meshy.ts';
 import { createMeshy } from './adapters/meshy.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
+
+/** Hito 17: «cupo lleno: J1.10 corrigiendo» si un worker terminado sigue ocupando hueco; config ilegible = sin nota. */
+const capacity = (db: DatabaseSync, dataDir?: string) => { try { return dataDir ? capacityNote(db, readConfig(dataDir)) : null; } catch { return null; } };
 
 export function createServer(db: DatabaseSync, token: string, webDir: string, dataDir?: string,
   onStopping?: () => void | Promise<void>): http.Server {
@@ -68,7 +73,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
       }
-      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db) });
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), capacity: capacity(db, dataDir) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);
