@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { taskArchive } from '../archive.ts';
+import { databaseDirectory } from '../data-paths.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Handler } from '../runner.ts';
 import type { Run, Task, Worktree } from '../model.ts';
@@ -21,7 +23,7 @@ export function createContinuation(db: DatabaseSync, parentId: string, text: str
     if (!text.trim()) throw new Error('invalid_continuation_text');
     const implementer = implementerOf(db, parent.id);
     const child = createTask(db, {title: `Ajuste: ${parent.title}`, area: parent.area, state: 'preparada', parentTaskId: parent.id,
-      spec: `${text.trim()}\n\nContinúa «${parent.title}» (tarea ${parent.id}), ya cerrada.${parent.archivePath ? ` Archivo: ${parent.archivePath}` : ''}`,
+      spec: `${text.trim()}\n\nContinúa «${parent.title}» (tarea ${parent.id}), ya cerrada.${parent.archivePath ? ` Archivo: ${taskArchive(databaseDirectory(db), parent)}` : ''}`,
       acceptance: parent.acceptance, scope: parent.scope, leases: parent.leases,
       assigneeRole: implementer?.role ?? parent.assigneeRole, assigneeProvider: implementer?.provider ?? parent.assigneeProvider});
     db.prepare('update tasks set attribution=? where id=?').run(JSON.stringify(parent.attribution ?? {}), child.id);
@@ -30,15 +32,16 @@ export function createContinuation(db: DatabaseSync, parentId: string, text: str
 }
 
 /** Sección «Continuación» del brief de un run nuevo: resumen y diff final archivados de la tarea madre. */
-export function continuationBrief(db: DatabaseSync, task: Task): string | undefined {
+export function continuationBrief(db: DatabaseSync, task: Task, dataDir = databaseDirectory(db)): string | undefined {
   const parent = task.parentTaskId ? getTask(db, task.parentTaskId) : undefined;
-  if (!parent?.archivePath) return undefined;
-  const part = (name: string) => existsSync(join(parent.archivePath!, name)) ? readFileSync(join(parent.archivePath!, name), 'utf8') : '';
+  const dir = parent && taskArchive(dataDir, parent);
+  if (!dir) return undefined;
+  const part = (name: string) => existsSync(join(dir, name)) ? readFileSync(join(dir, name), 'utf8') : '';
   const diff = part('diff-final.patch').split('\n');
   return ['## Continuación', '',
     `Esta tarea ajusta «${parent.title}», que ya se integró y cerró. Parte de lo que hay en la rama objetivo; esto es lo que se hizo:`, '',
     part('resumen.md').replace(/^# /m, '### '), '', '### Diff final de la tarea anterior', '', '```diff',
-    ...diff.slice(0, 400), ...(diff.length > 400 ? [`… (${diff.length - 400} líneas más en ${join(parent.archivePath, 'diff-final.patch')})`] : []), '```'].join('\n');
+    ...diff.slice(0, 400), ...(diff.length > 400 ? [`… (${diff.length - 400} líneas más en ${join(dir, 'diff-final.patch')})`] : []), '```'].join('\n');
 }
 
 /** `task.continue {taskId, text, childId?}`: con el terminal del responsable vivo (y su worktree en disco) se le habla allí;

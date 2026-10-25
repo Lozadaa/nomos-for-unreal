@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { locatedPath } from '../data-paths.ts';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { Artifact, Task, TestRun } from '../model.ts';
 import { filtered } from '../repo/rows.ts';
@@ -26,7 +27,7 @@ function parse(p: Payload): CharacterSpec & {taskId: string} {
 function manualRetarget(ctx: WorkerContext, task: Task, row: TestRun, summary: string) {
   const report = filtered<Artifact>(ctx.db, 'artifacts', {taskId: task.id, kind: 'report'})
     .find(a => (a.provenance as Record<string, unknown>)?.testRunId === row.id && (a.provenance as Record<string, unknown>)?.label === 'Retarget · informe');
-  const retarget = report ? JSON.parse(readFileSync(report.path, 'utf8')) : {};
+  const retarget = report ? JSON.parse(readFileSync(locatedPath(join(ctx.dataDir, 'artifacts'), report.path), 'utf8')) : {};
   const rtg = typeof retarget.retargeter === 'string' ? retarget.retargeter.split('.')[0] : 'el IK Retargeter de /Game/Kratos/Retarget';
   openDecision(ctx.db, {taskId: task.id, reason: `${summary}: la animación no se aprueba rota`,
     evidence: [{kind: 'test', ref: row.id}, ...(retarget.critical_unmapped ?? []).map((c: string) => ({kind: 'cadena', ref: c}))],

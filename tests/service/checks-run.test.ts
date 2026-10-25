@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { locatedPath } from '../../service/src/data-paths.ts';
 import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { filtered } from '../../service/src/repo/rows.ts';
 import { getTask } from '../../service/src/repo/tasks.ts';
 import { listArtifacts } from '../../service/src/repo/artifacts.ts';
@@ -23,7 +25,7 @@ test('Blueprint en verde: TestRun con commit, motor, log como artefacto y la tar
     const [row] = rows(f);
     assert.deepEqual([row.checkId, row.result, row.commit, row.engineVersion], ['blueprint', 'passed', 'abc1234def5678', '5.8.3']);
     assert.ok(row.reportPath!.endsWith(`tests\\${row.id}\\log.txt`) || row.reportPath!.endsWith(`tests/${row.id}/log.txt`));
-    assert.ok(listArtifacts(f.db, {taskId: f.task.id, kind: 'report'}).some(a => a.path === row.reportPath));
+    assert.ok(listArtifacts(f.db, {taskId: f.task.id, kind: 'report'}).some(a => locatedPath(join(f.dataDir, 'artifacts'), a.path) === row.reportPath));
     assert.deepEqual(f.events('test.passed').map(e => e.check), ['blueprint']);
     assert.equal(getTask(f.db, f.task.id)!.state, 'integrando');
     assert.deepEqual(listLeases(f.db), [], 'la reserva del editor se libera');
@@ -94,7 +96,7 @@ test('mapa válido: juego a 1280×720 con captura como artefacto y mapa en el Te
     const [row] = rows(f);
     assert.deepEqual([row.result, row.map, row.config], ['passed', '/Game/Maps/Nivel1', '1280x720']);
     const [shot] = listArtifacts(f.db, {taskId: f.task.id, kind: 'screenshot'});
-    assert.ok(existsSync(shot.path));
+    assert.ok(existsSync(locatedPath(join(f.dataDir, 'artifacts'), shot.path)));
     assert.deepEqual((shot.provenance as any).resolution, '1280x720');
   } finally { f.close(); }
 });

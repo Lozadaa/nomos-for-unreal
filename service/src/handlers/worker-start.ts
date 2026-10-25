@@ -109,7 +109,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const context=[existsSync(contextFile) ? readFileSync(contextFile,'utf8') : '',
     task.area==='ui' && existsSync(uiFile) ? `## Dirección de arte de la UI (docs/ui-direction.md)\n\n${readFileSync(uiFile,'utf8')}` : ''].filter(Boolean).join('\n\n');
   writeFileSync(join(created.path,'.nomos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
-    {projectContext:context || undefined,continuation:continuationBrief(db,task)}));
+    {projectContext:context || undefined,continuation:continuationBrief(db,task,ctx.dataDir)}));
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);

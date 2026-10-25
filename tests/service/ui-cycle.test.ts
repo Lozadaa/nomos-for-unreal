@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { locatedPath } from '../../service/src/data-paths.ts';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { filtered } from '../../service/src/repo/rows.ts';
@@ -36,7 +37,7 @@ test('con UI: dos resoluciones → dos capturas con procedencia, umg running y r
     assert.deepEqual(shots.map(s => (s.provenance as any).resolution), ['1280x720', '1920x1080']);
     for (const shot of shots) {
       const p = shot.provenance as any;
-      assert.ok(existsSync(shot.path) && existsSync(p.control));
+      assert.ok(existsSync(locatedPath(join(f.dataDir, 'artifacts'), shot.path)) && existsSync(p.control));
       assert.equal(p.map, '/Game/Maps/Nivel1');
       assert.equal(p.widget, 'WBP_Vida_C');
       assert.ok(p.diffRatio >= 0.005);

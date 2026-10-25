@@ -10,6 +10,7 @@ import { appendEvent } from '../store.ts';
 import { checkGate } from '../checks/gate.ts';
 import { attribute } from '../attribution.ts';
 import { preserveTask, type ArchiveWriter } from '../archive.ts';
+import { storedPath } from '../data-paths.ts';
 import { targetBranch } from '../integration/workspace.ts';
 import { commandRun } from './asset-run.ts';
 
@@ -106,7 +107,7 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
       }
       task = requireTask(ctx.db, task.id);
       attribute(ctx.db, task.id, 'verifico', run);
-      ctx.db.prepare('update tasks set archive_path=?,wait_reason=null where id=?').run(archive.dir, task.id);
+      ctx.db.prepare('update tasks set archive_path=?,wait_reason=null where id=?').run(storedPath(ctx.dataDir, archive.dir), task.id);
       moveTask(ctx.db, task.id, 'done', 'Cierre verificado');
       finishRun(ctx.db, run.id, 'done', 'Cierre verificado');
       appendEvent(ctx.db, 'task.done', null, {taskId: task.id, runId: run.id, archive: archive.dir, files: Object.keys(archive.manifest.files).length});
