@@ -101,6 +101,8 @@ pendiente; en este hito no pausa al runner ni apaga el vigilante y no constituye
 `message.received,run.finished,worker.waiting,command.failed`. Una lista custom
 reemplaza los cuatro; se recorta, deduplica y ordena. Vacíos/tipos malformados
 fallan antes de conectar. Ejemplo: `--types run.finished,worker.waiting`.
+Hito 21: `decision.opened` y `decision.updated` se entregan siempre, los nombre o no
+la lista (una Decisión nunca se pierde por olvidar un tipo).
 
 Mensajes conservan seq/messageId/text/origin y añaden type. Otros eventos:
 `{seq,type,payload,createdAt}`. `worker.output` solo aparece si se solicita por types;
@@ -108,10 +110,11 @@ para leerlo por run usa `nomos run output RUN --since N`.
 ACK sigue exclusivo de message.received; intentar ack de run.finished, waiting o
 failed devuelve 404 `unknown_event`. El vigilante no confirma ningún evento.
 
-`.nomos/watcher-cursors.json` guarda `{version:1,cursors:{CLAVE:SEQ}}`.
-CLAVE es JSON de `[sesion,tiposNormalizados]`; SEQ es entero seguro no negativo.
-No contiene token ni depende de él. Cambiar sesión o tipos crea suscripción con
-cursor0; orden y duplicados equivalentes reutilizan la misma. Se escribe `.tmp`
+`.nomos/watcher-cursors.json` guarda `{version:2,cursors:{SESION:SEQ}}`: el último
+evento entregado a esa sesión, sea cual sea la lista de tipos (hito 21); rearmar con
+otros tipos sigue desde ahí y no repite la historia. Un archivo `version:1` (clave
+`[sesion,tipos]`) migra solo al mayor cursor de cada sesión. SEQ es entero seguro no
+negativo; no contiene token ni depende de él. Sesión nueva: cursor 0. Se escribe `.tmp`
 y se renombra bajo el lock de único vigilante, después del callback stdout.write.
 Los eventos omitidos también avanzan entrega. El cursor de transporte en memoria
 avanza solo por frames completos y evita repetir líneas durante la misma escucha.

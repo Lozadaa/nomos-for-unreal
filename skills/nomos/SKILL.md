@@ -31,7 +31,7 @@ comandos se ejecutan desde el juego con `--data .nomos`. `scripts/kratos.ts` es 
    `nomos vigila --session <sesion> --data .nomos --types <tipos>` con
    `message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed,`
    `task.moved,integration.completed,task.closing_blocked`.
-   `--types` reemplaza los defaults; conserva sesión y tipos al rearmar. Se puede encadenar.
+   `--types` reemplaza los defaults; `decision.opened/updated` llegan siempre; rearmar no repite eventos (cursor por sesión).
 4. Anuncia escucha en una línea solo cuando Monitor esté armado. Si la herramienta
    no está disponible, explica la limitación; no afirmes estar escuchando.
    Añade `.nomos/` al `.gitignore` del juego si falta. No pidas permiso para conectar.
@@ -156,7 +156,7 @@ claves de idempotencia estables.
 El cursor de eventos vive en .nomos/watcher-cursors.json, separado de `lastAckSeq`; rearmar
 reentrega mensajes sin confirmar sin repetir eventos del director ya impresos (ausente: desde cero;
 corrupto: avisa del replay). `watcher_checkpoint_error` detiene el vigilante: conserva el archivo
-y `.tmp`, corrige acceso o espacio y rearma con sesión y tipos iguales.
+y `.tmp`, corrige acceso o espacio y rearma con la misma sesión.
 Consulta [contrato de eventos](references/contrato-eventos.md) antes de recuperar.
 No prometas procesamiento exactamente una vez: comprueba estado actual antes de actuar.
 Una caída entre ack y reply deja el mensaje en SQLite sin reentrega: `GET /messages/:id` y responde con ese ID.

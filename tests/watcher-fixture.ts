@@ -6,7 +6,9 @@ import type { TestContext } from 'node:test';
 import { fixture, token } from './helpers.ts';
 import { cliPath, until } from './cli-helpers.ts';
 
-export const defaultKey='["director",["command.failed","message.received","run.finished","worker.waiting"]]';
+// hito 21: el cursor es de la sesión, sea cual sea la lista de tipos
+export const defaultKey='director';
+export const legacyDefaultKey='["director",["command.failed","message.received","run.finished","worker.waiting"]]';
 const cleanups=new Map<string,Array<()=>Promise<void>>>();
 export async function setup(t: TestContext) {
   const stops: Array<()=>Promise<void>>=[];
@@ -19,7 +21,7 @@ export async function setup(t: TestContext) {
   return {...result,dataDir};
 }
 export function checkpoint(dataDir: string, seq: number) {
-  writeFileSync(join(dataDir,'watcher-cursors.json'),JSON.stringify({version:1,cursors:{[defaultKey]:seq}}));
+  writeFileSync(join(dataDir,'watcher-cursors.json'),JSON.stringify({version:2,cursors:{[defaultKey]:seq}}));
 }
 export function start(t: TestContext,dataDir: string,...flags: string[]) {
   const child=spawn(process.execPath,[cliPath,'vigila','--session','director','--data',dataDir,...flags],{windowsHide:true});

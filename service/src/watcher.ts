@@ -76,7 +76,7 @@ export async function watch(dataDir: string, session: string, opts: {types?:stri
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => process.exit(0));
   let transportCursor=0; let startedToken = ""; let down = false; let slowAt = 0;
   try {
-    const checkpoint=deliveryCheckpoint(dataDir,session,types);
+    const checkpoint=deliveryCheckpoint(dataDir,session);
     while (true) {
       const began = Date.now();
       try {
