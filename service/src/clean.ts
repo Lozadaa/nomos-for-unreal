@@ -9,7 +9,7 @@ import { readConfig } from './config.ts';
 import { openDb } from './db.ts';
 import { dbFile } from './legacy.ts';
 import { createOrca } from './adapters/orca.ts';
-import { gb, measure, packagesOf, remove, within } from './retention.ts';
+import { measure, packagesOf, remove, size, within } from './retention.ts';
 
 /** Hito 19: `nomos clean [--dry-run]`. Nada cambiado en los últimos 30 min se toca (un paquete o un vídeo en marcha). */
 export const quietMs = 30 * 60_000;
@@ -77,7 +77,7 @@ export async function applyClean(plan: Plan, deps: {db: DatabaseSync; orca: {wor
   return freed;
 }
 
-const line = (i: Item) => `${gb(i.bytes).padStart(7)} GB  ${i.path}  (${i.why})`;
+const line = (i: Item) => `${size(i.bytes).padStart(9)}  ${i.path}  (${i.why})`;
 /** `nomos clean [--dry-run] [--data CARPETA]`: lista con tamaños y el total liberado. */
 export async function cleanCli(argv: string[]): Promise<boolean> {
   const words = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--data');
@@ -89,9 +89,10 @@ export async function cleanCli(argv: string[]): Promise<boolean> {
   try {
     const plan = planClean({dataDir, projectDir: dirname(dataDir), db});
     for (const item of [...plan.items, ...plan.trees]) console.log(line(item));
-    if (dry) { console.log(`Se liberarían ${gb(plan.bytes)} GB (${plan.items.length + plan.trees.length} carpetas)`); return true; }
+    const n = plan.items.length + plan.trees.length;
+    if (dry) { console.log(`Se liberarían ${size(plan.bytes)} (${n} ${n === 1 ? 'carpeta' : 'carpetas'})`); return true; }
     const freed = await applyClean(plan, {db, orca: createOrca()}, console.log);
-    console.log(`Liberados ${gb(freed)} GB`);
+    console.log(`Liberados ${size(freed)}`);
   } finally { db.close(); }
   return true;
 }

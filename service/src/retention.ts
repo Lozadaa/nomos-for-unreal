@@ -8,6 +8,8 @@ const GB = 1024 ** 3;
 export const warnBytes = 30 * GB, packBytes = 10 * GB;
 export const freeBytes = (dir: string) => { const s = statfsSync(dir); return Number(s.bavail) * Number(s.bsize); };
 export const gb = (bytes: number) => (bytes / GB).toLocaleString('es-ES', {maximumFractionDigits: bytes < 10 * GB ? 1 : 0});
+/** Tamaño legible para `nomos clean`: KB, MB o GB según toque (40 MB no es «0 GB»). */
+export const size = (bytes: number) => bytes >= GB ? `${gb(bytes)} GB` : bytes >= 1024 ** 2 ? `${Math.round(bytes / 1024 ** 2)} MB` : `${Math.round(bytes / 1024)} KB`;
 export const diskText = (free: number) => `Disco: ${gb(free)} GB libres${free < warnBytes ? ' · ejecuta nomos clean' : ''}`;
 /** Para `/status` (y `nomos status`): la unidad de la carpeta de datos, que vive en el proyecto. */
 export function diskOf(dir: string | undefined): {free: number; low: boolean; text: string} | null {

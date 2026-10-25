@@ -110,9 +110,9 @@ test('applyClean borra lo planeado y conserva el resto de la carpeta de la compr
 
 test('la orden nomos clean --dry-run imprime el plan y el total sin borrar', t => {
   const f = fixture(t);
-  put(join(f.game, 'Saved', 'StagedBuilds'), 2048);
+  put(join(f.game, 'Saved', 'StagedBuilds'), 3 * 1024 * 1024);
   const out = execFileSync(process.execPath, [cliPath, 'clean', '--dry-run', '--data', f.data], {encoding: 'utf8', windowsHide: true});
-  assert.match(out, /StagedBuilds/);
-  assert.match(out, /Se liberarían 0 GB \(1 carpetas?\)/);
+  assert.match(out, /3 MB +.*StagedBuilds/);
+  assert.match(out, /Se liberarían 3 MB \(1 carpeta\)/);
   assert.ok(existsSync(join(f.game, 'Saved', 'StagedBuilds')));
 });
