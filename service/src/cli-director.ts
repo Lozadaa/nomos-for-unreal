@@ -28,6 +28,22 @@ function priorityValue(value: string | undefined): number {
 }
 export async function directorCli(argv: string[]): Promise<boolean> {
   const index=commandIndex(argv),group=argv[index];
+  if (group==='play') {
+    // hito 14: la última build del juego; el servicio elige el ejecutable, nunca la orden
+    const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},stop:{type:'boolean'},status:{type:'boolean'}}});
+    if (positionals.length!==1 || (values.stop && values.status)) throw new Error('Uso: nomos play [--stop|--status]');
+    const info=serviceInfo(resolve(values.data ?? '.nomos'));
+    if (values.status) {console.log(JSON.stringify(await request(info,'/play')));return true;}
+    if (values.stop) {console.log(JSON.stringify(await request(info,'/play/stop',{})));return true;}
+    try {console.log(JSON.stringify(await request(info,'/play',{})));}
+    catch (error) {
+      const now=await request(info,'/play');
+      if (now.running) throw new Error(`Ya hay una partida abierta (pid ${now.running.pid})`);
+      if (!now.build) throw new Error(now.reason);
+      throw error;
+    }
+    return true;
+  }
   if (group==='pausar' || group==='reanudar') {
     // hito 6: el planificador deja de arrancar workers; integraciones y cierres en curso terminan
     const {values}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'}}});
