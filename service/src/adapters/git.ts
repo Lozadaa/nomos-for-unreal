@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolve, join } from 'node:path';
-import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, createReadStream } from 'node:fs';
 import { gameSkills } from '../skills-install.ts';
 import { legacyLocalPaths } from '../legacy.ts';
 import { gitLfs, type GitLfs } from './git-lfs.ts';
+// hito 16: por streaming; readFileSync de un .uasset grande paraba el servicio (y no pasa de 2 GB)
+export const fileHash = async (file: string) => { const hash = createHash('sha256'); for await (const chunk of createReadStream(file)) hash.update(chunk); return hash.digest('hex'); };
 export type GitRun = (dir: string, args: string[], diff?: boolean, timeoutMs?: number) => Promise<string>;
 export type Git = GitLfs & {
   isRepo(dir: string): Promise<boolean>; currentBranch(dir: string): Promise<string>; excludeLocal(dir: string): Promise<void>;
@@ -71,7 +73,7 @@ export function createGit(): Git {
       const raw=await run(dir,['diff','--raw','--no-abbrev','--no-renames','-z',base,...paths]);
       const fingerprint=createHash('sha256').update(raw), records=raw.split('\0');
       for (let i=0;i+1<records.length;i+=2) if (/ 0{40} \w$/.test(records[i]) && existsSync(join(dir,records[i+1])))
-        fingerprint.update(JSON.stringify([records[i+1],createHash('sha256').update(readFileSync(join(dir,records[i+1]))).digest('hex')]));
+        fingerprint.update(JSON.stringify([records[i+1],await fileHash(join(dir,records[i+1]))]));
       // los binarios (también renombrados o con cambio de modo, que no dicen «Binary files») se quitan del patch por ruta,
       // no con una exclusión por archivo: 1.361 rutas no caben en la línea de órdenes de Windows
       const binary=(await run(dir,['diff','--numstat','--no-renames','-z',base,...paths])).split('\0')
@@ -81,7 +83,7 @@ export function createGit(): Git {
       let patch=await run(dir,['diff','--no-ext-diff',base,...paths]);
       const untracked=(await run(dir,['ls-files','--others','--exclude-standard','-z'])).split('\0').filter(p=>p&&!local(p)&&!generated(p)).sort();
       for (const file of untracked) {
-        fingerprint.update(JSON.stringify([file,createHash('sha256').update(readFileSync(join(dir,file))).digest('hex')]));
+        fingerprint.update(JSON.stringify([file,await fileHash(join(dir,file))]));
         // Config sin seguir (puede llevar secretos del usuario): el revisor ve que existe, nunca su contenido
         if (/^Config\//.test(file)) { stat+=` ${file} | sin seguir (contenido fuera de la revisión)\n`; continue; }
         stat+=await run(dir,['diff','--no-index','--stat','--','/dev/null',file],true);
@@ -146,15 +148,9 @@ export function createGit(): Git {
         for(const file of chunk) if(!tracked.has(file)) rmSync(join(dir,file),{force:true});
       }
     },
-    async branchExists(dir,branch) {
-      try {await run(dir,['rev-parse','--verify','--quiet',`refs/heads/${branch}`]);return true;} catch {return false;}
-    },
-    async contains(dir,branch,commit) {
-      try {await run(dir,['merge-base','--is-ancestor',commit,`refs/heads/${branch}`]);return true;} catch {return false;}
-    },
-    async filesBetween(dir,from,to) {
-      return (await run(dir,['diff','--name-only','-z',from,to])).split('\0').filter(Boolean);
-    },
+    async branchExists(dir,branch) {try {await run(dir,['rev-parse','--verify','--quiet',`refs/heads/${branch}`]);return true;} catch {return false;}},
+    async contains(dir,branch,commit) {try {await run(dir,['merge-base','--is-ancestor',commit,`refs/heads/${branch}`]);return true;} catch {return false;}},
+    async filesBetween(dir,from,to) {return (await run(dir,['diff','--name-only','-z',from,to])).split('\0').filter(Boolean);},
     async advanceBranch(repoDir,branch,commit,expected) {
       // si la rama está activa en algún checkout (el del usuario), avanzarla allí con --ff-only mantiene su árbol al día
       const trees=(await run(repoDir,['worktree','list','--porcelain'])).split(/\r?\n\r?\n/);
