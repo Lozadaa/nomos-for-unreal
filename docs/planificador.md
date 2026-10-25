@@ -41,3 +41,8 @@ Solo un fallo limpio `lease_conflict`, sin árbol ni incertidumbre, admite avanz
 Cuando `worker.start` encuentra un worker anterior completa con `policyBlocked` y abre la Decisión «Reconciliar worker existente antes de continuar» enlazada a un `task.reconcile`: «Reconciliar y reintentar» reconcilia y reencola ese mismo arranque; «Reconciliar y dejar preparada» reconcilia y deja la tarea al planificador; «Cancelar la tarea» reconcilia y la bloquea («Tarea cancelada por el director»). Si la rama `nomos/<id>` del worker anterior sigue en el repositorio, la nueva se llama `nomos/<id>-<run>`.
 
 Codex y Claude ejecutan implementación o revisión independiente; OpenCode solo implementación (hito 12, `docs/workers-proveedores.md`). La selección, los permisos Claude y la revisión cruzada se verifican con fake Orca y Git real; la aceptación con proveedores reales corresponde a T6.
+
+## Jugar (hito 14)
+
+`GET /play` resuelve la build más reciente bajo el proyecto o sus artefactos (nunca una ruta del cliente); `POST /play` la lanza desprendida y `POST /play/stop` la cierra (`play.started`, `play.stopped`; `nomos play [--stop|--status]`).
+Al cerrar cada tarea que toque `Source/`, `Content/` o `Config/`, el director deja `Build/Windows-actual/<Proyecto>.exe` al día y no dice «listo para probar» sin una build posterior a la integración.
