@@ -78,3 +78,33 @@ test('walkthrough.map sigue mandando sobre el GameDefaultMap y no adopta la lín
     assert.ok(existsSync(baseline(f, 'build-1280x720')), 'la antigua es del mapa por defecto: se queda');
   } finally { f.close(); }
 });
+
+// Hito 22: nueve de trece comprobaciones fallidas eran capturas contra una línea base que la tarea cambiaba adrede.
+const changed = (f: ReturnType<typeof setup>, spec: string | null, approved = 1) => {
+  mkdirSync(join(f.projectDir, 'docs', 'baseline'), {recursive: true});
+  writeFileSync(baseline(f, 'build-L_Lookdev-1280x720'), png(200));
+  f.db.prepare('update tasks set spec=coalesce(?,spec),review_approved=? where id=?').run(spec, approved, f.task.id);
+};
+test('visual: cambia en la spec: con la revisión aprobada, la primera captura sustituye la línea base del mapa', async () => {
+  const f = setup();
+  try {
+    changed(f, '## Qué\nNueva iluminación\nvisual: cambia\n');
+    assert.equal((await f.run()).passed, true);
+    assert.equal(buildRow(f).result, 'passed');
+    assert.deepEqual(f.events('baseline.replaced').map(e => e.name), ['build-L_Lookdev-1280x720']);
+    assert.equal((await import('node:fs')).readFileSync(baseline(f, 'build-L_Lookdev-1280x720')).equals(png()), true);
+  } finally { f.close(); }
+});
+
+test('sin declararlo (o sin revisión aprobada) la diferencia sigue fallando; --acepta-nueva-base también la sustituye', async () => {
+  const f = setup();
+  try {
+    changed(f, null);
+    assert.equal((await f.run()).passed, false);
+    changed(f, '## Qué\nx\nvisual: cambia\n', 0);
+    assert.equal((await f.run()).passed, false, 'sin revisión aprobada no se sustituye');
+    changed(f, '## Qué\nx\n', 1);
+    assert.equal((await f.run({taskId: f.task.id, acceptNewBase: true})).passed, true);
+    assert.equal(f.events('baseline.replaced').length, 1);
+  } finally { f.close(); }
+});

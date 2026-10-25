@@ -22,6 +22,7 @@ import { installSkills } from '../skills-install.ts';
 import { continuationBrief } from './continue.ts';
 import { orcaDeferral, orcaDown } from './orca-down.ts';
 import { askReconcile } from './reconcile.ts';
+import { fromMain } from '../main-base.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -97,6 +98,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
       baseCommit:'',state:'active',closedReason:null});
     if(!review) db.prepare('update tasks set worktree_id=?,updated_at=? where id=?').run(created.worktreeId,new Date().toISOString(),task.id);
   });
+  // hito 22: un worker nuevo nace de la punta de main aunque Orca creara el árbol desde una base vieja
+  if(!review) await fromMain(ctx,task.id,created.path);
   const baseCommit=await git.head(created.path);
   db.prepare('update worktrees set base_commit=?,updated_at=? where id=?').run(baseCommit,new Date().toISOString(),created.worktreeId);
   // hito 13: la rama de un worker reconciliado sigue en el repositorio (con lo commiteado); la nueva no la pisa

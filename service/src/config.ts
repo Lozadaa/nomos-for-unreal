@@ -36,6 +36,8 @@ export const heavyMax = (config: SchedulerConfig) => config.scheduler?.heavy?.ma
 export const minFreeRamGb = (config: SchedulerConfig) => config.scheduler?.minFreeRamGb ?? 6;
 export const heavyRequiresNoEditor = (config: SchedulerConfig) => config.scheduler?.heavyRequiresNoEditor ?? true;
 export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.createTimeoutMs ?? 180_000;
+/** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
+export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
 export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
 const count = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
 export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?: unknown} {
@@ -60,6 +62,8 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(scheduler!==undefined && (!object(scheduler) || Object.entries(scheduler).some(([k,v])=>
       k==='heavy' ? !object(v) || Object.entries(v as object).some(([h,n])=>h!=='maxConcurrent' || !count(n) || n<1)
       : k==='minFreeRamGb' ? typeof v!=='number' || !(v>=0 && v<=1024) : k!=='heavyRequiresNoEditor' || typeof v!=='boolean'))) throw new Error();
+    const cvars=config.checks?.captureCvars;
+    if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;
   } catch {throw new Error('invalid_worker_config');}
 }

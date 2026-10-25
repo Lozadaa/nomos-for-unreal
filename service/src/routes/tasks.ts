@@ -19,7 +19,8 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     const run = implementerOf({db} as WorkerContext, task, data.runId);
     if (run.taskId !== task.id) throw new Error('invalid_checks_target');
     const n = db.prepare("select count(*) n from commands where type='checks.run' and json_extract(payload,'$.taskId')=?").get(task.id)!.n;
-    const command = enqueue(db, 'checks.run', {taskId: task.id, runId: run.id}, `checks:${task.id}:${run.id}:${n}`);
+    // hito 22: --acepta-nueva-base deja que la captura aprobada sustituya la línea base
+    const command = enqueue(db, 'checks.run', {taskId: task.id, runId: run.id, ...(data.acceptNewBase === true ? {acceptNewBase: true} : {})}, `checks:${task.id}:${run.id}:${n}`);
     json(res, 202, {commandId: command.id, state: command.state});
     return true;
   }

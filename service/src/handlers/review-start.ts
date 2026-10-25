@@ -12,12 +12,15 @@ import { updateRun } from '../repo/worker.ts';
 import { workerSkillsBrief } from '../brief.ts';
 import { skillsForRole } from '../skills.ts';
 import { qaBrief } from './ui-cycle.ts';
+import { askMerge } from '../main-base.ts';
 
 export const reviewStart:Handler=async(cmd,ctx)=>{
   const payload=cmd.payload as any;
   // QA visual (hito 5): un run revisor más, con las capturas de ui.cycle y sin aprobar el código
   const qa=payload.qa && typeof payload.qa.testRunId==='string' ? {testRunId:payload.qa.testRunId as string} : undefined;
   const {task,implementer}=reviewTarget(ctx.db,payload.taskId,payload.implementerRunId);
+  // hito 22: revisar una rama sin lo último de main es revisar otra cosa; antes, que el worker la fusione
+  if(!qa && await askMerge(ctx,task,implementer)) return {needsMain:true};
   const {snapshot,patch}=await reviewSnapshot(ctx,task.id,implementer.id),generation=snapshot.generation;
   if(payload.generation && payload.generation!==generation) throw new Error('invalid_review_generation');
   const history=filtered<Run>(ctx.db,'runs',{taskId:task.id});

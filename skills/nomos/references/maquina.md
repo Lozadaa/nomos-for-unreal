@@ -31,3 +31,11 @@ El servicio cierra solo las runs con el terminal muerto (`terminal_handle_stale`
 con nota de continuación (`run.recovered`); no hace falta `worker start`. Con `nomos autostart on` (tarea programada
 «Nomos - arranque») los servicios registrados vuelven al iniciar sesión; `nomos autostart status` dice si está
 instalada. El director sigue teniendo que volver a abrir su sesión y su vigilante.
+
+## Ramas y líneas base
+
+El worktree de un worker nace de la punta de main; si a su rama le falta main antes de la revisión, Nomos le pide la
+fusión (`review.needs_main`) y no abre la revisión. Si una tarea cambia la imagen a propósito, escribe en su spec
+`visual: cambia`: con la revisión aprobada, la primera captura sustituye la línea base del mapa (`baseline.replaced`).
+Para una comprobación concreta, `nomos task check ID --acepta-nueva-base`. La cámara de captura se fija con
+`checks.captureCvars` en la config (p. ej. `["BlockKings.CamaraFija 1"]`).

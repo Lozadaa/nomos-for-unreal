@@ -16,7 +16,8 @@ export type UnrealCmd = ReturnType<typeof createUnrealCmd>;
 
 /** Editor sin GUI (`UnrealEditor-Cmd -ExecutePythonScript -NullRHI`); con `render`, ventana a resolución fija para PIE y capturas.
  *  En pruebas, `bin` es node y `baseArgs` el ejecutable falso. */
-export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[]; timeoutMs?: number; engineDir?: string} = {}) {
+/** `captureCvars` (hito 22, `checks.captureCvars`): consola antes de cada captura con render, p. ej. cámara fija sin handheld. */
+export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[]; timeoutMs?: number; engineDir?: string; captureCvars?: string[]} = {}) {
   const bin = opts.bin || defaultUnrealCmd;
   async function runPython(uproject: string, script: string, env: Record<string, string> = {}, timeoutMs = opts.timeoutMs ?? 180_000,
     run: RenderOpts = {}): Promise<RunResult> {
@@ -28,7 +29,8 @@ export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[];
       '-windowed', '-ForceRes'] : ['-NullRHI'];
     // -ExecutePythonScript cierra el editor al volver el script; con render (PIE) el script se lanza con «py» y cierra él mismo
     // la ruta va por NOMOS_SCRIPT: «py» corta en el primer espacio y ExecCmds en cada coma
-    const exec = run.render ? `-ExecCmds="py import os;exec(open(os.environ['NOMOS_SCRIPT']).read())"` : `-ExecutePythonScript=${quote(script)}`;
+    const exec = run.render ? `-ExecCmds="${[...opts.captureCvars ?? [], "py import os;exec(open(os.environ['NOMOS_SCRIPT']).read())"].join(',')}"`
+      : `-ExecutePythonScript=${quote(script)}`;
     const args = [...[...(opts.baseArgs ?? []), uproject].map(quote), ...view, exec,
       '-unattended', '-nopause', '-nosplash', '-stdout', '-FullStdOutLogOutput'];
     try {

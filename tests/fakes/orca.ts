@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
@@ -16,7 +16,8 @@ const fail = (code: string, message = code) => {
   console.log(JSON.stringify({ id: 'fake-request', ok: false, error: { code, message } }));
   process.exitCode = 1;
 };
-const save = () => writeFileSync(file, JSON.stringify(state));
+// temporal y rename: las pruebas leen el estado mientras otra orden del fake lo reescribe
+const save = () => { const tmp = `${file}.${process.pid}.tmp`; writeFileSync(tmp, JSON.stringify(state)); renameSync(tmp, file); };
 
 if (process.env.FAKE_ORCA_HANG === '1') {
   setInterval(() => {}, 1000);
@@ -47,7 +48,7 @@ if (process.env.FAKE_ORCA_HANG === '1') {
     let path='C:/Juego trabajador';
     if (state.realRepo) {
       path=state.treePath;
-      execFileSync('git',['-C',state.realRepo,'worktree','add','-b',value('--name'),path],{windowsHide:true});
+      execFileSync('git',['-C',state.realRepo,'worktree','add','-b',value('--name'),path,...(state.createBase ? [state.createBase] : [])],{windowsHide:true});
       state.creates=(state.creates ?? 0)+1; save();
     }
     const answer = () => emit({ worktree: { id: `repo-1::${path}`, path,
