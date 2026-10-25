@@ -127,6 +127,9 @@ Si se borró un archivo anterior, esto también permite replay. Archivo corrupto
 avisa `watcher_checkpoint_recovery` por stderr y recupera cero, sin usar ACK para
 suprimir eventos del director. Error real de lectura/permisos/guardado detiene con
 `watcher_checkpoint_error`, sin etiquetar service_down un fallo de disco.
+Hito 16: un plazo vencido (servicio ocupado con un diff largo o Unreal cargando) no es una caída;
+el vigilante comprueba el pid de `service.json` y `GET /health` con 5 s y solo si falla imprime
+`{"error":"service_down"}`, una vez por caída (vuelve a avisar tras recuperarse y caer otra vez).
 Conserva archivo previo/temporal para diagnosticar, corrige disco/permisos y rearma
 la misma sesión/tipos; si recuperas desde cero, espera reentregas e inspecciona estado.
 

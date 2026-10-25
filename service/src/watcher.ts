@@ -1,7 +1,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { acquireLock } from "./lock.ts";
 import { serviceInfo, request } from "./client.ts";
-import type { ServiceInfo } from "./service-info.ts";
+import { readServiceInfo, type ServiceInfo } from "./service-info.ts";
 import type { EventRow, Status } from "./store.ts";
 import { CheckpointError, deliveryCheckpoint, normalizeTypes } from './watcher-cursors.ts';
 
@@ -35,6 +35,20 @@ async function readPending(info: ServiceInfo, since: number, consume: (events: E
   finally { clearTimeout(timer); }
 }
 
+/**
+ * hito 16: un plazo vencido no es una caída. Caído = sin `service.json`, su pid ya no existe o `/health` no contesta en 5 s;
+ * con el proceso vivo y `/health` al día solo está ocupado (un diff largo, Unreal cargando) y el vigilante calla.
+ */
+export async function serviceDown(dataDir: string, healthMs = 5000): Promise<boolean> {
+  const info = readServiceInfo(dataDir);
+  if (!info) return true;
+  try { process.kill(info.pid, 0); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EPERM') return true; }
+  try {
+    const response = await fetch(`http://127.0.0.1:${info.port}/health`, { signal: AbortSignal.timeout(healthMs) });
+    return !response.ok;
+  } catch { return true; }
+}
+
 /** Orden de salida de un lote: primero `message.*` (el usuario espera), después el resto; cada grupo en su orden. */
 export const byPriority=<T extends {type:string}>(batch: T[]): T[]=>[...batch.filter(e=>e.type.startsWith('message.')),...batch.filter(e=>!e.type.startsWith('message.'))];
 
@@ -43,7 +57,7 @@ export async function watch(dataDir: string, session: string, opts: {types?:stri
   const release = acquireLock(dataDir, "watcher");
   process.once("exit", release);
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => process.exit(0));
-  let transportCursor=0; let startedToken = "";
+  let transportCursor=0; let startedToken = ""; let down = false;
   try {
     const checkpoint=deliveryCheckpoint(dataDir,session,types);
     while (true) {
@@ -67,9 +81,13 @@ export async function watch(dataDir: string, session: string, opts: {types?:stri
           // el cursor avanza al final del trozo ya impreso: reordenar nunca deja atrás un evento sin entregar
           checkpoint.advance(fresh.at(-1)!.seq);transportCursor=fresh.at(-1)!.seq;
         });
+        down = false;
       } catch(error) {
         if(error instanceof CheckpointError) throw error;
-        console.log(JSON.stringify({ error: "service_down" }));
+        // una línea por caída real; ocupado no imprime nada (el director no tiene que filtrar a mano)
+        const gone = await serviceDown(dataDir);
+        if(gone && !down) console.log(JSON.stringify({ error: "service_down" }));
+        down = gone;
       }
       await sleep(Math.max(0, 2000 - (Date.now() - began)));
     }
