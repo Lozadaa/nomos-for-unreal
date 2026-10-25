@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { locatedPath } from '../../service/src/data-paths.ts';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { checksFixture } from './checks-fixture.ts';
@@ -47,7 +48,7 @@ test('un paquete que se cierra a los 5 s falla con la causa y guarda el log, aun
       const failed = f.events('test.failed').at(-1)!;
       assert.match(failed.summary, new RegExp(`El proceso terminó a los 5 s con código ${exitCode}`));
       const log = listArtifacts(f.db, {taskId: f.task.id}).find(a => (a.provenance as {label?: string}).label === 'Empaquetado · log del juego');
-      assert.ok(log && existsSync(log.path));
+      assert.ok(log && existsSync(locatedPath(join(f.dataDir, 'artifacts'), log.path)));
     } finally { f.close(); }
   }
 });

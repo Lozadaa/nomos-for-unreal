@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { locatedPath } from '../data-paths.ts';
 import { fileURLToPath } from 'node:url';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { Artifact, JsonValue, Run, Task, TestRun } from '../model.ts';
@@ -53,7 +54,7 @@ export function qaBrief(ctx: WorkerContext, task: Task, run: Run, snapshot: Revi
     .filter(a => (a.provenance as Record<string, JsonValue>)?.testRunId === testRunId);
   const lines = shots.map(shot => {
     const p = shot.provenance as Record<string, string>;
-    copyFileSync(shot.path, join(dir, basename(shot.path)));
+    copyFileSync(locatedPath(join(ctx.dataDir, 'artifacts'), shot.path), join(dir, basename(shot.path)));
     if (p.control && existsSync(p.control)) copyFileSync(p.control, join(dir, basename(p.control)));
     return `- \`.nomos-review/${basename(shot.path)}\` · ${p.resolution} · mapa ${p.map ?? 'por defecto'} · control \`.nomos-review/${basename(p.control ?? '')}\``;
   });

@@ -40,7 +40,7 @@ test('terminal muerto: tarea hija preparada con atribución heredada; el run nue
     const [start] = commands(f, 'worker.start');
     assert.deepEqual([start.taskId, start.provider, start.role, start.attempt], [child.id, 'claude', 'implementacion', 2]);
     const brief = renderBrief(child, {provider: 'claude', role: 'implementacion', skills: []} as unknown as Run,
-      {continuation: continuationBrief(f.db, child)});
+      {continuation: continuationBrief(f.db, child, f.ctx.dataDir)});
     assert.match(brief, /## Continuación[\s\S]*### Tarea vida[\s\S]*```diff[\s\S]*int vida = 100/);
   } finally { f.close(); }
 });

@@ -1,11 +1,12 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { basename, isAbsolute, join } from 'node:path';
+import { basename, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { WorkerContext } from './runner.ts';
 import type { Artifact, Run, Task, TestRun, Worktree } from './model.ts';
 import { filtered, read } from './repo/rows.ts';
 import { listEvents } from './store.ts';
 import { agentName } from './attribution.ts';
+import { locatedPath } from './data-paths.ts';
 
 export type Manifest = {taskId: string; createdAt: string; files: Record<string, {sha256: string; size: number}>};
 /** Escritor inyectable: las pruebas simulan el disco lleno (`ENOSPC`). */
@@ -16,6 +17,9 @@ const listInformes = (dir: string) => readdirSync(join(dir, 'informes')).map(nam
 const chat = (type: string) => ['worker.output', 'worker.message_sent', 'worker.waiting'].includes(type) || /^(message|reply)\./.test(type);
 
 export const archiveDir = (ctx: Pick<WorkerContext, 'dataDir'>, taskId: string) => join(ctx.dataDir, 'archive', taskId);
+/** `tasks.archive_path` guardado relativo a la carpeta de datos (hito 15) o absoluto (bases anteriores). */
+export const taskArchive = (dataDir: string | undefined, task: Pick<Task, 'archivePath'>) =>
+  task.archivePath ? locatedPath(dataDir ?? '', task.archivePath) : undefined;
 
 /** Relee cada archivo del manifest y compara tamaño y SHA-256. */
 export function verifyArchive(dir: string): Manifest | null {
@@ -63,7 +67,7 @@ export async function preserveTask(ctx: WorkerContext, task: Task, writer: Archi
     const manifest: Manifest = {taskId: task.id, createdAt: new Date().toISOString(), files: {}};
     for (const [name, data] of Object.entries(files)) writer.write(join(tmp, name), data);
     for (const a of filtered<Artifact>(ctx.db, 'artifacts', {taskId: task.id}).filter(a => a.kind === 'report' || a.kind === 'screenshot')) {
-      const source = isAbsolute(a.path) ? a.path : join(ctx.dataDir, 'artifacts', a.path);
+      const source = locatedPath(join(ctx.dataDir, 'artifacts'), a.path);
       if (existsSync(source) && statSync(source).isFile()) writer.copy(source, join(tmp, 'informes', `${a.id.slice(0, 8)}-${basename(source)}`));
     }
     for (const name of [...Object.keys(files), ...listInformes(tmp)]) {

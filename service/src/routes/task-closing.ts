@@ -5,7 +5,7 @@ import { implementerOf } from '../handlers/checks.ts';
 import type { WorkerContext } from '../runner.ts';
 import type { Task } from '../model.ts';
 import { id, text, type Context } from './context.ts';
-import { archiveDir, verifyArchive } from '../archive.ts';
+import { archiveDir, taskArchive, verifyArchive } from '../archive.ts';
 import { file } from './artifacts.ts';
 import { createContinuation } from '../handlers/continue.ts';
 
@@ -41,7 +41,7 @@ export async function taskClosing({db, req, res, url, dataDir}: Context): Promis
   const archive = /^\/tasks\/([^/]+)\/archive(?:\/(.+))?$/.exec(url.pathname);
   if (req.method === 'GET' && archive) {
     const task = requireTask(db, id(archive[1]));
-    const dir = task.archivePath ?? (dataDir ? archiveDir({dataDir}, task.id) : undefined);
+    const dir = taskArchive(dataDir, task) ?? (dataDir ? archiveDir({dataDir}, task.id) : undefined);
     if (archive[2] !== undefined) { await file(res, dir, id(archive[2])); return true; }
     const manifest = dir ? verifyArchive(dir) : null;
     if (!manifest) throw new Error('unknown_archive');

@@ -8,7 +8,7 @@ import { createTask, getTask } from '../../service/src/repo/tasks.ts';
 import { insert, read } from '../../service/src/repo/rows.ts';
 import { finishRun, startRun } from '../../service/src/repo/runs.ts';
 import { listDecisions, resolveDecision } from '../../service/src/repo/decisions.ts';
-import { verifyArchive, type ArchiveWriter } from '../../service/src/archive.ts';
+import { taskArchive, verifyArchive, type ArchiveWriter } from '../../service/src/archive.ts';
 import type { Worktree } from '../../service/src/model.ts';
 import { integrationFixture } from './integration-fixture.ts';
 import { fixture as orcaFixture } from './orca-fixture.ts';
@@ -50,16 +50,17 @@ test('cierre completo: preserva y verifica, cierra los terminales, retira los wo
     assert.equal(result.closed, true);
     const task = getTask(f.db, a.task.id)!;
     assert.equal(task.state, 'done');
-    assert.equal(task.archivePath, join(f.dataDir, 'archive', a.task.id));
+    assert.equal(task.archivePath, `archive/${a.task.id}`, 'relativo a la carpeta de datos');
+    const dir = taskArchive(f.dataDir, task)!;
     assert.deepEqual(Object.keys(task.attribution).sort(), ['integro', 'verifico']);
     assert.deepEqual(calls, [['close', 'term_vida'], ['close', 'term_rev'], ['rm', a.tree.id, 'false'], ['rm', review.id, 'false']]);
     assert.ok(!f.repo.git(f.repo.dir, 'worktree', 'list').includes('vida'), 'worktrees retirados');
     assert.equal(read<Worktree>(f.db, 'worktrees', a.tree.id)!.state, 'closed');
-    const manifest = verifyArchive(task.archivePath!)!;
+    const manifest = verifyArchive(dir)!;
     assert.deepEqual(Object.keys(manifest.files).sort(), ['conversacion.jsonl', 'diff-final.patch', 'eventos.jsonl', 'resumen.md', 'sesiones.json']);
-    assert.match(readFileSync(join(task.archivePath!, 'diff-final.patch'), 'utf8'), /int vida = 100/);
-    assert.match(readFileSync(join(task.archivePath!, 'resumen.md'), 'utf8'), /## Commits\n- [0-9a-f]{7} Cambios de vida/);
-    assert.equal(JSON.parse(readFileSync(join(task.archivePath!, 'sesiones.json'), 'utf8'))[0].sessionRef, 'term_vida');
+    assert.match(readFileSync(join(dir, 'diff-final.patch'), 'utf8'), /int vida = 100/);
+    assert.match(readFileSync(join(dir, 'resumen.md'), 'utf8'), /## Commits\n- [0-9a-f]{7} Cambios de vida/);
+    assert.equal(JSON.parse(readFileSync(join(dir, 'sesiones.json'), 'utf8'))[0].sessionRef, 'term_vida');
     assert.equal(f.events('task.done').length, 1);
   } finally { f.close(); }
 });
@@ -81,7 +82,7 @@ test('cambios sin registrar: queda en cerrando con la lista y Decisión; «Desca
     assert.equal((await finalize(f, a.task.id)).closed, true);
     assert.deepEqual(calls.at(-1), ['rm', a.tree.id, 'true']);
     assert.deepEqual(f.events('worktree.discarded').map(e => e.by), ['Richard']);
-    assert.match(readFileSync(join(getTask(f.db, a.task.id)!.archivePath!, 'diff-final.patch'), 'utf8'), /pendiente/, 'lo descartado queda preservado');
+    assert.match(readFileSync(join(taskArchive(f.dataDir, getTask(f.db, a.task.id)!)!, 'diff-final.patch'), 'utf8'), /pendiente/, 'lo descartado queda preservado');
   } finally { f.close(); }
 });
 

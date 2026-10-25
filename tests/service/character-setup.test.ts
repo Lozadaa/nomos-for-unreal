@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { locatedPath } from '../../service/src/data-paths.ts';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTask, getTask } from '../../service/src/repo/tasks.ts';
@@ -42,7 +43,7 @@ test('MetaHuman con el clip retargeteado: comprobación animation en verde con c
     assert.ok(labels.includes('Retarget · informe') && labels.includes('Deformación · informe') && labels.includes('Animación · registro'));
     assert.ok(labels.every(l => !/\.(png|json|mp4|txt)|[0-9a-f]{8}-/.test(l)), 'ningún nombre de archivo ni uuid');
     const video = listArtifacts(f.db, {taskId: f.task.id, kind: 'video'})[0];
-    assert.match(readFileSync(video.path, 'utf8'), /12 fotogramas/);
+    assert.match(readFileSync(locatedPath(join(f.dataDir, 'artifacts'), video.path), 'utf8'), /12 fotogramas/);
     assert.match(video.previewPath!, /1280x720-50\.png$/, 'la miniatura del vídeo es el fotograma del 50 %');
     const spec = JSON.parse(readFileSync(join(f.projectDir, 'nomos-personaje.json'), 'utf8'));
     assert.deepEqual(spec, {mesh: hero, animations: [clip], targetSkeleton: 'metahuman'});
@@ -106,7 +107,7 @@ test('el vídeo junta la cámara frontal y la lateral en un solo MP4 (hstack)', 
     process.env.NOMOS_FAKE = 'ok';
     await f.run();
     const video = listArtifacts(f.db, {taskId: f.task.id, kind: 'video'})[0];
-    assert.match(readFileSync(video.path, 'utf8'), /hstack/);
+    assert.match(readFileSync(locatedPath(join(f.dataDir, 'artifacts'), video.path), 'utf8'), /hstack/);
     assert.equal((video.provenance as any).angles, 2);
   } finally { f.close(); }
 });
@@ -145,7 +146,7 @@ test('sin ffmpeg: fotogramas en un zip con nombre y el resumen lo dice; nunca un
     assert.equal(listArtifacts(f.db, {taskId: f.task.id, kind: 'video'}).length, 0);
     assert.ok(f.labels().includes('Animación · fotogramas 1280×720 · AM_ComboAttack'));
     const zip = listArtifacts(f.db, {taskId: f.task.id}).find(a => a.path.endsWith('.zip'))!;
-    assert.equal(readFileSync(zip.path).readUInt32LE(0), 0x04034b50);
+    assert.equal(readFileSync(locatedPath(join(f.dataDir, 'artifacts'), zip.path)).readUInt32LE(0), 0x04034b50);
     const event = f.db.prepare(`select payload from events where type='test.passed'`).get() as {payload: string};
     assert.match(JSON.parse(event.payload).summary, /sin ffmpeg/);
   } finally { f.close(); }

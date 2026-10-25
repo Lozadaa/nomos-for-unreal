@@ -72,12 +72,12 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
   const logPath = join(dir, 'log.txt');
   writeFileSync(logPath, `${outcome.summary.join('\n')}\n\n${outcome.log}`, 'utf8');
   addArtifact(db, {taskId: input.task.id, runId: input.run.id, kind: 'report', path: logPath,
-    provenance: {check: id, testRunId: row.id, result: outcome.result, implementerRunId: input.implementer.id, label: checkReportLabel(id)}});
+    provenance: {check: id, testRunId: row.id, result: outcome.result, implementerRunId: input.implementer.id, label: checkReportLabel(id)}}, ctx.dataDir);
   for (const artifact of outcome.artifacts ?? [])
     addArtifact(db, {taskId: input.task.id, runId: input.run.id, kind: artifact.kind, path: artifact.path,
       provenance: {check: id, testRunId: row.id, ...artifact.provenance,
         label: (artifact.provenance?.label as string | undefined) ?? checkArtifactLabel(id, artifact.kind, artifact.path, artifact.provenance as Record<string, unknown>)},
-      previewPath: artifact.previewPath ?? null});
+      previewPath: artifact.previewPath ?? null}, ctx.dataDir);
   row = updateTestRun(db, row.id, {result: outcome.result, reportPath: logPath, map: outcome.map ?? null, config: outcome.config ?? null,
     engineVersion: outcome.engine?.split('-')[0] ?? engine});
   appendEvent(db, `test.${outcome.result}`, null, {testRunId: row.id, taskId: row.taskId, runId: row.runId, check: id,
