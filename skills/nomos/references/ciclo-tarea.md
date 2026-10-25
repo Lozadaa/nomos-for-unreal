@@ -70,8 +70,8 @@ Entre ambos comandos, guarda `{taskId,messageId,specFile}` en
 `task spec TASK --spec-file ARCHIVO` prepara una tarea existente sin run activo.
 Entrega contexto/skills mediante la plantilla brief-worker.md enlazada desde SKILL.md.
 
-Conserva commandId devuelto al arrancar. `worker start` usa attempt 1 y clave
-`worker.start:TASK:1`: un reintento idéntico recupera el mismo comando.
+Conserva commandId. Sin `--attempt`, `worker start` usa el intento vivo (repetir recupera el mismo
+comando) o, si el último ya terminó, el siguiente; nunca devuelve el arranque de un intento cerrado.
 No incrementes attempt para eludir un fallo de efecto incierto. Si la creación se
 interrumpió antes de guardar su ID, consulta `GET /tasks` y evidencia de eventos:
 `task create` no tiene clave de idempotencia; repetirlo puede crear otra tarea.

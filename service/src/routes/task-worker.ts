@@ -8,6 +8,7 @@ import { areas, choice, id, text, type Context } from './context.ts';
 import type { Run } from '../model.ts';
 import { resumeWorkerStart } from './worker-resume.ts';
 import { reconcileStates } from '../handlers/reconcile.ts';
+import { nextAttempt } from '../scheduler-state.ts';
 
 export function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(text);
@@ -18,6 +19,17 @@ export function taskSpec(data: Record<string,unknown>) {
   const scope=normalizedPaths(data.scope);
   if (!scope.length) throw new Error('invalid_worker_scope');
   return {spec:data.spec,acceptance:data.acceptance,area:area!,scope};
+}
+/**
+ * Hito 21: sin intento explícito, el último si sigue vivo o no llegó a arrancar (repetirlo es idempotente);
+ * si su run ya terminó o la orden falló, el siguiente. Nunca el `worker.start` de un intento cerrado.
+ */
+function currentAttempt(db: Context['db'],taskId:string):number {
+  const last=db.prepare(`select id,state,json_extract(payload,'$.attempt') attempt from commands where type='worker.start'
+    and json_extract(payload,'$.taskId')=? order by json_extract(payload,'$.attempt') desc limit 1`).get(taskId);
+  const ended=!last || last.state==='failed' || db.prepare(`select 1 from runs where task_id=? and state!='running'
+    and json_extract(metadata,'$.startCommandId')=?`).get(taskId,last.id);
+  return ended ? nextAttempt(db,taskId) : Number(last.attempt ?? 1);
 }
 export async function taskWorker({db,req,res,url}: Context): Promise<boolean> {
   const match=/^\/tasks\/([^/]+)\/(spec|worker|reconcile)$/.exec(url.pathname);
@@ -46,7 +58,7 @@ export async function taskWorker({db,req,res,url}: Context): Promise<boolean> {
     });
     json(res,200,prepared);return true;
   }
-  const attempt=data.attempt===undefined ? 1 : data.attempt;
+  const attempt=data.attempt===undefined ? currentAttempt(db,taskId) : data.attempt;
   if (!['codex','claude','opencode'].includes(data.provider as string) || !text(data.role) || !strings(data.skills)
     || !Number.isSafeInteger(attempt) || (attempt as number)<1)
     throw new Error('invalid_worker_payload');

@@ -106,10 +106,11 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   if (group==='worker') {
     if (action==='start') {
       const provider=values.provider ?? 'claude',role=required(values.role ?? 'implementacion','--role');
-      const attempt=integer(values.attempt ?? '1');
+      // hito 21: sin --attempt decide el servicio (el intento vivo o el siguiente al último cerrado)
+      const attempt=values.attempt===undefined ? undefined : integer(values.attempt);
       const skills=values.skills===undefined || values.skills==='' ? [] : values.skills.split(',').map(s=>s.trim());
-      if (!['codex','claude','opencode'].includes(provider) || attempt<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
-      result=await call('/tasks/'+id+'/worker',{provider,role,skills,attempt});
+      if (!['codex','claude','opencode'].includes(provider) || (attempt ?? 1)<1 || skills.some(s=>!s)) throw new Error('Uso: worker inválido');
+      result=await call('/tasks/'+id+'/worker',{provider,role,skills,...(attempt===undefined ? {} : {attempt})});
     }
     if (action==='send') {
       if ((values.file===undefined)===(values.text===undefined)) throw new Error('Uso: elige --file o --text');
