@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rmSync, statSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
 import { indexAll } from '../../service/src/catalog/indexer.ts';
 import { assetConfig } from '../../service/src/catalog/paths.ts';
 import { listCatalog, searchCatalog, upsertEntry } from '../../service/src/repo/catalog.ts';
 import { celUid, fabFixture } from './fab-fixture.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('indexAll reproduce el recuento del informe nivel 2 y une las vistas del mismo pack', () => {
   const f = fabFixture(), db = openDb(':memory:');
@@ -61,7 +62,7 @@ test('pack con emoji y espacios: ruta, FTS y nombre intactos', () => {
 test('sin listings_v1.db ni VaultCache la fuente queda vacía sin error', () => {
   const f = fabFixture(), db = openDb(':memory:');
   try {
-    rmSync(f.vaultDir, {recursive: true, force: true});
+    removeDir(f.vaultDir);
     const result = indexAll(db, assetConfig(f.dataDir));
     assert.equal(result.bySource.listings, 0);
     assert.equal(result.bySource.launcherVault, 0);
@@ -123,7 +124,7 @@ test('plantillas del motor: tres entradas engine con licencia de Epic, esqueleto
 test('sin motor en unrealPath la fuente engine queda vacía sin error', () => {
   const f = fabFixture(), db = openDb(':memory:');
   try {
-    rmSync(f.engineRoot, {recursive: true, force: true});
+    removeDir(f.engineRoot);
     assert.equal(indexAll(db, assetConfig(f.dataDir)).bySource.engine, 0);
   } finally { db.close(); f.close(); }
 });
@@ -155,5 +156,5 @@ test('una base anterior al 5b (check sin engine) admite entradas engine al abrir
       assert.deepEqual(searchCatalog(second, 'Viejo').map(e => e.name), ['Viejo_Pack']);
       assert.deepEqual(searchCatalog(second, 'Plantilla').map(e => e.source), ['engine']);
     } finally { second.close(); }
-  } finally { rmSync(dir, {recursive: true, force: true}); }
+  } finally { removeDir(dir); }
 });

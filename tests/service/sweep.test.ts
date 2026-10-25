@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,12 +11,13 @@ import { startRun, finishRun } from '../../service/src/repo/runs.ts';
 import { requireRun } from '../../service/src/repo/worker.ts';
 import { startRunner } from '../../service/src/runner.ts';
 import { closeIdleTerminals, sweepTerminals, workerProcesses } from '../../service/src/sweep.ts';
+import { removeDir } from '../remove-dir.ts';
 
 function setup(t:any) {
   const dir=mkdtempSync(join(tmpdir(),'nomos-sweep-')),file=join(dir,'orca.json'),db=openDb(join(dir,'nomos.db'));
   writeFileSync(file,JSON.stringify({repos:[],tail:['hola']}));
   const orcaOptions={bin:process.execPath,args:[fileURLToPath(new URL('../fakes/orca.ts',import.meta.url))],env:{FAKE_ORCA_STATE:file}};
-  t.after(()=>{db.close();rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});});
+  t.after(()=>{db.close();removeDir(dir);});
   const run=(state:string,role:string,taskState:string,ref:string)=>{
     const task=createTask(db,{title:ref,area:'qa',state:taskState as any});
     const r=startRun(db,{taskId:task.id,role,provider:'claude',sessionRef:ref});

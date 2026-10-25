@@ -10,9 +10,10 @@ import { listEvents } from '../../service/src/store.ts';
 import { workerFailure } from '../../service/src/handlers/worker-failure.ts';
 import { readConfig,concurrency } from '../../service/src/config.ts';
 import { openDecision,resolveDecision } from '../../service/src/repo/decisions.ts';
-import { mkdtempSync,writeFileSync,rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { removeDir } from '../remove-dir.ts';
 
 const config={concurrency:{codex:1}};
 function setup(t:any) {
@@ -119,7 +120,7 @@ test('readConfig valida concurrencia desde dataDir real y conserva otros campos'
     assert.throws(()=>readConfig(dir),/invalid_worker_config/);
     writeFileSync(join(dir,'config.json'),'{"concurrency":{"claude":1},"unrealPath":"engine"}');
     assert.equal((readConfig(dir) as any).unrealPath,'engine');
-  } finally {rmSync(dir,{recursive:true,force:true});}
+  } finally {removeDir(dir);}
 });
 test('OpenCode arranca la tarea que lo pide y nunca la que no',t=>{
   const {db,add}=setup(t),task=add('OpenCode',{assigneeProvider:'opencode'});
@@ -137,7 +138,7 @@ test('OpenCode arranca la tarea que lo pide y nunca la que no',t=>{
   try {
     writeFileSync(join(dir,'config.json'),'{"concurrency":{"opencode":3}}');
     assert.equal(readConfig(dir).concurrency?.opencode,3);
-  } finally {rmSync(dir,{recursive:true,force:true});}
+  } finally {removeDir(dir);}
 });
 test('una implementación de OpenCode se planifica con revisor Claude',t=>{
   const {db,add}=setup(t),task=add('Docs',{assigneeProvider:'opencode',assigneeRole:'revisor'});

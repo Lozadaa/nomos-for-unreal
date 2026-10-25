@@ -111,6 +111,9 @@ Regla del usuario: «No dejes históricos de paquete anda limpiando». Solo se c
   (salvo el actual del proyecto), `Saved/Video*` y copias de `.nomos/integration/` que no son
   worktree de Git; retira los worktrees de tareas `done` con la rama en main. Nada cambiado en
   los últimos 30 min ni worktrees con cambios sin commit. Di al usuario los GB liberados.
+- `nomos clean` también cierra servidores de Nomos huérfanos (líneas `servidor <pid>`): su `--data`
+  ya no existe (10 min vivos) o está en Temp sin proyecto registrado (30 min). Nunca toca un
+  servicio con datos fuera de Temp, como los de los juegos.
 
 ## Pausa
 

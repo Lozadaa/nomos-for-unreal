@@ -57,6 +57,8 @@ export interface Decision {
   options: { id: string; label: string; description: string; thumbnail?: string; recommended?: boolean }[]
   chosenOptionId: string | null
   state: 'open' | 'resolved' | 'stale'
+  /** Hito 20: veces que el mismo problema volvió a pedir esta Decisión. */
+  seenCount?: number
 }
 
 export interface Run {

@@ -3,7 +3,7 @@ import { humanError } from '@/lib/errors'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router'
 import { api } from '@/api'
-import { DecisionDetails, DecisionOptions, decisionText } from '@/components/DecisionOptions'
+import { DecisionDetails, DecisionOptions, decisionText, repeatText } from '@/components/DecisionOptions'
 import { EmptyState as VisualEmpty } from '@/visual/art/EmptyState'
 import { StatusDot } from '@/components/StatusDot'
 import { Button } from '@/components/ui/button'
@@ -106,6 +106,7 @@ export function Decisiones() {
               <h3 aria-label={current.reason} title={current.reason} className="text-lg font-semibold">{decisionText(current).reason}</h3>
               <div className="flex items-center gap-3">
                 <span title={task?.title ?? current.taskId} aria-label={`Tarea: ${task?.title ?? current.taskId}`} className="font-mono text-xs text-muted-foreground">{shortId(current.taskId)}</span>
+                {repeatText(current) && <span className="text-xs text-muted-foreground">{repeatText(current)}</span>}
                 <DecisionDetails decision={current} taskTitle={task?.title} />
               </div>
             </div>

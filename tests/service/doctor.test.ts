@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -8,6 +8,7 @@ import { createServer } from '../../service/src/server.ts';
 import { claim, enqueue } from '../../service/src/commands.ts';
 import { checkCapability, doctor, renderDoctor } from '../../service/src/doctor.ts';
 import { capabilityList, saveCheck } from '../../service/src/capability-checks.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const orca = (running: boolean, onOpen = () => {}) => ({isRunning: async () => running, open: async () => { onOpen(); }});
 
@@ -39,7 +40,7 @@ test('el resultado guardado gana a la detección, con fecha; Orca roto lleva la 
     const orcaRow = list.find(c => c.id === 'orca')!;
     assert.equal(orcaRow.state, 'roto');
     assert.deepEqual(orcaRow.action, {id: 'open', label: 'Abrir Orca'});
-  } finally { db.close(); rmSync(root, {recursive: true, force: true}); }
+  } finally { db.close(); removeDir(root); }
 });
 
 test('nomos doctor: tabla con capacidades, servicio sin mostrar el token y carriles con su último latido', async () => {
@@ -58,14 +59,14 @@ test('nomos doctor: tabla con capacidades, servicio sin mostrar el token y carri
     const text = renderDoctor(rows);
     assert.match(text, /Orca\s+FALLA/);
     assert.ok(text.split('\n').length >= rows.length + 1);
-  } finally { db.close(); rmSync(root, {recursive: true, force: true}); }
+  } finally { db.close(); removeDir(root); }
 });
 
 test('GET /doctor y POST /capabilities/:id/check exigen token; la comprobación queda guardada', async t => {
   const root = mkdtempSync(join(tmpdir(), 'nomos-doctor-')), dataDir = join(root, '.nomos'); mkdirSync(dataDir);
   const db = openDb(join(dataDir, 'nomos.db')), server = createServer(db, 'token', 'service/web', dataDir);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); db.close(); rmSync(root, {recursive: true, force: true}); });
+  t.after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); db.close(); removeDir(root); });
   const base = `http://127.0.0.1:${(server.address() as {port: number}).port}`, auth = {Authorization: 'Bearer token'};
   assert.equal((await fetch(base + '/doctor')).status, 401);
   assert.equal((await fetch(base + '/capabilities/node/check', {method: 'POST'})).status, 401);

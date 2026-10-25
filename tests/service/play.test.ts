@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -9,6 +9,7 @@ import { createTask } from '../../service/src/repo/tasks.ts';
 import { addArtifact, recordTestRun } from '../../service/src/repo/artifacts.ts';
 import { latestBuild, playArgs } from '../../service/src/play.ts';
 import { waitFor } from './wait.ts';
+import { removeDir } from '../remove-dir.ts';
 
 function project(uproject = true) {
   const root = mkdtempSync(join(tmpdir(), 'nomos-play-'));
@@ -19,7 +20,7 @@ function project(uproject = true) {
   return {root, data, db, close() {
     db.close();
     for (const end = Date.now() + 10_000; ;) {
-      try { return rmSync(root, {recursive: true, force: true}); }
+      try { return removeDir(root); }
       catch (error) { if (Date.now() > end) throw error; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); }
     }
   }};
@@ -78,7 +79,7 @@ test('latestBuild: un artefacto build fuera del proyecto nunca es candidato', ()
     const {build} = latestBuild(p.data, p.db);
     assert.equal(build!.path, inside);
     assert.deepEqual(build!.task, {id: task.id, code: null, title: 'Empaquetar'});
-  } finally { p.close(); rmSync(outside, {recursive: true, force: true}); }
+  } finally { p.close(); removeDir(outside); }
 });
 
 test('playArgs: por defecto ventana 1920x1080; el mapa va primero y solo /Game/…', () => {

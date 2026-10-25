@@ -6,10 +6,11 @@ import { startRun } from '../../service/src/repo/runs.ts';
 import { enqueue, claim, fail } from '../../service/src/commands.ts';
 import { seed } from '../../service/src/seed.ts';
 import { createMessage, listEvents } from '../../service/src/store.ts';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { read } from '../../service/src/repo/rows.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('filas nuevas conservan scope y metadata con defaults compatibles', () => {
   const db = openDb(':memory:');
@@ -37,7 +38,7 @@ test('migra DB anterior dos veces preservando semilla, mensajes, eventos, comand
     assert.deepEqual((read<any>(db,'runs','seed-run-01')!).metadata,{});
     assert.equal(db.prepare('select not_before from commands').get()!.not_before,null);
     assert.equal(read<any>(db,'budgets',before[0].id as string)!.scope,before[0].scope);
-  } finally {db.close();rmSync(dir,{recursive:true,force:true});}
+  } finally {db.close();removeDir(dir);}
 });
 
 test('claim omite comandos futuros y fallo terminal no repite efectos', () => {

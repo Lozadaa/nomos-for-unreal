@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
 import { createServer } from '../../service/src/server.ts';
+import { removeDir } from '../remove-dir.ts';
 export async function fixture(memory = false) {
   const dir = mkdtempSync(join(tmpdir(), 'nomos-routes-'));
   const db = openDb(memory ? ':memory:' : join(dir, 'nomos.db'));
@@ -16,6 +17,6 @@ export async function fixture(memory = false) {
   });
   return {db, dir, request, async close() {
     await new Promise<void>(resolve => server.close(() => resolve()));
-    db.close(); rmSync(dir, {recursive:true, force:true});
+    db.close(); removeDir(dir);
   }};
 }

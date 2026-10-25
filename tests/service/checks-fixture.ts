@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -12,6 +12,7 @@ import { insert } from '../../service/src/repo/rows.ts';
 import type { WorkerContext } from '../../service/src/runner.ts';
 import type { Command, Task } from '../../service/src/model.ts';
 import type { CheckDeps } from '../../service/src/checks/run.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const fakes = join(import.meta.dirname, '..', 'fakes');
 
@@ -49,5 +50,5 @@ export function checksFixture(opts: {files?: string[]; state?: Task['state']; ar
     handlers['checks.run']({id, type: 'checks.run', payload, idempotencyKey: id} as unknown as Command, ctx) as Promise<Record<string, any>>;
   const events = (type: string) => listEvents(db, 0).filter(e => e.type === type).map(e => e.payload as Record<string, any>);
   return {db, ctx, root, dataDir, projectDir, task, implementer, run, events, handlers, deps,
-    setFiles(next: string[]) { files = next; }, close() { db.close(); rmSync(root, {recursive: true, force: true}); }};
+    setFiles(next: string[]) { files = next; }, close() { db.close(); removeDir(root); }};
 }

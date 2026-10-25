@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -11,6 +11,7 @@ import { searchCatalog, listCatalog } from '../../service/src/repo/catalog.ts';
 import { listDecisions, resolveDecision } from '../../service/src/repo/decisions.ts';
 import { budgetSummary } from '../../service/src/repo/budget.ts';
 import { listEvents, createMessage } from '../../service/src/store.ts';
+import { removeDir } from '../remove-dir.ts';
 const count = (db: any, table: string) => Number(db.prepare(`select count(*) n from ${table}`).get().n);
 
 test('semilla determinista con distribución, catálogo, presupuestos y decisión vigente', () => {
@@ -89,7 +90,7 @@ test('CLI offline escribe artefactos locales y rechaza reseed sin force', () => 
     } finally { db.close(); }
     assert.equal(cli().status, 1); assert.equal(cli('--force').status, 0);
     assert.ok(!existsSync(join(dir,'service.json')));
-  } finally { rmSync(dir,{recursive:true,force:true}); }
+  } finally { removeDir(dir); }
 });
 
 
@@ -101,7 +102,7 @@ test('filas en disco independientes son idénticas y memory no crea artefactos',
     for (const table of ['tasks','runs','worktrees','decisions','budgets','spends','artifacts','test_runs','catalog_entries','events']) {
       assert.deepEqual(a.prepare(`select * from ${table}`).all(), b.prepare(`select * from ${table}`).all());
     }
-  } finally { a.close(); b.close(); rmSync(dir,{recursive:true,force:true}); }
+  } finally { a.close(); b.close(); removeDir(dir); }
   const before = existsSync('artifacts');
   const memory = openDb(':memory:');
   try { seed(memory); assert.equal(existsSync('artifacts'),before); } finally { memory.close(); }

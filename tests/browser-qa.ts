@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { once } from "node:events";
 import { setTimeout as sleep } from "node:timers/promises";
 import { readServiceInfo, serviceUrl } from "../service/src/service-info.ts";
+import { removeDir } from "./remove-dir.ts";
 
 const dataDir = resolve(process.argv[2] || ".nomos/prueba-web");
 const info = readServiceInfo(dataDir)!;
@@ -106,5 +107,5 @@ try {
   if (listener && listener.exitCode === null) { const exited = once(listener, "exit"); listener.kill(); await exited; }
   socket?.close();
   const exited = once(browser, "exit"); browser.kill(); await exited;
-  rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  removeDir(profile);
 }

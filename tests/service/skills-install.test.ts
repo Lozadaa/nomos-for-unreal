@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gameSkills, installSkills } from '../../service/src/skills-install.ts';
 import { installedSkills } from '../../service/src/skills.ts';
+import { removeDir } from '../remove-dir.ts';
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'nomos-skills-')), source = join(root, 'skills'), game = join(root, 'Juego');
@@ -14,7 +15,7 @@ function fixture() {
     writeFileSync(join(source, name, 'references', 'a.md'), 'ref\n');
   }
   mkdirSync(game);
-  return {root, source, game, close: () => rmSync(root, {recursive: true, force: true})};
+  return {root, source, game, close: () => removeDir(root)};
 }
 
 test('instala las tres skills de UI en <juego>/.claude/skills y es idempotente', () => {
@@ -57,5 +58,5 @@ test('nomos skills install --data .nomos instala en el juego padre de la carpeta
     assert.deepEqual(JSON.parse(run.stdout).map((r: {name: string; action: string}) => [r.name, r.action]), gameSkills.map(n => [n, 'installed']));
     assert.ok(existsSync(join(root, '.claude', 'skills', 'ue-visual-qa', 'SKILL.md')));
     assert.equal(spawnSync(process.execPath, [nomos, 'skills', 'borrar'], {encoding: 'utf8'}).status, 1);
-  } finally { rmSync(root, {recursive: true, force: true}); }
+  } finally { removeDir(root); }
 });

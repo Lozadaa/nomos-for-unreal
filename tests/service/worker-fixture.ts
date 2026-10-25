@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -11,6 +11,7 @@ import { createGit } from '../../service/src/adapters/git.ts';
 import { createWorkerHandlers } from '../../service/src/handlers/worker.ts';
 import { read, filtered } from '../../service/src/repo/rows.ts';
 import type { Run, Worktree } from '../../service/src/model.ts';
+import { removeDir } from '../remove-dir.ts';
 
 export function fixture(t: any, env: Record<string,string> = {}) {
   const dir=mkdtempSync(join(tmpdir(),'nomos-worker-')), projectDir=join(dir,'game'),dataDir=join(projectDir,'.nomos');
@@ -39,6 +40,6 @@ export function fixture(t: any, env: Record<string,string> = {}) {
   const start=()=>invoke('worker.start',{taskId:task.id,provider:'codex',role:'programmer',skills:['tdd']});
   const run=()=>filtered<Run>(db,'runs',{taskId:task.id})[0];
   const tree=()=>read<Worktree>(db,'worktrees',run().metadata.worktreeId!)!;
-  t.after(()=>{db.close();rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});});
+  t.after(()=>{db.close();removeDir(dir);});
   return {dir,db,projectDir,dataDir,ctx,task,handlers,invoke,start,run,tree,state,output,file,git,orcaOptions};
 }

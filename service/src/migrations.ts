@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { transaction } from './repo/rows.ts';
 import { migrateBrand } from './legacy.ts';
+import { groupRepeated } from './repo/decisions.ts';
 
 export function migrateWorker(db: DatabaseSync): void {
   transaction(db, () => {
@@ -131,4 +132,13 @@ export function migrateNomos(db: DatabaseSync): void {
  */
 export function migrateIndexes(db: DatabaseSync): void {
   db.exec('create index if not exists events_type on events(type, seq); create index if not exists commands_type on commands(type, state)');
+}
+
+/** Hito 20: cuántas veces se repitió una Decisión automática; las abiertas repetidas de antes se agrupan en la más reciente. */
+export function migrateDecisionRepeats(db: DatabaseSync): void {
+  transaction(db, () => {
+    if (!db.prepare('pragma table_info(decisions)').all().some(row => row.name === 'seen_count'))
+      db.exec('alter table decisions add column seen_count integer not null default 1');
+    groupRepeated(db);
+  });
 }

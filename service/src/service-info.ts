@@ -14,11 +14,12 @@ export function readServiceInfo(dataDir: string): ServiceInfo | null {
 
 export async function isAlive(info: ServiceInfo): Promise<boolean> {
   try {
-    const signal = AbortSignal.timeout(500);
+    // hito 20: con el equipo cargado medio segundo daba «no vivo» a un servicio sano (y las pruebas no lo paraban)
+    const signal = () => AbortSignal.timeout(2000);
     const base = `http://127.0.0.1:${info.port}`;
-    const health = await fetch(base + "/health", { signal });
+    const health = await fetch(base + "/health", { signal: signal() });
     if (!health.ok || (await health.json()).ok !== true) return false;
-    const response = await fetch(base + "/status", { signal, headers: { Authorization: `Bearer ${info.token}` } });
+    const response = await fetch(base + "/status", { signal: signal(), headers: { Authorization: `Bearer ${info.token}` } });
     return response.ok && (await response.json()).service === true;
   } catch { return false; }
 }

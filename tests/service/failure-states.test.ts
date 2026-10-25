@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fixture } from './route-fixture.ts';
@@ -11,6 +11,7 @@ import { listEvents } from '../../service/src/store.ts';
 import { OrcaError } from '../../service/src/adapters/orca.ts';
 import { failureKind, taskFailures } from '../../service/src/failure-kind.ts';
 import { limits, readConfig, visualTolerance } from '../../service/src/config.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('el tipo de fallo distingue conexión, ejecución y capacidad ausente', () => {
   assert.equal(failureKind(new OrcaError('not_running', 'cerrado')), 'connection');
@@ -56,5 +57,5 @@ test('límites y tolerancia visual configurables con defectos; valores inválido
       writeFileSync(join(dir, 'config.json'), bad);
       assert.throws(() => readConfig(dir), /invalid_worker_config/, bad);
     }
-  } finally { rmSync(dir, {recursive: true, force: true}); }
+  } finally { removeDir(dir); }
 });

@@ -9,10 +9,14 @@ import { Markdown } from '@/lib/markdown'
 import { budgets, countWords, truncateWords } from '@/visual/text-budget'
 
 /** Reserva espacio para el id, el detalle y el estado de envío antes de repartir pregunta y opciones. */
+/** Hito 20: «Visto 4 veces» si el mismo problema volvió a pedir la Decisión; null si fue una vez. */
+export const repeatText = (decision: Decision) => (decision.seenCount ?? 1) > 1 ? `Visto ${decision.seenCount} veces` : null
+
 export function decisionText(decision: Decision) {
   const optionLimit = Math.max(1, Math.min(4, Math.floor((budgets.decisionCard - 10) / Math.max(1, decision.options.length))))
   const optionWords = decision.options.reduce((sum, option) => sum + Math.min(optionLimit, countWords(option.label)), 0)
-  return { reason: truncateWords(decision.reason, Math.max(1, budgets.decisionCard - optionWords - 6)), optionLimit }
+  const repeatWords = repeatText(decision) ? 3 : 0
+  return { reason: truncateWords(decision.reason, Math.max(1, budgets.decisionCard - optionWords - repeatWords - 6)), optionLimit }
 }
 
 /** Miniatura propia de la opción (con token vía service worker); abre el visor y no elige la opción. */

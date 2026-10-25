@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { skillsForRole, installedSkills } from '../../service/src/skills.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const ui=['game-ui-art-director','ue-ui-umg-slate','game-ui-design','game-ui-ux','ue-umg-ui','ux-writing','ue-visual-qa'];
 test('tabla §4: UI, rol especialista precede área y resultado independiente',()=>{
@@ -31,7 +32,7 @@ test('tabla §4: implementación, habilidades, assets, animación, mundo, QA y a
 });
 test('installedSkills enumera solo SKILL.md locales por fuente y nombre deterministas',t=>{
   const dir=mkdtempSync(join(tmpdir(),'nomos-skills-'));
-  t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  t.after(()=>removeDir(dir));
   const add=(source:string,name:string,file='SKILL.md')=>{
     const folder=join(dir,source,'skills',name);mkdirSync(folder,{recursive:true});
     writeFileSync(join(folder,file),'---\nname: otro-nombre\n---\n');return join(folder,file);

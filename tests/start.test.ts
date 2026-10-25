@@ -1,17 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdtempSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { start, readServiceInfo, isAlive } from "../service/src/server.ts";
 import { cli, cliFixture } from "./cli-helpers.ts";
+import { removeDir } from "./remove-dir.ts";
 
 function directory(t: test.TestContext) {
   const dataDir = mkdtempSync(join(tmpdir(), "nomos-start-"));
   t.after(async () => {
     const info = readServiceInfo(dataDir);
     if (info && await isAlive(info)) await stop(info.port, info.token);
-    rmSync(dataDir, { recursive: true, force: true });
+    removeDir(dataDir);
   });
   return dataDir;
 }

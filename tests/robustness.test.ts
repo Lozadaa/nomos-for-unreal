@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { connect } from "node:net";
 import { once } from "node:events";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -10,6 +10,7 @@ import { acquireLock } from "../service/src/lock.ts";
 import { fixture, token } from "./helpers.ts";
 import { createMessage } from "../service/src/store.ts";
 import { cli, cliFixture, watcher, until } from "./cli-helpers.ts";
+import { removeDir } from "./remove-dir.ts";
 
 test("lector transitorio de SQLite no impide reservar un vigilante sin dueño", () => {
   const dataDir = mkdtempSync(join(tmpdir(), "nomos-lock-reader-"));
@@ -19,7 +20,7 @@ test("lector transitorio de SQLite no impide reservar un vigilante sin dueño", 
     // Abrir SQLite en otro proceso necesita leer la cabecera antes de competir.
     const release = acquireLock(dataDir, "watcher"); release();
   } finally {
-    reader.exec("rollback"); reader.close(); rmSync(dataDir, { recursive: true, force: true });
+    reader.exec("rollback"); reader.close(); removeDir(dataDir);
   }
 });
 
@@ -52,7 +53,7 @@ test("corte abrupto de SSE no repite mensajes ya impresos por ese vigilante", { 
   });
   const child = watcher(t, dataDir); let output = "";
   child.stdout!.on("data", chunk => { output += chunk.toString(); });
-  t.after(() => rmSync(dataDir, { recursive: true, force: true }));
+  t.after(() => removeDir(dataDir));
   await until(async () => secondClosed);
   const deliveries = output.trim().split("\n").map(line => JSON.parse(line))
     .filter(event => event.messageId === message.messageId);

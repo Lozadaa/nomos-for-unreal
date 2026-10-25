@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -9,6 +9,7 @@ import { latestBuild } from '../../service/src/play.ts';
 import { buildSummary, readBuildInfo, writeBuildInfo } from '../../service/src/build-info.ts';
 import { cliPath } from '../cli-helpers.ts';
 import { checksFixture } from './checks-fixture.ts';
+import { removeDir } from '../remove-dir.ts';
 
 /** Juego con repo git real: un commit viejo y main un commit por delante. */
 function repo() {
@@ -21,7 +22,7 @@ function repo() {
   writeFileSync(join(root, 'J1.11.txt'), 'reacciones'); git('add', '.'); git('commit', '-qm', 'J1.11');
   mkdirSync(data); const db = openDb(join(data, 'nomos.db'));
   const dir = join(root, 'Build', 'Windows-actual'); mkdirSync(dir, {recursive: true}); writeFileSync(join(dir, 'Juego.exe'), 'MZ');
-  return {root, data, db, dir, old, head: git('rev-parse', 'HEAD'), git, close() { db.close(); rmSync(root, {recursive: true, force: true}); }};
+  return {root, data, db, dir, old, head: git('rev-parse', 'HEAD'), git, close() { db.close(); removeDir(root); }};
 }
 const info = (commit: string) => ({commit, branch: 'main', builtAt: '2026-10-25T02:22:00.000Z', task: null, run: null});
 

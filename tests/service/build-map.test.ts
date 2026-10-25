@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { checksFixture } from './checks-fixture.ts';
 import { buildCookRun } from '../../service/src/adapters/unreal-build.ts';
 import type { Launch } from '../../service/src/checks/run.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const fakeBuild = join(import.meta.dirname, '..', 'fakes', 'unreal-build.mjs');
 
@@ -16,7 +17,7 @@ test('BuildCookRun cocina el mapa del recorrido: sin él, el juego empaquetado n
     assert.match(result.log, / -map=\/Game\/Mapas\/Prueba /);
     const without = await buildCookRun('C:/Juego/Juego.uproject', out, {bin: process.execPath, baseArgs: [fakeBuild]});
     assert.doesNotMatch(without.log, /-map=/);
-  } finally { (await import('node:fs')).rmSync(out, {recursive: true, force: true}); }
+  } finally { removeDir(out); }
 });
 
 test('la traza de Insights solo se pide con walkthrough.trace: true (30 s pesaron ~0,9 GB en KratosFabTest)', async () => {

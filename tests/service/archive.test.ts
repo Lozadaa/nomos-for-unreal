@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTask } from '../../service/src/repo/tasks.ts';
@@ -8,11 +8,12 @@ import { addArtifact } from '../../service/src/repo/artifacts.ts';
 import { preserveTask, verifyArchive } from '../../service/src/archive.ts';
 import type { WorkerContext } from '../../service/src/runner.ts';
 import { fixture, requestJson } from '../helpers.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('archivo: informes copiados, manifest verificado y servido sin salir de la carpeta', async t => {
   const {server, db} = await fixture(t);
   const dataDir = mkdtempSync(join(tmpdir(), 'nomos-archive-'));
-  t.after(() => rmSync(dataDir, {recursive: true, force: true}));
+  t.after(() => removeDir(dataDir));
   mkdirSync(join(dataDir, 'artifacts'));
   writeFileSync(join(dataDir, 'artifacts', 'review-1.json'), '{"approved":true}\n');
   writeFileSync(join(dataDir, 'secreto.txt'), 'no');
@@ -23,7 +24,7 @@ test('archivo: informes copiados, manifest verificado y servido sin salir de la 
   assert.ok(verifyArchive(dir));
   writeFileSync(join(dir, 'resumen.md'), 'alterado');
   assert.equal(verifyArchive(dir), null, 'un archivo alterado no verifica');
-  rmSync(dir, {recursive: true});
+  removeDir(dir);
   await preserveTask({db, dataDir} as unknown as WorkerContext, task);
   db.prepare('update tasks set archive_path=? where id=?').run(dir, task.id);
   const list = await (await requestJson(server, 'GET', `/tasks/${task.id}/archive`)).json();

@@ -63,7 +63,7 @@ Procesa las líneas del vigilante por `seq` ascendente. Todas llevan `type`; `me
    y opción explícitamente elegida; resuelve con
    `nomos decision resolve <id> --option <opcion> --by nomos`.
    Si falta elección o respuesta libre, espera el texto del usuario; el silencio no
-   autoriza nada. Resolver no envía instrucciones al worker automáticamente.
+   autoriza nada. Resolver no envía instrucciones al worker. Un problema repetido no abre otra Decisión (`decision.updated`, `seenCount`).
 5. Ante `run.finished`, consulta `nomos task show <taskId>` y estado actual del run
    antes de actuar. Descarta eventos antiguos si hay trabajo posterior o Decisión abierta.
    Si el run es `revisor`, espera `review.finished`; no lo revises tú.

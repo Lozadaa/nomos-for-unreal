@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createUnrealCmd } from '../../service/src/adapters/unreal-cmd.ts';
 import { buildCookRun, buildEditorTarget } from '../../service/src/adapters/unreal-build.ts';
 import { waitFor } from './wait.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const fakeCmd = join(import.meta.dirname, '..', 'fakes', 'unreal-cmd.mjs');
 const fakeBuild = join(import.meta.dirname, '..', 'fakes', 'unreal-build.mjs');
@@ -38,7 +39,7 @@ test('engineVersion lee Build.version del motor sin arrancar el editor; sin arch
     writeFileSync(join(engine, 'Build', 'Build.version'), JSON.stringify({MajorVersion: 5, MinorVersion: 8, PatchVersion: 3}));
     assert.equal(createUnrealCmd({bin: process.execPath, engineDir: engine}).engineVersion(uproject), '5.8.3');
     assert.equal(createUnrealCmd({bin: process.execPath, engineDir: join(engine, 'no')}).engineVersion(uproject), null);
-  } finally { rmSync(engine, {recursive: true, force: true}); }
+  } finally { removeDir(engine); }
 });
 
 test('buildEditorTarget: éxito, y fallo con las líneas de error separadas del log completo', async () => {
@@ -62,7 +63,7 @@ test('buildEditorTarget respeta el tiempo máximo y mata el proceso', async () =
     await assert.rejects(buildEditorTarget(uproject, {...build, timeoutMs: 1000}), /unreal_timeout/);
     const pid = Number(readFileSync(pidFile, 'utf8'));
     await waitFor(() => { try { process.kill(pid, 0); return false; } catch { return true; } }, 5000);
-  } finally { delete process.env.NOMOS_FAKE_PID; rmSync(dir, {recursive: true, force: true}); }
+  } finally { delete process.env.NOMOS_FAKE_PID; removeDir(dir); }
 });
 
 test('buildCookRun empaqueta en outDir y devuelve el ejecutable; sin motor, unreal_missing', async () => {
@@ -74,5 +75,5 @@ test('buildCookRun empaqueta en outDir y devuelve el ejecutable; sin motor, unre
     assert.equal(result.exePath, join(out, 'Windows', 'Juego.exe'));
     assert.match(result.log, /BuildCookRun .*-archivedirectory=/);
     await assert.rejects(buildEditorTarget(uproject, {bin: 'C:/no/existe/Build.bat'}), /unreal_missing/);
-  } finally { rmSync(out, {recursive: true, force: true}); }
+  } finally { removeDir(out); }
 });

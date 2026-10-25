@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,7 @@ import { plan, tick } from '../../service/src/scheduler.ts';
 import { capacityNote } from '../../service/src/scheduler-state.ts';
 import { refreshBusyTerminals } from '../../service/src/sweep.ts';
 import { startRunner } from '../../service/src/runner.ts';
+import { removeDir } from '../remove-dir.ts';
 
 // Hito 17: el cupo cuenta workers vivos; una run terminada cuyo terminal sigue trabajando ocupa hueco.
 const config = {concurrency: {claude: 2}};
@@ -21,7 +22,7 @@ function setup(t: any) {
   writeFileSync(file, JSON.stringify({repos: [], tail: ['trabajando'], idle: false}));
   const db = openDb(join(dir, 'nomos.db'));
   const orcaOptions = {bin: process.execPath, args: [fileURLToPath(new URL('../fakes/orca.ts', import.meta.url))], env: {FAKE_ORCA_STATE: file}};
-  t.after(() => { db.close(); rmSync(dir, {recursive: true, force: true, maxRetries: 5, retryDelay: 100}); });
+  t.after(() => { db.close(); removeDir(dir); });
   const state = (patch: object) => writeFileSync(file, JSON.stringify({...JSON.parse(readFileSync(file, 'utf8')), ...patch}));
   const run = (title: string, taskState: string, ref: string, done: boolean) => {
     const task = createTask(db, {title, area: 'gameplay', state: taskState as any});

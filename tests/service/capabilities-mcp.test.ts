@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -13,12 +13,13 @@ import { createEditorMcpHandlers } from '../../service/src/handlers/editor-mcp.t
 import type { WorkerContext } from '../../service/src/runner.ts';
 import type { Command } from '../../service/src/model.ts';
 import * as fs from 'node:fs';
+import { removeDir } from '../remove-dir.ts';
 
 const temp = () => mkdtempSync(join(tmpdir(), 'nomos-mcp-'));
 
 test('unreal_mcp_conflict: dos servidores «unreal» entre .mcp.json, settings y ~/.claude.json del juego', t => {
   const game = temp(), home = temp();
-  t.after(() => { rmSync(game, {recursive: true, force: true}); rmSync(home, {recursive: true, force: true}); });
+  t.after(() => { removeDir(game); removeDir(home); });
   const env = {PATH: '', USERPROFILE: home};
   assert.equal(detectCapabilities(env, fs, game).find(c => c.id === 'unreal_mcp_conflict'), undefined);
   writeFileSync(join(game, '.mcp.json'), JSON.stringify({mcpServers: {'unreal-epic': {}, figma: {}}}));
@@ -37,7 +38,7 @@ test('GET /editors: libre por defecto y «ocupado por» con la reserva editor/<p
   writeFileSync(join(root, 'KratosFabTest.uproject'), '{}');
   const db = openDb(join(dataDir, 'nomos.db')), server = createServer(db, 'token', 'service/web', dataDir);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); db.close(); rmSync(root, {recursive: true, force: true}); });
+  t.after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); db.close(); removeDir(root); });
   const get = async (path: string, auth = true) => fetch(`http://127.0.0.1:${(server.address() as any).port}${path}`,
     {headers: auth ? {Authorization: 'Bearer token'} : {}});
   assert.equal((await get('/editors', false)).status, 401);
@@ -50,7 +51,7 @@ test('GET /editors: libre por defecto y «ocupado por» con la reserva editor/<p
 });
 
 test('editor.mcp_start no arranca el editor vivo cuando editorMcp está apagado (por defecto)', async t => {
-  const dataDir = temp(); t.after(() => rmSync(dataDir, {recursive: true, force: true}));
+  const dataDir = temp(); t.after(() => removeDir(dataDir));
   let spawned = 0;
   const handlers = createEditorMcpHandlers({spawn: () => { spawned++; return {pid: 1}; }});
   const ctx = {dataDir, projectDir: dataDir} as unknown as WorkerContext;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -8,6 +8,7 @@ import { start, readServiceInfo, isAlive } from '../../service/src/server.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { repairArtifactPaths } from '../../service/src/repair-paths.ts';
 import { listEvents } from '../../service/src/store.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const put = (file: string) => { mkdirSync(join(file, '..'), {recursive: true}); writeFileSync(file, 'x'); };
 
@@ -19,7 +20,7 @@ function movedProject(t: test.TestContext) {
     const info = readServiceInfo(dataDir);
     if (info && await isAlive(info)) await fetch(`http://127.0.0.1:${info.port}/admin/stop`, {method: 'POST', headers: {Authorization: `Bearer ${info.token}`}});
     await new Promise(resolve => setTimeout(resolve, 40));
-    rmSync(root, {recursive: true, force: true});
+    removeDir(root);
   });
   mkdirSync(dataDir, {recursive: true});
   const db = openDb(join(dataDir, 'nomos.db'));

@@ -1,6 +1,6 @@
 import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { once } from 'node:events';
 import { get } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -11,6 +11,7 @@ import { createTask } from '../../service/src/repo/tasks.ts';
 import { addArtifact } from '../../service/src/repo/artifacts.ts';
 import { listProjects, register, registryFile, unregister } from '../../service/src/projects.ts';
 import { token } from '../helpers.ts';
+import { removeDir } from '../remove-dir.ts';
 
 /** Dos juegos en carpetas propias y un registro temporal: nunca el de la máquina. */
 function machine(t: TestContext) {
@@ -21,7 +22,7 @@ function machine(t: TestContext) {
     mkdirSync(data, {recursive: true}); writeFileSync(join(dir, `${name}.uproject`), '{}');
     return data;
   };
-  t.after(() => { delete process.env.NOMOS_REGISTRY; rmSync(root, {recursive: true, force: true}); });
+  t.after(() => { delete process.env.NOMOS_REGISTRY; removeDir(root); });
   return {root, game};
 }
 
@@ -53,7 +54,7 @@ test('GET /projects: tareas vivas y Decisiones abiertas de cada juego, sin token
   const server = createServer(db, token, web, blockKings);
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   // las pruebas de este archivo cierran el servicio antes de que machine() borre las carpetas (los after van en orden)
-  const close = async () => { server.closeAllConnections(); await new Promise<void>(r => server.close(() => r())); db.close(); rmSync(web, {recursive: true, force: true}); };
+  const close = async () => { server.closeAllConnections(); await new Promise<void>(r => server.close(() => r())); db.close(); removeDir(web); };
   try {
   const port = (server.address() as {port: number}).port, base = `http://127.0.0.1:${port}`;
   assert.equal((await fetch(`${base}/projects`)).status, 401);

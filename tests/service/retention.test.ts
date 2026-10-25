@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { checksFixture } from './checks-fixture.ts';
@@ -10,6 +10,7 @@ import { locatedPath } from '../../service/src/data-paths.ts';
 import { cleanSource, diskText } from '../../service/src/retention.ts';
 import { cliPath } from '../cli-helpers.ts';
 import type { Launch } from '../../service/src/checks/run.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const GB = 1024 ** 3;
 const env = () => { process.env.NOMOS_FAKE = 'ok'; };
@@ -95,7 +96,7 @@ test('copiar una build a Build/Windows-actual limpia el árbol de origen y nunca
     cleanSource(project, join(project, 'Build', 'Windows-actual'));
     assert.deepEqual(readdirSync(join(project, 'Saved')), ['Logs']);
     assert.ok(existsSync(join(project, 'Build', 'Windows-actual', 'f.bin')));
-  } finally { rmSync(src, {recursive: true, force: true}); rmSync(project, {recursive: true, force: true}); }
+  } finally { removeDir(src); removeDir(project); }
 });
 
 test('nomos build stamp Build/Windows-actual limpia los paquetes del árbol desde el que se estampa', () => {
@@ -110,5 +111,5 @@ test('nomos build stamp Build/Windows-actual limpia los paquetes del árbol desd
     // estampar otra carpeta (un paquete de prueba del worker) no borra nada
     execFileSync(process.execPath, [cliPath, 'build', 'stamp', join(root, 'Build', 'Otra')], {cwd: root, encoding: 'utf8'});
     assert.ok(existsSync(join(root, 'Build', 'Windows-actual', 'f.bin')));
-  } finally { rmSync(root, {recursive: true, force: true}); }
+  } finally { removeDir(root); }
 });

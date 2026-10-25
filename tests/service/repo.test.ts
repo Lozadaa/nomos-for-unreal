@@ -140,7 +140,7 @@ test('decisiones sucesivas transfieren bloqueo propio y caducan la anterior', ()
     assert.equal(getTask(db, 't')!.blockedReason, 'cierre ajeno');
   } finally { db.close(); }
 });
-test('excesos de presupuesto repetidos permiten resolver el último sin bloqueo huérfano', () => {
+test('excesos de presupuesto repetidos: una Decisión con contador que se resuelve sin bloqueo huérfano', () => {
   const db = openDb(':memory:');
   try {
     task(db);
@@ -150,7 +150,8 @@ test('excesos de presupuesto repetidos permiten resolver el último sin bloqueo 
       assert.throws(() => spend(db, budget.id, run.id, 'tokens', 1, null), /budget_exceeded/);
     }
     const decisions = listDecisions(db);
-    resolveDecision(db, decisions[1].id, 'stop', 'user');
+    assert.deepEqual(decisions.map(d => d.seenCount), [2], 'hito 20: una por problema, no una por intento');
+    resolveDecision(db, decisions[0].id, 'stop', 'user');
     assert.equal(getTask(db, 't')!.blockedReason, null);
     assert.equal(getTask(db, 't')!.decisionId, null);
     assert.equal(db.prepare('select count(*) n from spends').get()!.n, 0);

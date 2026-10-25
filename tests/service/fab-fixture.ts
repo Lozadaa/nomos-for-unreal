@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { removeDir } from '../remove-dir.ts';
 
 export const celUid = 'ff0ac933-a621-4541-9efc-24f09c6a39e2';
 const touch = (file: string, data: string | Buffer = '') => { mkdirSync(join(file, '..'), {recursive: true}); writeFileSync(file, data); };
@@ -46,7 +47,7 @@ export function fabFixture() {
   const config = {projectsDir, vaultDir, megascansDir, fabCacheDirs: [join(root, 'FabLibrary')], listingsDb,
     launcherLogPath: join(root, 'EpicGamesLauncher.log'), quarantineProject: join(projectsDir, 'KratosFabTest'), unrealPath};
   touch(join(dataDir, 'config.json'), JSON.stringify(config));
-  return {root, dataDir, projectsDir, vaultDir, listingsDb, config, engineRoot: join(root, 'UE_5.8'), close: () => rmSync(root, {recursive: true, force: true})};
+  return {root, dataDir, projectsDir, vaultDir, listingsDb, config, engineRoot: join(root, 'UE_5.8'), close: () => removeDir(root)};
 }
 
 /** Plantillas del motor con los nombres reales de UE 5.8 (archivos vacíos); devuelve la ruta de UnrealEditor-Cmd.exe (no existe). */

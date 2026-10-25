@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applySchema } from '../../service/src/schema.ts';
@@ -9,6 +9,7 @@ import { openDb } from '../../service/src/db.ts';
 import { createTask, requireTask } from '../../service/src/repo/tasks.ts';
 import { acquire, listLeases } from '../../service/src/leases.ts';
 import { seed } from '../../service/src/seed.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('migra tareas existentes y decodifica reservas con defaults sin perder datos',()=>{
   const dir=mkdtempSync(join(tmpdir(),'nomos-lease-schema-')),file=join(dir,'db.sqlite');
@@ -24,7 +25,7 @@ test('migra tareas existentes y decodifica reservas con defaults sin perder dato
       assert.deepEqual(task.leases,['Content/UI/HUD.uasset']);assert.equal(legacy.title,'Anterior');
     } finally {db.close();}
     const reopened=openDb(file);reopened.close();
-  } finally {rmSync(dir,{recursive:true,force:true});}
+  } finally {removeDir(dir);}
 });
 
 test('resembrar producción limpia reservas de runs eliminados',()=>{

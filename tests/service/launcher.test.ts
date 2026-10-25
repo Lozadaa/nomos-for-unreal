@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseCompletion, tailLog } from '../../service/src/adapters/launcher.ts';
+import { removeDir } from '../remove-dir.ts';
 
 const real = readFileSync(join(import.meta.dirname, '..', 'fixtures', 'fab', 'launcher-complete.log'), 'utf8').split(/\r?\n/).filter(Boolean);
 
@@ -31,5 +32,5 @@ test('tailLog lee solo líneas completas nuevas y reinicia si el log rota', () =
     writeFileSync(file, 'nuevo\n');
     assert.deepEqual(tailLog(file, 999).lines, ['nuevo']);
     assert.deepEqual(tailLog(join(dir, 'falta.log'), 5), {lines: [], offset: 5});
-  } finally { rmSync(dir, {recursive: true, force: true}); }
+  } finally { removeDir(dir); }
 });

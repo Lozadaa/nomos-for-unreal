@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 // @ts-expect-error: script .mjs sin tipos
 import { renameRepo, renameText } from '../scripts/renombrar-nomos.mjs';
+import { removeDir } from './remove-dir.ts';
 
 test('renameText: identificadores, rutas y textos; GitHub al repo nuevo', () => {
   assert.equal(renameText('KRATOS_DONE en .kratos/kratos.db; «Esperando a Kratos»; KratosEvent'),
@@ -25,7 +26,7 @@ test('renameText deja los nombres reales: carpetas del usuario, ramas, contenido
 
 test('renameRepo: reescribe texto, mueve con git mv, no toca binarios ni la lista de compatibilidad, y es idempotente', t => {
   const root = mkdtempSync(join(tmpdir(), 'nomos-renombre-'));
-  t.after(() => rmSync(root, {recursive: true, force: true}));
+  t.after(() => removeDir(root));
   const git = (...args: string[]) => execFileSync('git', args, {cwd: root, encoding: 'utf8'});
   git('init', '-q');
   mkdirSync(join(root, 'skills/kratos/scripts'), {recursive: true}); mkdirSync(join(root, 'service/src'), {recursive: true});

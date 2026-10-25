@@ -4,10 +4,11 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { openDb } from '../../service/src/db.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { startRunner } from '../../service/src/runner.ts';
-import { mkdtempSync,writeFileSync,rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { until } from '../cli-helpers.ts';
+import { removeDir } from '../remove-dir.ts';
 
 test('runner programa preparada sin solapar y deja de escribir tras drained',async()=>{
   const db=openDb(':memory:');
@@ -38,5 +39,5 @@ test('config inválida se recupera en próximo tick y runners genéricos no prog
     db.prepare('delete from commands').run();
     stop=startRunner(db,{}, {intervalMs:1,schedulerIntervalMs:5,context:{dataDir:dir}});
     await delay(30);assert.equal(db.prepare('select count(*) n from commands').get()!.n,0);
-  } finally {stop();await stop.drained;db.close();rmSync(dir,{recursive:true,force:true});}
+  } finally {stop();await stop.drained;db.close();removeDir(dir);}
 });
