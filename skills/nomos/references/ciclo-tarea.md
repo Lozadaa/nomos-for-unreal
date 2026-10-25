@@ -180,10 +180,11 @@ Una tarea que quedó atascada («Requiere reconciliar worker existente») se des
 
 ## Tarea parada
 
-Si una tarea pasa 10 min en implementando, revisando, probando, integrando o cerrando sin run viva ni
-comando pendiente, el servicio abre la Decisión «Tarea parada en …» (`nomos doctor` la
-lista en «Tareas atascadas»). «Retomar» = pide tú el paso de ese estado: `worker send`, `task review`,
-`task check`, `task integrate` o `task finalize`. «Cancelar» = déjala y avisa al usuario.
+Tras 10 min en implementando…cerrando sin run viva ni comando pendiente (`nomos doctor`: «Tareas atascadas»):
+si corriges después de NOMOS_DONE, repite la marca; si no, Nomos pide la revisión al ver tus commits
+(`review.auto_requested`, con el terminal quieto). Si no, abre una Decisión con el paso exacto («Pedir la revisión del commit X»,
+«El worker no dio NOMOS_DONE: leer su terminal»): la recomendada lo ejecuta Nomos. «Tarea parada en …»/«Retomar» = pide tú
+`worker send`, `task review`, `task check`, `task integrate` o `task finalize`. «Cancelar» = déjala y avisa al usuario.
 
 ## Fallos y continuidad de escucha
 

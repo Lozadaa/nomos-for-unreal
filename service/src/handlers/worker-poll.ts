@@ -49,6 +49,9 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   if(fatal) return discardOpencode(ctx,run,fatal);
   const idlePolls=lines.length ? 0 : (run.metadata.idlePolls ?? 0)+1;
   const idle=!lines.length && idlePolls>=2 && !run.metadata.waiting && !blockedNow() ? await orca.terminalIsIdle(run.sessionRef!) : false;
+  // hito 18: el HEAD de la marca; si después aparecen commits sin otra marca, el barrido de atascos pide la revisión
+  const doneCommit=run.role!=='revisor' && fresh.some(m=>m.kind==='DONE')
+    ? await (async()=>ctx.git.head(runTree(db,run).path))().catch(()=>undefined) : undefined;
   let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined;
   transaction(db,()=>{
     const previous=run.metadata,lastLines=snapshot ? screenLines.slice(-20) : [...(previous.lastLines ?? []),...lines].slice(-20);
@@ -79,7 +82,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       if(marker.kind==='SKILLS') continue;
       if (marker.kind==='DONE') {
         if(run.role==='revisor') continue;
-        finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:''});
+        finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:'',...(doneCommit ? {doneCommit} : {})});
         moveTask(db,run.taskId,'revisando');attribute(db,run.taskId,'implemento',run);refreshPendingDecision(db,run.taskId);
         // hito 5: toda pantalla UMG pasa por capturas y QA visual antes de cerrarse
         if(task.area==='ui') enqueue(db,'ui.cycle',{taskId:run.taskId,runId:run.id},uiCycleKey(run));

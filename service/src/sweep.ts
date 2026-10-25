@@ -48,6 +48,9 @@ export async function sweepTerminals(db: DatabaseSync, orca: Orca): Promise<Work
   return count;
 }
 
+/** Vivo y no en reposo: el worker sigue trabajando aunque su run esté terminada (hito 17; hito 18 para los atascos). */
+export const terminalBusy = async (orca: Orca, ref: string) => await orca.terminalAlive(ref) && !await orca.terminalIsIdle(ref);
+
 /** La última cuenta del barrido (`nomos status`); `null` antes del primero. */
 export const workerProcesses = (db: DatabaseSync): WorkerProcesses | null => counts.get(db) ?? null;
 /**
@@ -58,7 +61,7 @@ export const workerProcesses = (db: DatabaseSync): WorkerProcesses | null => cou
 export async function refreshBusyTerminals(db: DatabaseSync, orca: Orca): Promise<void> {
   for (const run of tracked(db).filter(r => r.state !== 'running' && (r.provider === 'claude' || r.provider === 'codex'))) {
     let busy: boolean;
-    try { busy = await orca.terminalAlive(run.sessionRef!) && !await orca.terminalIsIdle(run.sessionRef!); }
+    try { busy = await terminalBusy(orca, run.sessionRef!); }
     catch { continue; /* Orca no responde: se conserva lo último que se supo */ }
     if (busy !== !!run.metadata.terminalBusy) updateRun(db, run.id, {terminalBusy: busy});
   }

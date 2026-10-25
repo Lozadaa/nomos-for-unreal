@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
 import { enqueue } from '../../service/src/commands.ts';
 import { createTask, moveTask, requireTask } from '../../service/src/repo/tasks.ts';
-import { openStallDecisions, stalledTasks } from '../../service/src/stall.ts';
+import { sweepStalls, stalledTasks } from '../../service/src/stall.ts';
 import { doctor } from '../../service/src/doctor.ts';
 
 // recorrido del hito 7: QA visual aprobado y la tarea quedó en «revisando» sin ningún comando ni run
@@ -27,9 +27,9 @@ test('atasco: estado activo sin comando pendiente ni run viva → doctor lo marc
   assert.equal(row.state, 'falla');
   assert.match(row.detail, /HUD de vida · revisando · 11 min/);
 
-  assert.equal(openStallDecisions(db, later), 1);
+  assert.equal(await sweepStalls({db} as any, later), 1);
   assert.match(requireTask(db, task.id).blockedReason ?? '', /parada en «revisando»/);
-  assert.equal(openStallDecisions(db, later), 0, 'con la Decisión abierta ya no se repite');
+  assert.equal(await sweepStalls({db} as any, later), 0, 'con la Decisión abierta ya no se repite');
 });
 
 test('implementando con la run del responsable caída (envío fallido) y sin comandos también es atasco', async t => {
