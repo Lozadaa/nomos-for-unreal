@@ -14,6 +14,7 @@ import { discardOpencode } from './worker-opencode.ts';
 import { enqueue } from '../commands.ts';
 import { uiCycleKey } from './ui-cycle.ts';
 import { attribute } from '../attribution.ts';
+import { relayStep } from './worker-relay.ts';
 export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
@@ -24,6 +25,9 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   if(task.decisionId || task.blockedReason) {
     transaction(db,()=>{pauseForDecision(db,run.taskId,run.id);queuePoll(db,run);});return;
   }
+  // hito 19: 15 min antes del límite de Orca, relevo por un worker nuevo en el mismo árbol
+  if(await relayStep(ctx,run)) return;
+  run=requireRun(db,run.id);
   const stream=await orca.terminalRead(run.sessionRef!,run.metadata.cursor ?? '0');
   const blockedNow=()=>{const current=requireTask(db,run.taskId);return !!current.decisionId || !!current.blockedReason;};
   let page=stream;

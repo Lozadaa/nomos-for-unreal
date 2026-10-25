@@ -15,7 +15,7 @@ import { requireGameProject } from '../project-root.ts';
 import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
-import { readConfig, workerModel, opencodeModel } from '../config.ts';
+import { readConfig, workerModel, opencodeModel, maxWorkerMinutes } from '../config.ts';
 import { launchPlan, briefLine } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
@@ -58,7 +58,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const short=task.id.slice(0,8);
   const skills=[...new Set([...payload.skills,...skillsForRole(payload.role,task.area)])];
   let run=reusable ?? startRun(db,{taskId:task.id,role:payload.role,provider:payload.provider,skills,attempt:payload.attempt ?? 1,
-    metadata:{...(review ? {review:review.snapshot} : {}),startCommandId:cmd.id,phase:'preparing',deadlineAt:new Date(Date.now()+4*3600_000).toISOString(),pollGeneration:0,correctionCount:0}});
+    metadata:{...(review ? {review:review.snapshot} : {}),startCommandId:cmd.id,phase:'preparing',deadlineAt:new Date(Date.now()+maxWorkerMinutes(config)*60_000).toISOString(),pollGeneration:0,correctionCount:0}});
   if(reusable) run=updateRun(db,run.id,{waiting:false,question:undefined});
   const reservation=acquire(db,run.id,task.id,review ? [] : requireTask(db,task.id).leases);
   if(!reservation.ok) {

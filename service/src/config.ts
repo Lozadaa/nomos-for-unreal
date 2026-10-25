@@ -13,7 +13,9 @@ export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,numbe
   /** Hito 12: modelo de OpenCode, siempre explícito para no heredar el caro del usuario; gratuito por defecto. */
   opencodeModel?: string;
   /** Hito 16: minutos que una run en marcha aguanta sin respuesta de Orca antes de marcarse failed (10 por defecto). */
-  orca?: {graceMinutes?: number}};
+  orca?: {graceMinutes?: number;
+    /** Hito 19: minutos que Orca deja vivo el terminal de un worker (240); el relevo llega 15 min antes. */
+    maxWorkerMinutes?: number}};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
 export function concurrency(config: SchedulerConfig): Record<WorkerProvider,number> {
   return config.concurrency===undefined ? {codex:0,claude:2,opencode:0}
@@ -25,6 +27,7 @@ export const workerModel = (config: SchedulerConfig): WorkerModel => config.work
 export const isOpencodeModel = (v: unknown) => typeof v==='string' && /^opencode(-go)?\/[\w.-]+$/.test(v);
 export const opencodeModel = (config: SchedulerConfig): string => config.opencodeModel ?? 'opencode/beam-free';
 export const orcaGraceMinutes = (config: SchedulerConfig) => config.orca?.graceMinutes ?? 10;
+export const maxWorkerMinutes = (config: SchedulerConfig) => config.orca?.maxWorkerMinutes ?? 240;
 export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
 const count = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
 export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?: unknown} {
@@ -43,7 +46,8 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(config.limits!==undefined && (!config.limits || typeof config.limits!=='object' || Array.isArray(config.limits)
       || Object.entries(config.limits).some(([k,v])=>k!=='corrections' || !count(v)))) throw new Error();
     if(config.orca!==undefined && (!config.orca || typeof config.orca!=='object' || Array.isArray(config.orca)
-      || Object.entries(config.orca).some(([k,v])=>k!=='graceMinutes' || typeof v!=='number' || !(v>=0 && v<=24*60)))) throw new Error();
+      || Object.entries(config.orca).some(([k,v])=>!['graceMinutes','maxWorkerMinutes'].includes(k) || typeof v!=='number'
+        || !(v>=0 && v<=24*60) || k==='maxWorkerMinutes' && v<=0))) throw new Error();
     return config;
   } catch {throw new Error('invalid_worker_config');}
 }

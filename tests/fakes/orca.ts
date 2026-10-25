@@ -70,6 +70,11 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   else emit({ terminals: state.terminals ?? [{ handle: 'term_fake',
     worktreeId: `repo-1::${state.treePath ?? 'C:/Juego trabajador'}`,
     connected: true, writable: true, orphaned: false }], truncated: state.terminalsTruncated ?? false });
+} else if (args[0] === 'terminal' && args[1] === 'create') {
+  // hito 19: el relevo abre un terminal nuevo en el mismo worktree con la orden como argumento
+  const handle = `term_nuevo_${(state.created ?? []).length + 1}`;
+  state.created = [...(state.created ?? []), { handle, worktree: value('--worktree'), title: value('--title'), command: value('--command') }]; save();
+  emit({ terminal: { handle } });
 } else if (args[0] === 'terminal' && args[1] === 'close') {
   state.closed = [...(state.closed ?? []), value('--terminal')]; save();
   emit({ closed: true, handle: value('--terminal') });
