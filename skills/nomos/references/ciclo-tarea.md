@@ -117,6 +117,10 @@ Probando/integrando/cerrando/done final y limpieza pertenecen a hitos posteriore
 5. Después de tres correcciones, si sigue sin cumplir, abre Decisión antes de una
    cuarta. No arranques otro worker ni cambies responsable para eludir el límite.
 
+Orca sin responder con la run en marcha (se actualiza, se reinicia): la run sigue y la tarjeta dice
+«Orca no responde desde hace N min»; no la reconcilies ni arranques otro worker. Solo tras
+`orca.graceMinutes` (10 por defecto, `config.json`) pasa a failed incierta y entonces sí se reconcilia.
+
 ## Pregunta y Decisión
 
 Ante waiting consulta estado y `nomos run output RUN --since 0` la primera vez;

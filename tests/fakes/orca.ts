@@ -32,6 +32,9 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   emit({ app: { running: !state.down }, runtime: { state: state.down ? 'stopped' : 'ready', reachable: !state.down } });
 } else if (state.down) {
   fail('orca_not_running', 'Orca no está abierto');
+} else if (state.updating) {
+  // hito 16: lo que dice el CLI mientras la app de Orca se actualiza (sin orca-runtime.json)
+  fail('runtime_unavailable', state.updating);
 } else if (args[0] === 'repo' && args[1] === 'list') {
   emit({ repos: state.repos });
 } else if (args[0] === 'repo' && args[1] === 'add') {

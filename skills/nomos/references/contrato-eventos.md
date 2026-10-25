@@ -80,8 +80,10 @@ Además: `Última confirmación: <hora local>` o `sin confirmaciones`.
 
 Solo un vigilante reserva la carpeta mediante un lock local SQLite exclusivo,
 liberado por el SO al morir el proceso. El servicio reutiliza
-su token si sigue vivo; después de reiniciarlo lo rota. El vigilante relee las
-credenciales; la web necesita abrir la URL nueva. Recargar la web reconstruye el
+su token si sigue vivo y, desde el hito 16, también al reiniciarlo: el token es de la carpeta
+de datos (`<dataDir>/token`, 0o600) y reiniciar no invalida los accesos directos ni las pestañas
+abiertas, que reconectan solas. Solo `nomos start --new-token` (con el servicio parado) lo
+cambia; entonces el vigilante relee las credenciales y la web necesita la URL nueva. Recargar la web reconstruye el
 historial desde SQLite sin duplicar tarjetas.
 
 Pendientes significa **sin confirmar**, no «sin respuesta». Una caída entre ack y
@@ -125,6 +127,9 @@ Si se borró un archivo anterior, esto también permite replay. Archivo corrupto
 avisa `watcher_checkpoint_recovery` por stderr y recupera cero, sin usar ACK para
 suprimir eventos del director. Error real de lectura/permisos/guardado detiene con
 `watcher_checkpoint_error`, sin etiquetar service_down un fallo de disco.
+Hito 16: un plazo vencido (servicio ocupado con un diff largo o Unreal cargando) no es una caída;
+el vigilante comprueba el pid de `service.json` y `GET /health` con 5 s y solo si falla imprime
+`{"error":"service_down"}`, una vez por caída (vuelve a avisar tras recuperarse y caer otra vez).
 Conserva archivo previo/temporal para diagnosticar, corrige disco/permisos y rearma
 la misma sesión/tipos; si recuperas desde cero, espera reentregas e inspecciona estado.
 

@@ -11,7 +11,9 @@ export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,numbe
   /** Modelo de los workers y revisores Claude (`claude --model …`); sonnet por defecto. */
   workerModel?: WorkerModel;
   /** Hito 12: modelo de OpenCode, siempre explícito para no heredar el caro del usuario; gratuito por defecto. */
-  opencodeModel?: string};
+  opencodeModel?: string;
+  /** Hito 16: minutos que una run en marcha aguanta sin respuesta de Orca antes de marcarse failed (10 por defecto). */
+  orca?: {graceMinutes?: number}};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
 export function concurrency(config: SchedulerConfig): Record<WorkerProvider,number> {
   return config.concurrency===undefined ? {codex:0,claude:2,opencode:0}
@@ -22,6 +24,7 @@ export const workerModel = (config: SchedulerConfig): WorkerModel => config.work
 /** Solo modelos de OpenCode Zen/Go, sin espacios ni comillas: viajan en la orden del terminal. */
 export const isOpencodeModel = (v: unknown) => typeof v==='string' && /^opencode(-go)?\/[\w.-]+$/.test(v);
 export const opencodeModel = (config: SchedulerConfig): string => config.opencodeModel ?? 'opencode/beam-free';
+export const orcaGraceMinutes = (config: SchedulerConfig) => config.orca?.graceMinutes ?? 10;
 export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
 const count = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
 export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?: unknown} {
@@ -39,6 +42,8 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(config.opencodeModel!==undefined && !isOpencodeModel(config.opencodeModel)) throw new Error();
     if(config.limits!==undefined && (!config.limits || typeof config.limits!=='object' || Array.isArray(config.limits)
       || Object.entries(config.limits).some(([k,v])=>k!=='corrections' || !count(v)))) throw new Error();
+    if(config.orca!==undefined && (!config.orca || typeof config.orca!=='object' || Array.isArray(config.orca)
+      || Object.entries(config.orca).some(([k,v])=>k!=='graceMinutes' || typeof v!=='number' || !(v>=0 && v<=24*60)))) throw new Error();
     return config;
   } catch {throw new Error('invalid_worker_config');}
 }

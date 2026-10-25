@@ -89,7 +89,7 @@ cd panel && npx playwright test   # e2e en Chromium y Firefox con su propio serv
 
 ## Seguridad
 
-El servicio solo escucha en `127.0.0.1` y toda ruta exige `Authorization: Bearer <token>`; el token cambia en cada arranque, vive en `<juego>/.nomos/service.json` y no debe pegarse en chats ni tickets. El panel lo recibe por el fragmento de la URL y lo guarda en `sessionStorage`; tras reiniciar el servicio dice «Sesión caducada».
+El servicio solo escucha en `127.0.0.1` y toda ruta exige `Authorization: Bearer <token>`; el token es de la carpeta de datos: vive en `<juego>/.nomos/token` (y mientras el servicio corre, en `service.json`), ambos con permisos 0o600, y no debe pegarse en chats ni tickets. Reiniciar (`nomos stop` y `nomos start`) no invalida los accesos directos: el token se conserva y el panel abierto reconecta solo. `nomos start --new-token`, con el servicio parado, lo cambia; entonces los accesos directos viejos dejan de valer y el panel dice «Sesión caducada».
 
 ## Licencia
 

@@ -1,13 +1,35 @@
 import type { WorkerContext } from '../runner.ts';
 import type { Command } from '../model.ts';
-import { OrcaError } from '../adapters/orca.ts';
 import { requireTask } from '../repo/tasks.ts';
+import { requireRun, updateRun } from '../repo/worker.ts';
 import { appendEvent } from '../store.ts';
-import { orcaDownReason } from '../failure-kind.ts';
+import { orcaDown, orcaDownReason, orcaUnreachableReason } from '../failure-kind.ts';
+import { orcaGraceMinutes, readConfig } from '../config.ts';
 import { decisionGate } from './worker-policy.ts';
 
+export { orcaDown };
 export const orcaRetryMs = 30_000, orcaPatienceMs = 30 * 60_000;
-export const orcaDown = (error: unknown) => error instanceof OrcaError && error.code === 'not_running';
+
+/**
+ * Hito 16: Orca que deja de responder con una run ya en marcha (se actualiza, se reinicia) no la mata: el seguimiento se
+ * difiere cada 30 s con `orcaUnreachableSince` en la run y solo tras `orca.graceMinutes` (10) se deja fallar, incierta, como antes.
+ */
+export function orcaGrace(ctx: WorkerContext, type: string, payload: {runId?: unknown}, error: unknown, now = Date.now()):
+  {deferred: true; reason: string; delayMs: number} | undefined {
+  if (!orcaDown(error) || typeof payload.runId !== 'string' || !['worker.poll', 'review.poll', 'worker.send'].includes(type)) return;
+  const run = requireRun(ctx.db, payload.runId);
+  if (run.state !== 'running' && !(type === 'worker.send' && run.state === 'done')) return;
+  const since = run.metadata.orcaUnreachableSince ?? new Date(now).toISOString();
+  if (now - Date.parse(since) >= orcaGraceMinutes(readConfig(ctx.dataDir)) * 60_000) return;
+  if (!run.metadata.orcaUnreachableSince) updateRun(ctx.db, run.id, {orcaUnreachableSince: since});
+  return {deferred: true, reason: orcaUnreachableReason, delayMs: orcaRetryMs};
+}
+/** Orca volvió: la marca se quita y el seguimiento sigue como si nada. */
+export function orcaBack(ctx: WorkerContext, payload: {runId?: unknown}): void {
+  if (typeof payload.runId !== 'string') return;
+  const run = ctx.db.prepare("select json_extract(metadata,'$.orcaUnreachableSince') since from runs where id=?").get(payload.runId);
+  if (run?.since) updateRun(ctx.db, payload.runId, {orcaUnreachableSince: undefined});
+}
 
 /**
  * Orca cerrado antes de cualquier efecto (hito 7): se difiere cada 30 s sin gastar reintentos; a los 30 min,

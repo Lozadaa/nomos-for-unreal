@@ -34,6 +34,16 @@ Después del árbol, la TUI puede quedar iniciada e idle mientras el despacho de
 
 Solo un fallo limpio `lease_conflict`, sin árbol ni incertidumbre, admite avanzar automáticamente al siguiente intento. Un arranque `policyBlocked` completado sigue requiriendo POST explícito al resolver su decisión. Un árbol detenido requiere reconciliación.
 
+## Orca que no responde con runs en marcha (hito 16)
+
+Si Orca deja de responder (cerrado, o su CLI dice «Start the Orca app first» mientras la app se actualiza) cuando una run ya está en marcha, `worker.poll`, `review.poll` y `worker.send` no la marcan `failed`: el comando se difiere cada 30 s sin gastar intentos, la run queda en marcha con `metadata.orcaUnreachableSince` y la tarjeta dice «Orca no responde desde hace N min». Cuando Orca vuelve se quita la marca y el seguimiento sigue igual. Solo si pasan `orca.graceMinutes` minutos (10 por defecto, de 0 a 1440) sin respuesta la run pasa a `failed` con `metadata.uncertain=true`, como antes, y hay que reconciliarla:
+
+```json
+{"orca":{"graceMinutes":10}}
+```
+
+Arrancar un worker con Orca así sigue el camino de Orca cerrado (diferido cada 30 s; Decisión «Abrir Orca / Cancelar» a los 30 min).
+
 ## Reconciliar (hito 13)
 
 `worker.stop` (`nomos worker stop RUN`) y `task.reconcile` (`nomos task reconcile TAREA`, `POST /tasks/:id/reconcile`, 202 con `commandId`; solo en `pendiente`, `preparada` o `implementando`) comparten el mismo procedimiento sobre las runs de la tarea que no estén ya reconciliadas: cierran el terminal de Orca y comprueban que muera (si sigue vivo, `deferred` cada 30 s; al quinto intento la tarea espera con «No se pudo cerrar el terminal del worker»); con `git status --porcelain` limpio retiran el worktree; con cambios abren la Decisión «Descartar / Commitear al run / Esperar» (Commitear lo hace Nomos en la rama del run). Al terminar: `metadata.uncertain=false`, `metadata.discarded=true`, `tasks.worktree_id=null`, reservas liberadas, tarea en `preparada`, Decisión de reconciliar abierta resuelta por `nomos` y evento `task.reconciled`. Una run reconciliada no cuenta como «Requiere reconciliar worker existente», y el arranque que se paró en esa Decisión deja de exigir arranque explícito: el planificador usa el intento siguiente.

@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { start, readServiceInfo, isAlive } from "../service/src/server.ts";
+import { cli, cliFixture } from "./cli-helpers.ts";
 
 function directory(t: test.TestContext) {
   const dataDir = mkdtempSync(join(tmpdir(), "nomos-start-"));
@@ -43,11 +44,42 @@ test("start sustituye service.json obsoleto y conserva pendientes al reiniciar",
     body: JSON.stringify({ text: "durable 🎾" }) })).json();
   await stop(first.port, first.token);
   const second = await start({ dataDir, port: 0 });
-  assert.notEqual(second.token, first.token);
+  // hito 16: el token es de la carpeta de datos; el que traía el service.json viejo no era válido
+  assert.notEqual(first.token, "viejo"); assert.equal(second.token, first.token);
   const response = await fetch(`http://127.0.0.1:${second.port}/messages/${message.messageId}`, {
     headers: { Authorization: `Bearer ${second.token}` } });
   assert.equal((await response.json()).text, "durable 🎾");
-  const oldToken = await fetch(`http://127.0.0.1:${second.port}/status`, {
-    headers: { Authorization: `Bearer ${first.token}` } });
-  assert.equal(oldToken.status, 401);
+});
+
+test("hito 16: reiniciar no invalida los accesos directos; --new-token sí", async t => {
+  const dataDir = directory(t), other = directory(t);
+  const first = await start({ dataDir, port: 0 });
+  await stop(first.port, first.token);
+  assert.equal(readServiceInfo(dataDir), null, "stop sigue retirando service.json");
+  const second = await start({ dataDir, port: 0 });
+  assert.equal(second.token, first.token);
+  if (process.platform !== "win32") assert.equal(statSync(join(dataDir, "token")).mode & 0o777, 0o600);
+  const fresh = await start({ dataDir: other, port: 0 });
+  assert.notEqual(fresh.token, first.token);
+  await stop(second.port, second.token);
+  const renewed = await start({ dataDir, port: 0, newToken: true });
+  assert.notEqual(renewed.token, first.token); assert.match(renewed.token, /^[a-f0-9]{48}$/);
+  const old = await fetch(`http://127.0.0.1:${renewed.port}/status`, { headers: { Authorization: `Bearer ${first.token}` } });
+  assert.equal(old.status, 401);
+});
+
+test("hito 16: un service.json de un proceso muerto deja su token a la carpeta", async t => {
+  const dataDir = directory(t), token = "c".repeat(48);
+  writeFileSync(join(dataDir, "service.json"), JSON.stringify({ pid: 999999, port: 1, token, startedAt: "ayer" }));
+  assert.equal((await start({ dataDir, port: 0 })).token, token);
+});
+
+test("hito 16: nomos start --new-token pasa la orden al servicio", async t => {
+  const { dataDir, port } = await cliFixture(t);
+  assert.equal(cli(dataDir, "start", "--no-open", "--port", String(port)).status, 0);
+  const before = readServiceInfo(dataDir)!.token;
+  assert.equal(cli(dataDir, "stop").status, 0);
+  const result = cli(dataDir, "start", "--no-open", "--new-token", "--port", String(port));
+  assert.equal(result.status, 0, result.stderr);
+  assert.notEqual(readServiceInfo(dataDir)!.token, before);
 });

@@ -14,8 +14,9 @@ export function ownService(port: number, project = 'CrazyPadel', registry?: stri
   execFileSync(process.execPath, [cli, 'seed', '--data', data], { stdio: 'ignore' })
   const token = () => (JSON.parse(readFileSync(join(data, 'service.json'), 'utf8')) as { token: string }).token
   const env = { ...process.env, NOMOS_REGISTRY: registry ?? join(root, 'registro.json') }
-  const start = () => {
-    execFileSync(process.execPath, [cli, 'start', '--data', data, '--port', String(port), '--no-open'], { stdio: 'ignore', env })
+  // `--new-token` (hito 16): reiniciar conserva el token salvo que se pida otro
+  const start = (...args: string[]) => {
+    execFileSync(process.execPath, [cli, 'start', '--data', data, '--port', String(port), '--no-open', ...args], { stdio: 'ignore', env })
     return token()
   }
   const stop = () => { try { execFileSync(process.execPath, [cli, 'stop', '--data', data], { stdio: 'ignore', env }) } catch { /* ya parado */ } }
