@@ -55,7 +55,7 @@ export function PorAprobar() {
   if (loading) return slow ? <div role="status" aria-label="Cargando lo que está por aprobar" className="flex flex-col gap-3">{Array.from({ length: 2 }, (_, i) => <Skeleton key={i} className="h-64" />)}</div> : null
   const pending = items.filter((i) => i.state === 'pending').length
   return (
-    <div className="flex max-w-6xl flex-col gap-6">
+    <div className="flex w-full max-w-[1400px] flex-col gap-6">
       <h2 role="status" className="text-sm text-muted-foreground">
         {pending === 0 ? 'Nada por aprobar ahora' : pending === 1 ? 'Tienes 1 elemento por aprobar' : `Tienes ${pending} elementos por aprobar`}
       </h2>

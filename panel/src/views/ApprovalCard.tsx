@@ -18,11 +18,12 @@ const label = 'text-xs font-medium tracking-wider text-muted-foreground uppercas
 function Video({ a }: { a: Artifact }) {
   const src = useAuthedSrc(file(a)), poster = useAuthedSrc(a.previewPath ? `/artifacts/${encodeURIComponent(a.id)}/preview` : null)
   return src ? <video controls preload="metadata" playsInline src={src} poster={poster ?? undefined} aria-label={viewerName(a)}
-    className="aspect-video w-full rounded-md border border-subtle bg-card" /> : <div className="aspect-video w-full rounded-md bg-card" />
+    className="aspect-video w-full max-w-[1280px] rounded-md border border-subtle bg-black object-contain" />
+    : <div className="aspect-video w-full max-w-[1280px] rounded-md bg-card" />
 }
 function Thumb({ a, onOpen }: { a: Artifact; onOpen: (el: HTMLElement) => void }) {
   const src = useAuthedSrc(file(a)), name = viewerName(a)
-  return <li className="aspect-video overflow-hidden rounded-md border border-subtle bg-card">
+  return <li className="aspect-video w-60 shrink-0 overflow-hidden rounded-md border border-subtle bg-card">
     <ViewerButton name={name} onOpen={onOpen}>{src && <img src={src} alt={name} width={320} height={180} loading="lazy" className="size-full object-cover" />}</ViewerButton>
   </li>
 }
@@ -61,8 +62,9 @@ export function ApprovalCard({ item, open, patch }: {
         {item.summary && <p className="text-sm text-muted-foreground">{item.summary}</p>}
         <span role="status" className="flex items-center gap-2 text-xs"><StatusDot tone={pending ? 'warning' : item.state === 'approved' ? 'success' : 'neutral'} />{stateText[item.state]}</span>
       </header>
-      {videos.length > 0 && <div className="grid gap-3 lg:grid-cols-2">{videos.map((a) => <Video key={a.id} a={a} />)}</div>}
-      {images.length > 0 && <ul aria-label="Imágenes" className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+      {/* para juzgar un golpe hay que verlo grande: cada vídeo a todo el ancho útil (máx. 1280 px); las imágenes, debajo en tira */}
+      {videos.length > 0 && <div className="flex flex-col gap-3">{videos.map((a) => <Video key={a.id} a={a} />)}</div>}
+      {images.length > 0 && <ul aria-label="Imágenes" className="flex gap-3 overflow-x-auto pb-1">
         {images.map((a) => <Thumb key={a.id} a={a} onOpen={(el) => open(a.id, el)} />)}
       </ul>}
       {!item.evidence.length && <p className="text-sm text-muted-foreground">Aún no hay vídeo ni imágenes de este elemento.</p>}

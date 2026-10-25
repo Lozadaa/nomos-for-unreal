@@ -34,7 +34,11 @@ describe('Por aprobar', () => {
     const video = card.querySelector('video')!
     await waitFor(() => expect(video).toHaveAttribute('src'))
     expect(video).toHaveAttribute('controls'); expect(video.autoplay).toBe(false)
-    expect(within(card).getByRole('list', { name: 'Imágenes' })).toBeInTheDocument()
+    const strip = within(card).getByRole('list', { name: 'Imágenes' })
+    // lo visual manda: el vídeo a todo el ancho (máx. 1280, 16:9) y las imágenes debajo, en tira
+    expect(video).toHaveClass('w-full', 'max-w-[1280px]', 'aspect-video')
+    expect(strip).toHaveClass('flex', 'overflow-x-auto')
+    expect(video.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(within(card).getByText('Mira el retroceso al tercer golpe')).toBeInTheDocument()
     expect(screen.getByText('Tienes 1 elemento por aprobar')).toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(ids)

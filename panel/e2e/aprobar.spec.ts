@@ -28,7 +28,8 @@ function evidence(taskId: string) {
 }
 
 test('Por aprobar enseña vídeo e imágenes por elemento; comentar y aprobar responden en el acto', async ({ page, browserName }) => {
-  const title = `J1.6 Reacciones a los golpes (${browserName}) ${Date.now() % 100000}`
+  // título limpio en la captura (chromium); el de firefox se distingue para no repetir elemento
+  const title = browserName === 'chromium' ? 'J1.6 Reacciones a los golpes' : 'J1.7 Derribo que llega al suelo'
   const task = await (await call(page, '/tasks', { title, area: 'gameplay', acceptance: ['El rival retrocede', 'Hay sonido de impacto'],
     spec: '## Qué\nLos golpes hacen retroceder al rival.\n\n## Por qué\nSensación de juego.' })).json() as { id: string }
   evidence(task.id)
@@ -43,6 +44,15 @@ test('Por aprobar enseña vídeo e imágenes por elemento; comentar y aprobar re
   await expect(video).toHaveAttribute('controls', '')
   expect(await video.evaluate((v: HTMLVideoElement) => v.autoplay)).toBe(false)
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThan(0)
+  if (browserName === 'chromium') {
+    // para juzgar un golpe el vídeo se ve grande: todo el ancho útil de la tarjeta, hasta 1280 px, en 16:9
+    const box = (await video.boundingBox())!, cardBox = (await card.boundingBox())!
+    expect(box.width).toBe(1280)
+    expect(Math.round(box.width / box.height * 100) / 100).toBeCloseTo(16 / 9, 1)
+    expect(cardBox.width).toBeGreaterThan(1300); expect(cardBox.width).toBeLessThanOrEqual(1400)
+    const strip = (await card.getByRole('list', { name: 'Imágenes' }).boundingBox())!
+    expect(strip.y).toBeGreaterThan(box.y + box.height - 1)
+  }
   await expect(card.getByRole('list', { name: 'Imágenes' }).getByRole('img')).toBeVisible()
   await expect(card.getByText('El rival retrocede')).toBeVisible()
   await expect(card).not.toContainText(/\.(mp4|png)\b|[0-9a-f]{8}-[0-9a-f]{4}/)
