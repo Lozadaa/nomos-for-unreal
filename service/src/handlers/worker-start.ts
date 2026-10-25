@@ -15,13 +15,14 @@ import { requireGameProject } from '../project-root.ts';
 import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
-import { readConfig, workerModel, opencodeModel, maxWorkerMinutes } from '../config.ts';
+import { readConfig, workerModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
 import { launchPlan, briefLine } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
 import { continuationBrief } from './continue.ts';
 import { orcaDeferral, orcaDown } from './orca-down.ts';
 import { askReconcile } from './reconcile.ts';
+import { fromMain } from '../main-base.ts';
 
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
@@ -87,7 +88,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     workerFailure(db,{...payload,runId:run.id,conflicts:currentReservation.conflicts},'lease_conflict');return;
   }
   const suffix=review ? '-review-'+run.id.slice(0,8) : '';
-  const created=await orca.worktreeCreate(repoId,'nomos-'+short+suffix,payload.provider);
+  const created=await orca.worktreeCreate(repoId,'nomos-'+short+suffix,payload.provider,orcaCreateTimeoutMs(config));
   transaction(db,()=>{
     run=updateRun(db,run.id,{worktreeId:created.worktreeId},{sessionRef:created.terminalHandle});
     // hito 13: Orca da a un worktree nuevo en la misma ruta el mismo id que al retirado; su fila cerrada se reutiliza
@@ -97,6 +98,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
       baseCommit:'',state:'active',closedReason:null});
     if(!review) db.prepare('update tasks set worktree_id=?,updated_at=? where id=?').run(created.worktreeId,new Date().toISOString(),task.id);
   });
+  // hito 22: un worker nuevo nace de la punta de main aunque Orca creara el árbol desde una base vieja
+  if(!review) await fromMain(ctx,task.id,created.path);
   const baseCommit=await git.head(created.path);
   db.prepare('update worktrees set base_commit=?,updated_at=? where id=?').run(baseCommit,new Date().toISOString(),created.worktreeId);
   // hito 13: la rama de un worker reconciliado sigue en el repositorio (con lo commiteado); la nueva no la pisa
@@ -109,7 +112,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const context=[existsSync(contextFile) ? readFileSync(contextFile,'utf8') : '',
     task.area==='ui' && existsSync(uiFile) ? `## Dirección de arte de la UI (docs/ui-direction.md)\n\n${readFileSync(uiFile,'utf8')}` : ''].filter(Boolean).join('\n\n');
   writeFileSync(join(created.path,'.nomos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
-    {projectContext:context || undefined,continuation:continuationBrief(db,task,ctx.dataDir)}));
+    {projectContext:context || undefined,continuation:continuationBrief(db,task,ctx.dataDir),
+      turn:`node "${join(import.meta.dirname,'..','cli.ts')}" worker turn ${task.id} --data "${ctx.dataDir}"`}));
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);

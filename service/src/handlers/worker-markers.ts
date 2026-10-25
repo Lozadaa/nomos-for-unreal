@@ -4,13 +4,15 @@ import { join } from 'node:path';
 
 // Marcadores NOMOS_*; hasta el 2026-11-24 también los KRATOS_* de workers lanzados con briefs anteriores al hito 11.
 export type Finding={file:string;line:number;severity:string;note:string};
-export type Marker = {kind:'DONE';summary:string;commits:string[];tests:string} | {kind:'ASK'|'INVALID_REVIEW';question:string}
-  | {kind:'REVIEW';approved:boolean;findings:Finding[]} | {kind:'SKILLS';skills:string[]};
+/** `focus` (hito 22): «En qué fijarte» para la aprobación del usuario, opcional en DONE y en REVIEW. */
+export type Marker = {kind:'DONE';summary:string;commits:string[];tests:string;focus?:string[]} | {kind:'ASK'|'INVALID_REVIEW';question:string}
+  | {kind:'REVIEW';approved:boolean;findings:Finding[];focus?:string[]} | {kind:'SKILLS';skills:string[]};
 export const compactMarkerText=(text:string)=>text.replace(/\s/g,'');
 export function markerId(marker: Extract<Marker,{kind:'DONE'}>): string {
   return createHash('sha256').update(JSON.stringify({summary:compactMarkerText(marker.summary),
     commits:marker.commits.map(compactMarkerText),tests:marker.tests})).digest('hex');
 }
+const focus=(data:any)=>Array.isArray(data.focus)&&data.focus.every((s:unknown)=>typeof s==='string') ? {focus:data.focus.filter((s:string)=>s.trim()).slice(0,4)} : {};
 function decode(kind:string,text:string): Marker | undefined {
   try {
     const data=JSON.parse(text);
@@ -18,13 +20,13 @@ function decode(kind:string,text:string): Marker | undefined {
       return {kind:'SKILLS',skills:[...new Set(data)]};
     if(kind==='DONE' && typeof data.summary==='string' && Array.isArray(data.commits)
       && data.commits.every((s:unknown)=>typeof s==='string') && ['passed','failed','none'].includes(data.tests)) {
-      return {kind:'DONE',summary:data.summary,commits:data.commits,tests:data.tests};
+      return {kind:'DONE',summary:data.summary,commits:data.commits,tests:data.tests,...focus(data)};
     }
     if(kind==='ASK' && typeof data.question==='string' && data.question.trim()) return {kind:'ASK',question:data.question};
     if(kind==='REVIEW' && typeof data.approved==='boolean' && Array.isArray(data.findings)
       && data.findings.every((f:any)=>f && typeof f.file==='string'&&f.file.trim()
         &&Number.isSafeInteger(f.line)&&f.line>0&&typeof f.severity==='string'&&f.severity.trim()
-        &&typeof f.note==='string'&&f.note.trim())) return {kind:'REVIEW',approved:data.approved,findings:data.findings};
+        &&typeof f.note==='string'&&f.note.trim())) return {kind:'REVIEW',approved:data.approved,findings:data.findings,...focus(data)};
   } catch {}
 }
 function fenceLine(line:string,fence:string): string | undefined {

@@ -9,6 +9,7 @@ import { archiveDir, taskArchive, verifyArchive } from '../archive.ts';
 import { file } from './artifacts.ts';
 import { createContinuation } from '../handlers/continue.ts';
 import { liftHold } from '../hold.ts';
+import { pendingApproval } from '../approvals.ts';
 
 type Db = Context['db'];
 /** Orden viva de ese tipo para la tarea, o una nueva con clave numerada (reintegrar tras resolver un conflicto). */
@@ -29,6 +30,8 @@ export function integratePayload(db: Db, taskId: unknown): Task {
   if (task.state === 'revisando' && task.reviewApproved === 1 && !task.acceptance.some(a => a.startsWith('check:')))
     task = moveTask(db, task.id, 'integrando', 'Revisión aprobada; sin pruebas exigidas');
   if (task.state !== 'integrando' || task.reviewApproved !== 1) throw new Error('invalid_transition');
+  // hito 22: lo que espera la aprobación del usuario no se integra
+  if (pendingApproval(db, task.id)) throw new Error('approval_pending');
   liftHold(db, task.id, 'integración pedida');
   return task;
 }

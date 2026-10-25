@@ -12,9 +12,10 @@ import { Entregas } from '@/views/Entregas'
 import { Estilo } from '@/views/Estilo'
 import { Presupuesto } from '@/views/Presupuesto'
 import { Proyectos } from '@/views/Proyectos'
+import { PorAprobar } from '@/views/PorAprobar'
 
 const pages: Record<string, React.ReactElement> = {
-  '/': <Produccion />, '/actividad': <Actividad />, '/entregas': <Entregas />, '/catalogo': <Catalogo />, '/chat': <Chat />,
+  '/': <Produccion />, '/aprobar': <PorAprobar />, '/actividad': <Actividad />, '/entregas': <Entregas />, '/catalogo': <Catalogo />, '/chat': <Chat />,
   '/decisiones': <Decisiones />, '/presupuesto': <Presupuesto />, '/capacidades': <Capacidades />, '/estilo': <Estilo />,
 }
 

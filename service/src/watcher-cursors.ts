@@ -1,25 +1,19 @@
-import { readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { writeAtomic } from './atomic.ts';
 import { join } from 'node:path';
 
 export class CheckpointError extends Error {}
 export const defaultTypes=['message.received','run.finished','worker.waiting','command.failed'];
 /** Hito 21: una Decisión abierta o actualizada siempre llega al director, la nombre o no la lista de tipos. */
-export const requiredTypes=['decision.opened','decision.updated'];
+export const requiredTypes=['decision.opened','decision.updated',
+  // hito 22: lo que el usuario decide en «Por aprobar» siempre llega al director
+  'approval.requested','approval.approved','approval.changes_requested','approval.commented'];
 export function normalizeTypes(types: string[]=defaultTypes): string[] {
   const listed=types.map(type=>type.trim()),result=[...new Set([...listed,...requiredTypes])].sort();
   if (!listed.length || result.some(type=>! /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/.test(type))) {
     throw new Error('Uso: --types requiere tipos separados por comas, sin entradas vacías');
   }
   return result;
-}
-/** En Windows renombrar sobre un archivo que otro proceso tiene abierto (antivirus, indexador, un lector) da EPERM un instante. */
-function replace(from: string, to: string): void {
-  for (let attempt = 0; ; attempt++) {
-    try { renameSync(from, to); return; } catch (error) {
-      if (attempt >= 20 || !['EPERM', 'EBUSY', 'EACCES'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
-    }
-  }
 }
 function valid(value: unknown): value is number {return Number.isSafeInteger(value) && Number(value)>=0;}
 /**
@@ -54,10 +48,10 @@ export function deliveryCheckpoint(dataDir: string,session: string) {
   let cursor=cursors[key] ?? 0;
   return {get cursor(){return cursor;},advance(seq: number) {
     if(seq<=cursor) return;
-    const next={...cursors,[key]:seq},temporary=path+'.tmp';
+    const next={...cursors,[key]:seq};
     try {
-      writeFileSync(temporary,JSON.stringify({version:2,cursors:next})+'\n',{encoding:'utf8',mode:0o600});
-      replace(temporary,path);
+      // hito 22: temporal propio, fsync y rename (el reinicio del 25 dejó este archivo lleno de ceros)
+      writeAtomic(path,JSON.stringify({version:2,cursors:next})+'\n',0o600);
     } catch(error) {
       throw new CheckpointError(`watcher_checkpoint_error: entrega ${seq} sin guardar; no continuar: ${(error as Error).message}`);
     }

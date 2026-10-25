@@ -8,12 +8,16 @@ import { appendEvent } from './store.ts';
 import { databaseDirectory } from './routes/index.ts';
 import { dirname, resolve } from 'node:path';
 import { closeRuns, recoverCommands } from './recovery.ts';
+import { recoverDeadRuns } from './handlers/worker-recover.ts';
+import { cancelDecisionZombies } from './zombies.ts';
 import { sweepStalls } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
+import type { MachineProbe } from './machine.ts';
 import { failureKind } from './failure-kind.ts';
 import { closeIdleTerminals, refreshBusyTerminals, sweepIntervalMs, sweepTerminals } from './sweep.ts';
-export type WorkerContext = {db: DatabaseSync; orca: Orca; git: Git; dataDir: string; projectDir: string};
+/** `probe` (hito 22): RAM libre y editores vivos; las pruebas la inyectan. */
+export type WorkerContext = {db: DatabaseSync; orca: Orca; git: Git; dataDir: string; projectDir: string; probe?: MachineProbe};
 export type Handler = (command: Command, context: WorkerContext) => Promise<object | void>;
 export type RunnerStop = (() => void) & {drained: Promise<void>};
 const lanes: Lane[] = ['normal', 'long'];
@@ -42,7 +46,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
   }});
   const context: WorkerContext={...opts.context,db,dataDir,projectDir:resolve(opts.context?.projectDir ?? dirname(dataDir)),
     git:opts.context?.git ?? createGit(),orca:opts.context?.orca ?? orca};
-  let nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000),nextSweep=0;
+  let nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000),nextSweep=0,recovered=false;
   async function execute(command: Command) {
     const handler=handlers[command.type];
     const pulse=setInterval(()=>{try {beat(db,command.id);} catch {/* la base puede estar cerrándose */}},opts.heartbeatMs ?? 5000);
@@ -77,10 +81,15 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
       } catch(error) {appendEvent(db,'sweep.error',null,{reason:error instanceof Error ? error.message : String(error)});}
       if(lane==='normal' && Date.now()>=nextSchedule) {
         nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000);
+        // hito 22: tras un reinicio, las runs con el terminal muerto se cierran y se relanzan en la primera pasada
+        if(!recovered && handlers['worker.recover']) try {await recoverDeadRuns(context);recovered=true;} catch(error) {
+          appendEvent(db,'recovery.error',null,{reason:error instanceof Error ? error.message : String(error)});
+        }
         // dueños muertos sin latido (otro proceso que cayó): una pasada por ciclo del planificador
         try {recoverCommands(db,{owner});} catch(error) {
           appendEvent(db,'recovery.error',null,{reason:error instanceof Error ? error.message : String(error)});
         }
+        try {cancelDecisionZombies(db);} catch(error) {appendEvent(db,'recovery.error',null,{reason:error instanceof Error ? error.message : String(error)});}
         // hito 7: estado activo sin nada que lo mueva → Decisión; hito 18: o la revisión pedida sola si hubo commits tras DONE
         try {await sweepStalls(context);} catch(error) {
           appendEvent(db,'stall.error',null,{reason:error instanceof Error ? error.message : String(error)});

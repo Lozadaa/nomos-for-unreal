@@ -95,7 +95,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
           appendEvent(db,'worker.done_ignored',null,{runId:run.id,taskId:run.taskId,provider:run.provider,reason:'sin commit tras la corrección'});
           continue;
         }
-        finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:'',...(doneCommit ? {doneCommit} : {})});
+        finishRun(db,run.id,'done',marker.summary);updateRun(db,run.id,{waiting:false,phase:'finished',markerBuffer:'',...(doneCommit ? {doneCommit} : {}),...(marker.focus ? {focus:marker.focus} : {})});
         moveTask(db,run.taskId,'revisando');attribute(db,run.taskId,'implemento',run);refreshPendingDecision(db,run.taskId);
         // hito 5: toda pantalla UMG pasa por capturas y QA visual antes de cerrarse
         if(task.area==='ui') enqueue(db,'ui.cycle',{taskId:run.taskId,runId:run.id},uiCycleKey(run));

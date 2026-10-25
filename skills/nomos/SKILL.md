@@ -99,7 +99,7 @@ Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config 
 El modelo de workers y revisores Claude es `workerModel` (`sonnet` por defecto, `opus`, `haiku`).
 Con dos tareas sobre el mismo asset, solo una arranca; la otra queda `preparada` con
 `waitReason` «Esperando reserva…» hasta que la primera termine: no la fuerces ni
-subas `attempt`. Los cupos viven en el campo `concurrency` de la config del servicio. OpenCode es el
+subas `attempt`. Cupos en `concurrency`; un Unreal pesado a la vez y RAM libre: [máquina](references/maquina.md). OpenCode es el
 proveedor barato para tareas sencillas sin Unreal: reglas en [OpenCode](references/opencode.md).
 El revisor es otro run (otro proveedor si hay dos) con brief de revisión y skills de
 `revisor`. Aprobado no es `done`. Detalle en [brief del revisor](references/brief-revisor.md).
@@ -137,7 +137,7 @@ y [evidencia](references/evidencia.md).
 ## Cerrar
 
 Cuando una tarea llega a `integrando` (revisión aprobada y pruebas en verde; sin pruebas exigidas basta
-la revisión), pide `nomos task integrate <id>`; para retenerla a propósito, `task hold` (ciclo-tarea.md). Ante `integration.completed`,
+la revisión), pide `nomos task integrate <id>` (lo visual, tras el «Aprobar» del usuario: [aprobación](references/aprobacion.md)). Ante `integration.completed`,
 pide `nomos task finalize <id>`. Ante `task.closing_blocked`, lee `condition` y `reason`
 y publica el motivo; si hay Decisión (conflicto, cambios sin registrar), preséntala y
 espera la elección: nunca elijas «Descartar» por tu cuenta. Nomos **nunca** concede

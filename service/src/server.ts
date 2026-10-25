@@ -6,7 +6,7 @@ import { listProjects, projectCapture, register, unregister } from "./projects.t
 import { readFile } from "node:fs/promises";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
-import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { openDb } from "./db.ts";
 import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
@@ -22,6 +22,7 @@ import { startRunner, type Handler } from './runner.ts';
 import { workerProcesses } from './sweep.ts';
 import { activeHolds } from './hold.ts';
 import { capacityNote } from './scheduler-state.ts';
+import { machineWaits } from './scheduler.ts';
 import { readConfig } from './config.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 import { createAssetHandlers } from './handlers/asset.ts';
@@ -30,6 +31,8 @@ import { createClosingHandlers } from './handlers/closing.ts';
 import { recoverMeshy } from './handlers/asset-meshy.ts';
 import { createMeshy } from './adapters/meshy.ts';
 import { diskOf } from './retention.ts';
+import { writeAtomic } from './atomic.ts';
+import { pendingCount } from './approvals.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 /** Hito 17: «cupo lleno: J1.10 corrigiendo» si un worker terminado sigue ocupando hueco; config ilegible = sin nota. */
@@ -76,7 +79,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
       }
-      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), disk: diskOf(dataDir) });
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), disk: diskOf(dataDir) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);
@@ -124,7 +127,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
       const message = (error as NodeJS.ErrnoException).code === "ERR_INVALID_URL" ? "invalid_url"
         : error instanceof Error ? error.message : "internal_error";
       const code = message === "body_too_large" ? 413 : ["invalid_json", "invalid_url"].includes(message) ? 400
-        : ["decision_stale", "not_empty", "invalid_transition"].includes(message) ? 409
+        : ["decision_stale", "not_empty", "invalid_transition", "approval_pending"].includes(message) ? 409
         : message.startsWith("invalid_") || ["unknown_option", "meshy_kind_not_allowed", "cascadeur_not_justified"].includes(message) ? 400
         : message.startsWith("unknown_") ? 404 : 500;
       if (!res.headersSent) json(res, code, { error: code === 500 ? "internal_error" : message });
@@ -163,8 +166,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   const info = { pid: process.pid, port, token, startedAt: new Date().toISOString(), ...(migrated ? { migrated_from: migrated } : {}) };
   // registro de proyectos de la máquina (nombre, carpeta, puerto, pid; nunca el token): portada y selector del panel
   try { register(opts.dataDir, port); } catch { /* sin registro, el panel sigue funcionando solo con este proyecto */ }
-  const temporary = file + `.${process.pid}.tmp`;
-  writeFileSync(temporary, JSON.stringify(info), { mode: 0o600 }); renameSync(temporary, file);
+  writeAtomic(file, JSON.stringify(info), 0o600);
   // jobs de Meshy cobrados cuya respuesta se perdió: se reconcilian antes de que nadie cree otro
   if(!opts.runner?.handlers && process.env.MESHY_API_KEY) void recoverMeshy(db,createMeshy()).catch(error=>
     appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));

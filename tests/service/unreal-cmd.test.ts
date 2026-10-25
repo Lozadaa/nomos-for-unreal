@@ -55,3 +55,12 @@ test('tiempo máximo: unreal_timeout y el proceso queda muerto', async () => {
 test('sin ejecutable: unreal_missing', async () => {
   await assert.rejects(createUnrealCmd({bin: 'C:/no/existe/UnrealEditor-Cmd.exe'}).verifyPack(uproject, '/Game/X'), /unreal_missing/);
 });
+
+test('hito 22: checks.captureCvars van en -ExecCmds antes del script de captura (cámara fija sin handheld)', async () => {
+  process.env.NOMOS_FAKE = 'ok';
+  const unreal = createUnrealCmd({bin: process.execPath, baseArgs: [fake], captureCvars: ['BlockKings.CamaraFija 1']});
+  const run = await unreal.runPython(uproject, join(import.meta.dirname, '..', '..', 'service', 'unreal', 'nomos_pie_capture.py'), {}, 30_000,
+    {render: {width: 1280, height: 720}});
+  // el editor falso escribe en el log los argumentos tal como le llegan
+  assert.match(run.log, /-ExecCmds=BlockKings\.CamaraFija 1,py import os;exec/);
+});

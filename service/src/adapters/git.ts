@@ -28,7 +28,7 @@ export type Git = GitLfs & {
   /** Deshace en `dir` esos archivos: los seguidos vuelven a HEAD, los nuevos se borran (lo que escribió un lote de pruebas). */
   discard(dir: string, files: string[]): Promise<void>;
   branchExists(dir: string, branch: string): Promise<boolean>;
-  contains(dir: string, branch: string, commit: string): Promise<boolean>;
+  contains(dir: string, branch: string, commit: string): Promise<boolean>; /** hito 22 */ tip?(dir: string, branch: string): Promise<string>; resetHard?(dir: string, ref: string): Promise<void>;
   filesBetween(dir: string, from: string, to: string): Promise<string[]>;
   advanceBranch(repoDir: string, branch: string, commit: string, expected: string): Promise<void>;
 };
@@ -148,6 +148,7 @@ export function createGit(): Git {
         for(const file of chunk) if(!tracked.has(file)) rmSync(join(dir,file),{force:true});
       }
     },
+    async tip(dir,branch) {return (await run(dir,['rev-parse','--verify',`refs/heads/${branch}`])).trim();}, async resetHard(dir,ref) {await run(dir,['reset','--hard',ref]);},
     async branchExists(dir,branch) {try {await run(dir,['rev-parse','--verify','--quiet',`refs/heads/${branch}`]);return true;} catch {return false;}},
     async contains(dir,branch,commit) {try {await run(dir,['merge-base','--is-ancestor',commit,`refs/heads/${branch}`]);return true;} catch {return false;}},
     async filesBetween(dir,from,to) {return (await run(dir,['diff','--name-only','-z',from,to])).split('\0').filter(Boolean);},

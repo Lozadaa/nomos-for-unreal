@@ -13,6 +13,8 @@ import { advance } from './checks.ts';
 import { appendEvent } from '../store.ts';
 import { enqueue } from '../commands.ts';
 import { attribute } from '../attribution.ts';
+import { finishReviewApproval } from '../approvals.ts';
+import { readConfig } from '../config.ts';
 
 export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Marker,{kind:'REVIEW'}>):Promise<void> {
   const {db}=ctx,snapshot=run.metadata.review;
@@ -49,6 +51,8 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
       attribute(db,run.taskId,'reviso',run);
     }
     if(marker.approved) {
+      // hito 22: lo que se ve y se juega lo aprueba el usuario («Por aprobar»); mientras, la tarea queda retenida
+      if(!qa) finishReviewApproval(db,requireTask(db,run.taskId),readConfig(ctx.dataDir),marker.focus);
       if(task.acceptance.some(s=>s.startsWith('check:'))) {
         moveTask(db,run.taskId,'probando');
         // hito 5: la puerta probando → integrando la abren las comprobaciones del diff

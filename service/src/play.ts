@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { writeAtomic } from './atomic.ts';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { readConfig } from './config.ts';
@@ -99,7 +100,7 @@ const state = new Map<string, {child?: ChildProcess; running: Running}>();
 const stateFile = (dataDir: string) => join(dataDir, 'play.json');
 type Saved = {running?: Running | null; lastPlayedBuiltAt?: string | null};
 const saved = (dataDir: string): Saved => { try { return JSON.parse(readFileSync(stateFile(dataDir), 'utf8')); } catch { return {}; } };
-const save = (dataDir: string, value: Saved) => writeFileSync(stateFile(dataDir), JSON.stringify({...saved(dataDir), ...value}));
+const save = (dataDir: string, value: Saved) => writeAtomic(stateFile(dataDir), JSON.stringify({...saved(dataDir), ...value}));
 const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
 function finish(db: DatabaseSync, dataDir: string, pid: number, reason: 'exited' | 'stopped'): void {

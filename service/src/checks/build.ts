@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { buildCookRun, errorLines } from '../adapters/unreal-build.ts';
 import { quote } from '../adapters/process.ts';
-import { readConfig } from '../config.ts';
+import { readConfig, captureCvars } from '../config.ts';
 import { writeBuildInfo } from '../build-info.ts';
 import { diskText, freeBytes, packBytes, remove, retainCheck } from '../retention.ts';
 import { capture, defaultMap, gameMap } from './map.ts';
@@ -83,7 +83,8 @@ const packageCheck: Executor = async (ctx, {project, files, dir, worktree, task,
   const commands = Array.isArray(config.walkthrough?.commands) ? config.walkthrough.commands as string[] : undefined;
   // la traza de Insights (cpu, gpu, memoria) de 30 s pesó ~0,9 GB en KratosFabTest: solo con `walkthrough.trace: true`
   const tracefile = (config.walkthrough as {trace?: unknown} | undefined)?.trace === true ? join(dir, 'traza.utrace') : undefined;
-  const life = await (deps.launch ?? launch)(result.exePath, walkthroughArgs({map, commands, tracefile}), lifeSeconds * 1000)
+  // hito 22: las CVars de captura (cámara fija) van antes del recorrido
+  const life = await (deps.launch ?? launch)(result.exePath, walkthroughArgs({map, commands: [...captureCvars(readConfig(ctx.dataDir)), ...commands ?? defaultCommands], tracefile}), lifeSeconds * 1000)
     ?? {exitCode: null, seconds: lifeSeconds, killed: true};
   const name = basename(project.uproject, '.uproject'), saved = join(dirname(result.exePath), name, 'Saved');
   const gameLog = join(saved, 'Logs', `${name}.log`);

@@ -1,0 +1,41 @@
+# La máquina: RAM, turno de Unreal y arranque
+
+## Un Unreal pesado a la vez
+
+El planificador no arranca una tarea **pesada** (abre Unreal) sin RAM libre (`scheduler.minFreeRamGb`, 6 por
+defecto), sin hueco en `scheduler.heavy.maxConcurrent` (1) y, con `scheduler.heavyRequiresNoEditor`, sin un
+`UnrealEditor` ajeno vivo. Las ligeras siguen arrancando. Declara la carga en la spec cuando la inferencia
+(área `animacion`, `escenarios` o `builds`; alcance con mapas, animaciones o build) no acierte:
+
+```markdown
+Carga: ligera
+```
+
+`nomos status` lista en `unreal` lo que espera («J2.2 espera: 4,1 GB libres, hacen falta 6») y el vigilante
+recibe `scheduler.waiting`. No apagues el planificador por la RAM ni arranques pesadas a mano.
+
+## Turno desde el worker
+
+El brief de cada worker trae la orden exacta. Antes de abrir el editor, empaquetar o lanzar PIE:
+
+```
+nomos worker turn <taskId> --wait      # bloquea hasta editor.granted
+nomos worker turn <taskId> --release   # al cerrar Unreal
+```
+
+En los briefs que escribas, usa esa orden; nunca un bucle propio de espera de RAM (`esperar-maquina.ps1`).
+
+## Tras un reinicio
+
+El servicio cierra solo las runs con el terminal muerto (`terminal_handle_stale`) y las relanza en el mismo worktree
+con nota de continuación (`run.recovered`); no hace falta `worker start`. Con `nomos autostart on` (tarea programada
+«Nomos - arranque») los servicios registrados vuelven al iniciar sesión; `nomos autostart status` dice si está
+instalada. El director sigue teniendo que volver a abrir su sesión y su vigilante.
+
+## Ramas y líneas base
+
+El worktree de un worker nace de la punta de main; si a su rama le falta main antes de la revisión, Nomos le pide la
+fusión (`review.needs_main`) y no abre la revisión. Si una tarea cambia la imagen a propósito, escribe en su spec
+`visual: cambia`: con la revisión aprobada, la primera captura sustituye la línea base del mapa (`baseline.replaced`).
+Para una comprobación concreta, `nomos task check ID --acepta-nueva-base`. La cámara de captura se fija con
+`checks.captureCvars` en la config (p. ej. `["BlockKings.CamaraFija 1"]`).

@@ -23,6 +23,7 @@ export type RunMetadata = {
   phase?: 'preparing' | 'running' | 'waiting' | 'finished'; deadlineAt?: string;
   /** Hito 19: relevo antes del límite de Orca (cuándo se pidió el commit, de qué run viene, a cuál pasó). */
   relayRequestedAt?: string; relayOf?: string; relayedTo?: string;
+  /** Hito 22: run cuyo terminal murió en un reinicio y a la que esta continúa en el mismo árbol. */ recoveredFrom?: string;
   lastOutputAt?: string; correctionCount?: number; pollGeneration?: number;
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
   uncertain?: boolean; /** hito 16: Orca no responde desde entonces; la run sigue en marcha durante `orca.graceMinutes` */ orcaUnreachableSince?: string; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
@@ -49,6 +50,7 @@ export type RunMetadata = {
   // hito 5b: contenido pesado al integrar (Decisión de Git LFS)
   lfs?: 'sin' | 'configurando' | 'listo';
   continuationOf?: string; busyAttempts?: number;
+  /** hito 22: «En qué fijarte» que el worker deja al entregar (NOMOS_DONE `focus`), para «Por aprobar». */ focus?: string[];
 };
 export type Run = Entity & {
   taskId: string; role: string; provider: Provider; model: string | null;

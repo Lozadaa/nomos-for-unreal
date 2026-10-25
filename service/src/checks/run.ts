@@ -10,8 +10,8 @@ import { addArtifact, recordTestRun, updateTestRun } from '../repo/artifacts.ts'
 import { appendEvent } from '../store.ts';
 import type { CheckId } from './select.ts';
 import { checkArtifactLabel, checkReportLabel } from '../artifact-label.ts';
-import { readConfig, visualTolerance } from '../config.ts';
-import { compareBaseline } from './visual.ts';
+import { readConfig, visualTolerance, captureCvars } from '../config.ts';
+import { compareBaseline, newBaseAllowed, replaceBaseline } from './visual.ts';
 import { findFfmpeg, type Ffmpeg } from '../adapters/ffmpeg.ts';
 
 export type CheckDeps = {
@@ -27,7 +27,8 @@ export type CheckDeps = {
 };
 /** Vida del ejecutable: `killed` = Nomos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
 export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};
-export type CheckInput = {task: Task; run: Run; implementer: Run; project: Project; files: string[]; worktree: string};
+/** `acceptNewBase` (hito 22): `nomos task check --acepta-nueva-base`. */
+export type CheckInput = {task: Task; run: Run; implementer: Run; project: Project; files: string[]; worktree: string; acceptNewBase?: boolean};
 export type Outcome = {
   /** `running`: la máquina terminó y falta un juicio posterior (QA visual del ciclo UMG). */
   result: 'passed' | 'failed' | 'skipped' | 'unavailable' | 'running'; log: string; summary: string[];
@@ -37,7 +38,8 @@ export type Outcome = {
 };
 export type Executor = (ctx: WorkerContext, input: CheckInput & {dir: string}, deps: CheckDeps) => Promise<Outcome>;
 
-export const unrealOf = (ctx: WorkerContext, deps: CheckDeps) => deps.unreal?.(ctx) ?? createUnrealCmd({bin: assetConfig(ctx.dataDir).unrealPath});
+export const unrealOf = (ctx: WorkerContext, deps: CheckDeps) => deps.unreal?.(ctx)
+  ?? createUnrealCmd({bin: assetConfig(ctx.dataDir).unrealPath, captureCvars: captureCvars(readConfig(ctx.dataDir))});
 export const ffmpegOf = (ctx: WorkerContext, deps: CheckDeps) => deps.ffmpeg ? deps.ffmpeg(ctx) : findFfmpeg((readConfig(ctx.dataDir) as Record<string, unknown>).ffmpegPath);
 export const buildOf = (ctx: WorkerContext, deps: CheckDeps): BuildOpts => deps.build?.(ctx) ?? {engineDir: engineDirOf(assetConfig(ctx.dataDir).unrealPath)};
 /** Resumen del evento (Review Focus 3): el titular y después las líneas con «error» (30 en total); sin errores, las 30 primeras. */
@@ -70,7 +72,7 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
         ? {result: 'failed', log, summary: ['Tiempo máximo agotado: se cerró el editor', ...log.split(/\r?\n/).filter(l => /error/i.test(l))]}
         : {result: 'failed', log, summary: [`Error al ejecutar la comprobación: ${message}`]};
   }
-  if (['umg', 'build', 'map'].includes(id) && ['passed', 'running'].includes(outcome.result)) outcome = visualCheck(ctx, id, dir, outcome);
+  if (['umg', 'build', 'map'].includes(id) && ['passed', 'running'].includes(outcome.result)) outcome = visualCheck(ctx, id, dir, outcome, input);
   const logPath = join(dir, 'log.txt');
   writeFileSync(logPath, `${outcome.summary.join('\n')}\n\n${outcome.log}`, 'utf8');
   addArtifact(db, {taskId: input.task.id, runId: input.run.id, kind: 'report', path: logPath,
@@ -88,7 +90,8 @@ export async function runCheck(id: CheckId, execute: Executor, ctx: WorkerContex
 }
 
 /** Regresión visual (hito 7) de cada captura contra `<juego>/docs/baseline/<check>-[<mapa>-]<captura>.png`. */
-function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outcome): Outcome {
+function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outcome, input: CheckInput): Outcome {
+  const intended = newBaseAllowed(ctx.db, input);
   const tolerance = visualTolerance(readConfig(ctx.dataDir)), lines: string[] = [], extra: NonNullable<Outcome['artifacts']> = [];
   let failed = false;
   // hito 10: solo la vista del jugador tiene línea base; las del rig y la hoja de contactos no se comparan
@@ -105,7 +108,8 @@ function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outc
         renameSync(legacy, join(dirBase, `${name}.png`));
         lines.push(`Línea base sin mapa adoptada para ${map.slice(0, -1)}: ${name}`);
       }
-      const visual = compareBaseline(shot.path, dirBase, name, tolerance, join(dir, `${name}-diferencia.png`));
+      let visual = compareBaseline(shot.path, dirBase, name, tolerance, join(dir, `${name}-diferencia.png`));
+      if (visual.result === 'failed' && intended(name)) visual = replaceBaseline(ctx.db, input.task.id, shot.path, visual, name);
       lines.push(visual.summary);
       shot.provenance = {...shot.provenance, visual: visual.result, baseline: visual.baseline, ...(visual.ratio === null ? {} : {visualRatio: Number(visual.ratio.toFixed(4))})};
       if (visual.result === 'failed') failed = true;

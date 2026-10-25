@@ -38,6 +38,16 @@ export function release(db: DatabaseSync, runId: string): void {
     appendEvent(db,'lease.released',null,{runId,taskId:leases[0].taskId,paths:leases.map(l=>l.path)});
   });
 }
+/** Suelta una sola reserva de la tarea (el turno de Unreal) sin tocar las demás de su run. */
+export function releasePath(db: DatabaseSync, taskId: string, path: string): boolean {
+  return transaction(db,()=>{
+    const lease=holders(db,path).find(l=>l.taskId===taskId);
+    if(!lease) return false;
+    db.prepare('delete from leases where path=? and task_id=?').run(lease.path,taskId);
+    appendEvent(db,'lease.released',null,{runId:lease.runId,taskId,paths:[lease.path]});
+    return true;
+  });
+}
 export function holders(db: DatabaseSync, path: string): Lease[] {
   const [normalized]=normalizedPaths([path]);
   return listLeases(db).filter(l=>l.path.toLowerCase()===normalized.toLowerCase());

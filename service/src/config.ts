@@ -15,7 +15,11 @@ export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,numbe
   /** Hito 16: minutos que una run en marcha aguanta sin respuesta de Orca antes de marcarse failed (10 por defecto). */
   orca?: {graceMinutes?: number;
     /** Hito 19: minutos que Orca deja vivo el terminal de un worker (240); el relevo llega 15 min antes. */
-    maxWorkerMinutes?: number}};
+    maxWorkerMinutes?: number;
+    /** Hito 22: milisegundos que se espera a que Orca cree el worktree (180 000); en frío pasa del minuto. */
+    createTimeoutMs?: number};
+  /** Hito 22: el PC aguanta un Unreal pesado a la vez y pide RAM libre para abrirlo. */
+  scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean}};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
 export function concurrency(config: SchedulerConfig): Record<WorkerProvider,number> {
   return config.concurrency===undefined ? {codex:0,claude:2,opencode:0}
@@ -28,6 +32,12 @@ export const isOpencodeModel = (v: unknown) => typeof v==='string' && /^opencode
 export const opencodeModel = (config: SchedulerConfig): string => config.opencodeModel ?? 'opencode/beam-free';
 export const orcaGraceMinutes = (config: SchedulerConfig) => config.orca?.graceMinutes ?? 10;
 export const maxWorkerMinutes = (config: SchedulerConfig) => config.orca?.maxWorkerMinutes ?? 240;
+export const heavyMax = (config: SchedulerConfig) => config.scheduler?.heavy?.maxConcurrent ?? 1;
+export const minFreeRamGb = (config: SchedulerConfig) => config.scheduler?.minFreeRamGb ?? 6;
+export const heavyRequiresNoEditor = (config: SchedulerConfig) => config.scheduler?.heavyRequiresNoEditor ?? true;
+export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.createTimeoutMs ?? 180_000;
+/** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
+export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
 export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
 const count = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
 export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?: unknown} {
@@ -46,8 +56,14 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(config.limits!==undefined && (!config.limits || typeof config.limits!=='object' || Array.isArray(config.limits)
       || Object.entries(config.limits).some(([k,v])=>k!=='corrections' || !count(v)))) throw new Error();
     if(config.orca!==undefined && (!config.orca || typeof config.orca!=='object' || Array.isArray(config.orca)
-      || Object.entries(config.orca).some(([k,v])=>!['graceMinutes','maxWorkerMinutes'].includes(k) || typeof v!=='number'
-        || !(v>=0 && v<=24*60) || k==='maxWorkerMinutes' && v<=0))) throw new Error();
+      || Object.entries(config.orca).some(([k,v])=>!['graceMinutes','maxWorkerMinutes','createTimeoutMs'].includes(k) || typeof v!=='number'
+        || (k==='createTimeoutMs' ? !(v>0 && v<=3_600_000) : !(v>=0 && v<=24*60) || k==='maxWorkerMinutes' && v<=0)))) throw new Error();
+    const scheduler=config.scheduler,object=(v:unknown)=>!!v && typeof v==='object' && !Array.isArray(v);
+    if(scheduler!==undefined && (!object(scheduler) || Object.entries(scheduler).some(([k,v])=>
+      k==='heavy' ? !object(v) || Object.entries(v as object).some(([h,n])=>h!=='maxConcurrent' || !count(n) || n<1)
+      : k==='minFreeRamGb' ? typeof v!=='number' || !(v>=0 && v<=1024) : k!=='heavyRequiresNoEditor' || typeof v!=='boolean'))) throw new Error();
+    const cvars=config.checks?.captureCvars;
+    if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;
   } catch {throw new Error('invalid_worker_config');}
 }

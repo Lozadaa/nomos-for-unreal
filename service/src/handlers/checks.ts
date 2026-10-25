@@ -109,7 +109,7 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     for (const row of filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id, result: 'running'})) updateTestRun(ctx.db, row.id, {result: 'pending'});
     let rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     if (!rows.length) rows = ids.map(id => recordTestRun(ctx.db, {taskId: task.id, runId: run.id, checkId: id, result: 'pending', commit}));
-    const input = {task, run, implementer, project: target, files: present, worktree};
+    const input = {task, run, implementer, project: target, files: present, worktree, acceptNewBase: (payload as {acceptNewBase?: unknown}).acceptNewBase === true};
     // hito 5b: el editor y el empaquetado escriben en el árbol (mapa de prueba, clips retargeteados, Build/); lo que el lote
     // cambió se deshace al terminar, para que no entre en la revisión ni frene el cierre. Nunca en el checkout del usuario
     const own = worktree !== ctx.projectDir, before = own ? new Set((await ctx.git.status(worktree)).files) : new Set<string>();

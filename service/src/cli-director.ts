@@ -1,12 +1,13 @@
 import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { request, serviceInfo } from './client.ts';
 import { parseTaskSpec } from './task-spec.ts';
 import { areas } from './routes/context.ts';
 import { buildSummary } from './build-info.ts';
 
-const groups=['task','worker','run','decision'];
+const groups=['task','worker','run','decision','approval'];
 function commandIndex(argv: string[]): number {
   for (let i=0;i<argv.length;i++) {
     if (['--data','--port','--session'].includes(argv[i])) {i++;continue;}
@@ -54,13 +55,38 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   }
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
+  if (group==='approval') {
+    // hito 22: «Por aprobar»; changes y comment llevan el texto del usuario tal cual
+    const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},text:{type:'string'},file:{type:'string'}}});
+    const [, ,rawId,...rest]=positionals,call=(path:string,data?:unknown)=>request(serviceInfo(resolve(values.data ?? '.nomos')),path,data);
+    const text=values.file!==undefined ? readFileSync(values.file,'utf8') : values.text;
+    if (rest.length || !['list','request','approve','changes','comment'].includes(action) || (action==='list')!==!rawId && action!=='comment'
+      || ['changes','comment'].includes(action) && !text?.trim()) throw new Error('Uso: nomos approval list|request ID|approve ID|changes ID --text T|comment [ID] --text T');
+    const id=rawId ? encodeURIComponent(rawId) : '';
+    console.log(JSON.stringify(action==='list' ? await call('/approvals') : action==='request' ? await call(`/tasks/${id}/approval`,{}) : action==='approve' ? await call(`/approvals/${id}/approve`,{})
+      : await call(id ? `/approvals/${id}/${action}` : '/approvals/comment',{text})));
+    return true;
+  }
+  if (group==='worker' && action==='turn') {
+    // hito 22: el worker pide Unreal; --wait pregunta cada 5 s hasta que el planificador se lo concede
+    const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},wait:{type:'boolean'},release:{type:'boolean'}}});
+    if (positionals.length!==3 || !values.wait===!values.release) throw new Error('Uso: nomos worker turn TAREA --wait|--release');
+    const info=serviceInfo(resolve(values.data ?? '.nomos')),path='/tasks/'+encodeURIComponent(positionals[2])+'/turn';
+    if (values.release) {console.log(JSON.stringify(await request(info,path+'/release',{})));return true;}
+    for (let last='';;) {
+      const answer=await request(info,path,{});
+      if (answer.granted) {console.log(JSON.stringify(answer));return true;}
+      if (answer.reason!==last) console.error(last=answer.reason);
+      await sleep(5000);
+    }
+  }
   const flags: Record<string,string[]>={
-    'task.create':['title','area','spec-file','leases','depends','role','provider','message','priority'],'task.priority':[],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run'],
+    'task.create':['title','area','spec-file','leases','depends','role','provider','message','priority'],'task.priority':[],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run','acepta-nueva-base'],
     'task.integrate':[],'task.hold':['motivo','hasta'],'task.finalize':[],'task.reconcile':[],'task.continue':['file','text'],
     'worker.start':['provider','role','skills','attempt'],'worker.send':['file','text','idempotency-key','message'],'worker.stop':[],
     'run.diff':[],'run.output':['since'],'decision.open':['file','message'],'decision.list':['state'],'decision.resolve':['option','by']};
   const allowed=flags[group+'.'+action];if (!allowed) throw new Error('Uso: subcomando desconocido');
-  const options=Object.fromEntries(['data',...allowed].map(key=>[key,{type:'string' as const}]));
+  const options=Object.fromEntries(['data',...allowed].map(key=>[key,{type:key==='acepta-nueva-base' ? 'boolean' as const : 'string' as const}]));
   // `task priority TAREA -1`: un entero negativo es un valor, no una opción
   const args=group+'.'+action==='task.priority' ? argv.map(a=>/^-\d+$/.test(a) ? 'n'+a : a) : argv;
   const {values,positionals}=parseArgs({args,allowPositionals:true,options});
@@ -78,7 +104,8 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     else if(action==='priority') result=await call('/tasks/'+id+'/priority',{priority:priorityValue(level?.replace(/^n/,''))});
     // la revisión calcula el diff antes de responder: con 1,5 GB de contenido tarda más de los 10 s por defecto
     else if(action==='review') result=await call('/tasks/'+id+'/review',{},120_000);
-    else if(action==='check') result=await call('/tasks/'+id+'/checks',values.run===undefined ? {} : {runId:required(values.run,'--run')});
+    else if(action==='check') result=await call('/tasks/'+id+'/checks',{...(values.run===undefined ? {} : {runId:required(values.run,'--run')}),
+      ...(values['acepta-nueva-base'] ? {acceptNewBase:true} : {})});
     // hito 21: --hasta N (minutos) o un tipo de evento (integration.completed); pedir la integración la levanta
     else if(action==='hold') result=await call('/tasks/'+id+'/hold',{reason:required(values.motivo,'--motivo'),
       ...(values.hasta===undefined ? {} : {until:/^\d+$/.test(values.hasta) ? integer(values.hasta) : values.hasta})});

@@ -24,10 +24,11 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 - Haz un commit por paso. No hagas push ni merge.
 - No incluyas .nomos-brief.md ni .nomos-inbox en commits.
 - Termina con una línea NOMOS_DONE seguida de JSON con summary string, commits string[] y tests passed, failed o none.
+- Si la tarea cambia lo que se ve o se juega, añade al JSON de NOMOS_DONE `focus`: de 2 a 4 frases de en qué fijarse al probarlo.
 - Si corriges después de NOMOS_DONE, commitea y repite la marca; tras una corrección, una marca sin commit nuevo solo cuenta con commits [].
 - Si necesitas una decisión, imprime una línea NOMOS_ASK seguida de JSON con question string y espera.
 - Los marcadores deben comenzar la línea; no los repitas como ejemplos de salida.
-
+{{turn}}
 Formato de cierre: `NOMOS_DONE {"summary":"Resumen","commits":[],"tests":"passed"}`.
 Formato de pregunta: `NOMOS_ASK {"question":"Tu pregunta"}`.
 

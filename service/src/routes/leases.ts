@@ -7,6 +7,7 @@ import type { Run } from '../model.ts';
 import { id, type Context } from './context.ts';
 import { projectInfo } from '../project-root.ts';
 import { agentLabel } from '../editor/queue.ts';
+import { releaseTurn, requestTurn } from '../unreal-turn.ts';
 
 /** Editor por proyecto: el juego del servicio más cualquier proyecto con reserva `editor/<nombre>`. */
 function editors(db: Context['db'], dataDir: string | undefined) {
@@ -24,6 +25,12 @@ export async function leases({db,req,res,url,dataDir}: Context): Promise<boolean
   if(req.method==='GET' && url.pathname==='/editors') {json(res,200,editors(db,dataDir));return true;}
   if(req.method==='GET' && url.pathname==='/leases') {
     json(res,200,listLeases(db));return true;
+  }
+  // hito 22: `nomos worker turn --wait|--release` (el worker pide Unreal desde su terminal)
+  const turn=/^\/tasks\/([^/]+)\/turn(\/release)?$/.exec(url.pathname);
+  if(req.method==='POST' && turn && dataDir) {
+    const taskId=id(turn[1]);await body(req);
+    json(res,200,turn[2] ? releaseTurn(db,dataDir,taskId) : requestTurn(db,dataDir,taskId));return true;
   }
   const match=/^\/tasks\/([^/]+)\/leases$/.exec(url.pathname);
   if(req.method!=='POST' || !match) return false;

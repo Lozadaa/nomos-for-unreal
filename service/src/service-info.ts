@@ -1,4 +1,5 @@
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { writeAtomic } from "./atomic.ts";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
@@ -38,8 +39,7 @@ export function folderToken(dataDir: string, renew = false): string {
   let token = renew ? undefined : valid(read("token")) ?? valid(readServiceInfo(dataDir)?.token);
   token ??= randomBytes(24).toString("hex");
   if (read("token") !== token) {
-    const temporary = join(dataDir, `token.${process.pid}.tmp`);
-    writeFileSync(temporary, token, { mode: 0o600 }); renameSync(temporary, join(dataDir, "token"));
+    writeAtomic(join(dataDir, "token"), token, 0o600);
   }
   return token;
 }

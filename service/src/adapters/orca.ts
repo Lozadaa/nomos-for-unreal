@@ -22,7 +22,8 @@ type Options = {
 };
 export type Orca = {
   repoAdd(path: string): Promise<{ repoId: string }>;
-  worktreeCreate(repoId: string, name: string, agent: 'codex' | 'claude'):
+  /** `timeoutMs` (hito 22, `orca.createTimeoutMs`): en frío crear pasa del minuto; si se agota, el huérfano se retira. */
+  worktreeCreate(repoId: string, name: string, agent: 'codex' | 'claude', timeoutMs?: number):
     Promise<{ worktreeId: string; path: string; branch: string; terminalHandle: string }>;
   terminalWaitIdle(handle: string, timeoutMs: number, pattern?: RegExp): Promise<boolean>;
   terminalIsIdle(handle: string): Promise<boolean>;
@@ -47,10 +48,10 @@ function required(value: unknown): string {
 export function createOrca(opts: Options = {}): Orca {
   const timeout = Math.min(60_000, opts.timeoutMs ?? 60_000);
   if (!Number.isFinite(timeout) || timeout <= 0) throw new RangeError('Tiempo máximo inválido');
-  async function run<T>(args: string[], decode: (result: any) => T, budget = timeout): Promise<T> {
+  async function run<T>(args: string[], decode: (result: any) => T, budget = timeout, capped = true): Promise<T> {
     const command = [...args, '--json'], start = performance.now();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(timeout, budget)));
+    const timer = setTimeout(() => controller.abort(), Math.max(1, capped ? Math.min(timeout, budget) : budget));
     let exitCode: number | null = null, failure: OrcaError | undefined;
     try {
       const output = await new Promise<string>((accept, reject) => {
@@ -121,11 +122,17 @@ export function createOrca(opts: Options = {}): Orca {
       if (repo) return { repoId: required(repo.id) };
       return run(['repo', 'add', '--path', path], result => ({ repoId: required(result?.repo?.id) }));
     },
-    async worktreeCreate(repoId, name, _agent) {
+    async worktreeCreate(repoId, name, _agent, createMs = timeout) {
       const created = await run(['worktree', 'create', '--repo', `id:${repoId}`, '--name', name, '--no-parent'], result => ({
         worktreeId: required(result?.worktree?.id), path: required(result?.worktree?.path),
         branch: required(result?.worktree?.branch), terminalHandle: result?.startupTerminal?.handle,
-      }));
+      }), createMs, false).catch(async error => {
+        // ponytail: una sola mirada a la lista; si Orca lo termina de crear aún más tarde, queda huérfano (repetir la mirada si pasa)
+        const orphan = await run(['worktree', 'list'], result => (result?.worktrees ?? []).find((w: any) => w?.repoId === repoId
+          && (w.displayName === name || String(w.branch ?? '').replace(/^refs\/heads\//, '').split('/').at(-1) === name))).catch(() => undefined);
+        if (orphan?.id) await run(['worktree', 'rm', '--worktree', `id:${orphan.id}`, '--force'], () => {}).catch(() => {});
+        throw error;
+      });
       if (created.terminalHandle !== undefined && created.terminalHandle !== null) {
         return { ...created, terminalHandle: required(created.terminalHandle) };
       }
@@ -175,12 +182,9 @@ export function createOrca(opts: Options = {}): Orca {
       }
       return false;
     },
-    async terminalCreate(path, title, command) {
-      return run(['terminal', 'create', '--worktree', `path:${path}`, '--title', title, '--command', command], r => required(r?.terminal?.handle ?? r?.handle));
-    },
-    async terminalClose(handle) {
-      await run(['terminal', 'close', '--terminal', handle], () => {});
-    },
+    terminalCreate: (path, title, command) =>
+      run(['terminal', 'create', '--worktree', `path:${path}`, '--title', title, '--command', command], r => required(r?.terminal?.handle ?? r?.handle)),
+    async terminalClose(handle) { await run(['terminal', 'close', '--terminal', handle], () => {}); },
     async terminalAlive(handle) {
       // Orca 1.4.207 sigue leyendo un terminal cerrado: responde ok con `status: "exited"`
       try { return await run(['terminal', 'read', '--terminal', handle, '--limit', '50'], result => result?.terminal?.status !== 'exited'); }
@@ -190,11 +194,7 @@ export function createOrca(opts: Options = {}): Orca {
       try { return await run(['status'], result => result?.app?.running === true && result?.runtime?.reachable !== false, 5000); }
       catch { return false; }
     },
-    async open() {
-      await run(['open'], () => {});
-    },
-    async worktreeRemove(worktreeId, force = false) {
-      await run(['worktree', 'rm', '--worktree', `id:${worktreeId}`, ...(force ? ['--force'] : [])], () => {});
-    },
+    async open() { await run(['open'], () => {}); },
+    async worktreeRemove(worktreeId, force = false) { await run(['worktree', 'rm', '--worktree', `id:${worktreeId}`, ...(force ? ['--force'] : [])], () => {}); },
   };
 }

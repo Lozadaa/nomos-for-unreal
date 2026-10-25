@@ -1,7 +1,11 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
+import type { DatabaseSync } from 'node:sqlite';
 import { decodePng, pixelDiffRatio, type Rgba } from './png.ts';
+import type { Task } from '../model.ts';
+import { read } from '../repo/rows.ts';
+import { appendEvent } from '../store.ts';
 
 /** Diferencia por canal que se considera ruido de render (exposición automática, TAA, partículas). */
 export const renderNoise = 12;
@@ -56,4 +60,20 @@ export function compareBaseline(shot: string, baselineDir: string, name: string,
     summary: now.width === before.width && now.height === before.height
       ? `${name}: la captura difiere un ${percent(ratio)} de la línea base (tolerancia ${percent(tolerance)})`
       : `${name}: la captura mide ${now.width}×${now.height} y la línea base ${before.width}×${before.height}`};
+}
+
+/**
+ * Hito 22: un cambio visual a propósito (`visual: cambia` en la spec o `--acepta-nueva-base`) con la revisión aprobada:
+ * la primera captura de cada línea base la sustituye (`baseline.replaced`) en vez de fallar; las siguientes comparan contra ella.
+ */
+export const newBaseAllowed = (db: DatabaseSync, input: {task: Task; acceptNewBase?: boolean}) => {
+  const task = read<Task>(db, 'tasks', input.task.id) ?? input.task;
+  const declared = input.acceptNewBase === true || /^\s*visual\s*:\s*cambia\b/im.test(task.spec);
+  return (name: string) => declared && task.reviewApproved === 1 && !db.prepare(`select 1 from events where type='baseline.replaced'
+    and json_extract(payload,'$.taskId')=? and json_extract(payload,'$.name')=?`).get(task.id, name);
+};
+export function replaceBaseline(db: DatabaseSync, taskId: string, shot: string, visual: VisualResult, name: string): VisualResult {
+  copyFileSync(shot, visual.baseline);
+  appendEvent(db, 'baseline.replaced', null, {taskId, name});
+  return {result: 'passed', ratio: visual.ratio, baseline: visual.baseline, summary: `${name}: línea base sustituida (cambio visual a propósito)`};
 }
