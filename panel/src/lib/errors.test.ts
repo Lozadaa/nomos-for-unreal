@@ -8,6 +8,9 @@ describe('humanError', () => {
     [new Error('unauthorized'), /sesión del panel caducó/],
     [new TypeError('Failed to fetch'), /No hay conexión/],
     [new Error('unknown_task'), /ya no existe/],
+    [new Error('no_build'), /Todavía no hay ninguna build/],
+    [new Error('already_running'), /ya está abierto/],
+    [new Error('invalid_play_config'), /config\.json/],
     [new Error('algo raro'), /Algo falló/],
   ])('%s → mensaje en español con salida', (e, expected) => expect(humanError(e)).toMatch(expected))
   it('nunca deja ver un código interno', () => expect(humanError(new Error('invalid_task'))).not.toMatch(/invalid_/))

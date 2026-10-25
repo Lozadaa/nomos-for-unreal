@@ -10,8 +10,9 @@ import { ProjectSwitcher } from './ProjectSwitcher'
 import { Glyph } from '@/visual/Glyph'
 import { useStore } from '@/store'
 import { BRAND } from '@/lib/brand'
+import { PlayButton, type PlayProps } from './PlayButton'
 
-export function Header({ project, status, onCommand, onTogglePause, pausePending = false }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean }) {
+export function Header({ project, status, onCommand, onTogglePause, pausePending = false, play }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean; play?: PlayProps }) {
   const session = useSyncExternalStore(onSession, sessionState)
   const typing = useStore((s) => typingActive(s.events))
   const routed = useInRouterContext()
@@ -35,6 +36,7 @@ export function Header({ project, status, onCommand, onTogglePause, pausePending
       {status && onTogglePause && (
         <Button variant="ghost" size="sm" disabled={pausePending} aria-busy={pausePending} onClick={onTogglePause}>{status.paused ? 'Reanudar' : 'Pausar'}</Button>
       )}
+      {play && <div data-tour-anchor="play" className="ml-2"><PlayButton {...play} /></div>}
       <Button variant="outline" size="sm" className="ml-auto gap-2 text-muted-foreground" onClick={(event) => onCommand(event.currentTarget)}>
         Buscar
         <kbd className="font-mono text-xs">⌘K</kbd>

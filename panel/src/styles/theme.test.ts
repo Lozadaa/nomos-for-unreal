@@ -14,8 +14,13 @@ describe('tokens', () => {
   it('ningún archivo de panel/src salvo theme.css lleva colores o sombras a mano', () => {
     const malos = files(src)
       .filter((f) => !f.endsWith('theme.css') && !f.endsWith('theme.test.ts'))
-      .filter((f) => prohibido.test(readFileSync(f, 'utf8')))
+      // única sombra del panel: el brillo de «Jugar» (hito 14, petición literal del usuario), solo en play.css y con tokens
+      .filter((f) => prohibido.test(readFileSync(f, 'utf8').replace(f.endsWith('play.css') ? /box-shadow:[^;]*;/g : /$^/, '')))
     expect(malos).toEqual([])
+  })
+  it('play.css solo estiliza .k-play', () => {
+    const css = readFileSync(join(src, 'styles/play.css'), 'utf8')
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, '').match(/^[^\s@}{][^{]*\{/gm)!.every((rule) => rule.includes('.k-play'))).toBe(true)
   })
   it('theme.css mapea shadcn a los tokens vbg y fuerza color-scheme oscuro', () => {
     const css = readFileSync(join(src, 'styles/theme.css'), 'utf8')
