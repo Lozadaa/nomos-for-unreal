@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { openDb } from '../../service/src/db.ts';
 import { latestBuild } from '../../service/src/play.ts';
@@ -92,13 +92,15 @@ test('nomos build stamp <carpeta> escribe HEAD del cwd y la rama', () => {
 
 test('la comprobación build deja build-info.json junto al ejecutable con tarea y run', async () => {
   const f = checksFixture({files: ['Config/DefaultGame.ini']});
+  // hito 19: el paquete se borra al terminar; build-info.json se lee mientras el juego corre
+  let saved: ReturnType<typeof readBuildInfo> = null;
+  const launch = f.deps.launch!;
+  f.deps.launch = async (exe, args, ms) => { saved = readBuildInfo(dirname(exe)); return launch(exe, args, ms); };
   try {
     process.env.NOMOS_FAKE = 'ok';
     await f.run();
     const run = f.events('test.running').find(e => e.check === 'build')!;
-    const dir = join(f.dataDir, 'artifacts', 'tests', run.testRunId, 'build', 'Windows');
-    assert.ok(existsSync(join(dir, 'build-info.json')), 'falta build-info.json');
-    const saved = readBuildInfo(dir)!;
+    assert.ok(saved, 'falta build-info.json');
     assert.equal(saved.commit, 'abc1234def5678');
     assert.equal(saved.task, f.task.id);
     assert.equal(saved.run, run.runId);

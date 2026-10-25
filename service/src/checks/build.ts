@@ -5,6 +5,7 @@ import { buildCookRun, errorLines } from '../adapters/unreal-build.ts';
 import { quote } from '../adapters/process.ts';
 import { readConfig } from '../config.ts';
 import { writeBuildInfo } from '../build-info.ts';
+import { diskText, freeBytes, packBytes, remove, retainCheck } from '../retention.ts';
 import { capture, defaultMap, gameMap } from './map.ts';
 import { contactSheet, viewCount, viewsEnv, viewShots } from './views.ts';
 import { buildOf, ffmpegOf, unrealOf, type Executor, type Launch, type Outcome } from './run.ts';
@@ -62,8 +63,16 @@ async function stamp(ctx: Parameters<Executor>[0], dir: string, tree: string, ta
   writeBuildInfo(dir, {commit, branch: branch ?? null, builtAt: new Date().toISOString(), task, run});
 }
 
+/** Hito 19: con menos de 10 GB libres no se empaqueta; al terminar (pase o falle) el paquete se borra y queda la evidencia. */
+export const buildCheck: Executor = async (ctx, input, deps) => {
+  const free = (deps.freeBytes ?? freeBytes)(input.project.dir);
+  if (free < packBytes) return {result: 'unavailable', log: '', summary: [`El empaquetado necesita 10 GB libres. ${diskText(free)}`]};
+  const out = join(input.dir, 'build');
+  try { return retainCheck(await packageCheck(ctx, input, deps), out, input.dir, ctx.projectDir); } finally { remove(out); }
+};
+
 /** Build (hito 7): BuildCookRun (40 min), arranque fuera del editor con el recorrido y 20 s de vida mínima; log y traza como evidencia. */
-export const buildCheck: Executor = async (ctx, {project, files, dir, worktree, task, run}, deps) => {
+const packageCheck: Executor = async (ctx, {project, files, dir, worktree, task, run}, deps) => {
   const out = join(dir, 'build');
   const config = readConfig(ctx.dataDir) as {walkthrough?: {map?: unknown; commands?: unknown}};
   const map = typeof config.walkthrough?.map === 'string' ? config.walkthrough.map : gameMap(files);

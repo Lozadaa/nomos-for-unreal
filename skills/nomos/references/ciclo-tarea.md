@@ -1,9 +1,7 @@
 # Ciclo de dirección del hito 2
 
-`nomos` abrevia `node "<base>/scripts/nomos.ts"`. Ejecuta desde el juego;
-`--data .nomos` es el valor por defecto. La sesión directora decide y revisa;
-los workers Codex y Claude implementan o revisan en sesiones independientes. La aceptación
-con proveedores reales corresponde a T6; la integración final sigue en hitos posteriores.
+`nomos` abrevia `node "<base>/scripts/nomos.ts"`. Ejecuta desde el juego (`--data .nomos` por defecto).
+La sesión directora decide y revisa; los workers implementan o revisan en sesiones independientes.
 
 ## Petición → especificación → worker
 
@@ -83,11 +81,9 @@ vez de pausar el planificador y arrancar a mano.
 
 ## Estado actual antes de eventos reentregados
 
-`task show TASK` devuelve tarea, runs, eventos y Decisión. Para el estado preciso
-del responsable usa `GET /runs/RUN`: run, worktree y latestStatus. Las consultas
-HTTP usan Bearer leído de `.nomos/service.json`; no muestres ni persistas el token.
-`GET /commands` y seleccionar por id aporta estado/payload/error; no hay `run show`
-ni `command show` en la CLI. No inventes comandos.
+`task show TASK` devuelve tarea, runs, eventos y Decisión; `GET /runs/RUN` da run, worktree y latestStatus
+(Bearer de `.nomos/service.json`; nunca muestres ni guardes el token). `GET /commands` por id aporta
+estado/payload/error; no hay `run show` ni `command show` en la CLI. No inventes comandos.
 
 Antes de actuar sobre un replay, compara el runId, phase, pollGeneration,
 correctionCount y eventos posteriores con el registro local de última revisión.
@@ -100,7 +96,6 @@ evento atrasado. Si el estado actual discrepa, inspecciona; no reenvíes ciegame
 `implementando` en el mismo run/worktree. `bloqueada` se expresa mediante
 blockedReason; `esperando_worker` es latestStatus/metadata, no un estado Task nuevo.
 `run.done` señala fin de una vuelta del worker; la tarea permanece `revisando`.
-Probando/integrando/cerrando/done final y limpieza pertenecen a hitos posteriores.
 
 ## Revisar y corregir
 
@@ -169,6 +164,11 @@ eludir una Decisión ni repitas efectos inciertos; un worker anterior se reconci
 Marcas largas: el servicio reensambla una marca partida por el terminal (hasta 40 líneas u 8 KB) y
 lee antes `.nomos-inbox/done.json`, `review.json` o `ask.json` del worktree si el worker lo dejó.
 
+## Relevo antes del límite de Orca
+
+Orca corta el terminal de un worker a las 4 h (`config.json: orca.maxWorkerMinutes`, 240). 15 min antes Nomos le pide «Commit WIP: relevo por límite de tiempo», espera hasta 5 min, commitea él lo que quede y abre un worker nuevo en el **mismo worktree** con el brief y una nota de continuación (último commit, final de su terminal, «continúa donde lo dejó»).
+Sale `worker.relayed {taskId, oldRun, newRun}`; la run vieja queda `cancelled` y la tarea sigue igual, sin Decisión: no hagas nada, sigue la run nueva. No relances a mano.
+
 ## Reconciliar un worker anterior
 
 `nomos worker stop RUN` ya reconcilia: cierra su terminal (si sigue vivo, reintenta cada 30 s
@@ -196,5 +196,4 @@ No envíes ack para eventos del director ni interpretes service_down como trabaj
 Rearma Monitor cada 30 minutos con sesión/tipos iguales mientras existan Run activo,
 pregunta o Decisión abierta. Dos expiraciones sin mensajes solo apagan escucha si
 tampoco hay trabajo activo. Sin Monitor disponible, reconoce esa limitación.
-El checkpoint garantiza entrega recuperable, no acción exactamente una vez;
-consulta contrato-eventos.md, enlazado desde SKILL.md, antes de reanudar.
+El checkpoint garantiza entrega recuperable, no acción exactamente una vez: lee contrato-eventos.md antes de reanudar.

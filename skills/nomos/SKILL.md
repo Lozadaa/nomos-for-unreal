@@ -145,7 +145,7 @@ DONE él mismo ni fuerza retirar un worktree. «Ajusta esto» sobre una tarea `d
 `nomos task continue <id> --file <texto>`: crea una tarea hija con la atribución
 anterior. `/nomos pausar|reanudar` (`nomos pausar --data .nomos`) frena o vuelve a
 permitir arranques nuevos; lo que ya integra o cierra termina. Ver [cierre](references/cierre.md).
-Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta `Build/Windows-actual/`, estámpalo con `nomos build stamp Build/Windows-actual` y, antes de decir «listo para probar», mira `nomos play --status`: `stale: true` (anterior a main) = fusiona y empaqueta otra vez ([build jugable](references/cierre.md#build-jugable)).
+Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta `Build/Windows-actual/`, estámpalo con `nomos build stamp Build/Windows-actual` y, antes de decir «listo para probar», mira `nomos play --status`: `stale: true` (anterior a main) = fusiona y empaqueta otra vez ([build jugable](references/cierre.md#build-jugable)). Si `nomos status` dice «ejecuta nomos clean», hazlo ([disco](references/cierre.md#disco)).
 
 ## Solución de problemas (Troubleshooting)
 

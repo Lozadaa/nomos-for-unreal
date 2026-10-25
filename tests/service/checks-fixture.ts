@@ -37,7 +37,8 @@ export function checksFixture(opts: {files?: string[]; state?: Task['state']; ar
       return {exitCode: null, seconds: 30, killed: true}; },
     // ffmpeg falso por defecto: la hoja de contactos (hito 10) no depende del ffmpeg de la máquina
     ffmpeg: () => ({bin: process.execPath, baseArgs: [join(fakes, 'ffmpeg.mjs')]}),
-    playSeconds: 0, ...opts.deps,
+    // el disco de la máquina no decide si una prueba empaqueta (hito 19)
+    freeBytes: () => 2 ** 40, playSeconds: 0, ...opts.deps,
   };
   const handlers = createCheckHandlers(deps);
   const task = createTask(db, {title: 'HUD de vida', area: opts.area ?? 'ui', state: opts.state ?? 'probando'});

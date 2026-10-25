@@ -22,6 +22,8 @@ export type CheckDeps = {
   playSeconds?: number;
   /** ffmpeg para el vídeo de la comprobación animation (hito 5b); null = no está. */
   ffmpeg?: (ctx: WorkerContext) => Ffmpeg | null;
+  /** Hito 19: bytes libres en la unidad del proyecto (en pruebas se fija). */
+  freeBytes?: (dir: string) => number;
 };
 /** Vida del ejecutable: `killed` = Nomos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
 export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};

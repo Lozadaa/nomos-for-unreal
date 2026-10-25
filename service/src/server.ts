@@ -28,6 +28,7 @@ import { createCheckHandlers } from './handlers/checks.ts';
 import { createClosingHandlers } from './handlers/closing.ts';
 import { recoverMeshy } from './handlers/asset-meshy.ts';
 import { createMeshy } from './adapters/meshy.ts';
+import { diskOf } from './retention.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 /** Hito 17: «cupo lleno: J1.10 corrigiendo» si un worker terminado sigue ocupando hueco; config ilegible = sin nota. */
@@ -74,7 +75,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
       }
-      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), capacity: capacity(db, dataDir) });
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), capacity: capacity(db, dataDir), disk: diskOf(dataDir) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);

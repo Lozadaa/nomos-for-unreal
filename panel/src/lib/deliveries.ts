@@ -69,7 +69,8 @@ function readText(text: string): string | null {
 /** Una línea por informe: comprobación y resultado, cifras clave si el texto está a mano. Nunca el informe entero. */
 export function verdict(a: Artifact, text?: string): string {
   const p = prov(a), check = typeof p.check === 'string' ? p.check : null
-  if (a.kind === 'build') return 'Empaquetado · ejecutable listo'
+  // hito 19: la limpieza borra los paquetes de las comprobaciones; solo queda la build actual
+  if (a.kind === 'build') return p.removed === true ? 'Empaquetado · paquete retirado (solo se guarda la build actual)' : 'Empaquetado · ejecutable listo'
   if (p.kind === 'REVIEW' || /^review-/.test(a.path.split(/[\\/]/).pop() ?? '')) {
     let read: Record<string, unknown> = {}
     try { read = text ? JSON.parse(text) : {} } catch { /* sin JSON, la procedencia */ }

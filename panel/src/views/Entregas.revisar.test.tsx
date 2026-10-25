@@ -82,6 +82,18 @@ describe('Entregas para mirar (hito 10)', () => {
     expect(within(card).getByText('0:04')).toBeInTheDocument()
   })
 
+  it('hito 19: un paquete retirado por la limpieza dice «paquete retirado» y no ofrece abrirlo', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api).mockResolvedValue([a('30', 'build', 'C:/k/tests/9f/build/Windows/Esquina.exe', { check: 'build', label: 'Empaquetado · Esquina.exe', removed: true })])
+    at()
+    const section = (await screen.findAllByRole('region'))[0]
+    await user.click(within(section).getByText('Informes y registros'))
+    const list = within(section).getByRole('list', { name: 'Informes y registros' })
+    expect(within(list).getByText('Empaquetado · paquete retirado (solo se guarda la build actual)')).toBeInTheDocument()
+    expect(within(list).queryByRole('link', { name: 'Abrir original' })).toBeNull()
+    expect(list.className).not.toMatch(/text-error/)
+  })
+
   it('al desplegar, cada informe es una línea con su veredicto, el primer error si falló y «Abrir original»', async () => {
     const user = userEvent.setup()
     at()
