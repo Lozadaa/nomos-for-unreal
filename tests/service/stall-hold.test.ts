@@ -55,8 +55,9 @@ test('aprobada más allá del umbral: la Decisión nombra el paso real y la reco
 });
 
 test('espera marcada: ningún barrido abre Decisión; se levanta al pedir la integración', async t => {
-  const f = approved(t);
+  const f = approved(t), before = requireTask(f.db, f.task.id).updatedAt;
   holdTask(f.db, f.task.id, 'Un Unreal pesado a la vez: espero a J5.1');
+  assert.equal(requireTask(f.db, f.task.id).updatedAt, before, 'marcar la espera no cuenta como progreso');
   await sweepStalls(f.ctx, minutes(120));
   assert.equal(f.decision(), null);
   assert.equal(activeHold(f.db, requireTask(f.db, f.task.id))?.reason, 'Un Unreal pesado a la vez: espero a J5.1');

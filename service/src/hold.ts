@@ -20,7 +20,8 @@ export function holdTask(db: DatabaseSync, taskId: string, reason: string, until
   const hold: Hold = {reason: reason.trim(), at: now.toISOString(), sinceSeq,
     ...(typeof until === 'number' ? {until: new Date(now.getTime() + until * 60_000).toISOString()} : {}),
     ...(typeof until === 'string' ? {untilEvent: until} : {})};
-  db.prepare('update tasks set hold=?,updated_at=? where id=?').run(JSON.stringify(hold), now.toISOString(), taskId);
+  // no toca updated_at: marcar la espera no es progreso; al vencer, el atasco cuenta desde el último cambio real
+  db.prepare('update tasks set hold=? where id=?').run(JSON.stringify(hold), taskId);
   appendEvent(db, 'task.held', null, {taskId, ...hold});
   return requireTask(db, taskId);
 }
