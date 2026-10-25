@@ -21,7 +21,7 @@ export type RunMetadata = {
   phase?: 'preparing' | 'running' | 'waiting' | 'finished'; deadlineAt?: string;
   lastOutputAt?: string; correctionCount?: number; pollGeneration?: number;
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
-  uncertain?: boolean; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
+  uncertain?: boolean; /** hito 16: Orca no responde desde entonces; la run sigue en marcha durante `orca.graceMinutes` */ orcaUnreachableSince?: string; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
   startCommandId?: string;
   /** hito 13: reintentos de cerrar el terminal y de retirar el worktree al reconciliar; la cancelación que ya la paró */
   closeAttempts?: number; removeAttempts?: number; stopCommandId?: string;
