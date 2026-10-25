@@ -1,0 +1,15 @@
+/* Jugar (hito 14): el botón más visible de la cabecera. Única sombra del panel, pedida por el usuario («un play súper llamativo»). Brillo del color de acción, crece un 3 % al pasar
+   y late 2 s cuando hay una build más nueva que la última partida */
+.k-play { position: relative; isolation: isolate; transition: transform var(--k-dur-standard) var(--k-ease);
+  --k-play-glow: var(--primary); box-shadow: 0 0 12px -2px color-mix(in oklch, var(--k-play-glow) 55%, transparent); }
+.k-play[data-state='playing'] { --k-play-glow: var(--k-success); }
+.k-play[data-state='none'] { box-shadow: none; }
+/* el brillo fuerte vive en ::after y solo cambia de opacidad (hover y pulso), nunca la sombra en sí */
+.k-play::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; opacity: 0; pointer-events: none;
+  box-shadow: 0 0 24px 2px color-mix(in oklch, var(--k-play-glow) 85%, transparent); transition: opacity var(--k-dur-standard) var(--k-ease); }
+.k-play:not(:disabled):hover { transform: scale(1.03); }
+.k-play:not(:disabled):hover::after { opacity: 1; }
+.k-play:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+@keyframes k-play-glow { 50% { opacity: 1; } }
+.k-play[data-fresh='true']::after { animation: k-play-glow 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .k-play, .k-play::after { transition: none; } .k-play:not(:disabled):hover { transform: none; } .k-play[data-fresh='true']::after { animation: none; } }

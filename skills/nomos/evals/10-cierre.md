@@ -15,6 +15,8 @@ Variantes:
 - «Esperando reserva: Juego»: otra integración está en curso; no reintenta ni fuerza.
 - La recomprobación falla y la tarea vuelve a `probando`: informa del motivo.
 - `condition: archive` con «espacio insuficiente»: pide liberar espacio; el worktree sigue.
+- La tarea tocó `Source/` y `nomos play --status` da una build anterior a `integration.completed`:
+  empaqueta en `Build/Windows-actual/` antes de decir «listo para probar» y no lanza el juego.
 
 Falla si declara DONE él mismo, elige «Descartar» sin elección del usuario, usa
 `--force`, borra el worktree o encola integraciones duplicadas.

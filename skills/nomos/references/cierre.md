@@ -72,6 +72,22 @@ texto va a ese terminal (run con `continuationOf`). Si no, la hija queda `prepar
 y el planificador arranca un run nuevo (intento + 1) con `resumen.md` y
 `diff-final.patch` del archivo en la sección «Continuación» del brief.
 
+## Build jugable
+
+El panel tiene un botón «Jugar» que lanza la build más reciente del juego: `Build/Windows-actual/<Proyecto>.exe`,
+otras `Build/Windows-*`, los artefactos `build` y los paquetes de la comprobación `build` en
+`.nomos/artifacts/tests/`. La fecha es la del `.exe` o la del `.pak` más nuevo del paquete.
+
+- Al cerrar (`task.done`) una tarea que toque `Source/`, `Content/` o `Config/`, deja
+  `Build/Windows-actual/<Proyecto>.exe` al día: empaqueta (BuildCookRun, Development Win64)
+  y copia el contenido de la carpeta `Windows/` del paquete en `Build/Windows-actual/`.
+- Antes de avisar de que algo está «listo para probar», `nomos play --status --data .nomos`:
+  `build.builtAt` debe ser posterior a la integración (`integration.completed`). Si es anterior
+  o `build` es `null` (`reason` dice por qué), empaqueta primero y vuelve a comprobarlo.
+- `nomos play` lanza la partida y `nomos play --stop` la cierra; lanzar es cosa del usuario
+  desde el panel. Argumentos en `config.json: play.args` (por defecto `-windowed -ResX=1920
+  -ResY=1080`) y mapa opcional en `play.map` (`/Game/...`).
+
 ## Pausa
 
 `nomos pausar` hace que el planificador no encole arranques: las tareas quedan

@@ -11,6 +11,7 @@ import { catalog } from './catalog.ts';
 import { capabilities } from './capabilities.ts';
 import { commands } from './commands.ts';
 import { director } from './director.ts';
+import { playRoutes } from './play.ts';
 import { leases } from './leases.ts';
 import { taskDepends } from './task-depends.ts';
 import { taskClosing } from './task-closing.ts';
@@ -26,7 +27,7 @@ export async function production(context: Context): Promise<boolean> {
     json(context.res, 201, seed(context.db, {force: data.force as boolean | undefined}));
     return true;
   }
-  for (const handler of [tasks, taskDepends, taskClosing, taskWorker, taskReview, runs, decisions, budget, artifacts, catalog, capabilities, commands, downloads, leases, director]) {
+  for (const handler of [tasks, taskDepends, taskClosing, taskWorker, taskReview, runs, decisions, budget, artifacts, catalog, capabilities, commands, downloads, leases, director, playRoutes]) {
     if (await handler(context)) return true;
   }
   return false;

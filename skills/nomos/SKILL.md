@@ -145,6 +145,7 @@ DONE él mismo ni fuerza retirar un worktree. «Ajusta esto» sobre una tarea `d
 `nomos task continue <id> --file <texto>`: crea una tarea hija con la atribución
 anterior. `/nomos pausar|reanudar` (`nomos pausar --data .nomos`) frena o vuelve a
 permitir arranques nuevos; lo que ya integra o cierra termina. Ver [cierre](references/cierre.md).
+Si la tarea tocó `Source/`, `Content/` o `Config/`, deja al día el paquete de `Build/Windows-actual/` y, antes de decir «listo para probar», mira `nomos play --status`: build anterior a la integración = empaqueta ([build jugable](references/cierre.md#build-jugable)).
 
 ## Solución de problemas (Troubleshooting)
 
@@ -158,12 +159,11 @@ corrupto: avisa del replay). `watcher_checkpoint_error` detiene el vigilante: co
 y `.tmp`, corrige acceso o espacio y rearma con sesión y tipos iguales.
 Consulta [contrato de eventos](references/contrato-eventos.md) antes de recuperar.
 No prometas procesamiento exactamente una vez: comprueba estado actual antes de actuar.
+Una caída entre ack y reply deja el mensaje en SQLite sin reentrega: `GET /messages/:id` y responde con ese ID.
 
 Al expirar Monitor, reármalo a 30 minutos con la misma sesión y tipos; con Run activo, pregunta
 pendiente o Decisión abierta sigue escuchando. Tras dos expiraciones vacías (60 min) sin trabajo
 activo, apágalo y dilo; el siguiente `/nomos` lo arma de nuevo.
-
-Una caída entre ack y reply deja el mensaje en SQLite sin reentrega: `GET /messages/:id` y responde con ese ID.
 
 ## Argumentos y salida
 

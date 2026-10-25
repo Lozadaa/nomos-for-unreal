@@ -17,6 +17,8 @@ import { ClosingNote } from './Closing'
 import { assignAgentNames } from '@/visual/art/agentName'
 import { ProductionMap } from '@/visual/art/ProductionMap'
 import { EmptyState } from '@/visual/art/EmptyState'
+import { LastBuildLine } from '@/shell/PlayButton'
+import { usePlay } from '@/shell/usePlay'
 
 type Filter = 'todas' | Stage
 
@@ -56,6 +58,7 @@ export function Produccion() {
   const filter = filterParam as Filter
   const [query, setQuery] = useState('')
   const now = useNow()
+  const play = usePlay()
   const showSkeleton = useAfter(!loaded)
   const opener = useRef<HTMLElement | null>(null)
 
@@ -93,6 +96,8 @@ export function Produccion() {
   return (
     <div className="flex flex-col gap-6">
       <Composer autoFocus={params.get('nueva') === '1'} isVisible={matches} onHidden={clearFilters} />
+
+      <LastBuildLine {...play} />
 
       {loaded && <figure data-tour="mapa" data-tour-anchor="map" className="rounded-lg border border-subtle px-4 pb-3">
         <ProductionMap tasks={tasks} selected={filter === 'todas' ? undefined : filter}

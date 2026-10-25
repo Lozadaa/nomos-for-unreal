@@ -10,12 +10,14 @@ import { CommandMenu, type TaskRef } from './CommandMenu'
 import { Header } from './Header'
 import { Tabs } from './Tabs'
 import { useStatus } from './useStatus'
+import { usePlay } from './usePlay'
 import { LegendSheet } from '@/visual/LegendSheet'
 import { needsTour, Tour } from '@/visual/Tour'
 import { BRAND } from '@/lib/brand'
 
 export function Layout({ project }: { project?: string }) {
   const status = useStatus()
+  const play = usePlay()
   const [open, setOpen] = useState(false)
   const [guide, setGuide] = useState(needsTour)
   const [legend, setLegend] = useState(false)
@@ -46,7 +48,7 @@ export function Layout({ project }: { project?: string }) {
   return (
     <TooltipProvider>
       <a href="#contenido" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:border focus-visible:border-strong focus-visible:bg-background focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm">Saltar al contenido</a>
-      <Header project={project ?? status?.project?.name ?? 'Proyecto Unreal'} status={status} onCommand={(from) => { commandOpener.current = from; setOpen(true) }} onTogglePause={() => void togglePause.fire()} pausePending={togglePause.pending} />
+      <Header project={project ?? status?.project?.name ?? 'Proyecto Unreal'} status={status} onCommand={(from) => { commandOpener.current = from; setOpen(true) }} onTogglePause={() => void togglePause.fire()} pausePending={togglePause.pending} play={play} />
       <Tabs />
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-(--k-content) px-4 py-6 outline-none sm:px-6">
         <Outlet />
