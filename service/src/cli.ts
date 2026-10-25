@@ -38,16 +38,17 @@ async function main() {
   if (skillsCli(argv) || await directorCli(argv) || await assetCli(argv)) return;
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" },
-    force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false } } });
+    force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false },
+    "new-token": { type: "boolean", default: false } } });
   const [command, ...args] = positionals; const dataDir = resolve(values.data!);
   const session = values.session?.trim(); const port = Number(values.port);
   const commands = ["start", "status", "vigila", "ack", "typing", "reply", "stop", "seed", "doctor"];
   if (!commands.includes(command) || !Number.isInteger(port) || port < 1 || port > 65535
-    || (["ack", "vigila"].includes(command) && !session) || (values.types!==undefined && command!=='vigila')
+    || (["ack", "vigila"].includes(command) && !session) || (values.types!==undefined && command!=='vigila') || (values["new-token"] && command!=='start')
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim())) || (command === "typing" && args.length !== 1)
     || (["start", "status", "vigila", "stop", "seed", "doctor"].includes(command) && args.length)) {
-    throw new Error("Uso: nomos start|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|play [--stop|--status] [--data CARPETA]");
+    throw new Error("Uso: nomos start [--new-token]|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|play [--stop|--status] [--data CARPETA]");
   }
   if (command === "doctor") {
     mkdirSync(dataDir, { recursive: true });
@@ -69,7 +70,8 @@ async function main() {
   if (command === "start") {
     let info = readServiceInfo(dataDir); const active = info ? await isAlive(info) : false;
     if (!active) {
-      const child = spawn(process.execPath, [join(import.meta.dirname, "server.ts"), "--serve", "--data", dataDir, "--port", String(port)],
+      const child = spawn(process.execPath, [join(import.meta.dirname, "server.ts"), "--serve", "--data", dataDir, "--port", String(port),
+        ...(values["new-token"] ? ["--new-token"] : [])],
         { detached: true, stdio: "ignore", windowsHide: true });
       let failed = false; child.on("error", () => { failed = true; }); child.unref();
       // con el equipo cargado (compilaciones, otros agentes) cargar el servicio pasa de 5 s

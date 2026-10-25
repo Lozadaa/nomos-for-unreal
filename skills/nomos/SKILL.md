@@ -25,7 +25,7 @@ comandos se ejecutan desde el juego con `--data .nomos`. `scripts/kratos.ts` es 
    avisa de cambios locales, se conservan y lo dices en una línea.
    Invocar la skill por sí solo no crea tareas ni arranca workers.
 2. El comando abre el navegador. Muestra la URL en `show_pane preview` si existe.
-   Tras reiniciar, abre la URL nueva (rota el token). Un servicio por juego: [panel por proyecto](references/contrato-eventos.md#panel-por-proyecto).
+   Reiniciar no invalida los accesos directos (token por carpeta; `--new-token` lo cambia). Un servicio por juego: [panel por proyecto](references/contrato-eventos.md#panel-por-proyecto).
 3. Consulta `nomos status --data .nomos`. Si otra sesión tiene vigilante vivo,
    conserva esa directora. En otro caso, arma `Monitor` durante 30 minutos con
    `nomos vigila --session <sesion> --data .nomos --types <tipos>` con

@@ -18,7 +18,8 @@ test("vigilante mantiene latidos, retoma tras rotar token y no repite lo ya impr
   }, 4000);
   const previous = readServiceInfo(dataDir)!;
   assert.equal(cli(dataDir, "stop").status, 0);
-  assert.equal(cli(dataDir, "start", "--port", String(port), "--no-open").status, 0);
+  // hito 16: reiniciar conserva el token; solo --new-token lo rota
+  assert.equal(cli(dataDir, "start", "--port", String(port), "--no-open", "--new-token").status, 0);
   assert.notEqual(readServiceInfo(dataDir)!.token, previous.token);
   const second = await api(dataDir, "/messages", { text: "después 🎾" });
   await until(async () => output.includes(second.messageId));

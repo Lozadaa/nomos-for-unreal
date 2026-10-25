@@ -8,12 +8,11 @@ import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
 import { mkdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { randomBytes } from "node:crypto";
 import { openDb } from "./db.ts";
 import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
 import { repairArtifactPaths } from "./repair-paths.ts";
 import { writeLog } from "./log.ts";
-import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
+import { readServiceInfo, isAlive, serviceUrl, folderToken } from "./service-info.ts";
 import { parseArgs } from "node:util";
 import { acquireLock } from "./lock.ts";
 import { production, databaseDirectory } from "./routes/index.ts";
@@ -126,7 +125,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
   return server;
 }
 
-export async function start(opts: { dataDir: string; port?: number; webDir?: string;
+export async function start(opts: { dataDir: string; port?: number; webDir?: string; newToken?: boolean;
   runner?: Parameters<typeof startRunner>[2] & {handlers?:Record<string,Handler>} }):
   Promise<{ port: number; token: string; pid: number; url: string }> {
   mkdirSync(opts.dataDir, { recursive: true });
@@ -136,12 +135,12 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   if (old && await isAlive(old)) return { ...old, url: serviceUrl(old) };
   const file = join(opts.dataDir, "service.json");
   const migrated = migratedFrom(opts.dataDir);
+  const token = folderToken(opts.dataDir, opts.newToken);
   rmSync(file, { force: true });
   const db = openDb(dbFile(opts.dataDir));
   // hito 15: rutas absolutas de una carpeta de datos que se movió → relativas (idempotente)
   repairArtifactPaths(db, opts.dataDir);
   db.exec("update director set alive_at=null where id=1");
-  const token = randomBytes(24).toString("hex");
   let runner: ReturnType<typeof startRunner> | undefined;
   const server = createServer(db, token, opts.webDir || join(import.meta.dirname, "../web"), opts.dataDir,()=>{
     runner?.();return runner?.drained;
@@ -179,10 +178,10 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
 
 if (process.argv.includes("--serve")) {
   const { values } = parseArgs({ options: { serve: { type: "boolean" },
-    data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" } } });
+    data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" }, "new-token": { type: "boolean", default: false } } });
   const old = legacyEnv();
   if (old.length) writeLog(values.data!, { event: "legacy_env", names: old });
-  await start({ dataDir: values.data!, port: Number(values.port) }).catch(error => {
+  await start({ dataDir: values.data!, port: Number(values.port), newToken: values["new-token"] }).catch(error => {
     console.error("No se pudo arrancar Nomos:", error.message); process.exitCode = 2;
   });
 }
