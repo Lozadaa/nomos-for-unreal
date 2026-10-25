@@ -1,14 +1,12 @@
-import { execFileSync } from 'node:child_process'
 import { readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
-
-const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
+import { join } from 'node:path'
+import { stopService } from './own-service'
 
 export default function teardown() {
   const file = join(tmpdir(), 'nomos-e2e.json')
   const { data, root } = JSON.parse(readFileSync(file, 'utf8')) as { data: string; root: string }
-  try { execFileSync(process.execPath, [cli, 'stop', '--data', data], { stdio: 'ignore' }) } catch { /* ya parado */ }
+  stopService(data)
   rmSync(file, { force: true })
   setTimeout(() => rmSync(root, { recursive: true, force: true }), 500)
 }

@@ -10,6 +10,8 @@ import { openDb } from './db.ts';
 import { dbFile } from './legacy.ts';
 import { createOrca } from './adapters/orca.ts';
 import { measure, packagesOf, remove, size, within } from './retention.ts';
+import { killTree, listServers, orphans, registeredData } from './orphans.ts';
+import { tmpdir } from 'node:os';
 
 /** Hito 19: `nomos clean [--dry-run]`. Nada cambiado en los últimos 30 min se toca (un paquete o un vídeo en marcha). */
 export const quietMs = 30 * 60_000;
@@ -88,9 +90,18 @@ export async function cleanCli(argv: string[]): Promise<boolean> {
   const db = openDb(dbFile(dataDir));
   try {
     const plan = planClean({dataDir, projectDir: dirname(dataDir), db});
+    // hito 20: también los servicios de pruebas o aceptaciones que nadie paró
+    const servers = orphans(listServers(), {tmp: tmpdir(), registered: registeredData(), now: Date.now(), quiet: quietMs,
+      minAge: Number(process.env.NOMOS_CLEAN_MIN_AGE_MS ?? 10 * 60_000)});
     for (const item of [...plan.items, ...plan.trees]) console.log(line(item));
-    const n = plan.items.length + plan.trees.length;
-    if (dry) { console.log(`Se liberarían ${size(plan.bytes)} (${n} ${n === 1 ? 'carpeta' : 'carpetas'})`); return true; }
+    for (const s of servers) console.log(`servidor ${s.pid}  ${s.data}  (${s.why})`);
+    const n = plan.items.length + plan.trees.length, k = servers.length;
+    if (dry) {
+      console.log(`Se liberarían ${size(plan.bytes)} (${n} ${n === 1 ? 'carpeta' : 'carpetas'})`);
+      if (k) console.log(`Se cerrarían ${k} ${k === 1 ? 'servidor huérfano' : 'servidores huérfanos'}`);
+      return true;
+    }
+    for (const s of servers) { killTree(s.pid); console.log(`Cerrado el servidor ${s.pid}`); }
     const freed = await applyClean(plan, {db, orca: createOrca()}, console.log);
     console.log(`Liberados ${size(freed)}`);
   } finally { db.close(); }

@@ -1,11 +1,13 @@
 import { spawnSync, spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
 import type { TestContext } from "node:test";
-import { readServiceInfo, isAlive } from "../service/src/service-info.ts";
+import { readServiceInfo } from "../service/src/service-info.ts";
 import type { ChildProcess } from "node:child_process";
+import { alive, killTree, listServers } from "../service/src/orphans.ts";
+import { removeDir } from "./remove-dir.ts";
 
 const childrenByDir = new Map<string, Set<ChildProcess>>();
 async function stopChild(child: ChildProcess) {
@@ -17,6 +19,13 @@ export const cliPath = join(import.meta.dirname, "../service/src/cli.ts");
 export function cli(dataDir: string, ...args: string[]) {
   return spawnSync(process.execPath, [cliPath, ...args, "--data", dataDir], {
     encoding: "utf8", timeout: 30_000, windowsHide: true });
+}
+/** Para el servicio de la carpeta aunque no responda a tiempo (con carga, `isAlive` caducaba y quedaba vivo): `stop` y, si sigue, su árbol. */
+export function stopService(dataDir: string) {
+  const info = readServiceInfo(dataDir);
+  if (!info) return;
+  cli(dataDir, "stop");
+  if (alive(info.pid) && listServers().some(s => s.pid === info.pid)) killTree(info.pid);
 }
 export async function freePort(): Promise<number> {
   const server = createServer();
@@ -30,10 +39,9 @@ export async function cliFixture(t: TestContext) {
   t.after(async () => {
     for (const child of childrenByDir.get(dataDir) || []) await stopChild(child);
     childrenByDir.delete(dataDir);
-    const info = readServiceInfo(dataDir);
-    if (info && await isAlive(info)) cli(dataDir, "stop");
+    stopService(dataDir);
     // Windows: el proceso del servicio puede tardar un instante en soltar nomos.db tras `stop` (EPERM)
-    rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    removeDir(dataDir);
   });
   const port = await freePort();
   return { dataDir, port };

@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { spawn } from "node:child_process";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { mkdirSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { readServiceInfo, isAlive, serviceUrl } from "./service-info.ts";
@@ -13,6 +13,7 @@ import { assetCli } from './cli-asset.ts';
 import { skillsCli } from './skills-install.ts';
 import { buildCli } from './build-info.ts';
 import { cleanCli } from './clean.ts';
+import { alive, killTree, listServers } from './orphans.ts';
 import { doctor, renderDoctor } from './doctor.ts';
 import { dataDirFor, dbFile, legacyEnv } from './legacy.ts';
 
@@ -103,6 +104,11 @@ async function main() {
       if (Date.now() > deadline) throw new ServiceError("Drenaje pendiente: el servidor aún no confirmó cierre y retirada de su token");
       await sleep(50);
     }
+    // hito 20: un `server.ts --serve` de esta carpeta tiene que salir; si algo lo retiene, su árbol no se queda vivo
+    // (si el servicio vive dentro de otro proceso, como en las pruebas, ese proceso no se toca)
+    const exited = async (ms: number) => { for (const end = Date.now() + ms; alive(info.pid) && Date.now() < end;) await sleep(50); return !alive(info.pid); };
+    const ours = () => listServers().some(s => s.pid === info.pid && isAbsolute(s.data) && resolve(s.data).toLowerCase() === resolve(dataDir).toLowerCase());
+    if (!await exited(500) && ours() && !await exited(10_000)) killTree(info.pid);
     console.log("DETENIDO");
   }
 }

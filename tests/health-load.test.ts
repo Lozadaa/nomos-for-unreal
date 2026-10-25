@@ -20,7 +20,7 @@ function seed(dataDir: string, count: number) {
 test('/health contesta en < 200 ms con el servicio ocupado sirviendo SSE desde 0 y /status', { timeout: 120_000 }, async t => {
   const { dataDir, port } = await cliFixture(t);
   seed(dataDir, 100_000);
-  assert.equal(cli(dataDir, 'start', '--port', String(port)).status, 0);
+  assert.equal(cli(dataDir, 'start', '--port', String(port), '--no-open').status, 0);
   const info = readServiceInfo(dataDir)!, base = `http://127.0.0.1:${info.port}`, auth = { Authorization: `Bearer ${info.token}` };
   const health = await (await fetch(base + '/health')).json();
   assert.equal(health.ok, true); assert.equal(health.pid, info.pid); assert.equal(typeof health.uptime, 'number');
