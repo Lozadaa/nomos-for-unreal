@@ -30,8 +30,8 @@ function withOrca(f: F, opts: {busy?: number} = {}) {
   };
   return calls;
 }
-async function closing(f: F, name: string) {
-  const a = f.addTask(name);
+async function closing(f: F, name: string, files?: Record<string, string>) {
+  const a = files ? f.addTask(name, files) : f.addTask(name);
   assert.equal(((await integrateRun(f.command('integrate.run', {taskId: a.task.id}), f.ctx)) as any).integrated, true);
   return a;
 }
@@ -146,8 +146,9 @@ test('hito 25: un cierre de hito no pasa a done sin build estampada y «Aprobar�
   const {mkdirSync} = await import('node:fs');
   const f = integrationFixture();
   try {
-    withOrca(f); const a = await closing(f, 'jugable');
+    withOrca(f); const a = await closing(f, 'jugable', {'Source/Vida.cpp': 'int vida = 100;\n', 'docs/produccion/J1.md': lessonsReport});
     f.db.prepare('update tasks set title=? where id=?').run('Cierre J1: build jugable', a.task.id);
+    writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({memory: {enabled: false}})); // nunca el Second Brain real
     const blockedWith = async () => { const r = await finalize(f, a.task.id, {}, `fin-${Math.random()}`); return [r.closed, r.reason, getTask(f.db, a.task.id)!.state]; };
     assert.deepEqual(await blockedWith(), [false, 'Falta tu aprobación sobre la build jugable', 'cerrando']);
     assert.equal(f.events('task.closing_blocked').at(-1)!.condition, 'approval');
@@ -162,5 +163,71 @@ test('hito 25: un cierre de hito no pasa a done sin build estampada y «Aprobar�
     assert.deepEqual(await blockedWith(), [false, 'Falta tu aprobación sobre la build jugable', 'cerrando'], 'la aprobación es anterior a la build');
     approve(f.db, pendingApproval(f.db, a.task.id)!.id);
     assert.deepEqual((await blockedWith()).slice(0, 1).concat(getTask(f.db, a.task.id)!.state), [true, 'done']);
+  } finally { f.close(); }
+});
+
+const lessonsReport = '# J1\n\nHecho.\n\n## Lecciones\n\n- Jugar la build antes de cerrar el hito.\n- Una mecánica por día basta.\n';
+/** Cierre J1 listo para done: informe en el worktree, integrado, build estampada y «Aprobar» posterior. */
+async function readyClosing(f: F, report: string, config?: object) {
+  const {approve, requestApproval} = await import('../../service/src/approvals.ts');
+  const {writeBuildInfo} = await import('../../service/src/build-info.ts');
+  const {mkdirSync} = await import('node:fs');
+  if (config) writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify(config));
+  withOrca(f);
+  const a = await closing(f, 'j1', {'Source/Vida.cpp': 'int vida = 100;\n', 'docs/produccion/J1.md': report});
+  f.db.prepare('update tasks set title=? where id=?').run('Cierre J1: build jugable', a.task.id);
+  const dir = join(f.repo.dir, 'Build', 'Windows-actual'); mkdirSync(dir, {recursive: true});
+  writeFileSync(join(dir, 'Juego.exe'), 'exe');
+  writeBuildInfo(dir, {commit: f.repo.git(f.repo.dir, 'rev-parse', 'HEAD'), branch: 'master', builtAt: new Date().toISOString(), task: null, run: null});
+  approve(f.db, requestApproval(f.db, getTask(f.db, a.task.id)!).id);
+  return a;
+}
+/** brain.py falso: guarda sus argumentos y el cuerpo, y devuelve la ruta de la nota (o falla). */
+function fakeBrain(f: F, fail = false) {
+  const script = join(f.repo.root, 'brain.mjs'), out = join(f.repo.root, 'brain.json');
+  writeFileSync(script, `import {readFileSync, writeFileSync} from 'node:fs';
+const a = process.argv.slice(2);
+writeFileSync(${JSON.stringify(out)}, JSON.stringify({args: a, body: readFileSync(a[a.indexOf('--body-file') + 1], 'utf8')}));
+${fail ? "console.error('perfil no encontrado'); process.exit(3);" : "console.log('profiles/personal/knowledge/20261029-lecciones.md');"}`);
+  return {command: [process.execPath, script], read: () => JSON.parse(readFileSync(out, 'utf8'))};
+}
+
+test('hito 25: sin «## Lecciones» en el informe el cierre devuelve closing_blocked «Faltan las lecciones»', async () => {
+  const f = integrationFixture();
+  try {
+    const a = await readyClosing(f, '# J1\n\nHecho.\n');
+    const r = await finalize(f, a.task.id);
+    assert.deepEqual([r.closed, r.reason, getTask(f.db, a.task.id)!.state], [false, 'Faltan las lecciones', 'cerrando']);
+    assert.equal(f.events('task.closing_blocked').at(-1)!.condition, 'lessons');
+  } finally { f.close(); }
+});
+
+test('hito 25: al cerrar, las lecciones van a Second Brain (kind learning, evidence observed), quedan como artefacto y en la reanudación', async () => {
+  const f = integrationFixture();
+  try {
+    const brain = fakeBrain(f), a = await readyClosing(f, lessonsReport, {memory: {enabled: true, command: brain.command}});
+    const r = await finalize(f, a.task.id);
+    assert.equal(r.closed, true, r.reason);
+    const {args, body} = brain.read();
+    const at = (flag: string) => args[args.indexOf(flag) + 1];
+    assert.deepEqual([at('--cwd'), args[2], at('--title'), at('--kind'), at('--evidence')], [f.repo.dir, 'capture', 'Juego · J1: lecciones', 'learning', 'observed']);
+    assert.match(at('--source'), /^docs\/produccion\/J1\.md @ [0-9a-f]{7}$/);
+    assert.equal(body, '- Jugar la build antes de cerrar el hito.\n- Una mecánica por día basta.\n');
+    const {listArtifacts} = await import('../../service/src/repo/artifacts.ts');
+    const saved = listArtifacts(f.db, {taskId: a.task.id}).filter(x => x.provenance.label === 'Memoria guardada');
+    assert.deepEqual(saved.map(x => [x.kind, x.path]), [['report', 'profiles/personal/knowledge/20261029-lecciones.md']]);
+    assert.deepEqual(f.events('memory.saved').map(e => [e.taskId, e.path]), [[a.task.id, 'profiles/personal/knowledge/20261029-lecciones.md']]);
+    assert.match(readFileSync(join(f.dataDir, 'reanudacion.md'), 'utf8'), /## Lecciones\n\n- Jugar la build antes de cerrar el hito\.\n- Una mecánica por día basta\./);
+  } finally { f.close(); }
+});
+
+test('hito 25: si Second Brain falla, command.failed con la causa y la tarea cierra igual', async () => {
+  const f = integrationFixture();
+  try {
+    const brain = fakeBrain(f, true), a = await readyClosing(f, lessonsReport, {memory: {enabled: true, command: brain.command}});
+    assert.equal((await finalize(f, a.task.id)).closed, true);
+    assert.equal(getTask(f.db, a.task.id)!.state, 'done');
+    assert.match(f.events('command.failed').at(-1)!.reason, /Second Brain.*perfil no encontrado/s);
+    assert.equal(f.events('memory.saved').length, 0);
   } finally { f.close(); }
 });

@@ -115,6 +115,22 @@ Regla del usuario: «No dejes históricos de paquete anda limpiando». Solo se c
   ya no existe (10 min vivos) o está en Temp sin proyecto registrado (30 min). Nunca toca un
   servicio con datos fuera de Temp, como los de los juegos.
 
+## Lecciones
+
+Hito 25. Un cierre de hito (`role: cierre` o título que empieza por «Cierre») solo pasa a `done` si:
+
+| Condición | Si falta (`task.closing_blocked`) |
+|---|---|
+| El informe (`docs/produccion/J<n>.md` o un .md de la tarea) termina con `## Lecciones`, de 1 a 5 líneas | «Faltan las lecciones» (`condition: lessons`) |
+| Build estampada (`nomos build stamp`) y «Aprobar» del usuario posterior al último commit y a esa build | «Falta tu aprobación sobre la build jugable» (`condition: approval`); Nomos la pide en «Por aprobar» |
+
+Cada lección sirve en otro juego: qué falló, qué funcionó o qué regla sale. Al cerrar, el servicio llama a
+`brain.py --cwd <juego> capture --title "<Juego> · J<n>: lecciones" --source "<informe> @ <commit>" --kind learning
+--evidence observed --body-file <líneas>`, guarda la ruta como artefacto «Memoria guardada» y emite `memory.saved`.
+Si falla, `command.failed` con la causa y la tarea cierra igual. Se configura con `memory: {enabled, command}` en
+`config.json` (`command` es la orden de `brain.py` sin argumentos; por defecto la de este equipo). Las 5 últimas
+lecciones salen en `reanudacion.md`.
+
 ## Reanudación
 
 `.nomos/reanudacion.md` (≤ 60 líneas, en tablas) lo escribe Nomos desde la base al cerrar cada tarea
