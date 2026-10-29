@@ -43,7 +43,8 @@ export function tokensByRole(db: DatabaseSync): {total: number; porRol: Record<s
 
 /** Al cerrar una run con sesión de Claude Code se encola su medición; cada cierre la repite (hito 26: una run reabierta por una corrección sigue en la misma sesión). */
 export function queueTokens(db: DatabaseSync, run: Run, at = new Date().toISOString()): void {
-  if (run.metadata.sessionId) enqueue(db, 'run.tokens', {runId: run.id}, `run.tokens:${run.id}:${at}`);
+  // el último turno llega a la transcripción después del NOMOS_DONE: medir al instante lo perdía (ensayo del hito 26)
+  if (run.metadata.sessionId) enqueue(db, 'run.tokens', {runId: run.id}, `run.tokens:${run.id}:${at}`, {notBefore: new Date(Date.parse(at) + 30_000).toISOString()});
 }
 
 /** Una fila `tokens` por run en `spends`: entrada total (fresca + caché) y el detalle en `note`, al día con la transcripción

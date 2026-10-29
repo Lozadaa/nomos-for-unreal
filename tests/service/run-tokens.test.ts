@@ -70,6 +70,7 @@ test('hito 26: una run reabierta (corrección o fusionar main) vuelve a medirse 
   await new Promise(r => setTimeout(r, 2));
   finishRun(f.db, f.run.id, 'done', 'tras fusionar main');
   assert.equal(f.queued().length, 2, 'cada cierre encola su medición');
+  assert.ok(f.queued().every(c => Date.parse(c.not_before) - Date.now() > 25_000), 'espera 30 s a que la transcripción tenga el último turno');
   await runTokens({payload: JSON.parse(f.queued()[1].payload)} as any, f.ctx);
   assert.deepEqual(f.spends().map(s => [s.amount, JSON.parse(s.note).turns]), [[7836, 4]], 'una fila por run, con las dos vueltas');
 });
