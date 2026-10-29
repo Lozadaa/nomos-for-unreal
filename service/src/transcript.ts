@@ -3,9 +3,10 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Handler } from './runner.ts';
-import type { Run, Spend, Worktree } from './model.ts';
+import type { Budget, Run, Spend, Worktree } from './model.ts';
 import { enqueue } from './commands.ts';
-import { insert, read } from './repo/rows.ts';
+import { filtered, insert, read } from './repo/rows.ts';
+import { ensureBudget } from './repo/budget.ts';
 import { budgetFor } from './handlers/asset-meshy.ts';
 
 /** Hito 24: tokens de una run de Claude Code, leídos de su transcripción `~/.claude/projects/<árbol>/<sesión>.jsonl`. */
@@ -54,7 +55,9 @@ export const runTokens: Handler = async (command, ctx) => {
   const run = read<Run>(ctx.db, 'runs', runId);
   if (!run?.metadata.sessionId) return {skipped: true};
   const tree = run.metadata.worktreeId ? read<Worktree>(ctx.db, 'worktrees', run.metadata.worktreeId) : undefined;
-  const usage = tree ? readUsage(join(transcriptDir(tree.path), `${run.metadata.sessionId}.jsonl`)) : undefined;
+  // hito 27: el director por evento corre en la raíz del juego y su gasto va al presupuesto del workspace
+  const path = tree?.path ?? (run.role === 'director' ? ctx.projectDir : undefined);
+  const usage = path ? readUsage(join(transcriptDir(path), `${run.metadata.sessionId}.jsonl`)) : undefined;
   const old = ctx.db.prepare("select id from spends where run_id=? and kind='tokens'").get(runId);
   if (old) {
     if (usage) ctx.db.prepare('update spends set amount=?,note=?,updated_at=? where id=?')
@@ -65,7 +68,7 @@ export const runTokens: Handler = async (command, ctx) => {
     enqueue(ctx.db, 'run.tokens', {runId, retry: true}, `run.tokens:${runId}:retry`, {notBefore: new Date(Date.now() + 60_000).toISOString()});
     return {retry: true};
   }
-  insert<Spend>(ctx.db, 'spends', {budgetId: budgetFor(ctx.db, run.taskId).id, runId, kind: 'tokens',
+  insert<Spend>(ctx.db, 'spends', {budgetId: (run.role === 'director' ? filtered<Budget>(ctx.db, 'budgets', {scope: 'workspace'})[0] ?? ensureBudget(ctx.db, 'workspace', 'default', {meshyCredits: 0}) : budgetFor(ctx.db, run.taskId)).id, runId, kind: 'tokens',
     amount: usage ? usage.input + usage.cacheRead + usage.cacheWrite : 0, note: usage ? JSON.stringify(usage) : 'sin transcripción'});
   return {tokens: usage?.input ?? 0};
 };

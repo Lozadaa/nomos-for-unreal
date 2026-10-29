@@ -62,6 +62,7 @@ export function Produccion() {
   const now = useNow()
   const play = usePlay()
   const tokens = useStatus()?.tokens
+  const wakes = runs.filter((r) => r.role === 'director')
   const showSkeleton = useAfter(!loaded)
   const opener = useRef<HTMLElement | null>(null)
 
@@ -117,6 +118,10 @@ export function Produccion() {
         <Button variant="outline" size="sm" aria-pressed={filter === 'todas'} onClick={() => void animateUpdate(() => setFilter('todas'))}>Todas</Button>
         {!!tokens?.total && <span className="text-xs text-muted-foreground" title={Object.entries(tokens.porRol).map(([role, n]) => `${role}: ${millions(n)}`).join(' · ')}>
           Tokens del proyecto: {millions(tokens.total)}</span>}
+        {/* hito 27: cada despertar del director por evento es una run sin tarea */}
+        {!!wakes.length && <span className="text-xs text-muted-foreground">
+          Director: {wakes.length} {wakes.length === 1 ? 'despertar' : 'despertares'}{wakes.some((r) => r.state === 'running') ? ' · en marcha' : ''}
+          {!!tokens?.porRol.director && ` · ${millions(tokens.porRol.director)} tokens`}</span>}
         <Input
           type="search"
           value={query}

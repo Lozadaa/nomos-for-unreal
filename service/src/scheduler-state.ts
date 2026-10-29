@@ -21,7 +21,7 @@ export function startIntents(db:DatabaseSync,beforeId?:string):StartIntent[] {
 }
 export function reservations(db:DatabaseSync,beforeId?:string) {
   const runs=filtered<Run>(db,'runs'),usage={codex:0,claude:0,opencode:0},leases:LeaseConflict[]=[...listLeases(db)];
-  for(const run of runs) if(run.state==='running' && (run.provider==='codex'||run.provider==='claude')) usage[run.provider]++;
+  for(const run of runs) if(run.state==='running' && run.role!=='director' && (run.provider==='codex'||run.provider==='claude')) usage[run.provider]++;
   for(const run of lingering(db,runs)) usage[run.provider as 'codex'|'claude']++;
   for(const intent of startIntents(db,beforeId)) {
     if(intent.provider==='opencode') continue;

@@ -23,6 +23,8 @@ export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,numbe
     createTimeoutMs?: number};
   /** Hito 30: quién lanza los workers; `auto` = Orca si responde, si no proceso `claude` hijo. */
   launcher?: 'auto' | 'orca' | 'process';
+  /** Hito 27: `evento` lanza una sesión corta de director por evento (agrupados `debounceSeconds`); `sesion`, el director de siempre. */
+  director?: {mode?: 'sesion' | 'evento'; debounceSeconds?: number};
   /** Hito 22: el PC aguanta un Unreal pesado a la vez y pide RAM libre para abrirlo. */
   scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean}};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
@@ -31,8 +33,8 @@ export function concurrency(config: SchedulerConfig): Record<WorkerProvider,numb
     : {codex:config.concurrency.codex ?? 0,claude:config.concurrency.claude ?? 0,opencode:config.concurrency.opencode ?? 0};
 }
 export const visualTolerance = (config: SchedulerConfig) => config.visualTolerance ?? 0.02;
-export type ModelRole = 'implementacion' | 'revisor' | 'qa' | 'integrador' | 'animacion';
-const modelRoles=['implementacion','revisor','qa','integrador','animacion'];
+export type ModelRole = 'implementacion' | 'revisor' | 'qa' | 'integrador' | 'animacion' | 'director';
+const modelRoles=['implementacion','revisor','qa','integrador','animacion','director'];
 /** Hito 24: el rol de un worker (cualquier rol de juego es implementación; la QA visual es un revisor con capturas). */
 export function roleModel(config: SchedulerConfig, role: string, qa=false): WorkerModel {
   const key=(qa ? 'qa' : modelRoles.includes(role) ? role : 'implementacion') as ModelRole;
@@ -49,6 +51,7 @@ export const heavyRequiresNoEditor = (config: SchedulerConfig) => config.schedul
 export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.createTimeoutMs ?? 180_000;
 /** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
 export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
+export const directorConfig = (config: SchedulerConfig) => ({mode: config.director?.mode ?? 'sesion', debounceSeconds: config.director?.debounceSeconds ?? 60});
 export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
 /** Hito 30: brain.py de Second Brain en `SECOND_BRAIN_ROOT` o en `~/Documents/SecondBrain`; sin él, null y la memoria queda apagada. */
 export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): string[] | null {
@@ -91,6 +94,8 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     // hito 29: equipo (rama nomos/equipo del remoto origin); name y frente los pone `nomos team init`
     if(config.team!==undefined && (!object(config.team) || Object.entries(config.team).some(([k,v])=>k==='enabled' ? typeof v!=='boolean'
       : ['name','frente','branch'].includes(k) ? typeof v!=='string' || !v.trim() : k!=='pullSeconds' || typeof v!=='number' || !(v>=10 && v<=3600)))) throw new Error();
+    if(config.director!==undefined && (!object(config.director) || Object.entries(config.director).some(([k,v])=>k==='mode' ? !['sesion','evento'].includes(v as string)
+      : k!=='debounceSeconds' || typeof v!=='number' || !(v>=0 && v<=3600)))) throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;

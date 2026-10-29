@@ -149,3 +149,9 @@ export function migrateDecisionRepeats(db: DatabaseSync): void {
     groupRepeated(db);
   });
 }
+
+/** Hito 27: cursor propio del director por evento (último evento entregado a una sesión). */
+export function migrateDirector(db: DatabaseSync): void {
+  if (!db.prepare('pragma table_info(director)').all().some(row => row.name === 'wake_seq'))
+    db.exec('alter table director add column wake_seq integer not null default 0');
+}

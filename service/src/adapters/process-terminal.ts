@@ -112,7 +112,8 @@ export function chooseLauncher(orca: Orca, proc: Orca, mode: LauncherMode, dataD
     repoAdd: async path => (mode === 'process' || mode === 'auto' && !await orca.isRunning?.() ? proc : orca).repoAdd(path),
     worktreeCreate: (repoId, ...rest) => by(repoId).worktreeCreate(repoId, ...rest),
     worktreeRemove: (id, force) => by(id).worktreeRemove(id, force),
-    terminalCreate: (path, title, command) => (mine(path) ? proc : orca).terminalCreate!(path, title, command),
+    // hito 27: el director abre terminal en la raíz del juego; sin Orca (o con `process`) también es un proceso
+    terminalCreate: async (path, title, command) => (mine(path) || mode === 'process' || mode === 'auto' && !await orca.isRunning?.() ? proc : orca).terminalCreate!(path, title, command),
     terminalSend: (handle, text, retry) => by(handle).terminalSend(handle, text, retry),
     terminalRead: (handle, cursor) => by(handle).terminalRead(handle, cursor),
     terminalIsIdle: handle => by(handle).terminalIsIdle(handle),

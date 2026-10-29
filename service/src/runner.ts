@@ -15,6 +15,7 @@ import { sweepStalls } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
 import { jamSweep } from './approvals.ts';
+import { directorTick } from './director.ts';
 import type { MachineProbe } from './machine.ts';
 import { failureKind } from './failure-kind.ts';
 import { closeIdleTerminals, refreshBusyTerminals, sweepIntervalMs, sweepTerminals } from './sweep.ts';
@@ -103,6 +104,10 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
         }
         if(handlers['worker.start']) try {schedule(db,readConfig(dataDir),context);} catch(error) {
           appendEvent(db,'scheduler.error',null,{reason:error instanceof Error ? error.message : String(error)});
+        }
+        // hito 27: con director.mode «evento», los eventos agrupados lanzan una sesión corta de director
+        if(handlers['director.wake']) try {directorTick(context);} catch(error) {
+          appendEvent(db,'director.error',null,{reason:error instanceof Error ? error.message : String(error)});
         }
       }
       active[lane]=claim(db,owner,lane);

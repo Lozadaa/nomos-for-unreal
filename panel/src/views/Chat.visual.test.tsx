@@ -24,4 +24,13 @@ describe('Chat visual', () => {
     expect(within(nomosBubble).getByRole('img', { name: /Nomos/ })).toBeInTheDocument()
     expect(within(nomosBubble).getByText('2 min')).toBeInTheDocument()
   })
+
+  it('hito 27: un mensaje de un compañero del equipo va firmado «Ana (UI)», no «Tú»', async () => {
+    vi.mocked(api).mockResolvedValue([{ id: 'm2', text: '¿Me pasas el HUD?', from: 'Ana (UI)', createdAt: at, state: 'recibido', readAt: null, typingAt: null, repliedAt: null,
+      timedOut: false, replies: [], links: [] }])
+    render(<TooltipProvider><Chat /></TooltipProvider>)
+    const bubble = (await screen.findByText('¿Me pasas el HUD?')).closest('li')!
+    expect(within(bubble).getByText('Ana (UI)')).toBeInTheDocument()
+    expect(within(bubble).queryByText('Tú')).toBeNull()
+  })
 })

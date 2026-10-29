@@ -13,6 +13,7 @@ import { id, text, type Context } from './context.ts';
 import type { Run, Worktree } from '../model.ts';
 
 function treeFor(db: Context['db'],run: Run): Worktree | null {
+  if (run.role==='director') return null;
   const task=requireTask(db,run.taskId);
   const treeId=run.metadata.worktreeId ?? (filtered<Run>(db,'runs',{taskId:task.id}).length===1 ? task.worktreeId : null);
   const tree=treeId ? read<Worktree>(db,'worktrees',treeId) : null;
@@ -23,10 +24,11 @@ export async function runs({db,req,res,url}: Context): Promise<boolean> {
   if (!match) return false;
   const run=requireRun(db,id(match[1])),action=match[2];
   if (req.method==='GET' && !action) {
-    const task=requireTask(db,run.taskId),waiting=!!run.metadata.waiting;
+    // hito 27: la run de un director por evento no tiene tarea
+    const task=run.role==='director' ? null : requireTask(db,run.taskId),waiting=!!run.metadata.waiting;
     json(res,200,{run,worktree:treeFor(db,run),latestStatus:{
-      state:task.blockedReason ? 'bloqueada' : waiting ? 'esperando_worker' : run.state,
-      waiting,question:run.metadata.question ?? null,blockedReason:task.blockedReason}});return true;
+      state:task?.blockedReason ? 'bloqueada' : waiting ? 'esperando_worker' : run.state,
+      waiting,question:run.metadata.question ?? null,blockedReason:task?.blockedReason ?? null}});return true;
   }
   if (req.method==='GET' && action==='output') {
     const value=url.searchParams.get('since'),since=value===null ? 0 : Number(value);

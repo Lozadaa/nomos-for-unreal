@@ -32,7 +32,7 @@ comandos se ejecutan desde el juego con `--data .nomos`. Si el juego trae Nomos 
 2. El comando abre el navegador. Muestra la URL en `show_pane preview` si existe.
    Reiniciar no invalida los accesos directos (token por carpeta; `--new-token` lo cambia). Un servicio por juego: [panel por proyecto](references/contrato-eventos.md#panel-por-proyecto).
 3. Consulta `nomos status --data .nomos`. Si otra sesión tiene vigilante vivo,
-   conserva esa directora. En otro caso, arma `Monitor` durante 30 minutos con
+   conserva esa directora. Con `director.mode: "evento"` no armes nada ([modo evento](#modo-evento)). En otro caso, arma `Monitor` durante 30 minutos con
    `nomos vigila --session <sesion> --data .nomos --types <tipos>` con
    `message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed,`
    `task.moved,integration.completed,task.closing_blocked`.
@@ -113,6 +113,16 @@ Con `jam.enabled` en `config.json` (lo pone `nomos jam init --tema "<tema>" --di
 tareas del día en curso y la de cierre; ninguna tarea nueva fuera de `docs/plan-jam.md` sin una Decisión del usuario
 que la acepte. Detalle en [modo jam](references/jam.md).
 Un juego sin `.cpp`/`.h` bajo `Source/` no tiene grafo: graphify solo indexa código (doctor: «sin código C++, apagado»).
+
+## Modo evento
+
+Con `director.mode: "evento"` en `config.json` no hay director permanente: el servicio te lanza (`/nomos evento`) cuando
+un evento pide decisión, con el brief en `.nomos/director-brief.md` (lo mismo imprime `nomos brief director`).
+1. Lee el brief; si falta algo, `nomos status` o `nomos task show <id>`. Nada de historial.
+2. Actúa con la CLI: ack, typing y reply a cada mensaje; crea, revisa, integra o contesta al worker que espera.
+3. No armes `Monitor`, no esperes a workers ni a eventos: el siguiente evento te vuelve a lanzar.
+4. Termina con una sola línea: qué hiciste, o «Sin nada que decidir». Plazo: 20 min.
+El modo `sesion` (por defecto fuera de jam) sigue como arriba.
 
 ## Repartir
 
@@ -210,6 +220,7 @@ activo, apágalo y dilo; el siguiente `/nomos` lo arma de nuevo.
 |---|---|
 | (nada) | Arrancar/conectar, abrir panel y armar vigilante |
 | `estado` | `nomos status --data .nomos`; resumen de servicio, vigilante y pendientes |
+| `evento` | Lo lanza el servicio: [modo evento](#modo-evento); sin arrancar, sin vigilante |
 | `cerrar` | Detener Monitor y rearmados; `nomos stop --data .nomos`; conservar base del juego |
 
 Ejemplo de reply de creación (dos líneas, sustituye el ID con el devuelto):
