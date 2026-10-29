@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
+import { renameSync, rmSync } from 'node:fs';
 import type { Artifact, Run, Task } from './model.ts';
 import type { SchedulerConfig } from './config.ts';
 import { filtered, transaction } from './repo/rows.ts';
@@ -17,7 +18,10 @@ import { openDecision } from './repo/decisions.ts';
  */
 export type Approval = {id: string; taskId: string; state: 'pending' | 'approved' | 'changes'; focus: string[];
   createdAt: string; updatedAt: string; resolvedAt: string | null;
-  /** hito 29: conflicto en un binario con un peer; `choice` = la versión que se quedó */ conflict?: Conflict | null; choice?: 'mine' | 'theirs' | 'manual' | null};
+  /** hito 29: conflicto en un binario con un peer; `choice` = la versión que se quedó */ conflict?: Conflict | null; choice?: 'mine' | 'theirs' | 'manual' | null;
+  /** hito 28: línea base visual propuesta; `changes` = rechazada */ baseline?: BaselineProposal | null};
+/** Hito 28: la captura propuesta, dónde quedará al aprobarla, la actual (si hay) y el diff contra ella. */
+export type BaselineProposal = {name: string; proposal: string; baseline: string; current: string | null; diff: string | null};
 /** Hito 29: las dos versiones de un binario en conflicto (quién, tarea, cuándo). */
 export type ConflictSide = {who: string; frente: string; task: string; at: string; taskId?: string | null; peerId?: string | null};
 export type Conflict = {files: string[]; mine: ConflictSide; theirs: ConflictSide};
@@ -30,7 +34,7 @@ export function migrateApprovals(db: DatabaseSync): void {
     state text not null check(state in ('pending','approved','changes')), focus text not null default '[]',
     created_at text not null, updated_at text not null, resolved_at text)`);
   const columns = db.prepare('pragma table_info(approvals)').all();
-  for (const column of ['conflict', 'choice']) if (!columns.some(row => row.name === column)) db.exec(`alter table approvals add column ${column} text`);
+  for (const column of ['conflict', 'choice', 'baseline']) if (!columns.some(row => row.name === column)) db.exec(`alter table approvals add column ${column} text`);
 }
 
 /** `Aprobación: usuario|no` en la spec manda; si no, el área o el rol en `approval.areas`, o un cierre de hito. */
@@ -44,13 +48,15 @@ export function needsApproval(task: Pick<Task, 'title' | 'spec' | 'area' | 'assi
 
 const decode = (row: Record<string, unknown>): Approval => ({id: row.id as string, taskId: row.task_id as string, state: row.state as Approval['state'],
   focus: JSON.parse(row.focus as string), createdAt: row.created_at as string, updatedAt: row.updated_at as string, resolvedAt: row.resolved_at as string | null,
-  conflict: row.conflict ? JSON.parse(row.conflict as string) : null, choice: (row.choice ?? null) as Approval['choice']});
+  conflict: row.conflict ? JSON.parse(row.conflict as string) : null, choice: (row.choice ?? null) as Approval['choice'],
+  baseline: row.baseline ? JSON.parse(row.baseline as string) : null});
 export const getApproval = (db: DatabaseSync, id: string) => { const row = db.prepare('select * from approvals where id=?').get(id); return row ? decode(row) : undefined; };
 export function requireApproval(db: DatabaseSync, id: string): Approval {
   const approval = getApproval(db, id); if (!approval) throw new Error('unknown_approval'); return approval;
 }
 export const pendingApproval = (db: DatabaseSync, taskId: string) => {
-  const row = db.prepare("select * from approvals where task_id=? and state='pending' order by created_at desc limit 1").get(taskId);
+  // hito 28: una línea base propuesta no retiene la tarea
+  const row = db.prepare("select * from approvals where task_id=? and state='pending' and baseline is null order by created_at desc limit 1").get(taskId);
   return row ? decode(row) : undefined;
 };
 const implementer = (db: DatabaseSync, taskId: string) => filtered<Run>(db, 'runs', {taskId})
@@ -86,7 +92,30 @@ function settle(db: DatabaseSync, approval: Approval, state: Approval['state']):
   liftHold(db, approval.taskId, state === 'approved' ? 'aprobada por el usuario' : 'cambios pedidos por el usuario');
   return requireApproval(db, approval.id);
 }
+/** Hito 28: una propuesta pendiente por nombre; la siguiente captura la renueva en vez de abrir otra. */
+export function requestBaseline(db: DatabaseSync, taskId: string, baseline: BaselineProposal): Approval {
+  return transaction(db, () => {
+    const open = db.prepare("select id from approvals where state='pending' and json_extract(baseline,'$.name')=?").get(baseline.name)?.id as string | undefined;
+    const now = new Date().toISOString();
+    if (open) { db.prepare('update approvals set baseline=?,updated_at=? where id=?').run(JSON.stringify(baseline), now, open); return requireApproval(db, open); }
+    const id = randomUUID();
+    db.prepare(`insert into approvals(id,task_id,state,focus,created_at,updated_at,baseline) values(?,?,'pending','[]',?,?,?)`)
+      .run(id, taskId, now, now, JSON.stringify(baseline));
+    appendEvent(db, 'approval.requested', null, {approvalId: id, taskId, baseline: baseline.name});
+    return requireApproval(db, id);
+  });
+}
+/** Aprobar mueve la propuesta a `docs/baseline/` y desde ahí juzga; rechazarla la borra y la siguiente captura propone otra. */
+export const settleBaseline = (db: DatabaseSync, id: string, ok: boolean) => transaction(db, () => {
+  const approval = requireApproval(db, id), b = approval.baseline, now = new Date().toISOString();
+  if (!b || approval.state !== 'pending') throw new Error('invalid_transition');
+  if (ok) renameSync(b.proposal, b.baseline); else rmSync(b.proposal, {force: true});
+  db.prepare('update approvals set state=?,updated_at=?,resolved_at=? where id=?').run(ok ? 'approved' : 'changes', now, now, id);
+  appendEvent(db, ok ? 'baseline.approved' : 'baseline.rejected', null, {approvalId: id, taskId: approval.taskId, name: b.name});
+  return requireApproval(db, id);
+});
 export const approve = (db: DatabaseSync, id: string) => transaction(db, () => {
+  if (requireApproval(db, id).baseline) return settleBaseline(db, id, true);
   if (requireApproval(db, id).conflict) throw new Error('invalid_transition');
   const done = settle(db, requireApproval(db, id), 'approved');
   appendEvent(db, 'approval.approved', null, {approvalId: id, taskId: done.taskId});
@@ -162,7 +191,11 @@ export function listApprovals(db: DatabaseSync) {
     const task = requireTask(db, a.taskId), visual = (x: Artifact) => x.kind === 'video' || x.kind === 'screenshot';
     const evidence = listArtifacts(db, {taskId: a.taskId}).filter(visual)
       .toSorted((x, y) => Number(y.kind === 'video') - Number(x.kind === 'video') || y.createdAt.localeCompare(x.createdAt));
-    return {...a, title: task.title, area: task.area, summary: summaryOf(task.spec), evidence, comments: notes.filter(c => c.approvalId === a.id),
+    // hito 28: la línea base trae sus imágenes (propuesta, actual, diff) por `/approvals/:id/baseline/…`
+    if (a.baseline) return {...a, type: 'baseline', title: `Línea base: ${a.baseline.name.split('-').join(' ')}`, area: task.area,
+      summary: `Propuesta desde «${task.title}». Hasta que la apruebes, esta comprobación visual informa sin fallar.`, evidence: [],
+      comments: notes.filter(c => c.approvalId === a.id), blocked: null};
+    return {...a, type: a.conflict ? 'conflict' : 'task', title: task.title, area: task.area, summary: summaryOf(task.spec), evidence, comments: notes.filter(c => c.approvalId === a.id),
       blocked: task.waitReason === noPlayableApproval ? noPlayableApproval : null};
   });
   return {pending: all.filter(a => a.state === 'pending').length, items, general: notes.filter(c => !c.approvalId)};

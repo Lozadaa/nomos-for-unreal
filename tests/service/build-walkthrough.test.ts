@@ -53,15 +53,15 @@ test('un paquete que se cierra a los 5 s falla con la causa y guarda el log, aun
   }
 });
 
-test('build aprobado crea la línea base de su mapa; un cambio real de la UI (vida 32 → 16) falla con la imagen de diferencia', async () => {
+test('build aprobado propone la línea base de su mapa; un cambio real de la UI (vida 32 → 16) falla con la imagen de diferencia', async () => {
   const calls: string[][] = [];
   const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: game({}, png(32), calls)}});
   try {
     env();
     assert.equal((await f.run()).passed, true);
     assert.equal(calls.length, 1);
-    assert.match(f.events('test.passed').at(-1)!.summary, /Línea base creada: build-Prueba-1280x720/);
-    assert.ok(existsSync(join(f.projectDir, 'docs', 'baseline', 'build-Prueba-1280x720.png')));
+    assert.match(f.events('test.passed').at(-1)!.summary, /Sin línea base aprobada; propuesta enviada: build-Prueba-1280x720/);
+    assert.ok(existsSync(join(f.projectDir, 'docs', 'baseline', 'propuestas', 'build-Prueba-1280x720.png')));
     const second = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: game({}, png(16))}});
     try {
       mkdirSync(join(second.projectDir, 'docs', 'baseline'), {recursive: true});
@@ -122,7 +122,7 @@ test('un error fatal del juego (el informador de fallos lo mantiene vivo) falla 
   } finally { f.close(); }
 });
 
-test('hito 5b: el build de otro mapa no se compara con la línea base del mapa anterior; crea la suya', async () => {
+test('hito 5b: el build de otro mapa no se compara con la línea base del mapa anterior; propone la suya', async () => {
   const f = checksFixture({files: ['Config/DefaultGame.ini'], deps: {launch: game({}, png(16))}});
   try {
     env();
@@ -130,7 +130,7 @@ test('hito 5b: el build de otro mapa no se compara con la línea base del mapa a
     mkdirSync(join(f.projectDir, 'docs', 'baseline'), {recursive: true});
     writeFileSync(join(f.projectDir, 'docs', 'baseline', 'build-1280x720.png'), png(32));
     assert.equal((await f.run()).passed, true);
-    assert.match(f.events('test.passed').at(-1)!.summary, /Línea base creada: build-AnimTest-1280x720/);
-    assert.ok(existsSync(join(f.projectDir, 'docs', 'baseline', 'build-AnimTest-1280x720.png')));
+    assert.match(f.events('test.passed').at(-1)!.summary, /Sin línea base aprobada; propuesta enviada: build-AnimTest-1280x720/);
+    assert.ok(existsSync(join(f.projectDir, 'docs', 'baseline', 'propuestas', 'build-AnimTest-1280x720.png')));
   } finally { f.close(); }
 });

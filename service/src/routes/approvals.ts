@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { body, json } from '../http.ts';
 import { id, type Context } from './context.ts';
-import { approve, comment, keepVersion, listApprovals, requestApproval, requestChanges } from '../approvals.ts';
+import { approve, comment, keepVersion, listApprovals, requestApproval, requestChanges, requireApproval, settleBaseline } from '../approvals.ts';
 import { requireTask } from '../repo/tasks.ts';
 import { requestIntegration } from './task-closing.ts';
 
@@ -47,14 +47,25 @@ export async function approvals({db, req, res, url, dataDir}: Context): Promise<
   if (req.method === 'POST' && url.pathname === '/approvals/comment') {
     const data = await body(req); json(res, 200, comment(db, null, data.text, data.imageId)); return true;
   }
-  const action = /^\/approvals\/([^/]+)\/(approve|changes|comment|keep)$/.exec(url.pathname);
+  // hito 28: las imágenes de una línea base propuesta; solo las rutas que guardó la propia comprobación
+  const shot = /^\/approvals\/([^/]+)\/baseline\/(propuesta|actual|diferencia)$/.exec(url.pathname);
+  if (req.method === 'GET' && shot) {
+    const a = requireApproval(db, id(shot[1])), b = a.baseline, approved = a.state === 'approved';
+    // aprobada, la propuesta ya es la línea base y la anterior se sustituyó
+    const file = b && {propuesta: approved ? b.baseline : b.proposal, actual: !approved && b.current, diferencia: b.diff}[shot[2] as 'propuesta'];
+    if (!file || !existsSync(file)) { json(res, 404, {error: 'unknown_file'}); return true; }
+    res.writeHead(200, {'Content-Type': 'image/png', 'Cache-Control': 'no-store'}); res.end(readFileSync(file)); return true;
+  }
+  const action = /^\/approvals\/([^/]+)\/(approve|changes|comment|keep|reject)$/.exec(url.pathname);
   if (req.method !== 'POST' || !action) return false;
   const approvalId = id(action[1]), data = await body(req);
+  if (action[2] === 'reject') { json(res, 200, settleBaseline(db, approvalId, false)); return true; }
   // hito 29: conflicto en un binario; la integración aplica la versión elegida
   if (action[2] === 'keep') { json(res, 200, keepVersion(db, approvalId, data.side)); return true; }
   if (action[2] === 'comment') { json(res, 200, comment(db, approvalId, data.text, data.imageId)); return true; }
   if (action[2] === 'changes') { json(res, 200, requestChanges(db, approvalId, data.text, data.imageId)); return true; }
   const done = approve(db, approvalId);
+  if (done.baseline) { json(res, 200, done); return true; }
   // aprobada, sigue a integración; si aún le faltan las comprobaciones, el director la pedirá al acabar
   let integration: unknown = null;
   try { integration = requestIntegration(db, done.taskId); } catch (error) { if ((error as Error).message !== 'invalid_transition') throw error; }

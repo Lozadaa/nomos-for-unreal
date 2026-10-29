@@ -44,7 +44,10 @@ En build el ejecutable da la del jugador y el editor (`-game`, mismo mapa) las o
 Línea base visual de map y build: `docs/baseline/<check>-<mapa>-<captura>.png`, siempre con
 mapa. Si ni el diff ni el informe lo dicen, es `GameDefaultMap` de `Config/DefaultEngine.ini`
 (o el último `/Game/` cargado en el log); la antigua sin mapa se adopta para el mapa por
-defecto renombrándola, con una línea en el resumen.
+defecto renombrándola, con una línea en el resumen. Solo juzga una línea base aprobada: sin ella la captura
+va a `docs/baseline/propuestas/<nombre>.png`, abre «Línea base: …» en «Por aprobar» y el resultado es `skipped`
+(«Sin línea base aprobada; propuesta enviada»). Aprobar la mueve a `docs/baseline/`; rechazarla la borra y la
+siguiente captura propone otra. Las que ya están en `docs/baseline/` cuentan como aprobadas.
 
 `animation` solo se exige si hay personaje que reproducir (`nomos-personaje.json` en el
 árbol, o malla con esqueleto y clips en el diff). Montajes o clips sin él: no aplica, no se

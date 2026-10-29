@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { checksFixture } from './checks-fixture.ts';
 import { filtered } from '../../service/src/repo/rows.ts';
 import { listArtifacts } from '../../service/src/repo/artifacts.ts';
 import { defaultMap } from '../../service/src/checks/map.ts';
 import { encodePng } from '../../service/src/checks/visual.ts';
+import { approve, listApprovals, pendingApproval, settleBaseline } from '../../service/src/approvals.ts';
 import type { Launch } from '../../service/src/checks/run.ts';
 import type { TestRun } from '../../service/src/model.ts';
 
@@ -28,6 +29,7 @@ const setup = (log: string[] = [], withIni = true) => {
   return f;
 };
 const baseline = (f: {projectDir: string}, name: string) => join(f.projectDir, 'docs', 'baseline', `${name}.png`);
+const proposal = (f: {projectDir: string}, name: string) => join(f.projectDir, 'docs', 'baseline', 'propuestas', `${name}.png`);
 const buildRow = (f: ReturnType<typeof setup>) => filtered<TestRun>(f.db, 'test_runs', {taskId: f.task.id}).find(r => r.checkId === 'build')!;
 
 test('Esquina J0.4: sin .umap en el diff, el build nombra la línea base con el GameDefaultMap de DefaultEngine.ini', async () => {
@@ -35,7 +37,7 @@ test('Esquina J0.4: sin .umap en el diff, el build nombra la línea base con el 
   try {
     assert.equal((await f.run()).passed, true);
     assert.equal(buildRow(f).map, '/Game/Esquina/Mapas/L_Lookdev');
-    assert.ok(existsSync(baseline(f, 'build-L_Lookdev-1280x720')));
+    assert.ok(existsSync(proposal(f, 'build-L_Lookdev-1280x720')));
     const shot = listArtifacts(f.db, {taskId: f.task.id}).find(a => a.kind === 'screenshot')!;
     assert.equal((shot.provenance as {map?: string}).map, '/Game/Esquina/Mapas/L_Lookdev');
   } finally { f.close(); }
@@ -46,7 +48,7 @@ test('sin GameDefaultMap, el mapa sale del log del juego', async () => {
   try {
     assert.equal((await f.run()).passed, true);
     assert.equal(buildRow(f).map, '/Game/Esquina/Mapas/L_Gym');
-    assert.ok(existsSync(baseline(f, 'build-L_Gym-1280x720')));
+    assert.ok(existsSync(proposal(f, 'build-L_Gym-1280x720')));
   } finally { f.close(); }
   assert.equal(defaultMap('C:/no/existe', '[0]LogLoad: LoadMap: /Engine/Maps/Entry\n[1]LogLoad: LoadMap: /Game/Mapas/Uno.Uno?Name=Player'), '/Game/Mapas/Uno');
   assert.equal(defaultMap('C:/no/existe', 'nada'), null);
@@ -74,8 +76,33 @@ test('walkthrough.map sigue mandando sobre el GameDefaultMap y no adopta la lín
     writeFileSync(baseline(f, 'build-1280x720'), png(200));
     assert.equal((await f.run()).passed, true);
     assert.equal(buildRow(f).map, '/Game/Kratos/Maps/AnimTest');
-    assert.ok(existsSync(baseline(f, 'build-AnimTest-1280x720')));
+    assert.ok(existsSync(proposal(f, 'build-AnimTest-1280x720')));
     assert.ok(existsSync(baseline(f, 'build-1280x720')), 'la antigua es del mapa por defecto: se queda');
+  } finally { f.close(); }
+});
+
+const pendingBase = (f: ReturnType<typeof setup>) => listApprovals(f.db).items.filter(i => i.baseline && i.state === 'pending');
+test('hito 28: sin línea base aprobada se propone y no juzga; rechazarla la borra y se propone otra; aprobada, juzga', async () => {
+  const f = setup();
+  try {
+    assert.equal((await f.run()).passed, true);
+    assert.match(f.events('test.passed').at(-1)!.summary, /Sin línea base aprobada; propuesta enviada: build-L_Lookdev-1280x720/);
+    assert.equal(existsSync(baseline(f, 'build-L_Lookdev-1280x720')), false);
+    let [item] = pendingBase(f);
+    assert.deepEqual([item.type, item.title, item.baseline!.current], ['baseline', 'Línea base: build L_Lookdev 1280x720', null]);
+    assert.equal(pendingApproval(f.db, f.task.id), undefined, 'no retiene la tarea ni su integración');
+    assert.equal((await f.run()).passed, true);
+    assert.equal(pendingBase(f).length, 1, 'la siguiente captura renueva la misma propuesta');
+    settleBaseline(f.db, item.id, false);
+    assert.equal(existsSync(proposal(f, 'build-L_Lookdev-1280x720')), false, 'rechazar la borra');
+    assert.equal((await f.run()).passed, true);
+    [item] = pendingBase(f);
+    approve(f.db, item.id);
+    assert.equal(existsSync(proposal(f, 'build-L_Lookdev-1280x720')), false);
+    assert.ok(readFileSync(baseline(f, 'build-L_Lookdev-1280x720')).equals(png()), 'aprobar la mueve a docs/baseline/');
+    assert.equal((await f.run()).passed, true);
+    assert.match(f.events('test.passed').at(-1)!.summary, /build-L_Lookdev-1280x720: igual a la línea base/);
+    assert.equal(pendingBase(f).length, 0);
   } finally { f.close(); }
 });
 
@@ -85,26 +112,35 @@ const changed = (f: ReturnType<typeof setup>, spec: string | null, approved = 1)
   writeFileSync(baseline(f, 'build-L_Lookdev-1280x720'), png(200));
   f.db.prepare('update tasks set spec=coalesce(?,spec),review_approved=? where id=?').run(spec, approved, f.task.id);
 };
-test('visual: cambia en la spec: con la revisión aprobada, la primera captura sustituye la línea base del mapa', async () => {
+test('visual: cambia con la revisión aprobada: propone la nueva línea base con el diff al lado y no falla; aprobada, compara contra ella', async () => {
   const f = setup();
   try {
     changed(f, '## Qué\nNueva iluminación\nvisual: cambia\n');
     assert.equal((await f.run()).passed, true);
     assert.equal(buildRow(f).result, 'passed');
-    assert.deepEqual(f.events('baseline.replaced').map(e => e.name), ['build-L_Lookdev-1280x720']);
-    assert.equal((await import('node:fs')).readFileSync(baseline(f, 'build-L_Lookdev-1280x720')).equals(png()), true);
+    assert.match(f.events('test.passed').at(-1)!.summary, /build-L_Lookdev-1280x720: cambio visual a propósito; nueva línea base propuesta/);
+    assert.ok(readFileSync(baseline(f, 'build-L_Lookdev-1280x720')).equals(png(200)), 'la actual sigue hasta aprobarla');
+    const [item] = pendingBase(f);
+    assert.equal(item.baseline!.current, baseline(f, 'build-L_Lookdev-1280x720'));
+    assert.ok(item.baseline!.diff && existsSync(item.baseline!.diff), 'con el diff');
+    approve(f.db, item.id);
+    assert.ok(readFileSync(baseline(f, 'build-L_Lookdev-1280x720')).equals(png()));
+    assert.deepEqual(f.events('baseline.approved').map(e => e.name), ['build-L_Lookdev-1280x720']);
+    assert.equal((await f.run()).passed, true);
+    assert.match(f.events('test.passed').at(-1)!.summary, /igual a la línea base/);
   } finally { f.close(); }
 });
 
-test('sin declararlo (o sin revisión aprobada) la diferencia sigue fallando; --acepta-nueva-base también la sustituye', async () => {
+test('sin declararlo (o sin revisión aprobada) la diferencia sigue fallando; --acepta-nueva-base también la propone', async () => {
   const f = setup();
   try {
     changed(f, null);
     assert.equal((await f.run()).passed, false);
     changed(f, '## Qué\nx\nvisual: cambia\n', 0);
-    assert.equal((await f.run()).passed, false, 'sin revisión aprobada no se sustituye');
+    assert.equal((await f.run()).passed, false, 'sin revisión aprobada no se propone');
+    assert.equal(pendingBase(f).length, 0);
     changed(f, '## Qué\nx\n', 1);
     assert.equal((await f.run({taskId: f.task.id, acceptNewBase: true})).passed, true);
-    assert.equal(f.events('baseline.replaced').length, 1);
+    assert.equal(pendingBase(f).length, 1);
   } finally { f.close(); }
 });

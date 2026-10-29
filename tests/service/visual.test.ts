@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { decodePng, type Rgba } from '../../service/src/checks/png.ts';
@@ -27,13 +27,14 @@ test('el codificador PNG mínimo produce un archivo que el decodificador propio 
   assert.deepEqual(Buffer.from(back.data), Buffer.from(image.data));
 });
 
-test('sin línea base la crea y no juzga; variación de render pasa; la barra de vida de 100 a 50 falla con imagen de diferencia', () => {
+test('sin línea base no juzga ni la crea (hito 28: se propone); variación de render pasa; la barra de vida de 100 a 50 falla con imagen de diferencia', () => {
   const dir = mkdtempSync(join(tmpdir(), 'nomos-visual-')), baselines = join(dir, 'docs', 'baseline');
   try {
     const shot = (name: string, image: Rgba) => { const path = join(dir, `${name}.png`); writeFileSync(path, encodePng(image)); return path; };
     const first = compareBaseline(shot('base', hud(100)), baselines, 'build-1280x720', 0.02, join(dir, 'diff-1.png'));
-    assert.deepEqual([first.result, first.summary], ['skipped', 'Línea base creada: build-1280x720']);
-    assert.ok(existsSync(join(baselines, 'build-1280x720.png')));
+    assert.deepEqual([first.result, first.summary], ['skipped', 'Sin línea base aprobada; propuesta enviada: build-1280x720']);
+    assert.equal(existsSync(join(baselines, 'build-1280x720.png')), false);
+    mkdirSync(baselines, {recursive: true}); copyFileSync(join(dir, 'base.png'), join(baselines, 'build-1280x720.png'));
     const render = compareBaseline(shot('exposicion', hud(100, 5, 3)), baselines, 'build-1280x720', 0.02, join(dir, 'diff-2.png'));
     assert.equal(render.result, 'passed', 'exposición +5 y ruido ±3 son variación de render');
     assert.equal(existsSync(join(dir, 'diff-2.png')), false);

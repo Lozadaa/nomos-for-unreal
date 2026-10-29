@@ -5,7 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { decodePng, pixelDiffRatio, type Rgba } from './png.ts';
 import type { Task } from '../model.ts';
 import { read } from '../repo/rows.ts';
-import { appendEvent } from '../store.ts';
+import { requestBaseline } from '../approvals.ts';
 
 /** Diferencia por canal que se considera ruido de render (exposición automática, TAA, partículas). */
 export const renderNoise = 12;
@@ -41,14 +41,10 @@ function diffImage(a: Rgba, b: Rgba): Rgba {
 const percent = (ratio: number) => `${(Math.round(ratio * 10000) / 100).toString().replace('.', ',')} %`;
 export type VisualResult = {result: 'passed' | 'failed' | 'skipped'; ratio: number | null; baseline: string; diff?: string; summary: string};
 
-/** Regresión visual (hito 7): la captura contra `<juego>/docs/baseline/<nombre>.png`; sin línea base, la crea y no juzga. */
+/** Regresión visual (hito 7): la captura contra `<juego>/docs/baseline/<nombre>.png`; sin línea base no juzga (hito 28: se propone). */
 export function compareBaseline(shot: string, baselineDir: string, name: string, tolerance: number, diffPath: string): VisualResult {
   const baseline = join(baselineDir, `${name}.png`);
-  if (!existsSync(baseline)) {
-    mkdirSync(baselineDir, {recursive: true});
-    copyFileSync(shot, baseline);
-    return {result: 'skipped', ratio: null, baseline, summary: `Línea base creada: ${name}`};
-  }
+  if (!existsSync(baseline)) return {result: 'skipped', ratio: null, baseline, summary: `Sin línea base aprobada; propuesta enviada: ${name}`};
   const now = decodePng(readFileSync(shot)), before = decodePng(readFileSync(baseline));
   const ratio = pixelDiffRatio(now, before, renderNoise);
   if (ratio <= tolerance) return {result: 'passed', ratio, baseline, summary: `${name}: igual a la línea base (${percent(ratio)} distinto)`};
@@ -63,17 +59,22 @@ export function compareBaseline(shot: string, baselineDir: string, name: string,
 }
 
 /**
- * Hito 22: un cambio visual a propósito (`visual: cambia` en la spec o `--acepta-nueva-base`) con la revisión aprobada:
- * la primera captura de cada línea base la sustituye (`baseline.replaced`) en vez de fallar; las siguientes comparan contra ella.
+ * Hito 22: un cambio visual a propósito (`visual: cambia` en la spec o `--acepta-nueva-base`) con la revisión aprobada.
+ * Hito 28: ya no sustituye la línea base; la propone con el diff al lado. Tras aprobarla (`baseline.approved`) compara contra ella.
  */
 export const newBaseAllowed = (db: DatabaseSync, input: {task: Task; acceptNewBase?: boolean}) => {
   const task = read<Task>(db, 'tasks', input.task.id) ?? input.task;
   const declared = input.acceptNewBase === true || /^\s*visual\s*:\s*cambia\b/im.test(task.spec);
-  return (name: string) => declared && task.reviewApproved === 1 && !db.prepare(`select 1 from events where type='baseline.replaced'
+  return (name: string) => declared && task.reviewApproved === 1 && !db.prepare(`select 1 from events where type in ('baseline.replaced','baseline.approved')
     and json_extract(payload,'$.taskId')=? and json_extract(payload,'$.name')=?`).get(task.id, name);
 };
-export function replaceBaseline(db: DatabaseSync, taskId: string, shot: string, visual: VisualResult, name: string): VisualResult {
-  copyFileSync(shot, visual.baseline);
-  appendEvent(db, 'baseline.replaced', null, {taskId, name});
-  return {result: 'passed', ratio: visual.ratio, baseline: visual.baseline, summary: `${name}: línea base sustituida (cambio visual a propósito)`};
+/** Hito 28: la captura queda en `docs/baseline/propuestas/<nombre>.png` y abre (o renueva) su aprobación; mientras, no falla. */
+export function proposeBaseline(db: DatabaseSync, taskId: string, shot: string, visual: VisualResult, name: string): VisualResult {
+  const proposal = join(dirname(visual.baseline), 'propuestas', `${name}.png`);
+  mkdirSync(dirname(proposal), {recursive: true});
+  copyFileSync(shot, proposal);
+  const current = existsSync(visual.baseline) ? visual.baseline : null;
+  requestBaseline(db, taskId, {name, proposal, baseline: visual.baseline, current, diff: current ? visual.diff ?? null : null});
+  return {result: 'skipped', ratio: visual.ratio, baseline: visual.baseline, ...(visual.diff ? {diff: visual.diff} : {}),
+    summary: current ? `${name}: cambio visual a propósito; nueva línea base propuesta, espera tu aprobación` : visual.summary};
 }
