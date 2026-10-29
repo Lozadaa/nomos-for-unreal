@@ -129,3 +129,23 @@ test('hito 25: en jam, un cierre de hito con más de 24 h sin aprobar abre «Hoy
   jamSweep(f.db, {jam: {enabled: true}} as any);
   assert.equal(listDecisions(f.db, 'open').filter(d => d.taskId === otro.id).length, 0);
 });
+
+test('hito 26: la Decisión de 24 h cuenta desde jam.start o la última aprobación de un cierre, no desde que se creó la tarea', async t => {
+  const {jamSweep, approve} = await import('../../service/src/approvals.ts');
+  const {listDecisions} = await import('../../service/src/repo/decisions.ts');
+  const f = await setup(t, 'qa');
+  const j2 = createTask(f.db, {title: 'Cierre J2', area: 'qa', state: 'implementando', spec: 'x', acceptance: [], scope: []});
+  const twoDaysAgo = new Date(Date.now() - 48 * 3_600_000).toISOString().slice(0, 10);
+  jamSweep(f.db, {jam: {enabled: true, start: new Date().toISOString().slice(0, 10)}} as any);
+  assert.equal(listDecisions(f.db, 'open').length, 0, 'jam recién empezada');
+  // J1 aprobado hace un momento: J2 recién creado no pregunta aunque la jam empezara hace dos días
+  const j1 = createTask(f.db, {title: 'Cierre J1', area: 'qa', state: 'implementando', spec: 'x', acceptance: [], scope: []});
+  finishRun(f.db, startRun(f.db, {taskId: j1.id, role: 'implementacion', provider: 'claude', sessionRef: 'term_j1'}).id, 'done', 'x');
+  approve(f.db, requestApproval(f.db, requireTask(f.db, j1.id)).id);
+  f.db.prepare("update tasks set state='done' where id=?").run(j1.id);
+  jamSweep(f.db, {jam: {enabled: true, start: twoDaysAgo}} as any);
+  assert.equal(listDecisions(f.db, 'open').length, 0);
+  f.db.prepare("update events set created_at=? where type='approval.approved'").run(new Date(Date.now() - 25 * 3_600_000).toISOString());
+  jamSweep(f.db, {jam: {enabled: true, start: twoDaysAgo}} as any);
+  assert.deepEqual(listDecisions(f.db, 'open').map(d => [d.taskId, d.reason]), [[j2.id, 'Hoy no hay build jugable aprobada']]);
+});
