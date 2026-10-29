@@ -59,3 +59,17 @@ test('sin transcripción reintenta una vez a los 60 s y después queda en 0 con 
   await runTokens({payload: JSON.parse(retry.payload)} as any, f.ctx);
   assert.deepEqual(f.spends().map(s => ({...s})), [{amount: 0, note: 'sin transcripción'}]);
 });
+
+test('hito 26: una run reabierta (corrección o fusionar main) vuelve a medirse al terminar y su fila se pone al día', async t => {
+  const f = setup(t), dir = transcriptDir('C:/juegos/Mi Juego/nomos-t');
+  mkdirSync(dir, {recursive: true});writeFileSync(join(dir, 's-1.jsonl'), sample);
+  finishRun(f.db, f.run.id, 'done', 'primera vuelta');
+  await runTokens({payload: JSON.parse(f.queued()[0].payload)} as any, f.ctx);
+  f.db.prepare("update runs set state='running',finished_at=null where id=?").run(f.run.id);
+  writeFileSync(join(dir, 's-1.jsonl'), sample + '\n' + turn('m4', 'claude-opus-4-8', 1, 2, 4000, 0));
+  await new Promise(r => setTimeout(r, 2));
+  finishRun(f.db, f.run.id, 'done', 'tras fusionar main');
+  assert.equal(f.queued().length, 2, 'cada cierre encola su medición');
+  await runTokens({payload: JSON.parse(f.queued()[1].payload)} as any, f.ctx);
+  assert.deepEqual(f.spends().map(s => [s.amount, JSON.parse(s.note).turns]), [[7836, 4]], 'una fila por run, con las dos vueltas');
+});
