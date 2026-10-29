@@ -38,6 +38,17 @@ Estado: MVP cerrado en el hito 7 (ver [docs/estado-entregas.md](docs/estado-entr
 
    `doctor` lista Node, Orca, Unreal, plugins MCP y Fab, Launcher, Meshy, Blender, Git, el servicio (sin mostrar el token) y los dos carriles del ejecutor con su último latido. Termina con código 1 si falta algo imprescindible.
 
+### Nomos dentro del repo del juego
+
+Para que cada compañero tenga Nomos con solo clonar el juego (Git, Node ≥ 25, Claude Code y Unreal; nada más):
+
+```bash
+node service/src/cli.ts embed "C:/ruta/al/Juego"            # copia Tools/Nomos, .claude/skills, nomos.cmd/nomos.sh y la sección «Nomos» del CLAUDE.md
+node service/src/cli.ts embed "C:/ruta/al/Juego" --update   # renueva Tools/Nomos y las skills; el resto del CLAUDE.md se conserva
+```
+
+No hace commit: revisa y confirma en el juego. Después, en el juego, `/nomos` o `.\nomos.cmd start --data .nomos`.
+
 ## Uso
 
 Abre Claude Code en la carpeta del juego (la que tiene el `.uproject`) y escribe `/nomos`. La skill arranca el servicio en `127.0.0.1`, abre el panel y se queda escuchando: lo que pidas en el chat de Claude o en el panel se convierte en tareas con alcance, criterios y dependencias. Desde ahí:

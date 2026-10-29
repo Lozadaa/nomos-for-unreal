@@ -6,7 +6,9 @@ import { legacySkillMark } from './legacy.ts';
 
 /** Skills propias que el juego necesita para la UI (hito 5); la del director se queda en Nomos. */
 export const gameSkills = ['game-ui-art-director', 'ue-umg-ui', 'ue-visual-qa'];
-export const nomosSkills = resolve(import.meta.dirname, '..', '..', 'skills');
+// hito 30: embebido en el juego (`Tools/Nomos`), las skills están en `<juego>/.claude/skills`
+const ownSkills = resolve(import.meta.dirname, '..', '..', 'skills');
+export const nomosSkills = existsSync(ownSkills) ? ownSkills : resolve(import.meta.dirname, '..', '..', '..', '..', '.claude', 'skills');
 export type InstallResult = {name: string; action: 'installed' | 'unchanged' | 'updated' | 'kept-local'; path: string; message?: string};
 
 const own = (name: string) => name.startsWith('.nomos-skill') || name.startsWith(legacySkillMark);

@@ -1,5 +1,5 @@
 import { readdirSync, realpathSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 
 const fold=(value: string)=>process.platform==='win32' ? value.toLowerCase() : value;
@@ -14,7 +14,9 @@ export async function requireGameProject(projectDir: string): Promise<void> {
   const target=realpathSync(projectDir);
   if (fold(target)===fold(realpathSync(own))) throw new Error('invalid_nomos_project');
   const [projectGit,ownGit]=await Promise.all([commonDir(target),commonDir(own)]);
-  if (projectGit && projectGit===ownGit) throw new Error('invalid_nomos_project');
+  // hito 30: Nomos embebido (`<juego>/Tools/Nomos`) comparte Git con el juego y es válido
+  const inside=relative(target,realpathSync(own)), embedded=!!inside && !inside.startsWith('..') && !isAbsolute(inside);
+  if (projectGit && projectGit===ownGit && !embedded) throw new Error('invalid_nomos_project');
   if (!readdirSync(target,{withFileTypes:true}).some(e=>e.isFile() && e.name.toLowerCase().endsWith('.uproject')))
     throw new Error('invalid_unreal_project');
 }
