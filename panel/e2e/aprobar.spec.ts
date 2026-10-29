@@ -1,8 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
-import { copyFileSync, mkdirSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
+import { decodePng } from '../../service/src/checks/png.ts'
+import { compareBaseline, encodePng } from '../../service/src/checks/visual.ts'
 
 // Hito 22: «una sección por aprobar con imágenes y video por elemento para aprobar y yo viéndolo doy mi opinión o mi cierre».
 const url = () => process.env.NOMOS_URL!
@@ -86,4 +88,33 @@ test('hito 25: un cierre de hito bloqueado sale en Por aprobar con su build y el
   await expect(card.locator('video')).toHaveAttribute('controls', '')
   await expect(card.getByRole('button', { name: 'Aprobar' })).toBeVisible()
   if (browserName === 'chromium') { await card.scrollIntoViewIfNeeded(); mkdirSync('../docs/capturas-25', { recursive: true }); await page.screenshot({ path: '../docs/capturas-25/cierre-bloqueado-1366.png' }) }
+})
+
+test('hito 28: una línea base propuesta se ve con la actual y la diferencia; Aprobar la convierte en base', async ({ page, browserName }) => {
+  const task = await (await call(page, '/tasks', { title: `Arena iluminada ${browserName}`, area: 'gameplay', acceptance: [], spec: '## Qué\nLuz nueva en la arena.' })).json() as { id: string }
+  // propuesta = la captura real con una franja más clara; la diferencia la calcula la propia comparación del servicio
+  const dir = join(process.env.NOMOS_DATA!, 'lineas-base-e2e', browserName), base = join(dir, 'docs', 'baseline'), name = browserName === 'chromium' ? 'map-L_Arena-1280x720' : 'map-L_Muelle-1280x720'
+  mkdirSync(join(base, 'propuestas'), { recursive: true })
+  const current = join(base, `${name}.png`), proposal = join(base, 'propuestas', `${name}.png`), diff = join(dir, `${name}-diferencia.png`)
+  copyFileSync(join(docs, 'capturas-5b', 'pie-heroe-1280x720.png'), current)
+  const image = decodePng(readFileSync(current))
+  for (let y = 420; y < 560; y++) for (let x = 0; x < image.width; x++) for (let c = 0; c < 3; c++) image.data[(y * image.width + x) * 4 + c] = Math.min(255, image.data[(y * image.width + x) * 4 + c] + 60)
+  writeFileSync(proposal, encodePng(image))
+  expect(compareBaseline(proposal, base, name, 0.02, diff).result).toBe('failed')
+  const db = new DatabaseSync(join(process.env.NOMOS_DATA!, 'nomos.db')), now = new Date().toISOString(), id = randomUUID()
+  try {
+    db.prepare(`insert into approvals(id,task_id,state,focus,created_at,updated_at,baseline) values(?,?,'pending','[]',?,?,?)`)
+      .run(id, task.id, now, now, JSON.stringify({ name, proposal, baseline: current, current, diff }))
+  } finally { db.close() }
+  await page.goto(url().replace('/#', '/aprobar#'))
+  const card = page.getByRole('article', { name: `Línea base: ${name.split('-').join(' ')}` })
+  const shots = card.getByRole('region', { name: 'Línea base' })
+  for (const alt of ['Propuesta', 'Actual', 'Diferencia'])
+    await expect.poll(() => shots.getByRole('img', { name: alt }).evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(1280)
+  await expect(card.getByRole('button', { name: 'Rechazar' })).toBeVisible()
+  if (browserName === 'chromium') { await card.scrollIntoViewIfNeeded(); mkdirSync('../docs/capturas-28', { recursive: true }); await page.screenshot({ path: '../docs/capturas-28/linea-base-por-aprobar-1366.png' }) }
+  await card.getByRole('button', { name: 'Aprobar' }).click()
+  await expect(card.getByText('Aprobada · ya es la línea base')).toBeVisible()
+  await expect.poll(() => existsSync(proposal)).toBe(false)
+  expect(readFileSync(current).equals(encodePng(image))).toBe(true)
 })

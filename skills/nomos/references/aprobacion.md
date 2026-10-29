@@ -29,9 +29,11 @@ Esperando tu aprobación». `Aprobación: usuario` o `Aprobación: no` en la spe
 nomos approval list
 nomos approval request <taskId>
 nomos approval approve <approvalId>
+nomos approval reject <approvalId>                # solo líneas base (tipo baseline)
 nomos approval changes <approvalId> --text "…"   # o --file
 nomos approval comment [<approvalId>] --text "…"
 ```
 
 Aprobar o pedir cambios es del usuario: usa estas órdenes solo cuando él lo diga en el chat con esas palabras.
-`nomos status` cuenta las pendientes en `approvals`.
+`nomos status` cuenta las pendientes en `approvals`. Cada elemento lleva `type`: `task`, `conflict` o `baseline`
+(línea base visual propuesta: no retiene la tarea; aprobarla la convierte en la referencia de la comprobación).

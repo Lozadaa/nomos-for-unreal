@@ -10,6 +10,9 @@ export interface ApprovalItem {
   blocked?: string | null
   /** Hito 29: conflicto en un mapa o asset con otra persona del equipo; `choice` = la versión que se quedó. */
   conflict?: Conflict | null; choice?: 'mine' | 'theirs' | 'manual' | null
+  /** Hito 28: línea base visual propuesta; `current`/`diff` existen si ya había una. Sus imágenes, en `/approvals/:id/baseline/…`. */
+  baseline?: { name: string; current: string | null; diff: string | null } | null
+  type?: 'task' | 'conflict' | 'baseline'
 }
 export interface ConflictSide { who: string; frente: string; task: string; at: string }
 export interface Conflict { files: string[]; mine: ConflictSide; theirs: ConflictSide }
@@ -17,6 +20,9 @@ export interface Conflict { files: string[]; mine: ConflictSide; theirs: Conflic
 export const assetName = (path: string) => path.split('/').pop()!.replace(/\.(umap|uasset)$/i, '')
 export const choiceText = { mine: 'Te quedaste con la tuya · sigue la integración', theirs: 'Te quedaste con la suya · tu tarea se rehace sobre ella',
   manual: 'Resuelto a mano · sigue la integración' } as const
+export const baselineText: Record<ApprovalItem['state'], string> = {
+  pending: 'Línea base propuesta · hasta aprobarla, informa sin fallar', approved: 'Aprobada · ya es la línea base', changes: 'Rechazada · la siguiente captura propone otra',
+}
 export interface Approvals { pending: number; items: ApprovalItem[]; general: ApprovalComment[] }
 
 export const stateText: Record<ApprovalItem['state'], string> = {

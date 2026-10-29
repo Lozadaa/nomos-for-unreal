@@ -23,7 +23,7 @@ test('map: cuatro vistas (jugador + 3/4 izquierda, 3/4 derecha y picado) y la ho
     assert.ok(existsSync(locatedPath(join(f.dataDir, 'artifacts'), sheet.path)));
     for (const a of list.filter(a => prov(a).view)) assert.ok(existsSync(locatedPath(join(f.dataDir, 'artifacts'), a.path)), String(prov(a).view));
     // la regresión visual solo juzga la vista del jugador: una sola línea base por mapa
-    assert.deepEqual(readdirSync(join(f.projectDir, 'docs', 'baseline')), ['map-Nivel1-1280x720.png']);
+    assert.deepEqual(readdirSync(join(f.projectDir, 'docs', 'baseline', 'propuestas')), ['map-Nivel1-1280x720.png']);
     assert.equal(list.find(a => prov(a).view === 'left')!.provenance && prov(list.find(a => prov(a).view === 'left')!).visual, undefined);
   } finally { f.close(); }
 });

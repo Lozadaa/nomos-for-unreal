@@ -11,7 +11,7 @@ import { appendEvent } from '../store.ts';
 import type { CheckId } from './select.ts';
 import { checkArtifactLabel, checkReportLabel } from '../artifact-label.ts';
 import { readConfig, visualTolerance, captureCvars } from '../config.ts';
-import { compareBaseline, newBaseAllowed, replaceBaseline } from './visual.ts';
+import { compareBaseline, newBaseAllowed, proposeBaseline } from './visual.ts';
 import { findFfmpeg, type Ffmpeg } from '../adapters/ffmpeg.ts';
 
 export type CheckDeps = {
@@ -109,7 +109,8 @@ function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outc
         lines.push(`Línea base sin mapa adoptada para ${map.slice(0, -1)}: ${name}`);
       }
       let visual = compareBaseline(shot.path, dirBase, name, tolerance, join(dir, `${name}-diferencia.png`));
-      if (visual.result === 'failed' && intended(name)) visual = replaceBaseline(ctx.db, input.task.id, shot.path, visual, name);
+      // hito 28: sin línea base aprobada, o con un cambio a propósito, se propone en «Por aprobar» y no falla
+      if (visual.result === 'skipped' || visual.result === 'failed' && intended(name)) visual = proposeBaseline(ctx.db, input.task.id, shot.path, visual, name);
       lines.push(visual.summary);
       shot.provenance = {...shot.provenance, visual: visual.result, baseline: visual.baseline, ...(visual.ratio === null ? {} : {visualRatio: Number(visual.ratio.toFixed(4))})};
       if (visual.result === 'failed') failed = true;

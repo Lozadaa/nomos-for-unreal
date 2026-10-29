@@ -44,7 +44,8 @@ instalada. El director sigue teniendo que volver a abrir su sesión y su vigilan
 
 El worktree de un worker nace de la punta de main; si a su rama le falta main antes de la revisión, Nomos le pide la
 fusión (`review.needs_main`) y no abre la revisión. Si una tarea cambia la imagen a propósito, escribe en su spec
-`visual: cambia`: con la revisión aprobada, la primera captura sustituye la línea base del mapa (`baseline.replaced`).
+`visual: cambia`: con la revisión aprobada, la captura que difiere se propone como nueva línea base con el diff al lado
+(«Por aprobar», tipo `baseline`) y no falla; al aprobarla (`baseline.approved`) sustituye a la del mapa.
 Para una comprobación concreta, `nomos task check ID --acepta-nueva-base`. La cámara de captura se fija con
 `checks.captureCvars` en la config (p. ej. `["BlockKings.CamaraFija 1"]`).
 
