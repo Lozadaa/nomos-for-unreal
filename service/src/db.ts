@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { applySchema } from "./schema.ts";
 import { cancelDecisionZombies } from './zombies.ts';
 import { migrateApprovals } from './approvals.ts';
+import { migrateTeam } from './team.ts';
 import { migrateWorker, migrateLeases,migrateWorkerProviders,migrateAssets,migrateChecks,migrateClosing,migrateLanes,migrateEngineSource,migrateChat,migrateNomos,migratePriority,migrateIndexes,migrateDecisionRepeats,migrateHold } from './migrations.ts';
 
 export function openDb(file: string): DatabaseSync {
@@ -36,6 +37,7 @@ export function openDb(file: string): DatabaseSync {
   migrateDecisionRepeats(db);
   migrateHold(db);
   migrateApprovals(db);
+  migrateTeam(db);
   // hito 22: los comandos zombi de Decisiones caducadas desaparecen al abrir la base
   cancelDecisionZombies(db);
   return db;

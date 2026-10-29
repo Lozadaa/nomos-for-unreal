@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { queueGraph } from "./graph.ts";
 import { tokensByRole } from "./transcript.ts";
 import { writeResume } from "./resume.ts";
@@ -36,6 +36,7 @@ import { createMeshy } from './adapters/meshy.ts';
 import { diskOf } from './retention.ts';
 import { writeAtomic } from './atomic.ts';
 import { pendingCount } from './approvals.ts';
+import { listPeers, syncTeam } from './team.ts';
 export { readServiceInfo, isAlive } from "./service-info.ts";
 
 /** Hito 17: «cupo lleno: J1.10 corrigiendo» si un worker terminado sigue ocupando hueco; config ilegible = sin nota. */
@@ -82,7 +83,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
       }
-      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), disk: diskOf(dataDir), tokens: tokensByRole(db) });
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), team: listPeers(db).map(p => ({ name: p.name, frente: p.frente, present: p.present, tasks: p.tasks.length, leases: p.leases.map(l => l.path), build: p.build?.commit ?? null })), disk: diskOf(dataDir), tokens: tokensByRole(db) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);
@@ -180,8 +181,12 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   // chat en vivo: leído y sin respuesta en 3 min → director.typing_timeout (el panel dice «sigue trabajando»)
   const typing = setInterval(() => { try { checkTyping(db); } catch { /* base ocupada: el siguiente pase lo ve */ } }, 15_000);
   typing.unref();
+  // hito 29: equipo; cada 10 s publica mi tarjeta si cambió (o toca latido) y trae la rama cada `pullSeconds`
+  const projectDir = resolve(opts.runner?.context?.projectDir ?? dirname(opts.dataDir));
+  const team = setInterval(() => { void syncTeam(db, opts.dataDir, projectDir).catch(() => { /* config ilegible o base ocupada: el siguiente pase */ }); }, 10_000);
+  team.unref();
   server.once("close", async () => {
-    clearInterval(typing);
+    clearInterval(typing); clearInterval(team);
     try { unregister(opts.dataDir); } catch { /* registro ilegible: caduca solo por pid */ }
     runner!();await runner!.drained;
     try { writeResume(db, opts.dataDir, 'parado'); } catch { /* sin reanudación la parada sigue */ }
