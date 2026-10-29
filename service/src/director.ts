@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { readConfig } from './config.ts';
+import { directorConfig, readConfig, roleModel } from './config.ts';
+import type { Handler, WorkerContext } from './runner.ts';
+import { enqueue } from './commands.ts';
+import { writeAtomic } from './atomic.ts';
+import { finishRun, startRun } from './repo/runs.ts';
+import { requireRun, updateRun } from './repo/worker.ts';
+import { launchCommand } from './handlers/worker-launch.ts';
 import { listDecisions } from './repo/decisions.ts';
 import { listLeases } from './leases.ts';
 import { listPeers, teamConfig } from './team.ts';
@@ -65,3 +72,67 @@ export function renderDirectorBrief(db: DatabaseSync, dataDir: string, now = new
   const template = readFileSync(join(nomosSkills, 'nomos', 'references', 'brief-director.md'), 'utf8');
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] ?? '').split('\n').slice(0, 60).join('\n');
 }
+
+const maxMinutes = 20, pollMs = 5000;
+const activeRun = (db: DatabaseSync) => db.prepare("select id,metadata from runs where role='director' and state='running'").get();
+const poll = (db: DatabaseSync, runId: string, key = randomUUID()) =>
+  enqueue(db, 'director.poll', {runId}, `director.poll:${runId}:${key}`, {notBefore: new Date(Date.now() + pollMs).toISOString()});
+
+/** Pasada del planificador: con `director.mode: "evento"` y sin director en marcha, el primer evento pendiente con
+ *  `debounceSeconds` cumplidos encola un despertar (los que llegan en la ventana van en el mismo). */
+export function directorTick(ctx: Pick<WorkerContext, 'db' | 'dataDir'>, now = Date.now()): void {
+  const {mode, debounceSeconds} = directorConfig(readConfig(ctx.dataDir));
+  if (mode !== 'evento') return;
+  const active = activeRun(ctx.db);
+  // si su sondeo se perdió (Orca sin responder), un sondeo pasado el plazo la cierra
+  if (active) { if (now > Date.parse(JSON.parse(active.metadata as string).deadlineAt)) poll(ctx.db, active.id as string, 'plazo'); return; }
+  const first = pendingWake(ctx.db)[0];
+  if (first && now - Date.parse(first.createdAt) >= debounceSeconds * 1000) enqueue(ctx.db, 'director.wake', {}, `director.wake:${first.seq}`);
+}
+
+/** Lanza una sesión corta de Claude Code en la raíz del juego con el mismo lanzador que los workers (Orca o proceso). */
+export const directorWake: Handler = async (_cmd, ctx) => {
+  const {db, orca, dataDir, projectDir} = ctx;
+  if (activeRun(db)) return {skipped: 'director en marcha'};
+  const events = pendingWake(db);
+  if (!events.length) return {skipped: 'sin eventos'};
+  const brief = renderDirectorBrief(db, dataDir), file = join(dataDir, 'director-brief.md');
+  // el cursor avanza antes de lanzar: si el lanzamiento falla, el siguiente evento vuelve a lanzar
+  db.prepare('update director set wake_seq=? where id=1').run(events.at(-1)!.seq);
+  writeAtomic(file, brief);
+  const model = roleModel(readConfig(dataDir), 'director'), sessionId = randomUUID();
+  const run = startRun(db, {taskId: 'director', role: 'director', provider: 'claude', model,
+    metadata: {sessionId, model, phase: 'running', deadlineAt: new Date(Date.now() + maxMinutes * 60_000).toISOString()}});
+  try {
+    if (!orca.terminalCreate) throw new Error('orca: no puede abrir un terminal para el director');
+    const path = relative(projectDir, file).replace(/\\/g, '/');
+    const handle = await orca.terminalCreate(projectDir, 'nomos-director', `${launchCommand('claude', model, 'nomos', sessionId)} "/nomos evento: lee ${path} y actúa solo con lo que dice"`);
+    updateRun(db, run.id, {}, {sessionRef: handle});
+  } catch (error) {
+    finishRun(db, run.id, 'failed', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+  poll(db, run.id);
+  return {runId: run.id, events: events.length};
+};
+
+/** Terminada = hubo salida y el terminal está en reposo dos sondeos seguidos (proceso salido o TUI quieta). */
+export const directorPoll: Handler = async (cmd, ctx) => {
+  const {db, orca} = ctx, run = requireRun(db, (cmd.payload as {runId: string}).runId);
+  if (run.state !== 'running') return;
+  const close = async (state: 'done' | 'failed', summary: string) => {
+    finishRun(db, run.id, state, summary);
+    try { await orca.terminalClose(run.sessionRef!); } catch { /* ya cerrado */ }
+    updateRun(db, run.id, {phase: 'finished', terminalClosed: true});
+  };
+  if (Date.now() >= Date.parse(run.metadata.deadlineAt!)) {
+    await close('failed', `El director no terminó en ${maxMinutes} min`);
+    throw new Error(`orca: el director no terminó en ${maxMinutes} min`);
+  }
+  const page = await orca.terminalRead(run.sessionRef!, run.metadata.cursor);
+  const lastLines = [...run.metadata.lastLines ?? [], ...page.text.split('\n')].map(l => l.replace(/[│┃╭╮╰╯─━]/g, '').trim()).filter(Boolean).slice(-20);
+  const idlePolls = lastLines.length && await orca.terminalIsIdle(run.sessionRef!) ? (run.metadata.idlePolls ?? 0) + 1 : 0;
+  updateRun(db, run.id, {cursor: page.cursor, lastLines, idlePolls});
+  if (idlePolls >= 2) { await close('done', (lastLines.at(-1) ?? '').slice(0, 280)); return {done: true}; }
+  poll(db, run.id);
+};

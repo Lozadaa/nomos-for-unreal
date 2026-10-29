@@ -58,6 +58,16 @@ describe('Producción: lista viva', () => {
     expect(first.querySelector('.k-agent-ordinal')).toHaveTextContent('1')
     expect(second.querySelector('.k-agent-ordinal')).toHaveTextContent('2')
   })
+  it('hito 27: los despertares del director por evento salen como runs, sin vista nueva', async () => {
+    mockApi.mockImplementation((async (path: string) => path === '/tasks' ? [...server] : {
+      run: { id: path.slice(-2), taskId: 'director', role: 'director', provider: 'claude', state: path.endsWith('d2') ? 'running' : 'done', startedAt: '', finishedAt: null, summary: null },
+      latestStatus: { waiting: false },
+    }) as typeof api)
+    for (let i = 1; i <= 2; i++) ingest({ seq: i, id: `e${i}`, type: 'run.started', messageId: null, payload: { runId: `d${i}`, taskId: 'director' }, createdAt: '' })
+    await mount()
+    expect(await screen.findByText(/Director: 2 despertares · en marcha/)).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /, / })).toHaveLength(3)
+  })
   it('agrupa por etapa con cabeceras y una fila por tarea', async () => {
     await mount()
     expect(screen.getByRole('group', { name: /Pendiente/ })).toBeInTheDocument()
