@@ -62,6 +62,7 @@ export function ApprovalCard({ item, open, patch }: {
         <h3 className="text-lg font-semibold">{item.title}</h3>
         {item.summary && <Markdown clamp className="text-sm text-muted-foreground" text={item.summary} />}
         <span role="status" className="flex items-center gap-2 text-xs"><StatusDot tone={pending ? 'warning' : item.state === 'approved' ? 'success' : 'neutral'} />{stateText[item.state]}</span>
+        {pending && item.blocked && <p className="text-sm font-medium text-warning">{item.blocked}</p>}
       </header>
       {/* para juzgar un golpe hay que verlo grande: cada vídeo a todo el ancho útil (máx. 1280 px); las imágenes, debajo en tira */}
       {videos.length > 0 && <div className="flex flex-col gap-3">{videos.map((a) => <Video key={a.id} a={a} />)}</div>}

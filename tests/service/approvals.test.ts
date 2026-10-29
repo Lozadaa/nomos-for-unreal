@@ -105,3 +105,27 @@ test('el director puede pedir la aprobación a mano; dos veces es la misma', asy
   assert.equal(first.status, 201); assert.equal(again.body.id, first.body.id);
   assert.equal(f.events('approval.requested').length, 1);
 });
+
+test('hito 25: en jam, un cierre de hito con más de 24 h sin aprobar abre «Hoy no hay build jugable aprobada» una vez', async t => {
+  const {jamSweep} = await import('../../service/src/approvals.ts');
+  const {listDecisions} = await import('../../service/src/repo/decisions.ts');
+  const f = await setup(t, 'qa');
+  const cierre = createTask(f.db, {title: 'Cierre J1', area: 'qa', state: 'implementando', spec: 'x', acceptance: [], scope: []});
+  const old = new Date(Date.now() - 25 * 3_600_000).toISOString();
+  f.db.prepare('update tasks set created_at=? where id=?').run(old, cierre.id);
+  jamSweep(f.db, {});
+  assert.equal(listDecisions(f.db, 'open').length, 0, 'sin jam no hay Decisión');
+  jamSweep(f.db, {jam: {enabled: true}} as any); jamSweep(f.db, {jam: {enabled: true}} as any);
+  const open = listDecisions(f.db, 'open');
+  assert.deepEqual(open.map(d => [d.taskId, d.reason, d.options.map(o => o.label)]), [[cierre.id, 'Hoy no hay build jugable aprobada', ['Recortar', 'Seguir']]]);
+  assert.match(open[0].options[0].description, /plan-jam\.md/);
+  assert.equal(f.events('decision.updated').length, 0, 'no se repite cada barrido');
+  // una aprobación reciente sobre otro cierre lo deja tranquilo
+  const otro = createTask(f.db, {title: 'Cierre J2', area: 'qa', state: 'implementando', spec: 'x', acceptance: [], scope: []});
+  f.db.prepare('update tasks set created_at=? where id=?').run(old, otro.id);
+  finishRun(f.db, startRun(f.db, {taskId: otro.id, role: 'implementacion', provider: 'claude', sessionRef: 'term_o'}).id, 'done', 'x');
+  const {approve} = await import('../../service/src/approvals.ts');
+  approve(f.db, requestApproval(f.db, requireTask(f.db, otro.id)).id);
+  jamSweep(f.db, {jam: {enabled: true}} as any);
+  assert.equal(listDecisions(f.db, 'open').filter(d => d.taskId === otro.id).length, 0);
+});

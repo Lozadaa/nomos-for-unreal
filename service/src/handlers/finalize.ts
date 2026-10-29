@@ -14,6 +14,52 @@ import { storedPath } from '../data-paths.ts';
 import { targetBranch } from '../integration/workspace.ts';
 import { commandRun } from './asset-run.ts';
 import { writeResume } from '../resume.ts';
+import { isClosingTask, noPlayableApproval, playableApproved, requestApproval } from '../approvals.ts';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { readConfig } from '../config.ts';
+import { addArtifact } from '../repo/artifacts.ts';
+import { projectInfo } from '../project-root.ts';
+
+/** Hito 25: las 1-5 líneas de `## Lecciones` del informe de cierre (`docs/produccion/J<n>.md` o un .md de la tarea que la tenga). */
+async function lessonsOf(ctx: WorkerContext, task: Task, tree: Worktree | undefined): Promise<{file: string; lines: string[]} | null> {
+  const code = /\bJ\d+\b/.exec(task.title)?.[0];
+  const files = [...(code ? [`docs/produccion/${code}.md`] : []),
+    ...(tree ? (await ctx.git.filesBetween(tree.path, tree.baseCommit, 'HEAD')).filter(f => f.endsWith('.md')) : [])];
+  for (const file of files) {
+    let text: string; try { text = readFileSync(join(tree?.path ?? ctx.projectDir, file), 'utf8'); } catch { continue; }
+    const section = text.split(/^## Lecciones[ \t]*\r?$/m)[1]?.split(/^## /m)[0];
+    if (section === undefined) continue;
+    const lines = section.split(/\r?\n/).map(l => l.replace(/^\s*(?:[-*]|\d+\.)\s+/, '').trim()).filter(Boolean);
+    return lines.length && lines.length <= 5 ? {file, lines} : null;
+  }
+  return null;
+}
+const defaultMemory = ['C:/Python314/python.exe', '-X', 'utf8', 'C:/Users/richa/Documents/SecondBrain/.system/brain.py'];
+/** `brain.py capture` con las lecciones; si falla, `command.failed` con la causa y el cierre vale igual. */
+async function saveLessons(ctx: WorkerContext, command: Command, task: Task, run: Run, report: {file: string; lines: string[]}): Promise<void> {
+  const body = join(ctx.dataDir, `lecciones-${task.id}.md`);
+  try {
+    const memory = (readConfig(ctx.dataDir) as {memory?: {enabled?: boolean; command?: string[]}}).memory;
+    if (memory?.enabled === false) return;
+    const [exe, ...pre] = memory?.command ?? defaultMemory;
+    const done = ctx.db.prepare(`select payload from events where type='integration.completed' and json_extract(payload,'$.taskId')=? order by seq desc limit 1`).get(task.id);
+    const commit = done ? String(JSON.parse(done.payload as string).commit).slice(0, 7) : 'sin integrar';
+    const game = projectInfo(ctx.dataDir)?.name ?? basename(ctx.projectDir), milestone = /\bJ\d+\b/.exec(task.title)?.[0] ?? task.title;
+    writeFileSync(body, report.lines.map(l => `- ${l}\n`).join(''));
+    const {stdout} = await promisify(execFile)(exe, [...pre, '--cwd', ctx.projectDir, 'capture', '--title', `${game} · ${milestone}: lecciones`,
+      '--source', `${report.file} @ ${commit}`, '--kind', 'learning', '--evidence', 'observed', '--body-file', body], {windowsHide: true, timeout: 60_000});
+    const path = stdout.trim().split(/\r?\n/).at(-1)?.trim();
+    if (!path) throw new Error('brain.py no devolvió la ruta de la nota');
+    addArtifact(ctx.db, {taskId: task.id, runId: run.id, kind: 'report', path, provenance: {label: 'Memoria guardada'}});
+    appendEvent(ctx.db, 'memory.saved', null, {taskId: task.id, runId: run.id, path});
+  } catch (error) {
+    const cause = error instanceof Error ? `${error.message} ${(error as {stderr?: string}).stderr ?? ''}`.trim() : String(error);
+    appendEvent(ctx.db, 'command.failed', null, {commandId: command.id, taskId: task.id, reason: `No se guardaron las lecciones en Second Brain: ${cause.slice(0, 500)}`});
+  } finally { rmSync(body, {force: true}); }
+}
 
 export type FinalizeDeps = {writer?: ArchiveWriter; busyDelayMs?: number};
 const options = [
@@ -71,6 +117,11 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
     };
     try {
       await verify(ctx, task, tree);
+      // hito 25: un cierre de hito necesita que el usuario apruebe la build jugable; se le pide en «Por aprobar»
+      // y el informe con sus lecciones, que van a Second Brain al cerrar
+      const lessons = isClosingTask(task) ? await lessonsOf(ctx, task, tree) : null;
+      if (isClosingTask(task) && !lessons) throw new Blocked('lessons', 'Faltan las lecciones');
+      if (isClosingTask(task) && !playableApproved(ctx.db, ctx.dataDir, task.id)) { requestApproval(ctx.db, task); throw new Blocked('approval', noPlayableApproval); }
       // todos los worktrees temporales de la tarea: el del responsable y los de revisión («Descartar» los fuerza todos)
       const trees = filtered<Worktree>(ctx.db, 'worktrees', {taskId: task.id}).filter(t => t.state !== 'closed');
       // cambios sin registrar: se comprueba antes de cerrar terminales, para que el responsable aún pueda commitearlos
@@ -112,6 +163,8 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
       moveTask(ctx.db, task.id, 'done', 'Cierre verificado');
       finishRun(ctx.db, run.id, 'done', 'Cierre verificado');
       appendEvent(ctx.db, 'task.done', null, {taskId: task.id, runId: run.id, archive: archive.dir, files: Object.keys(archive.manifest.files).length});
+      // hito 25: las lecciones quedan en la run de cierre (para la reanudación) y en Second Brain
+      if (lessons) { updateRun(ctx.db, run.id, {lessons: lessons.lines}); await saveLessons(ctx, command, task, run, lessons); }
       try { writeResume(ctx.db, ctx.dataDir, 'en marcha'); } catch { /* sin reanudación el cierre vale igual */ }
       return {closed: true, archive: archive.dir};
     } catch (error) {

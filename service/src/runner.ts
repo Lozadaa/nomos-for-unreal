@@ -13,6 +13,7 @@ import { cancelDecisionZombies } from './zombies.ts';
 import { sweepStalls } from './stall.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
+import { jamSweep } from './approvals.ts';
 import type { MachineProbe } from './machine.ts';
 import { failureKind } from './failure-kind.ts';
 import { closeIdleTerminals, refreshBusyTerminals, sweepIntervalMs, sweepTerminals } from './sweep.ts';
@@ -74,7 +75,7 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
     try {
       // hito 13: terminales de workers sin uso se cierran a ritmo del planificador; cada 10 min (y al arrancar) se cuentan los vivos
       if(lane==='normal' && (Date.now()>=nextSweep || Date.now()>=nextSchedule)) try {
-        if(Date.now()>=nextSweep) {nextSweep=Date.now()+sweepIntervalMs;await sweepTerminals(db,context.orca);}
+        if(Date.now()>=nextSweep) {nextSweep=Date.now()+sweepIntervalMs;await sweepTerminals(db,context.orca);jamSweep(db,readConfig(dataDir));}
         else await closeIdleTerminals(db,context.orca);
         // hito 17: el cupo cuenta los workers terminados que siguen trabajando en su terminal
         if(Date.now()>=nextSchedule) await refreshBusyTerminals(db,context.orca);

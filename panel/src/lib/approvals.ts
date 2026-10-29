@@ -6,6 +6,8 @@ export interface ApprovalComment { approvalId: string | null; taskId: string | n
 export interface ApprovalItem {
   id: string; taskId: string; state: 'pending' | 'approved' | 'changes'; focus: string[]; createdAt: string
   title: string; area: string; summary: string; evidence: Artifact[]; comments: ApprovalComment[]
+  /** Hito 25: el cierre de hito no cierra sin tu «Aprobar» sobre la build jugable. */
+  blocked?: string | null
 }
 export interface Approvals { pending: number; items: ApprovalItem[]; general: ApprovalComment[] }
 

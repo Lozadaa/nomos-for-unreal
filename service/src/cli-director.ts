@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { request, serviceInfo } from './client.ts';
 import { parseTaskSpec } from './task-spec.ts';
@@ -52,6 +52,28 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     const {values}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'}}});
     const status=await request(serviceInfo(resolve(values.data ?? '.nomos')),'/director/'+(group==='pausar' ? 'pause' : 'resume'),{});
     console.log(JSON.stringify(status));return true;
+  }
+  if (group==='jam') {
+    // hito 25: alcance de jam, un hito jugable por día; el plan vive en el juego y la marca en config.json
+    const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},tema:{type:'string'},dias:{type:'string'},force:{type:'boolean'}}});
+    const days=Number(values.dias);
+    if (positionals.length!==2 || positionals[1]!=='init' || !values.tema?.trim() || !Number.isInteger(days) || days<1 || days>30)
+      throw new Error('Uso: nomos jam init --tema "<tema>" --dias <n> [--force]');
+    const dataDir=resolve(values.data ?? '.nomos'),file=join(dirname(dataDir),'docs','plan-jam.md'),config=join(dataDir,'config.json');
+    if (existsSync(file) && !values.force) throw new Error(`Ya hay ${file}; usa --force para sobrescribirlo`);
+    const start=new Date().toISOString().slice(0,10),mid=Math.ceil(days/2);
+    mkdirSync(dirname(file),{recursive:true});mkdirSync(dataDir,{recursive:true});
+    writeFileSync(file,[`# Plan de jam: ${values.tema.trim()}`,'',`${days} días desde ${start}. Nada fuera de este plan sin una Decisión del usuario.`,'',
+      '## Idea en una frase','',`(Una frase sobre «${values.tema.trim()}»: quién eres, qué haces y por qué divierte.)`,'',
+      '## Una mecánica','','(La única acción que el jugador repite.)','','## Una arena','','(Un solo mapa pequeño donde se juega todo.)','',
+      '## Qué se ve el día 1 / mitad / último día','','| Momento | Qué se ve y se juega |','|---|---|',
+      '| Día 1 | (La mecánica en bruto con cubos en la arena.) |',`| Mitad | (Día ${mid}: el bucle completo, se gana o se pierde.) |`,'| Último día | (Arte, sonido y menú mínimos; build subida.) |','',
+      '## Recortes si falta tiempo','','1. Menú: arranca directo en la arena.','2. Sonido: solo dos efectos.','3. Arte: formas básicas con color.',
+      '4. Enemigos: uno solo.','5. Puntuación: sin tabla, solo el número.','',
+      '## Hitos','',...Array.from({length:days},(_,i)=>`- Día ${i+1}: Cierre J${i+1}: build jugable aprobada por el usuario.`),''].join('\n'));
+    const current=existsSync(config) ? JSON.parse(readFileSync(config,'utf8')) : {};
+    writeFileSync(config,JSON.stringify({...current,jam:{enabled:true,days,start}},null,2)+'\n');
+    console.log(file);return true;
   }
   if (!groups.includes(group)) return false;
   const action=argv[index+1];

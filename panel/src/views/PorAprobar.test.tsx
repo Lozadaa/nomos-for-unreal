@@ -27,6 +27,12 @@ beforeEach(() => {
 })
 
 describe('Por aprobar', () => {
+  it('hito 25: un cierre de hito bloqueado dice que falta tu aprobación sobre la build jugable', async () => {
+    vi.mocked(api).mockImplementation(async () => { const f = fixture(); f.items[0] = { ...f.items[0], title: 'Cierre J1', blocked: 'Falta tu aprobación sobre la build jugable' }; return f as never })
+    mount()
+    const card = await screen.findByRole('article', { name: 'Cierre J1' })
+    expect(within(card).getByText('Falta tu aprobación sobre la build jugable')).toHaveClass('text-warning')
+  })
   it('cada elemento enseña qué es, el vídeo con controles sin autoplay, las imágenes y en qué fijarse; sin rutas ni nombres de archivo', async () => {
     mount()
     const card = await screen.findByRole('article', { name: 'J1.6 Reacciones a los golpes' })

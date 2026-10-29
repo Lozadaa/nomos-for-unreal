@@ -22,6 +22,9 @@ export function renderResume(db: DatabaseSync, dataDir: string, service: string,
   const tasks = db.prepare("select id,title,state,wait_reason wait from tasks where state!='done' order by state,updated_at desc").all();
   const done = Number(db.prepare("select count(*) n from tasks where state='done'").get()!.n), s = status(db);
   const title = (id: string | null) => cell(id ? read<Task>(db, 'tasks', id)?.title ?? id : null);
+  // hito 25: las 5 últimas lecciones que guardaron los cierres de hito
+  const lessons = db.prepare("select metadata from runs where json_extract(metadata,'$.lessons') is not null order by updated_at desc limit 5").all()
+    .flatMap(r => JSON.parse(r.metadata as string).lessons as string[]).slice(0, 5);
   return [`# Reanudación de Nomos`, '', `Generado ${now.toISOString()} por Nomos; no lo edites a mano.`, '',
     ...table('| Servicio | Versión de Nomos | Último director | Eventos sin leer |', [`| ${service} | ${nomosVersion()} | ${cell(s.director)} | ${s.pending} |`], ''), '',
     `## Tareas (${tasks.length} abiertas, ${done} terminadas)`, '',
@@ -29,7 +32,7 @@ export function renderResume(db: DatabaseSync, dataDir: string, service: string,
     ...(tasks.length > 15 ? [`| … | ${tasks.length - 15} más en el panel | |`] : []), '',
     '## Decisiones abiertas', '', ...table('| Tarea | Pregunta |', listDecisions(db, 'open').slice(0, 5).map(d => `| ${title(d.taskId)} | ${cell(d.reason)} |`), 'Ninguna.'), '',
     '## Holds', '', ...table('| Tarea | Espera |', activeHolds(db).slice(0, 5).map(h => `| ${cell(h.title)} | ${cell(h.text)} |`), 'Ninguno.'), '',
-    '## Lecciones', '', 'Sin lecciones: el cierre todavía no guarda `lessons`.', '',
+    '## Lecciones', '', ...(lessons.length ? lessons.map(l => `- ${l.replace(/\s+/g, ' ')}`) : ['Sin lecciones todavía: llegan con cada cierre de hito.']), '',
     '## Rearmar el vigilante', '', 'Arranca con `/nomos` y arma Monitor (30 min) con:', '',
     '```', `nomos vigila --session ${s.director ?? '<sesion>'} --data "${dataDir}" --types ${types}`, '```', ''].join('\n');
 }

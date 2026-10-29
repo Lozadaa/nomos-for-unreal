@@ -102,6 +102,12 @@ Quien lee el panel juega y mira; lo técnico es tuyo. Todo texto cabe en una pan
 | Decisión | `reason` 1 frase; opciones ≤ 5 palabras; la evidencia en `evidence` | «¿Qué color lleva el HUD?» |
 | Diario | Una línea por evento, ≤ 160 caracteres, estado sin narración; detalle a `.nomos/logs` | «J1.6 cerrada; build en Build/Windows-actual» |
 
+## Modo jam
+
+Con `jam.enabled` en `config.json` (lo pone `nomos jam init --tema "<tema>" --dias <n>`), crea como máximo las
+tareas del día en curso y la de cierre; ninguna tarea nueva fuera de `docs/plan-jam.md` sin una Decisión del usuario
+que la acepte. Detalle en [modo jam](references/jam.md).
+
 ## Repartir
 
 Divide una petición cuando tiene partes independientes o un orden real (base antes
@@ -215,7 +221,7 @@ ese archivo ni el token al chat. El servicio solo escucha en `127.0.0.1` y sus r
 - [Ciclo, especificación y Decisiones](references/ciclo-tarea.md).
 - [Plantilla del brief del worker](references/brief-worker.md), [del revisor](references/brief-revisor.md)
   y [del QA visual](references/brief-qa-visual.md).
-- [Ciclo UMG](references/ui-ciclo.md), [evidencia](references/evidencia.md) y [cierre](references/cierre.md).
+- [Ciclo UMG](references/ui-ciclo.md), [evidencia](references/evidencia.md), [cierre](references/cierre.md) y [modo jam](references/jam.md).
 - Casos: [arranque](evals/01-arranque.md), [ida y vuelta](evals/02-ida-vuelta.md),
   [recuperación](evals/03-recuperacion.md), [petición](evals/04-peticion-a-tarea.md),
   [corrección](evals/05-correccion.md), [dos tareas, un widget](evals/06-dos-tareas-un-widget.md),
