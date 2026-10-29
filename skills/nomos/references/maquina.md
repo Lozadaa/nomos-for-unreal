@@ -38,7 +38,7 @@ instalada. El director sigue teniendo que volver a abrir su sesión y su vigilan
 `enabledPlugins` de `~/.claude/settings.json`). Al arrancar, un juego sin `graphify-out/` lo crea en segundo plano
 (comando `graph.update`: `graphify <juego> --no-viz --code-only`, solo `Source/` y el texto de `Config/`, `docs/` y
 `Content/`) y lo añade al `.gitignore`; tras cada integración en main se encola `--update` (uno a la vez).
-`graphify: {"enabled": false}` en `config.json` lo apaga. Workers y revisores consultan `graphify query` antes de leer.
+`graphify: {"enabled": false}` en `config.json` lo apaga. Workers y revisores consultan `graphify query` antes de leer. Sin `.cpp`/`.h` bajo `Source/` queda apagado (doctor: «sin código C++, apagado»).
 
 ## Ramas y líneas base
 

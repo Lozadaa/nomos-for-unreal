@@ -126,7 +126,9 @@ export function screenMarkers(lines:string[]): Marker[] {
     const nextFence=fenceLine(lines[i],fence);
     if(nextFence!==undefined) {fence=nextFence;continue;}
     if(fence) continue;
-    const line=/^ {2}(?:NOMOS|KRATOS)_/.test(lines[i]) && bulletContinuation(lines,i) ? lines[i].slice(2) : lines[i];
+    // hito 26: Claude Code 2.1 pinta a la derecha del primer renglón un estado («No changes this session») tras el JSON
+    // ponytail: solo si el JSON cierra en ese renglón; un estado tras un JSON partido seguiría rompiendo la marca
+    const line=(/^ {2}(?:NOMOS|KRATOS)_/.test(lines[i]) && bulletContinuation(lines,i) ? lines[i].slice(2) : lines[i]).replace(/([\]}]) {3,}\S[^\]}]*$/,'$1');
     // hito 7: Claude Code parte la línea justo tras el marcador si el JSON no cabe; el JSON sigue en las líneas sangradas
     const bare=/^(?:[•●⏺] )?(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW|SKILLS)\s*$/.exec(line);
     const match=bare && /^ {2,}[\[{]/.test(lines[i+1] ?? '') ? [line,bare[1],lines[++i].trimStart()]
@@ -135,7 +137,7 @@ export function screenMarkers(lines:string[]): Marker[] {
       if(/^(?:[•●⏺] )?(?:NOMOS|KRATOS)_REVIEW\b/.test(line)) found.push({kind:'INVALID_REVIEW',question:lines[i]});
       continue;
     }
-    const original=lines[i];
+    const original=lines[i],start=i;
     let text=match[2],marker=decode(match[1],text),tight=text;
     // hito 13: una fila que llena el ancho del terminal sigue en la de abajo aunque esta no lleve sangría (corte duro)
     const continues=(j:number)=>j<lines.length && !/^\s*(`{3,}|~{3,})/.test(lines[j])
@@ -151,7 +153,10 @@ export function screenMarkers(lines:string[]): Marker[] {
       marker=hard ? decode(match[1],tight) ?? decode(match[1],text) : decode(match[1],text) ?? decode(match[1],tight);
     }
     if(marker) found.push(marker);
-    else if(match[1]==='REVIEW') found.push({kind:'INVALID_REVIEW',question:original});
+    else {
+      if(match[1]==='REVIEW') found.push({kind:'INVALID_REVIEW',question:original});
+      i=start; // hito 26: una marca ilegible no se come las filas siguientes (ni otra marca debajo)
+    }
   }
   return found;
 }

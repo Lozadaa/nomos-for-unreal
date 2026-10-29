@@ -107,6 +107,7 @@ Quien lee el panel juega y mira; lo técnico es tuyo. Todo texto cabe en una pan
 Con `jam.enabled` en `config.json` (lo pone `nomos jam init --tema "<tema>" --dias <n>`), crea como máximo las
 tareas del día en curso y la de cierre; ninguna tarea nueva fuera de `docs/plan-jam.md` sin una Decisión del usuario
 que la acepte. Detalle en [modo jam](references/jam.md).
+Un juego sin `.cpp`/`.h` bajo `Source/` no tiene grafo: graphify solo indexa código (doctor: «sin código C++, apagado»).
 
 ## Repartir
 

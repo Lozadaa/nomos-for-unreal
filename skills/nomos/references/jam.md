@@ -10,6 +10,7 @@ nomos jam init --data .nomos --tema "<tema>" --dias <n>
 ```
 
 Escribe `docs/plan-jam.md` en el juego y marca `config.json` con `jam: {enabled: true, days: n, start: <fecha>}`.
+En un juego solo de Blueprints (sin `.cpp`/`.h` en `Source/`) graphify queda apagado: no ve Blueprints ni mapas.
 Un segundo `init` no sobrescribe el plan sin `--force`. Rellena el plan con el usuario antes de crear tareas:
 
 | Sección | Qué lleva |

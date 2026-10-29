@@ -150,13 +150,20 @@ export function playableApproved(db: DatabaseSync, dataDir: string, taskId: stri
 }
 
 const noBuild = 'Hoy no hay build jugable aprobada';
-/** Hito 25: en jam, un cierre de hito con más de 24 h sin aprobar (ni pregunta ya hecha) abre la Decisión de recortar. */
+/**
+ * Hito 25: en jam, un cierre de hito con más de 24 h sin build aprobada (ni pregunta ya hecha) abre la Decisión de recortar.
+ * Hito 26: cuenta desde la última aprobación de cualquier cierre o, sin ninguna, desde `jam.start` (no desde que se creó la tarea).
+ */
 export function jamSweep(db: DatabaseSync, config: SchedulerConfig, now = Date.now()): void {
-  if (!(config as {jam?: {enabled?: unknown}}).jam?.enabled) return;
-  for (const task of filtered<Task>(db, 'tasks').filter(t => t.state !== 'done' && isClosingTask(t))) {
-    const last = db.prepare(`select max(at) at from (select created_at at from events where type='approval.approved' and json_extract(payload,'$.taskId')=?
-      union all select created_at from decisions where task_id=? and reason=?)`).get(task.id, task.id, noBuild)!.at as string | null;
-    if (now - Date.parse(last ?? task.createdAt) > 24 * 3_600_000) openDecision(db, {taskId: task.id, reason: noBuild, options: [
+  const jam = (config as {jam?: {enabled?: unknown; start?: string}}).jam;
+  if (!jam?.enabled) return;
+  const closing = filtered<Task>(db, 'tasks').filter(t => isClosingTask(t)), ids = new Set(closing.map(t => t.id));
+  const approved = db.prepare("select payload,created_at at from events where type='approval.approved'").all()
+    .filter(e => ids.has(JSON.parse(e.payload as string).taskId)).map(e => e.at as string).sort().at(-1);
+  for (const task of closing.filter(t => t.state !== 'done')) {
+    const asked = db.prepare('select max(created_at) at from decisions where task_id=? and reason=?').get(task.id, noBuild)!.at as string | null;
+    const last = [approved, asked].filter((x): x is string => !!x).sort().at(-1) ?? jam.start ?? task.createdAt;
+    if (now - Date.parse(last) > 24 * 3_600_000) openDecision(db, {taskId: task.id, reason: noBuild, options: [
       {id: 'recortar', label: 'Recortar', description: 'Aplica el siguiente recorte de «Recortes si falta tiempo» en docs/plan-jam.md'},
       {id: 'seguir', label: 'Seguir', description: 'Sigue sin recortar; se vuelve a preguntar tras otras 24 h sin aprobación'}]});
   }
