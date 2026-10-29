@@ -4,14 +4,14 @@ import { spawn } from 'node:child_process';
 export const quote = (value: string) => /[\s"]/.test(value) ? `"${value.replaceAll('"', '\\"')}"` : value;
 
 /** `args` ya van entrecomillados por el llamador (`quote`). Proceso con log acotado; al agotar el tiempo mata el árbol (el editor lanza ShaderCompileWorker) y rechaza con el log. */
-export function runLogged(bin: string, args: string[], opts: {env?: NodeJS.ProcessEnv; timeoutMs: number}):
+export function runLogged(bin: string, args: string[], opts: {env?: NodeJS.ProcessEnv; timeoutMs: number; cwd?: string}):
   Promise<{exitCode: number | null; log: string}> {
   return new Promise((resolve, reject) => {
     // los .bat solo se ejecutan a través de cmd.exe; el resto, directo y con los argumentos tal cual
     const bat = /\.(bat|cmd)$/i.test(bin);
     const child = bat
-      ? spawn('cmd.exe', ['/d', '/s', '/c', `"${[quote(bin), ...args].join(' ')}"`], {windowsHide: true, windowsVerbatimArguments: true, env: opts.env})
-      : spawn(bin, args, {windowsHide: true, windowsVerbatimArguments: true, shell: false, argv0: quote(bin), env: opts.env});
+      ? spawn('cmd.exe', ['/d', '/s', '/c', `"${[quote(bin), ...args].join(' ')}"`], {windowsHide: true, windowsVerbatimArguments: true, env: opts.env, cwd: opts.cwd})
+      : spawn(bin, args, {windowsHide: true, windowsVerbatimArguments: true, shell: false, argv0: quote(bin), env: opts.env, cwd: opts.cwd});
     let log = '';
     const keep = (chunk: Buffer) => { log = (log + chunk.toString('utf8')).slice(-2_000_000); };
     child.stdout.on('data', keep); child.stderr.on('data', keep);

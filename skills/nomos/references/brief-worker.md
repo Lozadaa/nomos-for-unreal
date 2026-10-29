@@ -20,6 +20,8 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 
 ## Reglas
 
+- Explora con el grafo: `graphify query "<pregunta con nombres del código>"` antes de leer archivos; si aún no hay `graphify-out/`, sigue sin él.
+- Ponytail full está activo: el diff más corto que funciona.
 - Aplica TDD: observa la prueba fallar antes de implementar cada comportamiento.
 - Haz un commit por paso. No hagas push ni merge.
 - No incluyas .nomos-brief.md ni .nomos-inbox en commits.

@@ -7,6 +7,8 @@ Codex y Claude revisan. OpenCode nunca revisa: el revisor de una tarea de OpenCo
 ## Encargo de revisión
 
 Inspecciona los criterios de aceptación de `.nomos-brief.md` y el diff adjunto `.nomos-review/diff.patch`.
+Explora con el grafo: `graphify query "<pregunta con nombres del código>"` antes de leer archivos; si aún no hay `graphify-out/`, sigue sin él.
+Ponytail full está activo: el diff más corto que funciona; señala lo que sobra.
 El diff incluye los cambios desde la base del implementador, incluidos archivos nuevos de texto.
 No modifiques la implementación, no crees commits y no hagas merge.
 El archivo interno del diff se excluye de Git y de los diffs de artefactos.
