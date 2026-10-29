@@ -1,6 +1,6 @@
 # Hito 28 · Líneas base visuales por aprobar
 
-> **For agentic workers:** worktree `C:/Users/richa/orca/workspaces/kratos/hito28-lineas-base` de `C:/Users/richa/Documents/nomos` (rama `hito28-lineas-base` desde `main`, que ya incluye los hitos 26, 27 y 29). Ponytail full: el diff más corto que funciona, sin dependencias nuevas. Lee solo lo que vayas a tocar. No toques los servicios de los puertos 8780 y 8781. Pruebas con `npm test`, `npm run test:panel`, `npm run build`. Un commit por tarea. No fusiones en main. No hagas push.
+> **For agentic workers:** worktree `C:/Users/richa/orca/workspaces/kratos/hito28-lineas-base` de `C:/Users/richa/Documents/nomos` (rama `hito28-lineas-base` desde `main`, que ya incluye los hitos 26, 30, 29 y 27). Ponytail full: el diff más corto que funciona, sin dependencias nuevas. Lee solo lo que vayas a tocar. No toques los servicios de los puertos 8780 y 8781. Pruebas con `npm test`, `npm run test:panel`, `npm run build`. Un commit por tarea. No fusiones en main. No hagas push.
 
 **Por qué:** en Block Kings, 9 de las 16 comprobaciones fallidas fueron líneas base visuales equivocadas: la primera captura se convierte en referencia sin que nadie la mire y luego bloquea tareas correctas con vueltas de corrección.
 
