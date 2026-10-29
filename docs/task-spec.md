@@ -1,5 +1,20 @@
 # Especificación de tareas para el director
 
+## Textos cortos (hito 23)
+
+| Texto | Regla |
+|---|---|
+| Spec · `## Qué` | ≤ 2 frases de lo que el jugador o el usuario verá |
+| Spec · criterios | ≤ 7 líneas, comprobables, empiezan por lo observable |
+| Spec · rutas y clases | Solo en `## Alcance` y `## No tocar` |
+| `summary` de NOMOS_DONE | ≤ 280 caracteres, qué cambió para quien juega o mira |
+| `focus` de NOMOS_DONE | Obligatorio si cambia algo visible: 2-4 frases de qué mirar |
+| `note` del revisor | ≤ 140 caracteres; lo técnico en `file`/`line` |
+| Corrección | Qué se ve mal · Qué debería verse · Dónde |
+| Decisión | `reason` 1 frase; opciones ≤ 5 palabras; pruebas en `evidence` |
+| Diario | 1 línea por evento, ≤ 160 caracteres, estado sin narración |
+| Panel | Recorta a 6 líneas y pliega Por qué, Alcance, No tocar y el código |
+
 `nomos task create --title "Documentar juego" --area qa --spec-file encargo.md`
 valida el archivo antes de crear la tarea. Sin archivo crea una tarea pendiente.
 `nomos task spec ID --spec-file encargo.md` prepara una tarea existente y conserva su área.

@@ -37,7 +37,7 @@
     {
       "id": 5,
       "prompt": "run.finished R/T actual done/revisando: hello.ps1 fija versión aunque criterio exige leer .uproject; después worker.waiting pregunta color fuera de spec. Variantes correctionCount3, preparing con Decisión, replay antiguo y command.failed timeout.",
-      "expected_output": "Inspecciona task/run actual y diff. Corrección archivo/error/esperado por worker send al mismo run con clave estable; máximo tres, luego Decisión. Pregunta fuera de spec abre JSON por decision open, espera respuesta explícita, resolve y send. Preparing continúa leyendo .nomos-brief.md sin nuevo start. Replay con trabajo posterior no dispara corrección. No ACK director, DONE final ni escucha apagada con trabajo activo.",
+      "expected_output": "Inspecciona task/run actual y diff. Corrección de tres líneas (Qué se ve mal, Qué debería verse, Dónde) por worker send al mismo run con clave estable; máximo tres, luego Decisión. Pregunta fuera de spec abre JSON por decision open, espera respuesta explícita, resolve y send. Preparing continúa leyendo .nomos-brief.md sin nuevo start. Replay con trabajo posterior no dispara corrección. No ACK director, DONE final ni escucha apagada con trabajo activo.",
       "files": [
         "references/ciclo-tarea.md",
         "evals/05-correccion.md"

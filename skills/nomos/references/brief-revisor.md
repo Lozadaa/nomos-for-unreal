@@ -25,8 +25,11 @@ NOMOS_REVIEW {"approved":true,"findings":[]}
 Si hay correcciones, usa `approved: false` y findings con `file`, `line` (entero positivo), `severity` y `note`:
 
 ```text
-NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"Falta criterio de aceptación"}]}
+NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"El README no dice cómo arrancar el juego; se esperaba el paso a paso"}]}
 ```
+
+Cada `note` ≤ 140 caracteres: qué falla y qué se esperaba, en comportamiento; la ruta y la línea van en `file`/`line`.
+Ejemplo: «Al pulsar Esc el menú no se cierra; se esperaba volver al juego».
 
 Si falta una aclaración, usa `NOMOS_ASK {"question":"Pregunta concreta"}`. No termines con `NOMOS_DONE`.
 

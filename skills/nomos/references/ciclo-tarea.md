@@ -36,13 +36,13 @@ Ejemplo completo en `.nomos/specs/documentacion.md`:
 ```md
 # Documentar el juego
 ## Qué
-Crear README y script PowerShell que informe la versión del motor desde el .uproject.
+Quien abre el juego encuentra un README y un script que le dice la versión del motor.
 ## Por qué
 Permitir que otra persona identifique el proyecto y su versión antes de probarlo.
 ## Criterios de aceptación
-1. Docs/README-nomos.md describe el proyecto sin inventar mecánicas.
-2. Scripts/hello.ps1 lee EngineAssociation del .uproject e imprime su valor.
-3. El script se ejecuta sin errores desde la raíz del juego.
+1. El README describe el proyecto sin inventar mecánicas.
+2. El script imprime la versión del motor que figura en el proyecto.
+3. El script termina sin errores desde la raíz del juego.
 ## Alcance
 - Docs/README-nomos.md
 - Scripts/hello.ps1
@@ -53,7 +53,8 @@ Permitir que otra persona identifique el proyecto y su versión antes de probarl
 ```
 
 Exactamente esos cinco encabezados una vez cada uno. Qué/Por qué tienen texto;
-criterios numerados y alcance con guiones. Rutas relativas literales, sin `..`,
+criterios numerados (≤ 7, empiezan por lo observable) y alcance con guiones. `## Qué` ≤ 2 frases
+de lo que se verá; rutas y clases solo en Alcance y No tocar. Rutas relativas literales, sin `..`,
 absolutos ni glob; usa prefijos de directorio cuando corresponda. Los fences no
 aportan criterios/rutas. El parser valida el archivo antes de crear una tarea.
 No tocar se conserva en el Markdown/brief. Contrato ampliado: `docs/task-spec.md`
@@ -106,7 +107,12 @@ blockedReason; `esperando_worker` es latestStatus/metadata, no un estado Task nu
 3. Si cumple, publica por reply el resultado y los límites de verificación; deja `revisando`. No marques done
    ni hagas merge/push. Lo visual o jugable lo aprueba el usuario en «Por aprobar» (referencia de aprobación, enlazada desde SKILL.md).
 4. Si no cumple, crea `.nomos/correcciones/RUN/1.md` (luego 2.md y 3.md).
-   Especifica archivo, problema observado y resultado comprobable esperado.
+   Tres líneas, sin más:
+   ```md
+   **Qué se ve mal:** el script imprime 5.4 aunque el proyecto dice 5.7.
+   **Qué debería verse:** la versión que figura en el .uproject.
+   **Dónde:** Scripts/hello.ps1
+   ```
    Envía `nomos worker send RUN --file .nomos/correcciones/RUN/1.md --idempotency-key correccion-RUN-1`.
    Guarda la clave, commandId y contador. Ante respuesta incierta, consulta el comando
    y repite la misma clave si procede; no fabriques otro envío.
@@ -127,11 +133,13 @@ con una clave estable de respuesta. Si no, escribe `.nomos/decisiones/pregunta.j
 
 ```json
 {
-  "reason": "¿Qué estilo visual debe usar el README? No aparece en la especificación.",
+  "reason": "¿Qué estilo visual debe usar el README?",
   "evidence": [{"kind": "run", "ref": "RUN"}],
   "options": [{"id": "answer", "label": "Responder en el chat", "description": "Escribe la respuesta que recibirá el worker."}]
 }
 ```
+
+`reason` es una frase; cada `label` ≤ 5 palabras; lo que lo justifica va en `evidence`, nunca en la pregunta.
 
 Sustituye RUN por el ID real. `nomos decision open TASK --file .nomos/decisiones/pregunta.json`;
 publica la pregunta por reply y espera respuesta explícita. Una selección answer
