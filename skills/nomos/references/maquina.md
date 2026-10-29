@@ -47,3 +47,10 @@ fusión (`review.needs_main`) y no abre la revisión. Si una tarea cambia la ima
 `visual: cambia`: con la revisión aprobada, la primera captura sustituye la línea base del mapa (`baseline.replaced`).
 Para una comprobación concreta, `nomos task check ID --acepta-nueva-base`. La cámara de captura se fija con
 `checks.captureCvars` en la config (p. ej. `["BlockKings.CamaraFija 1"]`).
+
+## `main` compartido (equipo)
+
+Con `team.enabled`, la integración trae `origin/main` antes de fusionar (la rama del worker queda al día sobre él) y
+empuja `main` después; el commit lleva `Nomos-Equipo: <id> <nombre> (<frente>)`. Push rechazado: trae y rehace, hasta
+3 veces; después la tarea queda bloqueada «No se pudo publicar main» (`integration.push_failed`). El `main` del clon
+de la persona avanza solo si está limpio. Sin remoto, integra en local y avisa una vez (`integration.no_remote`).

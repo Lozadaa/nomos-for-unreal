@@ -5,6 +5,14 @@ import { execFileSync } from 'node:child_process';
 import { openDb } from '../../service/src/db.ts';
 import { listEvents } from '../../service/src/store.ts';
 import { removeDir } from '../remove-dir.ts';
+import { createGit } from '../../service/src/adapters/git.ts';
+import { createTask } from '../../service/src/repo/tasks.ts';
+import { finishRun, startRun } from '../../service/src/repo/runs.ts';
+import { insert } from '../../service/src/repo/rows.ts';
+import { recordTestRun } from '../../service/src/repo/artifacts.ts';
+import { integrateRun } from '../../service/src/handlers/integrate.ts';
+import type { WorkerContext } from '../../service/src/runner.ts';
+import type { Command, Worktree } from '../../service/src/model.ts';
 
 /** Hito 29: remoto bare local y clones del juego, cada uno con su `.nomos` y su tarjeta de equipo. Nada sale a un remoto real. */
 export function teamFixture() {
@@ -29,7 +37,23 @@ export function teamFixture() {
     writeFileSync(join(dataDir, 'config.json'), JSON.stringify({team: {enabled: true, name, frente}}));
     const db = openDb(join(dataDir, 'nomos.db')); dbs.push(db);
     const events = (type: string) => listEvents(db, 0).filter(e => e.type === type).map(e => e.payload as Record<string, any>);
-    return {dir, dataDir, db, events};
+    const ctx = {db, dataDir, projectDir: dir, git: createGit()} as unknown as WorkerContext;
+    /** Tarea aprobada en `integrando` con su worktree (rama `nomos/<n>` desde HEAD) y un commit con `files`. */
+    const task = (n: string, files: Record<string, string | Buffer>, title = `Tarea ${n}`) => {
+      const path = join(root, `${name}-${n}`);
+      git(dir, 'worktree', 'add', '-q', '-b', `nomos/${n}`, path);
+      const base = git(path, 'rev-parse', 'HEAD');
+      for (const [file, content] of Object.entries(files)) { mkdirSync(join(path, file, '..'), {recursive: true}); writeFileSync(join(path, file), content); }
+      git(path, 'add', '.'); git(path, 'commit', '-q', '-m', `Cambios de ${n}`);
+      const t = createTask(db, {title, area: 'gameplay', state: 'integrando', spec: 'Hacer', acceptance: ['check:cpp'], scope: ['Source']});
+      const tree = insert<Worktree>(db, 'worktrees', {taskId: t.id, path, branch: `nomos/${n}`, baseCommit: base, state: 'active', closedReason: null});
+      db.prepare('update tasks set worktree_id=?, review_approved=1 where id=?').run(tree.id, t.id);
+      const implementer = finishRun(db, startRun(db, {taskId: t.id, role: 'implementacion', provider: 'claude', sessionRef: `term_${n}`, metadata: {worktreeId: tree.id}}).id, 'done', 'Hecho');
+      recordTestRun(db, {taskId: t.id, runId: implementer.id, checkId: 'cpp', result: 'passed'});
+      return {task: t, tree, implementer, path};
+    };
+    const integrate = (taskId: string) => integrateRun({id: `int-${taskId}`, type: 'integrate.run', payload: {taskId}, idempotencyKey: `int-${taskId}`} as unknown as Command, ctx) as Promise<Record<string, any>>;
+    return {name, dir, dataDir, db, events, ctx, task, integrate};
   };
   return {root, bare, git, clone, close() { for (const db of dbs) db.close(); removeDir(root); }};
 }

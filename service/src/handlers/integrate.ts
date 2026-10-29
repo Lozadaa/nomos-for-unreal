@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { Command, Decision, Run, Task, Worktree } from '../model.ts';
 import { read } from '../repo/rows.ts';
-import { moveTask, requireTask, setTaskWait } from '../repo/tasks.ts';
+import { blockTask, moveTask, requireTask, setTaskWait } from '../repo/tasks.ts';
 import { finishRun } from '../repo/runs.ts';
 import { updateRun } from '../repo/worker.ts';
 import { addArtifact } from '../repo/artifacts.ts';
@@ -18,6 +18,7 @@ import { isLfsDecision, lfsGate, onlyAttributes } from '../integration/lfs.ts';
 import { commandRun } from './asset-run.ts';
 import { implementerOf } from './checks.ts';
 import { queueGraph } from '../graph.ts';
+import { fetchMain, identity, isAncestor, teamConfig, teamGit } from '../team.ts';
 
 const resolveOption = {id: 'resolve', label: 'Resolver en el worktree', description: 'El responsable integra la rama objetivo en su rama y resuelve el conflicto'};
 const discardOption = {id: 'discard', label: 'Descartar la integración', description: 'La tarea vuelve a probando sin integrar'};
@@ -67,8 +68,8 @@ async function conflict(ctx: WorkerContext, command: Command, task: Task, run: R
 /** Tras la Decisión: el responsable resuelve en su worktree, o la integración se descarta. */
 function afterConflict(ctx: WorkerContext, task: Task, run: Run, decision: Decision) {
   if (decision.chosenOptionId === resolveOption.id) {
-    const implementer = implementerOf(ctx, task);
-    enqueue(ctx.db, 'worker.send', {runId: implementer.id, text: `${decision.reason}.\nIntegra la rama objetivo en tu rama, resuelve el conflicto sin perder `
+    const implementer = implementerOf(ctx, task), shared = teamConfig(ctx.dataDir) ? ' (en equipo, la de origin, recién traída)' : '';
+    enqueue(ctx.db, 'worker.send', {runId: implementer.id, text: `${decision.reason}.\nIntegra la rama objetivo${shared} en tu rama, resuelve el conflicto sin perder `
       + `ninguno de los dos lados (en binarios, pregunta antes de elegir versión), commitea y termina con NOMOS_DONE.`}, `integrate.resolve:${decision.id}`);
     finishRun(ctx.db, run.id, 'cancelled', 'Conflicto devuelto al responsable');
     return {returned: true};
@@ -112,15 +113,20 @@ export const integrateRun: Handler = async (command, ctx) => {
   if (!lease.ok) { setTaskWait(ctx.db, task.id, leaseWaitReason(lease.conflicts)); return {deferred: true, reason: leaseWaitReason(lease.conflicts)}; }
   setTaskWait(ctx.db, task.id, null);
   let state = run.metadata.integration;
-  const ws = state ? ws0 : await integrationWorkspace(ctx, true);
+  const ws = state ? ws0 : await integrationWorkspace(ctx, true), team = teamConfig(ctx.dataDir);
   if (!state) {
+    // hito 29: en equipo se integra sobre origin/<rama> recién traída (si divergen, sobre la local y el push dirá por qué)
+    const remote = team ? await fetchMain(ctx.db, ctx.projectDir, ws.branch) : null;
+    if (remote && !await isAncestor(ws.dir, remote, 'HEAD') && await isAncestor(ws.dir, 'HEAD', remote)) await ctx.git.checkout(ws.dir, remote);
     // hito 5b: contenido pesado sin LFS → Decisión antes de meterlo en la historia
     const gated = await lfsGate(ctx, command, task, run, ws, tree, decision);
     if (gated) return gated;
     const base = await ctx.git.head(ws.dir);
-    const merged = await ctx.git.merge(ws.dir, tree.branch, {noFf: true, message: `Integrar ${task.title} (${tree.branch})`});
+    // en equipo, quién integró viaja en el commit: así se sabe a quién avisar si otro choca con ese archivo
+    const signature = team ? `\n\nNomos-Equipo: ${identity(ctx.dataDir).id} ${team.name} (${team.frente})` : '';
+    const merged = await ctx.git.merge(ws.dir, tree.branch, {noFf: true, message: `Integrar ${task.title} (${tree.branch})${signature}`});
     if (!merged.ok) return conflict(ctx, command, task, run, ws, tree);
-    state = {base, commit: merged.commit, files: await ctx.git.filesBetween(ws.dir, base, merged.commit)};
+    state = {base, commit: merged.commit, files: await ctx.git.filesBetween(ws.dir, base, merged.commit), ...(remote !== null ? {remote: true} : {})};
     run = updateRun(ctx.db, run.id, {integration: state});
   }
   // la rama objetivo cambió desde que nació el worktree: recomprobar el resultado integrado antes de publicarlo
@@ -141,7 +147,28 @@ export const integrateRun: Handler = async (command, ctx) => {
     }
     run = updateRun(ctx.db, run.id, {integration: {...state, checked: true}});
   }
-  try { await ctx.git.advanceBranch(ctx.projectDir, ws.branch, state.commit, state.base); }
+  if (state.remote) {
+    try { await teamGit(ctx.projectDir, ['push', '--quiet', 'origin', `${state.commit}:refs/heads/${ws.branch}`]); }
+    catch (error) {
+      // alguien se adelantó (o el remoto lo rechaza): se trae de nuevo y se rehace, hasta 3 veces
+      const cause = (error instanceof Error ? error.message : String(error)).split('\n')[0], tries = (run.metadata.pushAttempts ?? 0) + 1;
+      await ctx.git.checkout(ws.dir, ws.branch);
+      run = updateRun(ctx.db, run.id, {integration: undefined, pushAttempts: tries});
+      if (tries < 3) {
+        appendEvent(ctx.db, 'integration.retry', null, {taskId: task.id, runId: run.id, reason: `No se pudo publicar ${ws.branch}: ${cause}`});
+        return {deferred: true, reason: `Reintentando publicar ${ws.branch} (${tries}/3)`};
+      }
+      release(ctx.db, run.id);
+      appendEvent(ctx.db, 'integration.push_failed', null, {taskId: task.id, runId: run.id, reason: cause});
+      blockTask(ctx.db, task.id, `No se pudo publicar main: ${cause}`);
+      finishRun(ctx.db, run.id, 'failed', `No se pudo publicar main: ${cause}`);
+      return {integrated: false, pushFailed: true};
+    }
+    // el clon de la persona no se toca: su rama avanza solo si está limpia (o no activa) y no se aparta de lo publicado
+    const local = await ctx.git.tip!(ctx.projectDir, ws.branch).catch(() => null), active = await ctx.git.currentBranch(ctx.projectDir) === ws.branch;
+    if (local && await isAncestor(ctx.projectDir, local, state.commit) && (!active || (await ctx.git.status(ctx.projectDir)).clean))
+      await ctx.git.advanceBranch(ctx.projectDir, ws.branch, state.commit, local).catch(() => {});
+  } else try { await ctx.git.advanceBranch(ctx.projectDir, ws.branch, state.commit, state.base); }
   catch (error) {
     await ctx.git.checkout(ws.dir, ws.branch);
     updateRun(ctx.db, run.id, {integration: undefined});

@@ -47,7 +47,8 @@ export type RunMetadata = {
   // pruebas (hito 5): run implementador cuyo diff se prueba
   implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
   // integración (hito 6): merge hecho en el workspace y pendiente de publicar
-  integration?: {base: string; commit: string; files: string[]; checked?: boolean};
+  integration?: {base: string; commit: string; files: string[]; checked?: boolean; /** hito 29: se publica en origin */ remote?: boolean};
+  /** hito 29: pushes de main rechazados en esta integración (3 = bloqueada «No se pudo publicar main») */ pushAttempts?: number;
   // hito 5b: contenido pesado al integrar (Decisión de Git LFS)
   lfs?: 'sin' | 'configurando' | 'listo';
   continuationOf?: string; busyAttempts?: number;

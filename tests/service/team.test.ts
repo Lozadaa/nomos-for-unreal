@@ -1,8 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { stampBuild } from '../../service/src/build-info.ts';
+import { appendEvent } from '../../service/src/store.ts';
 import { join } from 'node:path';
-import { identity, listPeers, publishCard, teamTick, type TeamTick } from '../../service/src/team.ts';
+import { identity, listPeers, myCard, publishCard, teamTick, type TeamTick } from '../../service/src/team.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { teamFixture } from './team-fixture.ts';
 
@@ -56,5 +58,17 @@ test('equipo sin remoto: team.unavailable una sola vez y lo local sigue', async 
     await teamTick(a.db, a.dataDir, a.dir, s, Date.now() + 61_000);
     assert.equal(a.events('team.unavailable').length, 1);
     assert.equal(createTask(a.db, {title: 'Sigue', area: 'gameplay'}).title, 'Sigue');
+  } finally { f.close(); }
+});
+
+test('equipo: el campo build de la tarjeta es la build estampada que el usuario aprobó', async () => {
+  const f = teamFixture();
+  try {
+    const a = f.clone('Richard', 'combate'), dir = join(a.dir, 'Build', 'Windows-actual');
+    mkdirSync(dir, {recursive: true}); writeFileSync(join(dir, 'Juego.exe'), 'MZ');
+    stampBuild(dir, a.dir);
+    assert.equal(myCard(a.db, a.dataDir).build, null, 'sin aprobar no cuenta');
+    appendEvent(a.db, 'approval.approved', null, {approvalId: 'x', taskId: 'y'});
+    assert.equal(myCard(a.db, a.dataDir).build?.commit, f.git(a.dir, 'rev-parse', 'HEAD'));
   } finally { f.close(); }
 });

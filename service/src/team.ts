@@ -99,6 +99,18 @@ export async function publishCard(projectDir: string, dataDir: string, id: strin
   return false;
 }
 
+/** T2: trae `origin/<rama>`. Devuelve la referencia, `''` si el remoto aún no tiene la rama, o `null` sin remoto (aviso una vez). */
+export async function fetchMain(db: DatabaseSync, projectDir: string, branch: string): Promise<string | null> {
+  try { await teamGit(projectDir, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${branch}:${remoteRef(branch)}`]); return remoteRef(branch); }
+  catch (error) {
+    if (missingBranch(error)) return '';
+    if (!db.prepare("select 1 from events where type='integration.no_remote'").get())
+      appendEvent(db, 'integration.no_remote', null, {branch, reason: String(error instanceof Error ? error.message : error).split('\n')[0]});
+    return null;
+  }
+}
+export const isAncestor = (dir: string, a: string, b: string) => teamGit(dir, ['merge-base', '--is-ancestor', a, b]).then(() => true, () => false);
+
 /** Mi tarjeta, sacada de la base: tareas abiertas, reservas vivas, decisiones abiertas, build aprobada y peticiones. */
 export function myCard(db: DatabaseSync, dataDir: string, now = new Date()): Card {
   const team = teamConfig(dataDir), id = identity(dataDir).id;
