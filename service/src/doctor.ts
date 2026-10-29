@@ -9,6 +9,7 @@ import { createUnrealCmd, defaultUnrealCmd } from './adapters/unreal-cmd.ts';
 import { detectCapabilities } from './repo/capabilities.ts';
 import { ffmpegVersion, findFfmpeg, type Ffmpeg } from './adapters/ffmpeg.ts';
 import { readConfig } from './config.ts';
+import { launcherMode } from './adapters/process-terminal.ts';
 import { capabilityList, configFs, type CheckResult } from './capability-checks.ts';
 import { readServiceInfo, isAlive } from './service-info.ts';
 import type { Lane } from './commands.ts';
@@ -80,9 +81,14 @@ export type DoctorRow = {id: string; label: string; state: 'ok' | 'aviso' | 'fal
 export async function doctor(dataDir: string, db: DatabaseSync, deps: CheckDeps = {}, now = Date.now()): Promise<DoctorRow[]> {
   const rows: DoctorRow[] = capabilityList(dataDir, db).map(c => ({id: c.id, label: c.label, detail: c.detail,
     state: c.state === 'roto' ? 'falla' : c.state === 'ausente' ? required.includes(c.id) ? 'falla' : 'aviso' : 'ok'}));
-  const orca = rows.find(r => r.id === 'orca');
-  if (orca && orca.state !== 'falla') Object.assign(orca, await (deps.orca ?? createOrca()).isRunning?.()
+  const orca = rows.find(r => r.id === 'orca'), orcaUp = orca?.state !== 'falla' && !!await (deps.orca ?? createOrca()).isRunning?.();
+  if (orca && orca.state !== 'falla') Object.assign(orca, orcaUp
     ? {state: 'ok', detail: 'Orca abierto'} : {state: 'falla', detail: 'Orca no está abierto: ábrelo o usa «Abrir Orca» en Capacidades'});
+  // hito 30: sin Orca, los workers son procesos `claude` hijos
+  let mode = 'auto';
+  try { mode = launcherMode(readConfig(dataDir)); } catch { /* config inválida: la fila de configuración lo dice */ }
+  rows.push({id: 'workers', label: 'Lanzador de workers', state: 'ok',
+    detail: mode === 'orca' || mode === 'auto' && orcaUp ? 'Orca' : 'proceso (`claude` en PATH)'});
   // hito 23: el grafo de cada juego es imprescindible; ponytail (plugin de Claude Code) solo avisa
   const env = deps.env ?? process.env, graphify = findGraphify(env);
   rows.push({id: 'graphify', label: 'graphify', ...!hasCode(dirname(dataDir)) ? {state: 'ok' as const, detail: 'sin código C++, apagado (solo indexa código; no ve Blueprints ni mapas)'}

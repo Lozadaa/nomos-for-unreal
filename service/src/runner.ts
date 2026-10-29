@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 import type { Command } from './model.ts';
 import { createOrca, OrcaError, type Orca } from './adapters/orca.ts';
+import { chooseLauncher, createProcessTerminal, launcherMode, type LauncherMode } from './adapters/process-terminal.ts';
 import { createGit, type Git } from './adapters/git.ts';
 import { beat, claim, complete, defer, fail, type Lane } from './commands.ts';
 import { appendEvent } from './store.ts';
@@ -36,7 +37,8 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
   let drained!: () => void;
   const promise = new Promise<void>(accept => {drained=accept;});
   const settle=()=>{if(stopped && !inFlight.normal && !inFlight.long) drained();};
-  const orca=createOrca({...opts.orcaOptions,onCompleted:async event=>{
+  const projectDir=resolve(opts.context?.projectDir ?? dirname(dataDir));
+  const orcaCli=createOrca({...opts.orcaOptions,onCompleted:async event=>{
     const current=active.normal ?? active.long;
     const payload=current?.payload as Record<string, any> | undefined;
     const run=payload?.runId ? db.prepare('select id,task_id from runs where id=?').get(payload.runId)
@@ -45,7 +47,11 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
       taskId:payload?.taskId ?? run?.task_id,runId:payload?.runId ?? run?.id});
     await opts.orcaOptions?.onCompleted?.(event);
   }});
-  const context: WorkerContext={...opts.context,db,dataDir,projectDir:resolve(opts.context?.projectDir ?? dirname(dataDir)),
+  // hito 30: sin Orca, los workers son procesos `claude` hijos (`launcher`/NOMOS_LAUNCHER)
+  let mode:LauncherMode='auto';
+  try {mode=launcherMode(readConfig(dataDir));} catch {/* config inválida: la rechaza quien la use */}
+  const orca=chooseLauncher(orcaCli,createProcessTerminal(dataDir,projectDir),mode,dataDir);
+  const context: WorkerContext={...opts.context,db,dataDir,projectDir,
     git:opts.context?.git ?? createGit(),orca:opts.context?.orca ?? orca};
   let nextSchedule=Date.now()+(opts.schedulerIntervalMs ?? 5000),nextSweep=0,recovered=false;
   async function execute(command: Command) {

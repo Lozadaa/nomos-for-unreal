@@ -20,6 +20,8 @@ export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,numbe
     maxWorkerMinutes?: number;
     /** Hito 22: milisegundos que se espera a que Orca cree el worktree (180 000); en frío pasa del minuto. */
     createTimeoutMs?: number};
+  /** Hito 30: quién lanza los workers; `auto` = Orca si responde, si no proceso `claude` hijo. */
+  launcher?: 'auto' | 'orca' | 'process';
   /** Hito 22: el PC aguanta un Unreal pesado a la vez y pide RAM libre para abrirlo. */
   scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean}};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
@@ -76,6 +78,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     // hito 25: la orden de Second Brain (brain.py) a la que el cierre añade `--cwd <juego> capture …`
     if(config.memory!==undefined && (!object(config.memory) || Object.entries(config.memory).some(([k,v])=>k==='enabled' ? typeof v!=='boolean'
       : k!=='command' || !Array.isArray(v) || !v.length || v.some((c:unknown)=>typeof c!=='string' || !c)))) throw new Error();
+    if(config.launcher!==undefined && !['auto','orca','process'].includes(config.launcher)) throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;

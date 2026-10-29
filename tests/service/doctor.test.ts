@@ -58,6 +58,11 @@ test('nomos doctor: tabla con capacidades, servicio sin mostrar el token y carri
     assert.equal(rows.find(r => r.id === 'lane:normal')!.detail, 'Libre');
     const text = renderDoctor(rows);
     assert.match(text, /Orca\s+FALLA/);
+    // hito 30: la suite fija NOMOS_LAUNCHER=orca; en `auto` con Orca cerrado, proceso
+    assert.equal(rows.find(r => r.id === 'workers')!.detail, 'Orca');
+    const saved = process.env.NOMOS_LAUNCHER; delete process.env.NOMOS_LAUNCHER;
+    try { assert.match((await doctor(dataDir, db, {orca: orca(false)})).find(r => r.id === 'workers')!.detail, /^proceso/); }
+    finally { if (saved !== undefined) process.env.NOMOS_LAUNCHER = saved; }
     assert.ok(text.split('\n').length >= rows.length + 1);
   } finally { db.close(); removeDir(root); }
 });
