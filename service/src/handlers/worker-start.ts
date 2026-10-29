@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import type { Handler, WorkerContext } from '../runner.ts';
 import { requireTask, moveTask,setTaskWait } from '../repo/tasks.ts';
 import { filtered, insert, read, transaction } from '../repo/rows.ts';
@@ -15,7 +16,7 @@ import { requireGameProject } from '../project-root.ts';
 import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
-import { readConfig, workerModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
+import { readConfig, roleModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
 import { launchPlan, briefLine } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
@@ -36,7 +37,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     || payload.attempt!==undefined && (!Number.isSafeInteger(payload.attempt)||payload.attempt<1)) throw new Error('invalid_worker_payload');
   if (!task.title.trim() || !task.spec.trim() || !task.acceptance.length
     || !task.acceptance.every(s=>typeof s==='string'&&s.trim())) throw new Error('invalid_worker_spec');
-  const config=readConfig(ctx.dataDir),model=payload.provider==='opencode' ? opencodeModel(config) : workerModel(config);
+  const config=readConfig(ctx.dataDir),model=payload.provider==='opencode' ? opencodeModel(config) : roleModel(config,payload.role,!!payload.qa);
   const history=filtered<Run>(db,'runs',{taskId:task.id});
   const reusable=history.find(r=>r.state==='running'&&r.provider===payload.provider&&r.attempt===(payload.attempt ?? 1)
     &&r.metadata.startCommandId===cmd.id&&r.metadata.phase==='preparing'
@@ -117,10 +118,11 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);
-  if(run.provider!=='codex') run=updateRun(db,run.id,{model});
+  // hito 24: la sesión fija de Claude Code da la transcripción de la que salen los tokens de la run
+  if(run.provider!=='codex') run=updateRun(db,run.id,{model,...(run.provider==='claude' ? {sessionId:randomUUID()} : {})});
   // hito 12: ningún subproceso de OpenCode hereda el modelo por defecto (caro) del usuario
   if(run.provider==='opencode') writeFileSync(join(created.path,'opencode.json'),JSON.stringify({$schema:'https://opencode.ai/config.json',model},null,2)+'\n');
-  const plan=launchPlan(run.provider,model,short);
+  const plan=launchPlan(run.provider,model,short,run.metadata.sessionId);
   if(!plan.briefInCommand) {
     await orca.terminalSend(created.terminalHandle,plan.command);
     if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,plan.ready))

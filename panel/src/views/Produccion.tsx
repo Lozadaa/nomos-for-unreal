@@ -10,7 +10,7 @@ import { useAfter, useNow } from '@/hooks/time'
 import { useParam } from '@/hooks/useParam'
 import { useResource } from '@/hooks/useResource'
 import { useRuns } from '@/hooks/useRuns'
-import { stageLabel, stages, type Artifact, type Stage, type Task } from '@/lib/tasks'
+import { millions, stageLabel, stages, type Artifact, type Stage, type Task } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { TaskSheet } from './TaskSheet'
 import { ClosingNote } from './Closing'
@@ -19,6 +19,7 @@ import { ProductionMap } from '@/visual/art/ProductionMap'
 import { EmptyState } from '@/visual/art/EmptyState'
 import { LastBuildLine } from '@/shell/PlayButton'
 import { usePlay } from '@/shell/usePlay'
+import { useStatus } from '@/shell/useStatus'
 
 type Filter = 'todas' | Stage
 
@@ -59,6 +60,7 @@ export function Produccion() {
   const [query, setQuery] = useState('')
   const now = useNow()
   const play = usePlay()
+  const tokens = useStatus()?.tokens
   const showSkeleton = useAfter(!loaded)
   const opener = useRef<HTMLElement | null>(null)
 
@@ -110,6 +112,8 @@ export function Produccion() {
 
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="outline" size="sm" aria-pressed={filter === 'todas'} onClick={() => void animateUpdate(() => setFilter('todas'))}>Todas</Button>
+        {!!tokens?.total && <span className="text-xs text-muted-foreground" title={Object.entries(tokens.porRol).map(([role, n]) => `${role}: ${millions(n)}`).join(' · ')}>
+          Tokens del proyecto: {millions(tokens.total)}</span>}
         <Input
           type="search"
           value={query}

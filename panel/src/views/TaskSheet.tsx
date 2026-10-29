@@ -11,7 +11,7 @@ import { useAfter } from '@/hooks/time'
 import { relativeTime } from '@/lib/time'
 import { Markdown } from '@/lib/markdown'
 import { cn } from '@/lib/utils'
-import { areaLabel, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Task, type TaskDetail } from '@/lib/tasks'
+import { areaLabel, millions, tokensLine, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Task, type TaskDetail } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { Glyph } from '@/visual/Glyph'
 import { glyphFor } from '@/visual/glyphs'
@@ -187,10 +187,13 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
                 <AgentAvatar id={r.id} provider={r.provider} model={r.metadata?.model} name={agentsByRunId.get(r.id)?.name} ordinal={agentsByRunId.get(r.id)?.ordinal} state={r.state !== 'running' ? 'idle' : waiting?.runId === r.id || r.metadata?.waiting ? 'waiting' : 'running'} size={32} />
                 <span>{agentsByRunId.get(r.id)?.name}</span>
                 <Glyph kind="role" value={r.role} />
+                {r.metadata?.model && <span className="text-xs text-muted-foreground">{r.metadata.model}</span>}
                 {r.summary && <Markdown clamp className="min-w-0 text-muted-foreground" text={r.summary} />}
+                {detail.tokens?.filter((s) => s.runId === r.id).map((s) => <span key={s.runId} className="ml-auto shrink-0 text-xs text-muted-foreground">{tokensLine(s)}</span>)}
               </li>
             ))}
           </ul>
+          {!!detail.tokens?.length && <p className="text-xs text-muted-foreground">Total de la tarea: {millions(detail.tokens.reduce((n, s) => n + s.amount, 0))} de tokens</p>}
         </section>
       )}
       <Attribution task={detail.task} />

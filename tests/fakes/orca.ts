@@ -110,7 +110,7 @@ if (process.env.FAKE_ORCA_HANG === '1') {
   else {
     const text=value('--text');
     const opencode=/^opencode run --auto --model \S+ --title nomos-[0-9a-f]{8} Lee el archivo \.nomos-brief\.md de esta carpeta y ejecuta lo que dice\.$/.test(text);
-    const launch=opencode||text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions$/.test(text);
+    const launch=opencode||text==='codex --yolo --no-daemon'||/^claude --model (sonnet|opus|haiku) --dangerously-skip-permissions( --session-id [0-9a-f-]{36})?$/.test(text);
     if (state.realRepo && launch && !existsSync(join(state.treePath,'.nomos-brief.md'))) {
       fail('missing_brief');
     } else {

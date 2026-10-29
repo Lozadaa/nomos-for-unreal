@@ -33,7 +33,8 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
       events: eventsOf(db, 'taskId', task.id),
       artifacts: filtered(db, 'artifacts', {taskId: task.id}),
       testRuns: filtered(db, 'test_runs', {taskId: task.id}),
-      decision: task.decisionId ? read(db, 'decisions', task.decisionId) ?? null : null
+      decision: task.decisionId ? read(db, 'decisions', task.decisionId) ?? null : null,
+      tokens: db.prepare("select run_id runId,amount,note from spends where kind='tokens' and run_id in (select id from runs where task_id=?)").all(task.id)
     });
     return true;
   }

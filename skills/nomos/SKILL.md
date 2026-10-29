@@ -110,7 +110,15 @@ assets compartidos de Unreal (uasset y umap bajo Content, widgets, esqueletos)
 que nadie más debe editar a la vez. Crea primero la base y pasa su ID en `--depends`;
 las banderas se aplican antes de preparar, así el planificador nunca la ve a medias.
 Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config le da cupo.
-El modelo de workers y revisores Claude es `workerModel` (`sonnet` por defecto, `opus`, `haiku`).
+Modelo Claude por rol (`sonnet`, `opus` o `haiku`; el run lo guarda en `metadata.model`):
+
+| Rol (`models` en config.json) | Modelo por defecto | Quién |
+|---|---|---|
+| `implementacion` | `opus` (o `workerModel` si existe) | worker de cualquier área |
+| `revisor` | `sonnet` | revisión de código |
+| `qa` | `sonnet` | QA visual tras `ui.cycle` |
+| `integrador`, `animacion` | `sonnet` | integración y animación |
+
 Con dos tareas sobre el mismo asset, solo una arranca; la otra queda `preparada` con
 `waitReason` «Esperando reserva…» hasta que la primera termine: no la fuerces ni
 subas `attempt`. Cupos en `concurrency`; un Unreal pesado a la vez y RAM libre: [máquina](references/maquina.md). OpenCode es el
@@ -160,6 +168,9 @@ DONE él mismo ni fuerza retirar un worktree. «Ajusta esto» sobre una tarea `d
 anterior. `/nomos pausar|reanudar` (`nomos pausar --data .nomos`) frena o vuelve a
 permitir arranques nuevos; lo que ya integra o cierra termina. Ver [cierre](references/cierre.md).
 Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta `Build/Windows-actual/`, estámpalo con `nomos build stamp Build/Windows-actual` y, antes de decir «listo para probar», mira `nomos play --status`: `stale: true` (anterior a main) = fusiona y empaqueta otra vez ([build jugable](references/cierre.md#build-jugable)). Si `nomos status` dice «ejecuta nomos clean», hazlo ([disco](references/cierre.md#disco)).
+**Una sesión de director por hito; nunca más de 200 eventos del vigilante en la misma sesión.** Cuando la tarea de cierre del hito
+queda `done`, anuncia en una línea que terminas la sesión y que la siguiente arranca con `/nomos` y lee `.nomos/reanudacion.md`
+(Nomos lo reescribe al cerrar cada tarea y al parar; `nomos reanudacion --data .nomos` lo regenera): [reanudación](references/cierre.md#reanudacion).
 
 ## Solución de problemas (Troubleshooting)
 

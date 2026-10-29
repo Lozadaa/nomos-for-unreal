@@ -9,6 +9,8 @@ import { streamEvents } from "./sse.ts";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { queueGraph } from "./graph.ts";
+import { tokensByRole } from "./transcript.ts";
+import { writeResume } from "./resume.ts";
 import { openDb } from "./db.ts";
 import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
 import { repairArtifactPaths } from "./repair-paths.ts";
@@ -80,7 +82,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
       }
-      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), disk: diskOf(dataDir) });
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), disk: diskOf(dataDir), tokens: tokensByRole(db) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);
@@ -182,6 +184,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
     clearInterval(typing);
     try { unregister(opts.dataDir); } catch { /* registro ilegible: caduca solo por pid */ }
     runner!();await runner!.drained;
+    try { writeResume(db, opts.dataDir, 'parado'); } catch { /* sin reanudación la parada sigue */ }
     db.close();
     if (readServiceInfo(opts.dataDir)?.token === token) rmSync(file, { force: true });
   });

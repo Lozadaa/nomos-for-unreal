@@ -7,6 +7,7 @@ import type { Run } from '../model.ts';
 import { updateRun } from '../repo/worker.ts';
 import { appendEvent } from '../store.ts';
 import { launchCommand, followUp } from './worker-launch.ts';
+import { transcriptDir } from '../transcript.ts';
 
 /** `agent_prompt_blocked` trae el id para reintentar la misma petición. */
 export const blockedRequest = (error: unknown): string | undefined =>
@@ -14,7 +15,7 @@ export const blockedRequest = (error: unknown): string | undefined =>
 
 /** La conversación más reciente de Claude Code en ese árbol (`~/.claude/projects/<ruta codificada>/<sesión>.jsonl`). */
 export function claudeSession(treePath: string, home = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude')): string | undefined {
-  const dir = join(home, 'projects', treePath.replace(/[^a-zA-Z0-9]/g, '-'));
+  const dir = transcriptDir(treePath, home);
   if (!existsSync(dir)) return undefined;
   return readdirSync(dir).filter(f => f.endsWith('.jsonl')).map(f => ({f, t: statSync(join(dir, f)).mtimeMs}))
     .sort((a, b) => b.t - a.t)[0]?.f.replace(/\.jsonl$/, '');

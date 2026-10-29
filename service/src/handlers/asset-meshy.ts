@@ -18,7 +18,7 @@ const client = (deps: MeshyDeps) => deps.meshy?.() ?? createMeshy();
 const tenMinutes = 10 * 60_000;
 
 /** Presupuesto de la tarea si lo tiene; si no, el del workspace. Sin ninguno, uno con 0 créditos: gastar exige Decisión. */
-function budgetFor(db: DatabaseSync, taskId: string): Budget {
+export function budgetFor(db: DatabaseSync, taskId: string): Budget {
   const task = requireTask(db, taskId);
   if (task.budgetId) return read<Budget>(db, 'budgets', task.budgetId) ?? (() => { throw new Error('unknown_budget'); })();
   const own = filtered<Budget>(db, 'budgets', {scope: 'task', scopeId: taskId})[0];

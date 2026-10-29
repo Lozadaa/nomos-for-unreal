@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import type { WorkerContext } from '../runner.ts';
 import type { Run } from '../model.ts';
 import { runTree, updateRun, queuePoll } from '../repo/worker.ts';
@@ -56,7 +57,8 @@ export async function relayStep(ctx: WorkerContext, run: Run): Promise<boolean> 
   if (!status.clean) await git.commitAll(tree.path, `${relayMessage} (Nomos)`);
   const head = await git.head(tree.path), subject = (await git.log(tree.path, tree.baseCommit).catch(() => [])).find(c => c.sha === head)?.subject ?? '';
   continuationBrief(tree.path, run, head, subject);
-  const model = run.metadata.model, command = launchCommand(run.provider, model, `nomos-${run.taskId.slice(0, 8)}`);
+  const model = run.metadata.model, sessionId = run.provider === 'claude' ? randomUUID() : undefined;
+  const command = launchCommand(run.provider, model, `nomos-${run.taskId.slice(0, 8)}`, sessionId);
   if (!orca.terminalCreate) throw new Error('orca: no puede abrir un terminal nuevo para el relevo');
   const handle = await orca.terminalCreate(tree.path, `nomos-${run.taskId.slice(0, 8)}`, run.provider === 'opencode' ? command : `${command} "${briefLine}"`);
   const next = transaction(db, () => {
@@ -65,7 +67,7 @@ export async function relayStep(ctx: WorkerContext, run: Run): Promise<boolean> 
     const max = maxWorkerMinutes(readConfig(ctx.dataDir));
     const fresh = startRun(db, {taskId: run.taskId, role: run.role, provider: run.provider, sessionRef: handle, attempt: run.attempt, skills: run.skills,
       model: run.model, metadata: {worktreeId: tree.id, relayOf: run.id, phase: 'running', pollGeneration: 0, correctionCount: run.metadata.correctionCount ?? 0,
-        deadlineAt: new Date(Date.now() + max * 60_000).toISOString(), ...(model ? {model} : {})}});
+        deadlineAt: new Date(Date.now() + max * 60_000).toISOString(), ...(model ? {model} : {}), ...(sessionId ? {sessionId} : {})}});
     acquire(db, fresh.id, run.taskId, requireTask(db, run.taskId).leases);
     updateRun(db, run.id, {relayedTo: fresh.id});
     appendEvent(db, 'worker.relayed', null, {taskId: run.taskId, oldRun: run.id, newRun: fresh.id});

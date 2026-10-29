@@ -8,8 +8,10 @@ const models=['sonnet','opus','haiku'];
 export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,number>>; defaultProvider?: WorkerProvider;
   /** Hito 7: fracción de píxeles distintos que tolera la regresión visual (2 % por defecto). */
   visualTolerance?: number; limits?: Partial<Limits>;
-  /** Modelo de los workers y revisores Claude (`claude --model …`); sonnet por defecto. */
+  /** Modelo Claude de implementación cuando `models` no lo fija (compatibilidad). */
   workerModel?: WorkerModel;
+  /** Hito 24: un modelo Claude por rol; opus implementa y sonnet hace el resto por defecto. */
+  models?: Partial<Record<ModelRole,WorkerModel>>;
   /** Hito 12: modelo de OpenCode, siempre explícito para no heredar el caro del usuario; gratuito por defecto. */
   opencodeModel?: string;
   /** Hito 16: minutos que una run en marcha aguanta sin respuesta de Orca antes de marcarse failed (10 por defecto). */
@@ -26,7 +28,13 @@ export function concurrency(config: SchedulerConfig): Record<WorkerProvider,numb
     : {codex:config.concurrency.codex ?? 0,claude:config.concurrency.claude ?? 0,opencode:config.concurrency.opencode ?? 0};
 }
 export const visualTolerance = (config: SchedulerConfig) => config.visualTolerance ?? 0.02;
-export const workerModel = (config: SchedulerConfig): WorkerModel => config.workerModel ?? 'sonnet';
+export type ModelRole = 'implementacion' | 'revisor' | 'qa' | 'integrador' | 'animacion';
+const modelRoles=['implementacion','revisor','qa','integrador','animacion'];
+/** Hito 24: el rol de un worker (cualquier rol de juego es implementación; la QA visual es un revisor con capturas). */
+export function roleModel(config: SchedulerConfig, role: string, qa=false): WorkerModel {
+  const key=(qa ? 'qa' : modelRoles.includes(role) ? role : 'implementacion') as ModelRole;
+  return config.models?.[key] ?? (key==='implementacion' ? config.workerModel ?? 'opus' : 'sonnet');
+}
 /** Solo modelos de OpenCode Zen/Go, sin espacios ni comillas: viajan en la orden del terminal. */
 export const isOpencodeModel = (v: unknown) => typeof v==='string' && /^opencode(-go)?\/[\w.-]+$/.test(v);
 export const opencodeModel = (config: SchedulerConfig): string => config.opencodeModel ?? 'opencode/beam-free';
@@ -52,6 +60,8 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(config.defaultProvider!==undefined && !['codex','claude','opencode'].includes(config.defaultProvider)) throw new Error();
     if(config.visualTolerance!==undefined && (typeof config.visualTolerance!=='number' || !(config.visualTolerance>=0 && config.visualTolerance<=1))) throw new Error();
     if(config.workerModel!==undefined && !models.includes(config.workerModel)) throw new Error();
+    if(config.models!==undefined && (!config.models || typeof config.models!=='object' || Array.isArray(config.models)
+      || Object.entries(config.models).some(([k,v])=>!modelRoles.includes(k) || !models.includes(v as string)))) throw new Error();
     if(config.opencodeModel!==undefined && !isOpencodeModel(config.opencodeModel)) throw new Error();
     if(config.limits!==undefined && (!config.limits || typeof config.limits!=='object' || Array.isArray(config.limits)
       || Object.entries(config.limits).some(([k,v])=>k!=='corrections' || !count(v)))) throw new Error();

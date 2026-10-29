@@ -115,6 +115,14 @@ Regla del usuario: «No dejes históricos de paquete anda limpiando». Solo se c
   ya no existe (10 min vivos) o está en Temp sin proyecto registrado (30 min). Nunca toca un
   servicio con datos fuera de Temp, como los de los juegos.
 
+## Reanudación
+
+`.nomos/reanudacion.md` (≤ 60 líneas, en tablas) lo escribe Nomos desde la base al cerrar cada tarea
+(`finalize.run`), al parar el servicio y con `nomos reanudacion --data .nomos`: estado y versión del servicio,
+tareas abiertas por estado con su espera, Decisiones abiertas, holds, lecciones y la orden exacta de `nomos vigila`.
+Una sesión de director por hito y nunca más de 200 eventos del vigilante en la misma sesión: al cerrar el hito el
+director lo anuncia en una línea y termina; la sesión siguiente arranca con `/nomos` y lee ese archivo. No lo edites a mano.
+
 ## Pausa
 
 `nomos pausar` hace que el planificador no encole arranques: las tareas quedan

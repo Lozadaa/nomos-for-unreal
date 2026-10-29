@@ -27,12 +27,12 @@ test('revisor Claude de Codex mantiene identidad independiente, espera permiso y
   assert.equal(started.payload.provider,'claude');assert.equal(started.payload.same_provider,false);
   assert.equal(listEvents(f.db,0).find(e=>e.type==='review.finished')?.payload.provider,'claude');
 });
-test('el revisor Claude arranca con el workerModel configurado y lo deja en su run',async t=>{
+test('el revisor Claude arranca con models.revisor (no con workerModel) y lo deja en su run',async t=>{
   const f=await reviewFixture(t);claude(f);
-  writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":2,"claude":1},"workerModel":"opus"}');
+  writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":2,"claude":1},"workerModel":"haiku","models":{"revisor":"opus"}}');
   await f.startReview();
   assert.equal(f.reviewer().provider,'claude');assert.equal(f.reviewer().metadata.model,'opus');
-  assert.ok(f.state().tail.includes('claude --model opus --dangerously-skip-permissions'));
+  assert.ok(f.state().tail.includes(`claude --model opus --dangerously-skip-permissions --session-id ${f.reviewer().metadata.sessionId}`));
   assert.equal(f.state().tail.some((line:string)=>line.includes('--model sonnet')),false);
 });
 test('preparación reutilizable recalcula proveedor sin perder run, command ni FIFO',async t=>{

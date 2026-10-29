@@ -50,6 +50,8 @@ test('cierre completo: preserva y verifica, cierra los terminales, retira los wo
     assert.equal(result.closed, true);
     const task = getTask(f.db, a.task.id)!;
     assert.equal(task.state, 'done');
+    // hito 24: el cierre deja la reanudación al día (la tarea ya cuenta como terminada)
+    assert.match(readFileSync(join(f.dataDir, 'reanudacion.md'), 'utf8'), /0 abiertas, 1 terminadas/);
     assert.equal(task.archivePath, `archive/${a.task.id}`, 'relativo a la carpeta de datos');
     const dir = taskArchive(f.dataDir, task)!;
     assert.deepEqual(Object.keys(task.attribution).sort(), ['integro', 'verifico']);
