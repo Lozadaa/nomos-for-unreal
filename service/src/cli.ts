@@ -16,7 +16,7 @@ import { buildCli } from './build-info.ts';
 import { cleanCli } from './clean.ts';
 import { autostartCli } from './autostart.ts';
 import { alive, killTree, listServers } from './orphans.ts';
-import { doctor, renderDoctor } from './doctor.ts';
+import { doctor, necessary, optional, renderDoctor, renderRequirements } from './doctor.ts';
 import { dataDirFor, dbFile, legacyEnv } from './legacy.ts';
 import { writeResume } from './resume.ts';
 
@@ -60,9 +60,9 @@ async function main() {
     mkdirSync(dataDir, { recursive: true });
     const db = openDb(dbFile(dataDir));
     try {
-      const rows = await doctor(dataDir, db);
-      console.log(renderDoctor(rows));
-      if (rows.some(row => row.state === "falla")) process.exitCode = 1;
+      const [needed, extra, rows] = await Promise.all([necessary(dataDir), optional(dataDir), doctor(dataDir, db)]);
+      console.log([renderRequirements("Necesario", needed), renderRequirements("Opcional", extra), renderDoctor(rows)].join("\n\n"));
+      if (rows.some(row => row.state === "falla") || needed.some(r => !r.present)) process.exitCode = 1;
     } finally { db.close(); }
     return;
   }
@@ -83,6 +83,9 @@ async function main() {
   if (command === "start") {
     let info = readServiceInfo(dataDir); const active = info ? await isAlive(info) : false;
     if (!active) {
+      // hito 30: sin lo necesario no arranca; lo opcional solo lo dice doctor
+      const missing = (await necessary(dataDir)).filter(r => !r.present);
+      if (missing.length) throw new Error(`Falta lo necesario para Nomos: ${missing.map(r => `${r.name} (${r.lost})`).join('; ')}. Detalle: nomos doctor`);
       const child = spawn(process.execPath, [join(import.meta.dirname, "server.ts"), "--serve", "--data", dataDir, "--port", String(port),
         ...(values["new-token"] ? ["--new-token"] : [])],
         { detached: true, stdio: "ignore", windowsHide: true });

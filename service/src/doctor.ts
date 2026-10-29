@@ -8,7 +8,8 @@ import { createMeshy } from './adapters/meshy.ts';
 import { createUnrealCmd, defaultUnrealCmd } from './adapters/unreal-cmd.ts';
 import { detectCapabilities } from './repo/capabilities.ts';
 import { ffmpegVersion, findFfmpeg, type Ffmpeg } from './adapters/ffmpeg.ts';
-import { readConfig } from './config.ts';
+import { defaultMemoryCommand, readConfig } from './config.ts';
+import { assetConfig } from './catalog/paths.ts';
 import { launcherMode } from './adapters/process-terminal.ts';
 import { capabilityList, configFs, type CheckResult } from './capability-checks.ts';
 import { readServiceInfo, isAlive } from './service-info.ts';
@@ -20,9 +21,9 @@ type Probe = {isRunning?(): Promise<boolean>; open?(): Promise<void>};
 export type CheckDeps = {orca?: Probe; meshy?: {balance(): Promise<number>}; env?: NodeJS.ProcessEnv;
   unrealPath?: string | null; blenderPath?: string | null; dataDir?: string; ffmpeg?: Ffmpeg | null};
 const run = promisify(execFile);
-const firstLine = async (bin: string, args: string[]) =>
-  (await run(bin, args, {timeout: 10_000, windowsHide: true})).stdout.trim().split(/\r?\n/)[0];
-const required = ['node', 'orca', 'unreal', 'git'];
+const firstLine = async (bin: string, args: string[], env?: NodeJS.ProcessEnv) =>
+  (await run(bin, args, {timeout: 10_000, windowsHide: true, env})).stdout.trim().split(/\r?\n/)[0];
+const required = ['node', 'unreal', 'git'];
 
 /** «Comprobar ahora» (hito 7): la comprobación real de una capacidad, no solo si el archivo existe. */
 export async function checkCapability(id: string, deps: CheckDeps): Promise<CheckResult> {
@@ -76,6 +77,43 @@ export async function checkCapability(id: string, deps: CheckDeps): Promise<Chec
     : {state: 'comprobado', detail: detected.detail.replace(/ detectado$/, ' presente')};
 }
 
+/** Hito 30: lo que Nomos no puede traer en el repo del juego (Necesario) y lo que solo suma (Opcional). */
+export type Requirement = {name: string; present: boolean; detail: string; lost: string};
+const tool = async (bin: string, env: NodeJS.ProcessEnv) => {
+  try { return await firstLine(bin, ['--version'], env); } catch { return null; }
+};
+export async function necessary(dataDir: string, deps: CheckDeps = {}): Promise<Requirement[]> {
+  const env = deps.env ?? process.env, node = Number(process.versions.node.split('.')[0]);
+  let unreal = deps.unrealPath;
+  if (unreal === undefined) try { unreal = assetConfig(dataDir).unrealPath; } catch { /* config ilegible: el valor por defecto */ }
+  unreal ||= defaultUnrealCmd;
+  const [git, claude] = await Promise.all([tool('git', env), tool('claude', env)]);
+  return [
+    {name: 'Git', present: !!git, detail: git ?? 'no está en el PATH', lost: 'sin worktrees, ramas ni integración'},
+    {name: 'Node ≥ 25', present: node >= 25, detail: `Node.js ${process.versions.node}`, lost: 'el servicio no arranca'},
+    {name: 'Claude Code', present: !!claude, detail: claude ?? '`claude` no está en el PATH', lost: 'sin director ni workers'},
+    {name: 'Unreal', present: existsSync(unreal), detail: unreal, lost: 'sin compilar, probar ni capturar el juego (unrealPath en .nomos/config.json)'},
+  ];
+}
+export async function optional(dataDir: string, deps: CheckDeps = {}): Promise<Requirement[]> {
+  const env = deps.env ?? process.env, graphify = findGraphify(env), brain = defaultMemoryCommand(env)?.at(-1);
+  let ffPath: unknown;
+  try { ffPath = (readConfig(dataDir) as Record<string, unknown>).ffmpegPath; } catch { /* config ilegible */ }
+  const ff = deps.ffmpeg !== undefined ? deps.ffmpeg : findFfmpeg(ffPath), orca = !!await (deps.orca ?? createOrca({env})).isRunning?.();
+  return [
+    {name: 'Orca', present: orca, detail: orca ? 'abierto' : 'cerrado o sin instalar', lost: 'los workers corren como procesos `claude` sin terminal visible'},
+    {name: 'graphify', present: !!graphify, detail: graphify ?? 'no encontrado', lost: 'sin grafo del código del juego'},
+    {name: 'ponytail', present: ponytailEnabled(env), detail: 'plugin de Claude Code', lost: 'los workers no aplican la escalera de diff mínimo'},
+    {name: 'Second Brain', present: !!brain, detail: brain ?? 'brain.py no encontrado', lost: 'memoria apagada: el cierre no guarda lecciones'},
+    {name: 'ffmpeg', present: !!ff, detail: ff?.bin ?? 'no encontrado', lost: 'los vídeos de animación salen como zip de fotogramas'},
+  ];
+}
+export function renderRequirements(title: string, rows: Requirement[]): string {
+  const width = Math.max(title.length, ...rows.map(r => r.name.length));
+  return [`${title.padEnd(width)}  Estado    Detalle (si falta, qué se pierde)`,
+    ...rows.map(r => `${r.name.padEnd(width)}  ${(r.present ? 'presente' : 'ausente').padEnd(8)}  ${r.present ? r.detail : `${r.detail} · ${r.lost}`}`)].join('\n');
+}
+
 export type DoctorRow = {id: string; label: string; state: 'ok' | 'aviso' | 'falla'; detail: string};
 /** `nomos doctor` y `GET /doctor`: capacidades, Orca en vivo, servicio (sin el token) y los dos carriles con su latido. */
 export async function doctor(dataDir: string, db: DatabaseSync, deps: CheckDeps = {}, now = Date.now()): Promise<DoctorRow[]> {
@@ -83,7 +121,7 @@ export async function doctor(dataDir: string, db: DatabaseSync, deps: CheckDeps 
     state: c.state === 'roto' ? 'falla' : c.state === 'ausente' ? required.includes(c.id) ? 'falla' : 'aviso' : 'ok'}));
   const orca = rows.find(r => r.id === 'orca'), orcaUp = orca?.state !== 'falla' && !!await (deps.orca ?? createOrca()).isRunning?.();
   if (orca && orca.state !== 'falla') Object.assign(orca, orcaUp
-    ? {state: 'ok', detail: 'Orca abierto'} : {state: 'falla', detail: 'Orca no está abierto: ábrelo o usa «Abrir Orca» en Capacidades'});
+    ? {state: 'ok', detail: 'Orca abierto'} : {state: 'aviso', detail: 'Orca no está abierto: los workers van como procesos (ábrelo o usa «Abrir Orca» en Capacidades)'});
   // hito 30: sin Orca, los workers son procesos `claude` hijos
   let mode = 'auto';
   try { mode = launcherMode(readConfig(dataDir)); } catch { /* config inválida: la fila de configuración lo dice */ }
@@ -93,7 +131,7 @@ export async function doctor(dataDir: string, db: DatabaseSync, deps: CheckDeps 
   const env = deps.env ?? process.env, graphify = findGraphify(env);
   rows.push({id: 'graphify', label: 'graphify', ...!hasCode(dirname(dataDir)) ? {state: 'ok' as const, detail: 'sin código C++, apagado (solo indexa código; no ve Blueprints ni mapas)'}
     : graphify ? {state: 'ok' as const, detail: graphify}
-    : {state: 'falla' as const, detail: 'graphify no encontrado (PATH o ~/.local/bin): instala el CLI de graphify'}});
+    : {state: 'aviso' as const, detail: 'graphify no encontrado (PATH o ~/.local/bin): sin grafo del código'}});
   rows.push({id: 'ponytail', label: 'ponytail', ...ponytailEnabled(env) ? {state: 'ok' as const, detail: 'Plugin activo en ~/.claude/settings.json'}
     : {state: 'aviso' as const, detail: 'Falta "ponytail@ponytail": true en enabledPlugins de ~/.claude/settings.json'}});
   const info = readServiceInfo(dataDir);

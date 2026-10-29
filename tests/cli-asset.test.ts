@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { TestContext } from 'node:test';
 import { cli, cliFixture, api, until } from './cli-helpers.ts';
@@ -11,6 +11,8 @@ async function service(t: TestContext) {
   writeFileSync(join(dataDir, 'config.json'), JSON.stringify({projectsDir: join(dataDir, 'P'), vaultDir: join(dataDir, 'V'),
     megascansDir: join(dataDir, 'M'), fabCacheDirs: [], listingsDb: join(dataDir, 'none.db'), unrealPath: join(dataDir, 'UE', 'UnrealEditor-Cmd.exe'),
     launcherLogPath: join(dataDir, 'launcher.log')}));
+  // hito 30: start exige un editor de Unreal; el de la prueba es un archivo vacío
+  mkdirSync(join(dataDir, 'UE')); writeFileSync(join(dataDir, 'UE', 'UnrealEditor-Cmd.exe'), '');
   const started = cli(dataDir, 'start', '--port', String(port), '--no-open');
   assert.equal(started.status, 0, started.stderr);
   return dataDir;

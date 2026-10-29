@@ -28,14 +28,14 @@ const game = (t: { after(fn: () => unknown): void }, config?: object, code = tru
   return {root, dataDir};
 };
 
-test('doctor: graphify imprescindible (PATH o ~/.local/bin) y ponytail como aviso', async t => {
+test('doctor: graphify (PATH o ~/.local/bin) y ponytail como aviso (hito 30: graphify es opcional)', async t => {
   const {root, dataDir} = game(t), bin = join(root, 'bin'), home = join(root, 'home');
   mkdirSync(bin); fakeGraphify(bin); mkdirSync(join(home, '.claude'), {recursive: true});
   const db = openDb(join(dataDir, 'nomos.db'));
   try {
     const row = async (id: string, env: NodeJS.ProcessEnv) => (await doctor(dataDir, db, {env, orca: {isRunning: async () => true}})).find(r => r.id === id)!;
     assert.equal((await row('graphify', {PATH: bin, USERPROFILE: home})).state, 'ok');
-    assert.equal((await row('graphify', {PATH: '', USERPROFILE: home})).state, 'falla');
+    assert.equal((await row('graphify', {PATH: '', USERPROFILE: home})).state, 'aviso');
     mkdirSync(join(home, '.local', 'bin'), {recursive: true}); fakeGraphify(join(home, '.local', 'bin'));
     assert.equal((await row('graphify', {PATH: '', USERPROFILE: home})).state, 'ok');
     assert.equal((await row('ponytail', {USERPROFILE: home})).state, 'aviso');

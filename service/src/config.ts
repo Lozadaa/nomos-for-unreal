@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 export type WorkerProvider = 'codex' | 'claude' | 'opencode';
 export type Limits = {corrections: number};
@@ -49,6 +50,14 @@ export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.cre
 /** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
 export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
 export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
+/** Hito 30: brain.py de Second Brain en `SECOND_BRAIN_ROOT` o en `~/Documents/SecondBrain`; sin él, null y la memoria queda apagada. */
+export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): string[] | null {
+  const home = env.USERPROFILE || env.HOME || homedir();
+  const brain = [env.SECOND_BRAIN_ROOT, join(home, 'Documents', 'SecondBrain')].filter(Boolean)
+    .map(root => join(root!, '.system', 'brain.py')).find(file => existsSync(file));
+  if (!brain) return null;
+  return [existsSync('C:/Python314/python.exe') ? 'C:/Python314/python.exe' : process.platform === 'win32' ? 'python' : 'python3', '-X', 'utf8', brain];
+}
 const count = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
 export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?: unknown} {
   const file=join(dataDir,'config.json');
