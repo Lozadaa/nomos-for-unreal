@@ -17,8 +17,8 @@ Los proveedores reconocidos son `codex`, `claude` y `opencode`. OpenCode solo co
 la tarea lo pide (`--provider opencode`) y tiene cupo; tareas sencillas sin Unreal, revisor
 siempre Claude y modelo barato (reglas en la referencia OpenCode de la skill).
 CLI y HTTP aceptan los tres proveedores y conservan la clave por tarea e intento.
-Claude usa `claude --model <workerModel> --dangerously-skip-permissions` (`sonnet` por defecto;
-`opus` o `haiku` en la config; el revisor usa el mismo y el run lo guarda en `metadata.model`); el servicio espera
+Claude usa `claude --model <modelo del rol> --dangerously-skip-permissions` (`models` en la config: opus implementa,
+sonnet revisa, QA e integra; el run lo guarda en `metadata.model`); el servicio espera
 su marcador de readiness antes de entregarle el brief. Sus permisos «Do you want to»,
 «Allow» o «(y/n)» generan `worker.waiting` con la línea original: el director evalúa
 la pregunta y el alcance antes de responder. El servicio no responde automáticamente.

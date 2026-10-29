@@ -110,7 +110,15 @@ assets compartidos de Unreal (uasset y umap bajo Content, widgets, esqueletos)
 que nadie más debe editar a la vez. Crea primero la base y pasa su ID en `--depends`;
 las banderas se aplican antes de preparar, así el planificador nunca la ve a medias.
 Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config le da cupo.
-El modelo de workers y revisores Claude es `workerModel` (`sonnet` por defecto, `opus`, `haiku`).
+Modelo Claude por rol (`sonnet`, `opus` o `haiku`; el run lo guarda en `metadata.model`):
+
+| Rol (`models` en config.json) | Modelo por defecto | Quién |
+|---|---|---|
+| `implementacion` | `opus` (o `workerModel` si existe) | worker de cualquier área |
+| `revisor` | `sonnet` | revisión de código |
+| `qa` | `sonnet` | QA visual tras `ui.cycle` |
+| `integrador`, `animacion` | `sonnet` | integración y animación |
+
 Con dos tareas sobre el mismo asset, solo una arranca; la otra queda `preparada` con
 `waitReason` «Esperando reserva…» hasta que la primera termine: no la fuerces ni
 subas `attempt`. Cupos en `concurrency`; un Unreal pesado a la vez y RAM libre: [máquina](references/maquina.md). OpenCode es el

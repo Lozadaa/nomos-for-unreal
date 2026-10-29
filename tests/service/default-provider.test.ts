@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { concurrency, readConfig, workerModel, opencodeModel } from '../../service/src/config.ts';
+import { concurrency, readConfig, roleModel, opencodeModel } from '../../service/src/config.ts';
+import { launchCommand } from '../../service/src/handlers/worker-launch.ts';
 import { chooseProvider } from '../../service/src/scheduler-provider.ts';
 import { removeDir } from '../remove-dir.ts';
 
@@ -25,14 +26,26 @@ test('readConfig valida defaultProvider',t=>{
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"codex"}');assert.equal(readConfig(dir).defaultProvider,'codex');
   writeFileSync(join(dir,'config.json'),'{"defaultProvider":"otro"}');assert.throws(()=>readConfig(dir),/invalid_worker_config/);
 });
-test('readConfig valida workerModel; sonnet por defecto',t=>{
+test('readConfig valida workerModel y models; un modelo por rol',t=>{
   const dir=mkdtempSync(join(tmpdir(),'nomos-model-'));t.after(()=>removeDir(dir));
-  assert.equal(workerModel(readConfig(dir)),'sonnet');
+  const cmd=(role:string,qa=false)=>launchCommand('claude',roleModel(readConfig(dir),role,qa));
+  assert.equal(cmd('implementacion'),'claude --model opus --dangerously-skip-permissions');
+  assert.equal(cmd('gameplay'),'claude --model opus --dangerously-skip-permissions','un rol de juego es implementación');
+  for(const role of ['revisor','integrador','animacion']) assert.equal(roleModel({},role),'sonnet',role);
+  assert.equal(cmd('revisor',true),'claude --model sonnet --dangerously-skip-permissions');
   for(const model of ['sonnet','opus','haiku']) {
-    writeFileSync(join(dir,'config.json'),JSON.stringify({workerModel:model}));assert.equal(workerModel(readConfig(dir)),model);
+    writeFileSync(join(dir,'config.json'),JSON.stringify({workerModel:model}));
+    assert.equal(roleModel(readConfig(dir),'implementacion'),model);assert.equal(roleModel(readConfig(dir),'revisor'),'sonnet');
   }
+  writeFileSync(join(dir,'config.json'),JSON.stringify({workerModel:'haiku',models:{implementacion:'sonnet',revisor:'opus',qa:'haiku'}}));
+  assert.equal(cmd('implementacion'),'claude --model sonnet --dangerously-skip-permissions');
+  assert.equal(cmd('revisor'),'claude --model opus --dangerously-skip-permissions');
+  assert.equal(cmd('revisor',true),'claude --model haiku --dangerously-skip-permissions');
   for(const bad of ['"gpt"','""','1','null','["opus"]']) {
     writeFileSync(join(dir,'config.json'),`{"workerModel":${bad}}`);assert.throws(()=>readConfig(dir),/invalid_worker_config/,bad);
+  }
+  for(const bad of ['{"revisor":"gpt"}','{"otro":"opus"}','[]','"opus"']) {
+    writeFileSync(join(dir,'config.json'),`{"models":${bad}}`);assert.throws(()=>readConfig(dir),/invalid_worker_config/,bad);
   }
 });
 

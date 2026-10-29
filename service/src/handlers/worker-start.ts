@@ -15,7 +15,7 @@ import { requireGameProject } from '../project-root.ts';
 import { acquire,release } from '../leases.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
-import { readConfig, workerModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
+import { readConfig, roleModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
 import { launchPlan, briefLine } from './worker-launch.ts';
 import { skillsForRole } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
@@ -36,7 +36,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     || payload.attempt!==undefined && (!Number.isSafeInteger(payload.attempt)||payload.attempt<1)) throw new Error('invalid_worker_payload');
   if (!task.title.trim() || !task.spec.trim() || !task.acceptance.length
     || !task.acceptance.every(s=>typeof s==='string'&&s.trim())) throw new Error('invalid_worker_spec');
-  const config=readConfig(ctx.dataDir),model=payload.provider==='opencode' ? opencodeModel(config) : workerModel(config);
+  const config=readConfig(ctx.dataDir),model=payload.provider==='opencode' ? opencodeModel(config) : roleModel(config,payload.role,!!payload.qa);
   const history=filtered<Run>(db,'runs',{taskId:task.id});
   const reusable=history.find(r=>r.state==='running'&&r.provider===payload.provider&&r.attempt===(payload.attempt ?? 1)
     &&r.metadata.startCommandId===cmd.id&&r.metadata.phase==='preparing'

@@ -55,6 +55,7 @@ Abre Claude Code en la carpeta del juego (la que tiene el `.uproject`) y escribe
 {
   "concurrency": {"claude": 2, "codex": 0},
   "defaultProvider": "claude",
+  "models": {"implementacion": "opus", "revisor": "sonnet", "qa": "sonnet", "integrador": "sonnet", "animacion": "sonnet"},
   "targetBranch": "master",
   "limits": {"corrections": 3},
   "visualTolerance": 0.02,
@@ -62,7 +63,16 @@ Abre Claude Code en la carpeta del juego (la que tiene el `.uproject`) y escribe
 }
 ```
 
-Codex está **apagado por defecto**; para usarlo hay que darle cupo. `visualTolerance` es la fracción de píxeles que puede cambiar una captura frente a su línea base (`<juego>/docs/baseline/`). `walkthrough` guía el recorrido del ejecutable empaquetado; `trace: true` graba una traza de Unreal Insights (unos 0,9 GB por 30 s).
+Codex está **apagado por defecto**; para usarlo hay que darle cupo. Cada rol de Claude usa su modelo:
+
+| Rol (`models` en config.json) | Modelo por defecto | Quién |
+|---|---|---|
+| `implementacion` | `opus` (o `workerModel` si existe) | worker de cualquier área |
+| `revisor` | `sonnet` | revisión de código |
+| `qa` | `sonnet` | QA visual tras `ui.cycle` |
+| `integrador`, `animacion` | `sonnet` | integración y animación |
+
+ `visualTolerance` es la fracción de píxeles que puede cambiar una captura frente a su línea base (`<juego>/docs/baseline/`). `walkthrough` guía el recorrido del ejecutable empaquetado; `trace: true` graba una traza de Unreal Insights (unos 0,9 GB por 30 s).
 
 Las rutas que aparecen en `docs/` con el nombre viejo, como `C:/Users/richa/orca/workspaces/kratos/...` o el proyecto de pruebas `KratosFabTest`, son carpetas locales reales de este equipo y lo conservan; también el contenido que Nomos ya creó dentro de los juegos (`/Game/Kratos/...`, etiquetas `KratosAnim`, `KratosCamera`).
 

@@ -187,6 +187,7 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
                 <AgentAvatar id={r.id} provider={r.provider} model={r.metadata?.model} name={agentsByRunId.get(r.id)?.name} ordinal={agentsByRunId.get(r.id)?.ordinal} state={r.state !== 'running' ? 'idle' : waiting?.runId === r.id || r.metadata?.waiting ? 'waiting' : 'running'} size={32} />
                 <span>{agentsByRunId.get(r.id)?.name}</span>
                 <Glyph kind="role" value={r.role} />
+                {r.metadata?.model && <span className="text-xs text-muted-foreground">{r.metadata.model}</span>}
                 {r.summary && <Markdown clamp className="min-w-0 text-muted-foreground" text={r.summary} />}
               </li>
             ))}

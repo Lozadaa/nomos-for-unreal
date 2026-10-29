@@ -19,7 +19,7 @@ test('Claude arranca con fake+Git, atribuye proveedor y skills esperadas, permis
   assert.deepEqual(run.skills,['tdd','qa',...skillsForRole('implementacion','qa')]);
   const brief=readFileSync(join(f.tree().path,'.nomos-brief.md'),'utf8');
   assert.match(brief,/Carga las skills/);assert.match(brief,/tdd, qa/);assert.match(brief,/primera línea.*NOMOS_SKILLS/);
-  assert.deepEqual(f.state().tail.slice(0,2),['claude --model sonnet --dangerously-skip-permissions','bypass permissions on']);
+  assert.deepEqual(f.state().tail.slice(0,2),['claude --model opus --dangerously-skip-permissions','bypass permissions on']);
   const before=f.state().tail.length;
   await poll(f);assert.equal(f.run().metadata.waiting,true);
   assert.equal(f.run().metadata.question,'Do you want to allow this command? (y/n)');

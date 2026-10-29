@@ -64,7 +64,7 @@ test('relevo: pide el commit, espera, commitea lo que quede y sigue un worker nu
   const created = f.state().created as {handle: string; worktree: string; command: string}[];
   assert.equal(created.length, 1); assert.equal(next.sessionRef, created[0].handle);
   assert.equal(created[0].worktree, `path:${tree.path}`);
-  assert.match(created[0].command, /^claude --model sonnet --dangerously-skip-permissions "Lee el archivo \.nomos-brief\.md de esta carpeta y ejecuta lo que dice\."$/);
+  assert.match(created[0].command, /^claude --model opus --dangerously-skip-permissions "Lee el archivo \.nomos-brief\.md de esta carpeta y ejecuta lo que dice\."$/);
   const brief = readFileSync(join(tree.path, '.nomos-brief.md'), 'utf8');
   assert.match(brief, /Existe README/, 'el brief de la tarea sigue');
   assert.match(brief, /## Relevo por límite de tiempo/);
