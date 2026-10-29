@@ -9,7 +9,7 @@ export const linkWindowMs = 15 * 60_000;
 export type MessageState = 'recibido' | 'leido' | 'respondiendo' | 'respondido';
 export type MessageLink = {kind: 'task' | 'decision' | 'correction'; taskId: string; decisionId?: string; at: string};
 export type ChatMessage = {id: string; text: string; createdAt: string; state: MessageState; readAt: string | null; typingAt: string | null;
-  repliedAt: string | null; timedOut: boolean; replies: {text: string; at: string}[]; links: MessageLink[]};
+  repliedAt: string | null; timedOut: boolean; /** hito 27: «Ana (UI)» si lo envió un compañero del equipo */ from: string | null; replies: {text: string; at: string}[]; links: MessageLink[]};
 
 const linkTypes: Record<string, MessageLink['kind']> = {'task.created': 'task', 'decision.opened': 'decision', 'worker.message_sent': 'correction'};
 const replyTypes = ['message.replied', 'reply.published'];
@@ -45,7 +45,7 @@ export function linkedMessage(db: DatabaseSync, explicit: unknown, now = new Dat
 
 /** Los mensajes con su estado, sus respuestas (la primera corta y el cierre) y lo que se creó a partir de ellos. */
 export function listMessages(db: DatabaseSync, limit = 200): ChatMessage[] {
-  const rows = db.prepare(`select id,text,created_at,acked_at,typing_at,replied_at,timed_out_at from messages order by created_at desc limit ?`).all(limit).reverse();
+  const rows = db.prepare(`select id,text,origin,created_at,acked_at,typing_at,replied_at,timed_out_at from messages order by created_at desc limit ?`).all(limit).reverse();
   return rows.map(row => {
     const id = row.id as string;
     const events = db.prepare('select type,payload,created_at from events where message_id=? order by seq').all(id);
@@ -59,7 +59,9 @@ export function listMessages(db: DatabaseSync, limit = 200): ChatMessage[] {
     const lastOf = (types: string[]) => events.findLastIndex(e => types.includes(e.type as string));
     const typing = lastOf(['director.typing']) > lastOf([...replyTypes, 'director.typing_timeout']);
     const state: MessageState = typing ? 'respondiendo' : lastReply ? 'respondido' : row.acked_at ? 'leido' : 'recibido';
-    return {id, text: row.text as string, createdAt: row.created_at as string, state, readAt: row.acked_at as string | null, typingAt,
+    // hito 29 los firma «Nombre (frente): texto»; la firma va aparte para que el panel no diga «Tú»
+    const peer = row.origin === 'equipo' ? /^(.+? \([^)]*\)): ([\s\S]*)$/.exec(row.text as string) : null;
+    return {id, text: peer ? peer[2] : row.text as string, from: peer ? peer[1] : null, createdAt: row.created_at as string, state, readAt: row.acked_at as string | null, typingAt,
       repliedAt: lastReply, timedOut: !!row.timed_out_at, replies, links};
   });
 }

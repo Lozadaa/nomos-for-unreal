@@ -72,7 +72,9 @@ export async function directorCli(argv: string[]): Promise<boolean> {
       '4. Enemigos: uno solo.','5. Puntuación: sin tabla, solo el número.','',
       '## Hitos','',...Array.from({length:days},(_,i)=>`- Día ${i+1}: Cierre J${i+1}: build jugable aprobada por el usuario.`),''].join('\n'));
     const current=existsSync(config) ? JSON.parse(readFileSync(config,'utf8')) : {};
-    writeFileSync(config,JSON.stringify({...current,jam:{enabled:true,days,start}},null,2)+'\n');
+    writeFileSync(config,JSON.stringify({...current,jam:{enabled:true,days,start},
+      // hito 27: en jam el director es por evento (sesiones cortas al pasar algo)
+      director:{...current.director,mode:'evento'}},null,2)+'\n');
     console.log(file);return true;
   }
   if (!groups.includes(group)) return false;

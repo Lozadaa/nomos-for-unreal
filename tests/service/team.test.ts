@@ -8,6 +8,7 @@ import { identity, listPeers, myCard, publishCard, teamTick, type TeamTick } fro
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { teamFixture } from './team-fixture.ts';
 import { renderResume } from '../../service/src/resume.ts';
+import { listMessages } from '../../service/src/chat.ts';
 
 const fresh = (): TeamTick => ({pushedAt: 0, fetchedAt: 0, warned: false});
 
@@ -84,6 +85,8 @@ test('equipo: team ask viaja en mi tarjeta y llega al director del otro como men
     await teamTick(b.db, b.dataDir, b.dir, sb, Date.now() + 61_000);
     assert.deepEqual(b.db.prepare("select text,origin from messages").all().map(m => [m.text, m.origin]), [['Richard (combate): Falta el sonido del golpe', 'equipo']]);
     assert.equal(b.events('message.received').length, 1, 'una sola entrega aunque la tarjeta se vuelva a traer');
+    // hito 27: el panel firma el mensaje con quien lo manda, no «Tú»
+    assert.deepEqual([listMessages(b.db)[0].from, listMessages(b.db)[0].text], ['Richard (combate)', 'Falta el sonido del golpe']);
     assert.match(renderResume(b.db, b.dataDir, 'parado'), /## Equipo[\s\S]*\| Richard \| combate \| sí \| 0 \|/);
   } finally { f.close(); }
 });

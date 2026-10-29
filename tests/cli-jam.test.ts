@@ -21,6 +21,7 @@ test('nomos jam init escribe docs/plan-jam.md y config.jam; un segundo init no s
   const config = JSON.parse(readFileSync(join(dataDir, 'config.json'), 'utf8'));
   assert.equal(config.workerModel, 'sonnet', 'conserva la config');
   assert.deepEqual([config.jam.enabled, config.jam.days], [true, 3]);
+  assert.equal(config.director.mode, 'evento', 'hito 27: en jam el director es por evento');
   assert.match(config.jam.start, /^\d{4}-\d{2}-\d{2}$/);
   writeFileSync(join(game, 'docs', 'plan-jam.md'), 'editado');
   const again = cli(dataDir, 'jam', 'init', '--tema', 'Otro', '--dias', '2');

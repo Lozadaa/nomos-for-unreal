@@ -74,7 +74,7 @@ export function Chat() {
         )}
         {conversation.map((m) => (
           <Fragment key={m.id}>
-            <Bubble from="tu" text={m.text} at={m.createdAt} fresh={fresh(m.id)}><MessageStatus m={m} now={now} /></Bubble>
+            <Bubble from="tu" author={m.from} text={m.text} at={m.createdAt} fresh={fresh(m.id)}><MessageStatus m={m} now={now} /></Bubble>
             {/* en dos tiempos: el acuse corto, lo que se va creando y el cierre */}
             {m.replies.slice(0, 1).map((r) => <Bubble key="0" from="nomos" text={r.text} at={r.at} fresh={fresh(`${m.id}:0`)} taskTitle={taskTitle} />)}
             <CreatedCards links={m.links} tasks={tasks} />

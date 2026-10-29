@@ -13,6 +13,8 @@ import { agentName } from '@/visual/art/agentName'
 export interface ChatMessage {
   id: string; text: string; createdAt: string; state: 'recibido' | 'leido' | 'respondiendo' | 'respondido'
   readAt: string | null; typingAt: string | null; repliedAt: string | null; timedOut: boolean
+  /** Hito 27: «Ana (UI)» si lo envió un compañero del equipo; sin él, «Tú». */
+  from?: string | null
   replies: { text: string; at: string }[]
   links: { kind: 'task' | 'decision' | 'correction'; taskId: string; decisionId?: string; at: string }[]
 }
@@ -21,13 +23,13 @@ export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('es-ES', {
 /** Sin acuse en este tiempo, el panel lo dice en ámbar: nunca una frase tranquilizadora falsa. */
 export const unreadAfterMs = 60_000
 
-export function Bubble({ text, at, from, fresh, taskTitle, children }: {
-  text: string; at?: string; from: 'tu' | 'nomos'; fresh: boolean; taskTitle?: (id: string) => string | undefined; children?: React.ReactNode
+export function Bubble({ text, at, from, author, fresh, taskTitle, children }: {
+  text: string; at?: string; from: 'tu' | 'nomos'; author?: string | null; fresh: boolean; taskTitle?: (id: string) => string | undefined; children?: React.ReactNode
 }) {
   return (
     <li className={cn('flex min-w-0 flex-col gap-1', fresh && 'animate-in duration-(--k-dur-standard) ease-k fade-in slide-in-from-bottom-1 motion-reduce:animate-none', from === 'tu' ? 'items-end' : 'items-start')}>
       <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-        {from === 'nomos' ? <><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} /><span>{BRAND.short}</span></> : <span>Tú</span>}
+        {from === 'nomos' ? <><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} /><span>{BRAND.short}</span></> : <span>{author ?? 'Tú'}</span>}
         {at && <time dateTime={at} title={relativeTime(at)}>{relativeTime(at).replace(/^hace /, '')}</time>}
       </span>
       <Markdown clamp text={text} taskTitle={taskTitle} className={cn('max-w-[85%] min-w-0 rounded-lg border px-3 py-2 text-sm', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')} />
