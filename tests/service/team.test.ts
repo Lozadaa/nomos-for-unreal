@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { identity, listPeers, myCard, publishCard, teamTick, type TeamTick } from '../../service/src/team.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { teamFixture } from './team-fixture.ts';
+import { renderResume } from '../../service/src/resume.ts';
 
 const fresh = (): TeamTick => ({pushedAt: 0, fetchedAt: 0, warned: false});
 
@@ -70,5 +71,19 @@ test('equipo: el campo build de la tarjeta es la build estampada que el usuario 
     assert.equal(myCard(a.db, a.dataDir).build, null, 'sin aprobar no cuenta');
     appendEvent(a.db, 'approval.approved', null, {approvalId: 'x', taskId: 'y'});
     assert.equal(myCard(a.db, a.dataDir).build?.commit, f.git(a.dir, 'rev-parse', 'HEAD'));
+  } finally { f.close(); }
+});
+
+test('equipo: team ask viaja en mi tarjeta y llega al director del otro como mensaje firmado; status y reanudación traen la tabla', async () => {
+  const f = teamFixture();
+  try {
+    const a = f.clone('Richard', 'combate'), b = f.clone('Ana', 'audio'), sa = fresh(), sb = fresh();
+    appendEvent(a.db, 'team.ask', null, {to: 'Ana', title: 'Falta el sonido del golpe', text: 'Falta el sonido del golpe', at: new Date().toISOString()});
+    await teamTick(a.db, a.dataDir, a.dir, sa);
+    await teamTick(b.db, b.dataDir, b.dir, sb);
+    await teamTick(b.db, b.dataDir, b.dir, sb, Date.now() + 61_000);
+    assert.deepEqual(b.db.prepare("select text,origin from messages").all().map(m => [m.text, m.origin]), [['Richard (combate): Falta el sonido del golpe', 'equipo']]);
+    assert.equal(b.events('message.received').length, 1, 'una sola entrega aunque la tarjeta se vuelva a traer');
+    assert.match(renderResume(b.db, b.dataDir, 'parado'), /## Equipo[\s\S]*\| Richard \| combate \| sí \| 0 \|/);
   } finally { f.close(); }
 });

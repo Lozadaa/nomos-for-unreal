@@ -20,6 +20,7 @@ import { EmptyState } from '@/visual/art/EmptyState'
 import { LastBuildLine } from '@/shell/PlayButton'
 import { usePlay } from '@/shell/usePlay'
 import { useStatus } from '@/shell/useStatus'
+import { EquipoStrip } from './Equipo'
 
 type Filter = 'todas' | Stage
 
@@ -100,6 +101,8 @@ export function Produccion() {
       <Composer autoFocus={params.get('nueva') === '1'} isVisible={matches} onHidden={clearFilters} />
 
       <LastBuildLine {...play} />
+
+      <EquipoStrip />
 
       {loaded && <figure data-tour="mapa" data-tour-anchor="map" className="rounded-lg border border-subtle px-4 pb-3">
         <ProductionMap tasks={tasks} selected={filter === 'todas' ? undefined : filter}

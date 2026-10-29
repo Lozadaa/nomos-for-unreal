@@ -224,8 +224,7 @@ export const overlaps = (a: string, b: string) => { const x = norm(a), y = norm(
 export const leaf = (p: string) => p.replace(/\\/g, '/').split('/').filter(Boolean).at(-1)!.replace(/\.(umap|uasset)$/i, '');
 export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
 /** T3: el peer que reservó antes que yo (`since`) alguna de `paths`; con la misma fecha gana el id menor. */
-export function peerHolder(db: DatabaseSync, dataDir: string, paths: string[], since: string, now = Date.now()): {name: string; path: string; until: string} | null {
-  const me = identity(dataDir).id;
+export function peerHolder(db: DatabaseSync, me: string, paths: string[], since: string, now = Date.now()): {name: string; path: string; until: string} | null {
   for (const peer of listPeers(db, now)) for (const lease of peer.leases ?? []) {
     if (!(Date.parse(lease.until) > now)) continue;
     if (paths.some(p => overlaps(lease.path, p)) && (lease.at < since || lease.at === since && peer.id < me)) return {name: peer.name, path: lease.path, until: lease.until};
@@ -236,7 +235,13 @@ export function peerHolder(db: DatabaseSync, dataDir: string, paths: string[], s
 export async function peerLeaseWait(db: DatabaseSync, dataDir: string, projectDir: string, paths: string[], since: string) {
   if (!teamConfig(dataDir) || !paths.length) return null;
   await syncTeam(db, dataDir, projectDir, true).catch(() => { /* sin red: decide con lo último que se vio */ });
-  return peerHolder(db, dataDir, paths, since);
+  return peerHolder(db, identity(dataDir).id, paths, since);
+}
+export const holderReason = (h: {name: string; path: string; until: string}) => `${h.name} tiene reservado ${leaf(h.path)} hasta ${hhmm(h.until)}`;
+/** Para el planificador, sin red: con lo último que se vio, una reserva viva de un peer hace esperar sin intentar arrancar. */
+export function peerLeaseReason(db: DatabaseSync, paths: string[]): string | null {
+  const holder = paths.length ? peerHolder(db, '', paths, '￿') : null;
+  return holder ? holderReason(holder) : null;
 }
 /** Normaliza un título para compararlo: sin acentos, minúsculas, palabras de más de 2 letras. */
 const words = (title: string) => new Set(title.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2));

@@ -12,6 +12,7 @@ import { appendEvent } from './store.ts';
 import { isHeavy,machineReason } from './unreal-turn.ts';
 import { probeMachine,type Machine,type MachineProbe } from './machine.ts';
 import { taskCode } from './play.ts';
+import { peerLeaseReason } from './team.ts';
 
 export type PlanDecision = {taskId:string;action:'start'|'wait';reason:string;provider?:WorkerProvider;machine?:boolean};
 export function plan(db:DatabaseSync,config:SchedulerConfig,probe:MachineProbe=probeMachine): PlanDecision[] {
@@ -25,6 +26,9 @@ export function plan(db:DatabaseSync,config:SchedulerConfig,probe:MachineProbe=p
     if(reason) return wait(reason);
     const occupied=conflicts(task.leases,leases,task.id);
     if(occupied.length) return wait(leaseWaitReason(occupied));
+    // hito 29: la reserva viva de otra persona del equipo también hace esperar (lo último que se vio de la rama)
+    const peer=peerLeaseReason(db,task.leases);
+    if(peer) return wait(peer);
     const implementation=runs.filter(r=>r.taskId===task.id&&r.role!=='revisor').at(-1);
     const implementer=['codex','claude','opencode'].includes(implementation?.provider ?? '') ? implementation!.provider as WorkerProvider : undefined;
     const selected=chooseProvider(task.assigneeRole ?? 'implementacion',config,usage,implementer,

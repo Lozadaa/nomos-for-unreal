@@ -9,11 +9,12 @@ import { teamFixture } from './team-fixture.ts';
 import { requireTask, getTask, createTask } from '../../service/src/repo/tasks.ts';
 import { listLeases, acquire } from '../../service/src/leases.ts';
 import { startRun } from '../../service/src/repo/runs.ts';
-import { listDecisions } from '../../service/src/repo/decisions.ts';
+import { listDecisions, resolveDecision } from '../../service/src/repo/decisions.ts';
 import { listEvents } from '../../service/src/store.ts';
 import { createServer } from '../../service/src/server.ts';
 import { recordPeers, teamTick, hhmm, identity, type Card } from '../../service/src/team.ts';
 import { requestJson, token } from '../helpers.ts';
+import { plan } from '../../service/src/scheduler.ts';
 import { removeDir } from '../remove-dir.ts';
 
 const hour = 3_600_000;
@@ -88,14 +89,22 @@ test('tarea con título parecido a una abierta de un peer abre la Decisión «du
   const a = f.clone('Richard', 'combate');
   recordPeers(a.db, a.dataDir, [card({tasks: [{id: 'x', title: 'Barra de vida del jugador', state: 'implementando', area: 'ui'}]})]);
   const server = await serve(t, a.db, a.dataDir);
-  const created = await (await requestJson(server, 'POST', '/tasks', {title: 'Barra de vida jugador', area: 'ui', spec: '', acceptance: []})).json();
+  // como la CLI: crea y después prepara con la spec
+  const make = async (title: string, area: string) => {
+    const created = await (await requestJson(server, 'POST', '/tasks', {title, area, spec: '', acceptance: []})).json();
+    return {created, prepared: await (await requestJson(server, 'POST', `/tasks/${created.id}/spec`, {spec: 'Hacer', acceptance: ['Se ve'], scope: ['Content/UI'], area})).json()};
+  };
+  const {created, prepared} = await make('Barra de vida jugador', 'ui');
   assert.equal(created.owner, identity(a.dataDir).id);
   const [decision] = listDecisions(a.db, 'open');
   assert.equal(decision.reason, 'Ana ya tiene “Barra de vida del jugador”: ¿duplicar o pedírsela?');
   assert.deepEqual(decision.options.map(o => o.label), ['Duplicar', 'Pedírsela']);
-  assert.equal(created.decisionId, decision.id, 'no arranca hasta decidir');
-  const other = await (await requestJson(server, 'POST', '/tasks', {title: 'Sonido del golpe', area: 'audio', spec: '', acceptance: []})).json();
-  assert.equal(other.decisionId, null, 'un título distinto no pregunta');
+  assert.equal(prepared.decisionId, decision.id, 'no arranca hasta decidir');
+  assert.equal(resolveDecision(a.db, decision.id, 'duplicar', 'usuario').state, 'resolved', 'la Decisión no caduca al prepararla');
+  await requestJson(server, 'POST', `/tasks/${created.id}/spec`, {spec: 'Hacer más', acceptance: ['Se ve'], scope: ['Content/UI'], area: 'ui'});
+  assert.equal(listDecisions(a.db, 'open').length, 0, 'decidida, no se vuelve a preguntar');
+  const other = await make('Sonido del golpe', 'audio');
+  assert.equal(other.prepared.decisionId, null, 'un título distinto no pregunta');
 });
 
 test('una tarea ajena (otro dueño) no se mueve desde el panel ni la CLI', async t => {
@@ -108,4 +117,14 @@ test('una tarea ajena (otro dueño) no se mueve desde el panel ni la CLI', async
   assert.equal(denied.status, 409);
   assert.deepEqual(await denied.json(), {error: 'foreign_task'});
   assert.equal((await requestJson(server, 'POST', `/tasks/${mine.id}/priority`, {priority: 5})).status, 200);
+});
+
+test('el planificador no intenta arrancar mientras un peer tiene la reserva (sin runs fallidas en bucle)', async t => {
+  const f = teamWorker(t), until = Date.now() + hour;
+  f.db.prepare("update tasks set state='preparada' where id=?").run(f.task.id);
+  recordPeers(f.db, f.dataDir, [card({leases: [lease('Content/UI/WBP_HUD.uasset', Date.now() - 60_000, until)]})]);
+  const [decision] = plan(f.db, {});
+  assert.deepEqual([decision.action, decision.reason], ['wait', `Ana tiene reservado WBP_HUD hasta ${hhmm(new Date(until).toISOString())}`]);
+  recordPeers(f.db, f.dataDir, [card()]);
+  assert.equal(plan(f.db, {})[0].action, 'start', 'sin la reserva del peer, arranca');
 });

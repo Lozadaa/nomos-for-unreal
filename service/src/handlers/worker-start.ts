@@ -14,7 +14,7 @@ import { OrcaError } from '../adapters/orca.ts';
 import { dispatchGuard, dispatchBlocked, pauseForDecision } from './worker-decisions.ts';
 import { requireGameProject } from '../project-root.ts';
 import { acquire,release,listLeases } from '../leases.ts';
-import { hhmm, leaf, peerLeaseWait } from '../team.ts';
+import { holderReason, peerLeaseWait } from '../team.ts';
 import { appendEvent } from '../store.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
@@ -73,7 +73,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const mine=review ? [] : listLeases(db).filter(l=>l.runId===run.id);
   const peer=await peerLeaseWait(db,ctx.dataDir,projectDir,mine.map(l=>l.path),mine.map(l=>l.acquiredAt).sort()[0] ?? '');
   if(peer) {
-    const reason=`${peer.name} tiene reservado ${leaf(peer.path)} hasta ${hhmm(peer.until)}`;
+    const reason=holderReason(peer);
     workerFailure(db,{...payload,runId:run.id,conflicts:[]},'lease_conflict');
     db.prepare('update tasks set wait_reason=? where id=?').run(reason,task.id);
     appendEvent(db,'lease.conflict',null,{taskId:task.id,runId:run.id,peer:peer.name,path:peer.path,until:peer.until,reason});

@@ -10,8 +10,7 @@ import type { WorkerContext } from '../runner.ts';
 import { taskFailures } from '../failure-kind.ts';
 import { linkedMessage } from '../chat.ts';
 import { holdTask, withHold } from '../hold.ts';
-import { identity, similarPeerTask, teamConfig } from '../team.ts';
-import { openDecision } from '../repo/decisions.ts';
+import { identity, teamConfig } from '../team.ts';
 
 export async function tasks({db, req, res, url, dataDir}: Context): Promise<boolean> {
   const checks = /^\/tasks\/([^/]+)\/checks$/.exec(url.pathname);
@@ -77,7 +76,7 @@ export async function tasks({db, req, res, url, dataDir}: Context): Promise<bool
     || data.assigneeProvider!==undefined && !['codex','claude','opencode'].includes(data.assigneeProvider as string))
     throw new Error('invalid_worker_payload');
   if (data.priority !== undefined && !Number.isSafeInteger(data.priority)) throw new Error('invalid_priority');
-  // hito 29: en equipo la tarea lleva su dueño, y un título parecido a una abierta de un peer abre una Decisión
+  // hito 29: en equipo la tarea lleva su dueño (el título parecido a uno de un peer se pregunta al prepararla, en /spec)
   const team = dataDir ? teamConfig(dataDir) : null;
   const task = createTask(db, {
     title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance,
@@ -88,10 +87,6 @@ export async function tasks({db, req, res, url, dataDir}: Context): Promise<bool
     ...(data.priority === undefined ? {} : {priority: data.priority as number}),
     ...(team ? {owner: identity(dataDir!).id} : {})
   }, linkedMessage(db, data.messageId));
-  const twin = team ? similarPeerTask(db, task.title) : null;
-  if (twin) openDecision(db, {taskId: task.id, reason: `${twin.name} ya tiene “${twin.title}”: ¿duplicar o pedírsela?`, options: [
-    {id: 'duplicar', label: 'Duplicar', description: `Seguir con esta tarea aunque ${twin.name} tenga una parecida`},
-    {id: 'pedir', label: 'Pedírsela', description: `No arrancar esta; pedírsela a ${twin.name} con nomos team ask`}]});
-  json(res, 201, requireTask(db, task.id));
+  json(res, 201, task);
   return true;
 }
