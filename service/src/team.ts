@@ -25,7 +25,8 @@ export const HEARTBEAT_MS = 5 * 60_000, ABSENT_MS = 30 * 60_000;
 
 /** `config.json: team`; null si el equipo está apagado. */
 export function teamConfig(dataDir: string): TeamConfig | null {
-  const team = (readConfig(dataDir) as {team?: Partial<TeamConfig>}).team;
+  let team: Partial<TeamConfig> | undefined;
+  try { team = (readConfig(dataDir) as {team?: Partial<TeamConfig>}).team; } catch { return null; }
   if (!team?.enabled) return null;
   return {enabled: true, name: team.name ?? 'Yo', frente: team.frente ?? '', branch: team.branch ?? 'nomos/equipo', pullSeconds: team.pullSeconds ?? 60};
 }
@@ -207,6 +208,39 @@ export function syncTeam(db: DatabaseSync, dataDir: string, projectDir: string, 
   const next = chain.then(() => teamTick(db, dataDir, projectDir, tickState(dataDir), Date.now(), force));
   chain = next.catch(() => {});
   return next;
+}
+
+const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+/** Misma ruta, o una carpeta que contiene a la otra (una carpeta es una ruta reservable). */
+export const overlaps = (a: string, b: string) => { const x = norm(a), y = norm(b); return x === y || x.startsWith(y + '/') || y.startsWith(x + '/'); };
+/** «L_Arena» de `Content/Mapas/L_Arena.umap`. */
+export const leaf = (p: string) => p.replace(/\\/g, '/').split('/').filter(Boolean).at(-1)!.replace(/\.(umap|uasset)$/i, '');
+export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
+/** T3: el peer que reservó antes que yo (`since`) alguna de `paths`; con la misma fecha gana el id menor. */
+export function peerHolder(db: DatabaseSync, dataDir: string, paths: string[], since: string, now = Date.now()): {name: string; path: string; until: string} | null {
+  const me = identity(dataDir).id;
+  for (const peer of listPeers(db, now)) for (const lease of peer.leases ?? []) {
+    if (!(Date.parse(lease.until) > now)) continue;
+    if (paths.some(p => overlaps(lease.path, p)) && (lease.at < since || lease.at === since && peer.id < me)) return {name: peer.name, path: lease.path, until: lease.until};
+  }
+  return null;
+}
+/** Antes de arrancar un worker: publica mis reservas, trae la rama y mira las de los peers. */
+export async function peerLeaseWait(db: DatabaseSync, dataDir: string, projectDir: string, paths: string[], since: string) {
+  if (!teamConfig(dataDir) || !paths.length) return null;
+  await syncTeam(db, dataDir, projectDir, true).catch(() => { /* sin red: decide con lo último que se vio */ });
+  return peerHolder(db, dataDir, paths, since);
+}
+/** Normaliza un título para compararlo: sin acentos, minúsculas, palabras de más de 2 letras. */
+const words = (title: string) => new Set(title.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2));
+/** T3: la tarea abierta de un peer con un título muy parecido (mismas palabras en al menos un 60 %). */
+export function similarPeerTask(db: DatabaseSync, title: string): {name: string; title: string} | null {
+  const mine = words(title);
+  for (const peer of listPeers(db)) for (const task of peer.tasks ?? []) {
+    const theirs = words(task.title), common = [...mine].filter(w => theirs.has(w)).length;
+    if (mine.size && common / new Set([...mine, ...theirs]).size >= 0.6) return {name: peer.name, title: task.title};
+  }
+  return null;
 }
 
 const usage = 'Uso: nomos team init --name N --frente F|status|frente F|leave|ask --to PERSONA TEXTO';

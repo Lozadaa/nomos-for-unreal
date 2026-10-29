@@ -14,6 +14,7 @@ export type Task = Entity & {
   attribution: Attribution; archivePath: string | null;
   /** hito 13: mayor arranca antes; empate por fecha de creación */ priority: number;
   /** hito 21: espera deliberada del director (`nomos task hold`) */ hold: Hold | null;
+  /** hito 29: id de equipo de quien la creó (solo con equipo); nadie más la mueve */ owner?: string | null;
 };
 export type Hold = {reason: string; at: string; sinceSeq: number; until?: string; untilEvent?: string};
 /** Quién hizo qué en la tarea (hito 6): implemento, reviso, genero, integro, verifico. */

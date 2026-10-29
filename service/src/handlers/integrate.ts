@@ -8,7 +8,7 @@ import { finishRun } from '../repo/runs.ts';
 import { updateRun } from '../repo/worker.ts';
 import { addArtifact } from '../repo/artifacts.ts';
 import { listDecisions, openDecision } from '../repo/decisions.ts';
-import { acquire, leaseWaitReason, release } from '../leases.ts';
+import { acquire, leaseWaitReason, release, releasePath } from '../leases.ts';
 import { enqueue } from '../commands.ts';
 import { appendEvent } from '../store.ts';
 import { checkGate } from '../checks/gate.ts';
@@ -18,7 +18,7 @@ import { isLfsDecision, lfsGate, onlyAttributes } from '../integration/lfs.ts';
 import { commandRun } from './asset-run.ts';
 import { implementerOf } from './checks.ts';
 import { queueGraph } from '../graph.ts';
-import { fetchMain, identity, isAncestor, teamConfig, teamGit } from '../team.ts';
+import { fetchMain, identity, isAncestor, leaf, overlaps, peerLeaseWait, teamConfig, teamGit } from '../team.ts';
 
 const resolveOption = {id: 'resolve', label: 'Resolver en el worktree', description: 'El responsable integra la rama objetivo en su rama y resuelve el conflicto'};
 const discardOption = {id: 'discard', label: 'Descartar la integración', description: 'La tarea vuelve a probando sin integrar'};
@@ -96,6 +96,24 @@ function localFilesBack(ctx: WorkerContext, task: Task, run: Run, files: string[
   return {returned: true};
 }
 
+/** Hito 29: mapas y assets que el worker tocó sin reserva; se reservan al vuelo si están libres. Devuelve el motivo de espera. */
+async function looseBinaries(ctx: WorkerContext, task: Task, run: Run, dir: string, branch: string): Promise<string | null> {
+  const loose = (await teamGit(dir, ['diff', '--name-only', '-z', `HEAD...${branch}`])).split('\0')
+    .filter(f => /\.(umap|uasset)$/i.test(f) && !task.leases.some(l => overlaps(l, f)));
+  if (!loose.length) return null;
+  const since = new Date().toISOString(), local = acquire(ctx.db, run.id, task.id, loose);
+  if (!local.ok) return leaseWaitReason(local.conflicts);
+  const peer = await peerLeaseWait(ctx.db, ctx.dataDir, ctx.projectDir, loose, since);
+  if (peer) {
+    for (const path of loose) releasePath(ctx.db, task.id, path);
+    appendEvent(ctx.db, 'lease.conflict', null, {taskId: task.id, runId: run.id, peer: peer.name, path: peer.path, until: peer.until});
+    return `${leaf(peer.path)} lo tiene ${peer.name}`;
+  }
+  ctx.db.prepare('update tasks set leases=?,updated_at=? where id=?').run(JSON.stringify([...task.leases, ...loose]), new Date().toISOString(), task.id);
+  appendEvent(ctx.db, 'lease.claimed', null, {taskId: task.id, runId: run.id, paths: loose});
+  return null;
+}
+
 export const integrateRun: Handler = async (command, ctx) => {
   const payload = command.payload as {taskId?: unknown};
   if (typeof payload.taskId !== 'string') throw new Error('invalid_command_payload');
@@ -118,6 +136,8 @@ export const integrateRun: Handler = async (command, ctx) => {
     // hito 29: en equipo se integra sobre origin/<rama> recién traída (si divergen, sobre la local y el push dirá por qué)
     const remote = team ? await fetchMain(ctx.db, ctx.projectDir, ws.branch) : null;
     if (remote && !await isAncestor(ws.dir, remote, 'HEAD') && await isAncestor(ws.dir, 'HEAD', remote)) await ctx.git.checkout(ws.dir, remote);
+    const loose = team ? await looseBinaries(ctx, task, run, ws.dir, tree.branch) : null;
+    if (loose) { release(ctx.db, run.id); setTaskWait(ctx.db, task.id, loose); return {deferred: true, reason: loose}; }
     // hito 5b: contenido pesado sin LFS → Decisión antes de meterlo en la historia
     const gated = await lfsGate(ctx, command, task, run, ws, tree, decision);
     if (gated) return gated;

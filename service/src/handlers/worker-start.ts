@@ -13,7 +13,9 @@ import { workerPolicy, decisionGate } from './worker-policy.ts';
 import { OrcaError } from '../adapters/orca.ts';
 import { dispatchGuard, dispatchBlocked, pauseForDecision } from './worker-decisions.ts';
 import { requireGameProject } from '../project-root.ts';
-import { acquire,release } from '../leases.ts';
+import { acquire,release,listLeases } from '../leases.ts';
+import { hhmm, leaf, peerLeaseWait } from '../team.ts';
+import { appendEvent } from '../store.ts';
 import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
 import { readConfig, roleModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
@@ -67,6 +69,16 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     workerFailure(db,{...payload,runId:run.id,conflicts:reservation.conflicts},'lease_conflict');return;
   }
   db.prepare('update tasks set wait_reason=null where id=?').run(task.id);
+  // hito 29: en equipo, mis reservas se publican y se comparan con las de los peers antes de arrancar
+  const mine=review ? [] : listLeases(db).filter(l=>l.runId===run.id);
+  const peer=await peerLeaseWait(db,ctx.dataDir,projectDir,mine.map(l=>l.path),mine.map(l=>l.acquiredAt).sort()[0] ?? '');
+  if(peer) {
+    const reason=`${peer.name} tiene reservado ${leaf(peer.path)} hasta ${hhmm(peer.until)}`;
+    workerFailure(db,{...payload,runId:run.id,conflicts:[]},'lease_conflict');
+    db.prepare('update tasks set wait_reason=? where id=?').run(reason,task.id);
+    appendEvent(db,'lease.conflict',null,{taskId:task.id,runId:run.id,peer:peer.name,path:peer.path,until:peer.until,reason});
+    return;
+  }
   try {
   let repoId:string;
   try {({repoId}=await orca.repoAdd(projectDir));} catch(error) {

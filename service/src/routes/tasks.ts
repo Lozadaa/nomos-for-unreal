@@ -10,8 +10,10 @@ import type { WorkerContext } from '../runner.ts';
 import { taskFailures } from '../failure-kind.ts';
 import { linkedMessage } from '../chat.ts';
 import { holdTask, withHold } from '../hold.ts';
+import { identity, similarPeerTask, teamConfig } from '../team.ts';
+import { openDecision } from '../repo/decisions.ts';
 
-export async function tasks({db, req, res, url}: Context): Promise<boolean> {
+export async function tasks({db, req, res, url, dataDir}: Context): Promise<boolean> {
   const checks = /^\/tasks\/([^/]+)\/checks$/.exec(url.pathname);
   if (req.method === 'POST' && checks) {
     const task = requireTask(db, id(checks[1])), data = await body(req);
@@ -75,13 +77,21 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     || data.assigneeProvider!==undefined && !['codex','claude','opencode'].includes(data.assigneeProvider as string))
     throw new Error('invalid_worker_payload');
   if (data.priority !== undefined && !Number.isSafeInteger(data.priority)) throw new Error('invalid_priority');
-  json(res, 201, createTask(db, {
+  // hito 29: en equipo la tarea lleva su dueño, y un título parecido a una abierta de un peer abre una Decisión
+  const team = dataDir ? teamConfig(dataDir) : null;
+  const task = createTask(db, {
     title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance,
     assigneeRole: data.assigneeRole as string | undefined ?? null,
     assigneeProvider: data.assigneeProvider as string | undefined ?? null,
     scope: data.scope === undefined ? [] : normalizedPaths(data.scope),
     leases: data.leases === undefined ? [] : normalizedPaths(data.leases),
-    ...(data.priority === undefined ? {} : {priority: data.priority as number})
-  }, linkedMessage(db, data.messageId)));
+    ...(data.priority === undefined ? {} : {priority: data.priority as number}),
+    ...(team ? {owner: identity(dataDir!).id} : {})
+  }, linkedMessage(db, data.messageId));
+  const twin = team ? similarPeerTask(db, task.title) : null;
+  if (twin) openDecision(db, {taskId: task.id, reason: `${twin.name} ya tiene “${twin.title}”: ¿duplicar o pedírsela?`, options: [
+    {id: 'duplicar', label: 'Duplicar', description: `Seguir con esta tarea aunque ${twin.name} tenga una parecida`},
+    {id: 'pedir', label: 'Pedírsela', description: `No arrancar esta; pedírsela a ${twin.name} con nomos team ask`}]});
+  json(res, 201, requireTask(db, task.id));
   return true;
 }
