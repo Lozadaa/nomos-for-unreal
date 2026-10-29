@@ -43,7 +43,8 @@ export function dependencyReason(db:DatabaseSync,task:Task):string|null {
     const dep=getTask(db,id);
     if(!dep) return `Depende de ${id} (desconocida)`;
     if(dep.blockedReason||dep.decisionId) return `Depende de ${dep.title} (bloqueada)`;
-    if(dep.state!=='done' && !(dep.state==='revisando'&&dep.reviewApproved===1)) return `Depende de ${dep.title} (${dep.state})`;
+    // hito 30: la dependencia cuenta integrada (cerrando o done), no solo con la revisión aprobada: B nace de la main que ya trae A
+    if(dep.state!=='cerrando' && dep.state!=='done') return `Depende de ${dep.title} (${dep.reviewApproved===1 ? 'aprobada, sin integrar' : dep.state})`;
   }
   return null;
 }
