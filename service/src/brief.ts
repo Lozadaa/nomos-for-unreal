@@ -1,6 +1,7 @@
 import type { Task, Run } from './model.ts';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { nomosSkills } from './skills-install.ts';
 /** `turn` (hito 22): la orden con la que el worker pide Unreal al planificador antes de abrirlo. */
 export type BriefRules = {projectContext?: string; continuation?: string; turn?: string};
 export function workerSkillsBrief(run:Pick<Run,'provider'|'skills'>):string {
@@ -9,7 +10,7 @@ export function workerSkillsBrief(run:Pick<Run,'provider'|'skills'>):string {
     +'Si alguna no está disponible, omítela de la confirmación y continúa; no afirmes haberla cargado.\n\n';
 }
 export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): string {
-  const template=readFileSync(fileURLToPath(new URL('../../skills/nomos/references/brief-worker.md',import.meta.url)),'utf8');
+  const template=readFileSync(join(nomosSkills,'nomos','references','brief-worker.md'),'utf8');
   const values: Record<string,string>={title:task.title,spec:task.spec,
     acceptance:task.acceptance.map((item,index)=>`${index+1}. ${item}`).join('\n'),
     scope:task.scope.map(path=>`- ${path}`).join('\n') || '(vacío: no autoriza archivos)',

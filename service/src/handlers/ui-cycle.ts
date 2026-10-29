@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { locatedPath } from '../data-paths.ts';
-import { fileURLToPath } from 'node:url';
+import { nomosSkills } from '../skills-install.ts';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { Artifact, JsonValue, Run, Task, TestRun } from '../model.ts';
 import type { ReviewSnapshot } from '../review.ts';
@@ -64,6 +64,6 @@ export function qaBrief(ctx: WorkerContext, task: Task, run: Run, snapshot: Revi
     acceptance: task.acceptance.map((s, i) => `${i + 1}. ${s}`).join('\n'), captures: lines.join('\n') || '(sin capturas)',
     commit: test?.commit ?? snapshot.commit, generation: snapshot.generation,
     direction: existsSync(direction) ? readFileSync(direction, 'utf8') : 'El juego no tiene docs/ui-direction.md: revisa contra los criterios mínimos.'};
-  const template = readFileSync(fileURLToPath(new URL('../../../skills/nomos/references/brief-qa-visual.md', import.meta.url)), 'utf8');
+  const template = readFileSync(join(nomosSkills, 'nomos', 'references', 'brief-qa-visual.md'), 'utf8');
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] ?? '');
 }

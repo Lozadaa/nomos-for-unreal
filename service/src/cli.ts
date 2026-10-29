@@ -11,11 +11,12 @@ import { seed } from "./seed.ts";
 import { directorCli } from './cli-director.ts';
 import { assetCli } from './cli-asset.ts';
 import { skillsCli } from './skills-install.ts';
+import { embedCli } from './embed.ts';
 import { buildCli } from './build-info.ts';
 import { cleanCli } from './clean.ts';
 import { autostartCli } from './autostart.ts';
 import { alive, killTree, listServers } from './orphans.ts';
-import { doctor, renderDoctor } from './doctor.ts';
+import { doctor, necessary, optional, renderDoctor, renderRequirements } from './doctor.ts';
 import { dataDirFor, dbFile, legacyEnv } from './legacy.ts';
 import { writeResume } from './resume.ts';
 
@@ -40,7 +41,7 @@ async function withData(argv: string[]): Promise<string[]> {
 async function main() {
   for (const name of legacyEnv()) console.warn(`Aviso: ${name} ahora se llama NOMOS_${name.slice(7)}`);
   const argv = await withData(process.argv.slice(2));
-  if (skillsCli(argv) || buildCli(argv) || await cleanCli(argv) || await autostartCli(argv) || await directorCli(argv) || await assetCli(argv)) return;
+  if (skillsCli(argv) || embedCli(argv) || buildCli(argv) || await cleanCli(argv) || await autostartCli(argv) || await directorCli(argv) || await assetCli(argv)) return;
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" },
     force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false },
@@ -53,15 +54,15 @@ async function main() {
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim())) || (command === "typing" && args.length !== 1)
     || (["start", "status", "vigila", "stop", "seed", "doctor", "reanudacion"].includes(command) && args.length)) {
-    throw new Error("Uso: nomos start [--new-token]|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|clean [--dry-run]|autostart on|off|status|play [--stop|--status]|reanudacion [--data CARPETA]|jam init --tema T --dias N [--force]");
+    throw new Error("Uso: nomos start [--new-token]|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|embed JUEGO [--update]|clean [--dry-run]|autostart on|off|status|play [--stop|--status]|reanudacion [--data CARPETA]|jam init --tema T --dias N [--force]");
   }
   if (command === "doctor") {
     mkdirSync(dataDir, { recursive: true });
     const db = openDb(dbFile(dataDir));
     try {
-      const rows = await doctor(dataDir, db);
-      console.log(renderDoctor(rows));
-      if (rows.some(row => row.state === "falla")) process.exitCode = 1;
+      const [needed, extra, rows] = await Promise.all([necessary(dataDir), optional(dataDir), doctor(dataDir, db)]);
+      console.log([renderRequirements("Necesario", needed), renderRequirements("Opcional", extra), renderDoctor(rows)].join("\n\n"));
+      if (rows.some(row => row.state === "falla") || needed.some(r => !r.present)) process.exitCode = 1;
     } finally { db.close(); }
     return;
   }
@@ -82,6 +83,9 @@ async function main() {
   if (command === "start") {
     let info = readServiceInfo(dataDir); const active = info ? await isAlive(info) : false;
     if (!active) {
+      // hito 30: sin lo necesario no arranca; lo opcional solo lo dice doctor
+      const missing = (await necessary(dataDir)).filter(r => !r.present);
+      if (missing.length) throw new Error(`Falta lo necesario para Nomos: ${missing.map(r => `${r.name} (${r.lost})`).join('; ')}. Detalle: nomos doctor`);
       const child = spawn(process.execPath, [join(import.meta.dirname, "server.ts"), "--serve", "--data", dataDir, "--port", String(port),
         ...(values["new-token"] ? ["--new-token"] : [])],
         { detached: true, stdio: "ignore", windowsHide: true });

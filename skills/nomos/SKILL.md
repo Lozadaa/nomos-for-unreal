@@ -14,10 +14,10 @@ la evidencia y pide integrar y cerrar; el servicio concede `done` solo si se cum
 
 ## Al invocar
 
-`<base>` es la carpeta de esta skill. Requiere Node ≥25, Git, Orca y Claude Code; Codex solo si
+`<base>` es la carpeta de esta skill. Requiere Node ≥25, Git, Claude Code y Unreal; Orca es opcional (sin él, los workers son procesos `claude`); Codex solo si
 la config le da cupo; Git Bash en Windows. Si algo falla, `nomos doctor --data .nomos` dice qué. Entrecomilla las rutas con espacios.
 En lo siguiente, `nomos` abrevia `node "<base>/scripts/nomos.ts"` y todos los
-comandos se ejecutan desde el juego con `--data .nomos`. `scripts/kratos.ts` es el alias del nombre viejo (avisa y delega) y la carpeta de datos con el nombre anterior, parada, se migra sola a `.nomos`.
+comandos se ejecutan desde el juego con `--data .nomos`. Si el juego trae Nomos en `Tools/Nomos` (embebido), el mismo `nomos.ts` lo encuentra; el envoltorio `.\nomos.cmd`/`./nomos.sh` de la raíz equivale. `scripts/kratos.ts` es el alias del nombre viejo (avisa y delega) y la carpeta de datos con el nombre anterior, parada, se migra sola a `.nomos`.
 
 1. Comprueba un `.uproject` en la carpeta actual; si falta, explica el requisito y para.
    Ejecuta `nomos start --data .nomos`. Lee `URL ...`; `YA_ACTIVO` reutiliza servicio.

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 export type WorkerProvider = 'codex' | 'claude' | 'opencode';
 export type Limits = {corrections: number};
@@ -20,6 +21,8 @@ export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,numbe
     maxWorkerMinutes?: number;
     /** Hito 22: milisegundos que se espera a que Orca cree el worktree (180 000); en frío pasa del minuto. */
     createTimeoutMs?: number};
+  /** Hito 30: quién lanza los workers; `auto` = Orca si responde, si no proceso `claude` hijo. */
+  launcher?: 'auto' | 'orca' | 'process';
   /** Hito 22: el PC aguanta un Unreal pesado a la vez y pide RAM libre para abrirlo. */
   scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean}};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
@@ -47,6 +50,14 @@ export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.cre
 /** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
 export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
 export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
+/** Hito 30: brain.py de Second Brain en `SECOND_BRAIN_ROOT` o en `~/Documents/SecondBrain`; sin él, null y la memoria queda apagada. */
+export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): string[] | null {
+  const home = env.USERPROFILE || env.HOME || homedir();
+  const brain = [env.SECOND_BRAIN_ROOT, join(home, 'Documents', 'SecondBrain')].filter(Boolean)
+    .map(root => join(root!, '.system', 'brain.py')).find(file => existsSync(file));
+  if (!brain) return null;
+  return [existsSync('C:/Python314/python.exe') ? 'C:/Python314/python.exe' : process.platform === 'win32' ? 'python' : 'python3', '-X', 'utf8', brain];
+}
 const count = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
 export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?: unknown} {
   const file=join(dataDir,'config.json');
@@ -76,6 +87,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     // hito 25: la orden de Second Brain (brain.py) a la que el cierre añade `--cwd <juego> capture …`
     if(config.memory!==undefined && (!object(config.memory) || Object.entries(config.memory).some(([k,v])=>k==='enabled' ? typeof v!=='boolean'
       : k!=='command' || !Array.isArray(v) || !v.length || v.some((c:unknown)=>typeof c!=='string' || !c)))) throw new Error();
+    if(config.launcher!==undefined && !['auto','orca','process'].includes(config.launcher)) throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;

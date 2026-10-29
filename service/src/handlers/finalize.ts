@@ -19,7 +19,7 @@ import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readConfig } from '../config.ts';
+import { defaultMemoryCommand, readConfig } from '../config.ts';
 import { addArtifact } from '../repo/artifacts.ts';
 import { projectInfo } from '../project-root.ts';
 
@@ -37,14 +37,15 @@ async function lessonsOf(ctx: WorkerContext, task: Task, tree: Worktree | undefi
   }
   return null;
 }
-const defaultMemory = ['C:/Python314/python.exe', '-X', 'utf8', 'C:/Users/richa/Documents/SecondBrain/.system/brain.py'];
 /** `brain.py capture` con las lecciones (`NOMOS_MEMORY=off` o `memory.enabled:false` lo apagan); si falla, `command.failed` con la causa y el cierre vale igual. */
 async function saveLessons(ctx: WorkerContext, command: Command, task: Task, run: Run, report: {file: string; lines: string[]}): Promise<void> {
   const body = join(ctx.dataDir, `lecciones-${task.id}.md`);
   try {
     const memory = (readConfig(ctx.dataDir) as {memory?: {enabled?: boolean; command?: string[]}}).memory;
     if (memory?.enabled === false || process.env.NOMOS_MEMORY === 'off') return;
-    const [exe, ...pre] = memory?.command ?? defaultMemory;
+    const command = memory?.command ?? defaultMemoryCommand();
+    if (!command) return; // hito 30: sin brain.py la memoria queda apagada (doctor lo dice)
+    const [exe, ...pre] = command;
     const done = ctx.db.prepare(`select payload from events where type='integration.completed' and json_extract(payload,'$.taskId')=? order by seq desc limit 1`).get(task.id);
     const commit = done ? String(JSON.parse(done.payload as string).commit).slice(0, 7) : 'sin integrar';
     const game = projectInfo(ctx.dataDir)?.name ?? basename(ctx.projectDir), milestone = /\bJ\d+\b/.exec(task.title)?.[0] ?? task.title;

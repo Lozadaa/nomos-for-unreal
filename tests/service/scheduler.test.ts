@@ -37,10 +37,13 @@ test('dependencia bloqueada conserva preparada y dos ticks solo notifican un cam
   assert.equal(listEvents(db,0).filter(e=>e.type==='task.waiting').length,1);
   assert.equal(db.prepare('select count(*) n from commands').get()!.n,0);
 });
-test('dependencia revisando solo permite arrancar tras aprobación, done también permite',t=>{
+test('hito 30: la dependencia revisada sin integrar hace esperar; integrada (cerrando) o done permite arrancar',t=>{
   const {db,add}=setup(t),base=add('X',{state:'revisando'}),dependent=add('Y',{dependsOn:[base.id]});
   assert.equal(plan(db,config).find(d=>d.taskId===dependent.id)!.action,'wait');
   db.prepare('update tasks set review_approved=1 where id=?').run(base.id);
+  const waiting=plan(db,config).find(d=>d.taskId===dependent.id)!;
+  assert.equal(waiting.action,'wait');assert.equal(waiting.reason,'Depende de X (aprobada, sin integrar)');
+  db.prepare("update tasks set state='cerrando' where id=?").run(base.id);
   assert.equal(plan(db,config)[0].action,'start');
   db.prepare("update tasks set state='done',review_approved=0 where id=?").run(base.id);
   assert.equal(plan(db,config)[0].action,'start');

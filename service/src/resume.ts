@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { writeAtomic } from './atomic.ts';
@@ -13,6 +14,7 @@ const types = 'message.received,run.finished,worker.waiting,command.failed,revie
 const cell = (v: unknown) => v === null || v === undefined || v === '' ? '—' : String(v).replace(/\|/g, '/').replace(/\s+/g, ' ').slice(0, 90);
 let version: string | undefined;
 const nomosVersion = () => version ??= (() => {
+  try { return readFileSync(join(import.meta.dirname, '..', '..', 'VERSION'), 'utf8').split(' ')[0].trim(); } catch { /* sin VERSION: repo de Nomos */ }
   try { return execFileSync('git', ['rev-parse', '--short', 'HEAD'], {cwd: import.meta.dirname, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'ignore']}).trim(); }
   catch { return 'desconocida'; }
 })();
