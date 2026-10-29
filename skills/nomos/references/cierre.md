@@ -129,7 +129,7 @@ Cada lección sirve en otro juego: qué falló, qué funcionó o qué regla sale
 --evidence observed --body-file <líneas>`, guarda la ruta como artefacto «Memoria guardada» y emite `memory.saved`.
 Si falla, `command.failed` con la causa y la tarea cierra igual. Se configura con `memory: {enabled, command}` en
 `config.json` (`command` es la orden de `brain.py` sin argumentos; por defecto la de este equipo). Las 5 últimas
-lecciones salen en `reanudacion.md`.
+lecciones salen en `reanudacion.md`. `NOMOS_MEMORY=off` lo apaga igual que `enabled:false` (`npm test` lo fija siempre).
 
 ## Reanudación
 

@@ -11,9 +11,10 @@ import { removeDir } from './remove-dir.ts';
 const ours = (root: string) => listServers().filter(s => within(s.data, root));
 const root = mkdtempSync(join(tmpdir(), 'nomos-suite-'));
 const before = listServers().filter(s => within(s.data, tmpdir())).length;
+// hito 26: ninguna prueba escribe en Second Brain; las de memoria usan un brain.py falso y lo reactivan dentro del test
 const files = process.argv.slice(2).length ? process.argv.slice(2) : ['tests/**/*.test.ts'];
 const run = spawnSync(process.execPath, ['--test', '--import', './tests/registry-env.ts', ...files],
-  {stdio: 'inherit', env: {...process.env, TEMP: root, TMP: root, TMPDIR: root}});
+  {stdio: 'inherit', env: {...process.env, NOMOS_MEMORY: 'off', TEMP: root, TMP: root, TMPDIR: root}});
 // el último `stop` puede estar cerrando aún: margen corto antes de contar
 let left = ours(root);
 for (const end = Date.now() + 10_000; left.length && Date.now() < end; left = ours(root)) await new Promise(r => setTimeout(r, 500));

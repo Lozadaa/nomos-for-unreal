@@ -6,6 +6,8 @@ import { writeFileSync } from 'node:fs';
 process.env.NOMOS_REGISTRY ??= join(tmpdir(), `nomos-registro-pruebas-${process.pid}.json`);
 // hito 23: la suite no lanza el graphify real sobre sus juegos de prueba (las pruebas del grafo usan uno falso)
 process.env.NOMOS_GRAPHIFY ??= 'off';
+// hito 26: ni Second Brain (también al lanzar un .test.ts suelto sin tests/run.ts)
+process.env.NOMOS_MEMORY ??= 'off';
 // hito 22: el planificador mira la RAM y los Unreal del PC; la suite no depende de lo que haya abierto en él
 if (!process.env.NOMOS_MACHINE_FAKE) {
   process.env.NOMOS_MACHINE_FAKE = join(tmpdir(), `nomos-maquina-pruebas-${process.pid}.json`);

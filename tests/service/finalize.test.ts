@@ -206,6 +206,7 @@ test('hito 25: al cerrar, las lecciones van a Second Brain (kind learning, evide
   const f = integrationFixture();
   try {
     const brain = fakeBrain(f), a = await readyClosing(f, lessonsReport, {memory: {enabled: true, command: brain.command}});
+    delete process.env.NOMOS_MEMORY; // solo este test, contra el brain.py falso
     const r = await finalize(f, a.task.id);
     assert.equal(r.closed, true, r.reason);
     const {args, body} = brain.read();
@@ -218,16 +219,30 @@ test('hito 25: al cerrar, las lecciones van a Second Brain (kind learning, evide
     assert.deepEqual(saved.map(x => [x.kind, x.path]), [['report', 'profiles/personal/knowledge/20261029-lecciones.md']]);
     assert.deepEqual(f.events('memory.saved').map(e => [e.taskId, e.path]), [[a.task.id, 'profiles/personal/knowledge/20261029-lecciones.md']]);
     assert.match(readFileSync(join(f.dataDir, 'reanudacion.md'), 'utf8'), /## Lecciones\n\n- Jugar la build antes de cerrar el hito\.\n- Una mecánica por día basta\./);
-  } finally { f.close(); }
+  } finally { process.env.NOMOS_MEMORY = 'off'; f.close(); }
 });
 
 test('hito 25: si Second Brain falla, command.failed con la causa y la tarea cierra igual', async () => {
   const f = integrationFixture();
   try {
     const brain = fakeBrain(f, true), a = await readyClosing(f, lessonsReport, {memory: {enabled: true, command: brain.command}});
+    delete process.env.NOMOS_MEMORY;
     assert.equal((await finalize(f, a.task.id)).closed, true);
     assert.equal(getTask(f.db, a.task.id)!.state, 'done');
     assert.match(f.events('command.failed').at(-1)!.reason, /Second Brain.*perfil no encontrado/s);
     assert.equal(f.events('memory.saved').length, 0);
-  } finally { f.close(); }
+  } finally { process.env.NOMOS_MEMORY = 'off'; f.close(); }
+});
+
+test('hito 26: con NOMOS_MEMORY=off el cierre no lanza brain.py ni deja memory.saved, con memory ausente o con command', async () => {
+  for (const config of [undefined, 'command'] as const) {
+    const f = integrationFixture();
+    try {
+      assert.equal(process.env.NOMOS_MEMORY, 'off', 'la suite lo fija antes de cargar nada');
+      const brain = fakeBrain(f), a = await readyClosing(f, lessonsReport, config && {memory: {command: brain.command}});
+      assert.equal((await finalize(f, a.task.id)).closed, true);
+      assert.throws(() => brain.read(), 'brain.py no se lanzó');
+      assert.deepEqual([f.events('memory.saved').length, f.events('command.failed').length], [0, 0]);
+    } finally { f.close(); }
+  }
 });
