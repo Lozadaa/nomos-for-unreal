@@ -8,12 +8,13 @@ import { workerFailure } from './worker-failure.ts';
 import { taskReconcile } from './reconcile.ts';
 import { orcaBack, orcaGrace } from './orca-down.ts';
 import { workerRecover } from './worker-recover.ts';
+import { runTokens } from '../transcript.ts';
 export function createWorkerHandlers(): Record<string, Handler> {
   const handlers: Record<string,Handler>={'worker.start':workerStart, 'worker.poll':workerPoll,
     'worker.send':workerSend, 'worker.stop':workerStop,'review.start':reviewStart,'review.poll':workerPoll,
     'task.reconcile':taskReconcile};
   // hito 22: relanzar tras un reinicio no pasa por workerFailure (su run ya está cerrada)
-  return Object.fromEntries([['worker.recover',workerRecover],...Object.entries(handlers).map(([type,handler])=>[type,async (cmd,ctx)=>{
+  return Object.fromEntries([['worker.recover',workerRecover],['run.tokens',runTokens],...Object.entries(handlers).map(([type,handler])=>[type,async (cmd,ctx)=>{
     try {const result=await handler(cmd,ctx);orcaBack(ctx,cmd.payload as any);return result;}
     catch (error) {
       const grace=orcaGrace(ctx,type,cmd.payload as any,error);

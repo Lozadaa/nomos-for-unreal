@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import type { Handler, WorkerContext } from '../runner.ts';
 import { requireTask, moveTask,setTaskWait } from '../repo/tasks.ts';
 import { filtered, insert, read, transaction } from '../repo/rows.ts';
@@ -117,10 +118,11 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);
-  if(run.provider!=='codex') run=updateRun(db,run.id,{model});
+  // hito 24: la sesión fija de Claude Code da la transcripción de la que salen los tokens de la run
+  if(run.provider!=='codex') run=updateRun(db,run.id,{model,...(run.provider==='claude' ? {sessionId:randomUUID()} : {})});
   // hito 12: ningún subproceso de OpenCode hereda el modelo por defecto (caro) del usuario
   if(run.provider==='opencode') writeFileSync(join(created.path,'opencode.json'),JSON.stringify({$schema:'https://opencode.ai/config.json',model},null,2)+'\n');
-  const plan=launchPlan(run.provider,model,short);
+  const plan=launchPlan(run.provider,model,short,run.metadata.sessionId);
   if(!plan.briefInCommand) {
     await orca.terminalSend(created.terminalHandle,plan.command);
     if (!await orca.terminalWaitIdle(created.terminalHandle,90_000,plan.ready))

@@ -10,6 +10,8 @@ export interface Status {
   pending: number
   paused: boolean
   project?: { name: string; uproject: string } | null
+  /** Hito 24: tokens de entrada medidos en las runs del proyecto, total y por rol. */
+  tokens?: { total: number; porRol: Record<string, number> }
 }
 
 export class ApiError extends Error {

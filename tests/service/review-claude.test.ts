@@ -32,7 +32,7 @@ test('el revisor Claude arranca con models.revisor (no con workerModel) y lo dej
   writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":2,"claude":1},"workerModel":"haiku","models":{"revisor":"opus"}}');
   await f.startReview();
   assert.equal(f.reviewer().provider,'claude');assert.equal(f.reviewer().metadata.model,'opus');
-  assert.ok(f.state().tail.includes('claude --model opus --dangerously-skip-permissions'));
+  assert.ok(f.state().tail.includes(`claude --model opus --dangerously-skip-permissions --session-id ${f.reviewer().metadata.sessionId}`));
   assert.equal(f.state().tail.some((line:string)=>line.includes('--model sonnet')),false);
 });
 test('preparación reutilizable recalcula proveedor sin perder run, command ni FIFO',async t=>{

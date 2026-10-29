@@ -91,6 +91,17 @@ export interface TaskDetail {
   artifacts: Artifact[]
   testRuns: TestRun[]
   decision: Decision | null
+  /** Hito 24: una fila por run medida; `note` es el JSON del uso o «sin transcripción». */
+  tokens?: { runId: string; amount: number; note: string | null }[]
+}
+
+/** Tokens en millones con una decimal («1,3 M»): nunca cifras largas. */
+export const millions = (n: number) => `${(n / 1e6).toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M`
+/** «Tokens: 1,3 M · 42 turnos · opus» de una fila de `spends`. */
+export function tokensLine(row: { amount: number; note: string | null }): string {
+  let use: { turns?: number; model?: string } = {}
+  try { use = JSON.parse(row.note ?? '') } catch { return `Tokens: ${millions(row.amount)} · ${row.note ?? ''}` }
+  return `Tokens: ${millions(row.amount)} · ${use.turns ?? 0} turnos · ${/opus|sonnet|haiku/.exec(use.model ?? '')?.[0] ?? use.model}`
 }
 
 /** Estado derivado: una tarea bloqueada o en espera de decisión conserva su etapa. */

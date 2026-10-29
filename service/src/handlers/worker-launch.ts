@@ -10,17 +10,17 @@ function opencode(model:string,flags=''):string {
   return `opencode run${flags} --auto --model ${model}`;
 }
 // Hito 12: OpenCode corre con `run` (salida plana que Orca lee) y el brief viaja en la orden; termina al acabar.
-export function launchCommand(provider:string,model:string='sonnet',title='nomos'):string {
+export function launchCommand(provider:string,model:string='sonnet',title='nomos',sessionId?:string):string {
   const kind=adapter(provider);
   return kind==='codex' ? 'codex --yolo --no-daemon' : kind==='opencode' ? `${opencode(model)} --title ${title} ${briefLine}`
-    : `claude --model ${model as WorkerModel} --dangerously-skip-permissions`;
+    : `claude --model ${model as WorkerModel} --dangerously-skip-permissions${sessionId ? ` --session-id ${sessionId}` : ''}`;
 }
 export function readyPattern(provider:string):RegExp {
   const kind=adapter(provider);
   return kind==='codex' ? /Ask\s*Codex/i : kind==='opencode' ? /opencode run/i : /bypass permissions|Try "/i;
 }
-export function launchPlan(provider:string,model:string,short:string):{command:string;ready:RegExp;briefInCommand:boolean} {
-  return {command:launchCommand(provider,model,`nomos-${short}`),ready:readyPattern(provider),briefInCommand:provider==='opencode'};
+export function launchPlan(provider:string,model:string,short:string,sessionId?:string):{command:string;ready:RegExp;briefInCommand:boolean} {
+  return {command:launchCommand(provider,model,`nomos-${short}`,sessionId),ready:readyPattern(provider),briefInCommand:provider==='opencode'};
 }
 /** Lo que se escribe en el terminal para una respuesta o corrección: OpenCode ya salió y continúa su sesión. */
 export function followUp(provider:string,model:string|undefined,line:string):string {

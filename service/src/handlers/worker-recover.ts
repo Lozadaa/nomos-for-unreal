@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Handler, WorkerContext } from '../runner.ts';
 import type { Run } from '../model.ts';
 import type { WorkerProvider } from '../config.ts';
@@ -50,14 +51,15 @@ export const workerRecover: Handler = async (cmd, ctx) => {
   const subject = (await git.log(tree.path, tree.baseCommit).catch(() => [])).find(c => c.sha === head)?.subject ?? '';
   continuationBrief(tree.path, old, head, subject, '## Continuación tras un reinicio',
     'El PC se reinició mientras otro worker hacía esta tarea en este mismo árbol; su terminal ya no existe.');
-  const model = old.metadata.model, title = `nomos-${task.id.slice(0, 8)}`, command = launchCommand(old.provider, model, title);
+  const model = old.metadata.model, sessionId = old.provider === 'claude' ? randomUUID() : undefined;
+  const title = `nomos-${task.id.slice(0, 8)}`, command = launchCommand(old.provider, model, title, sessionId);
   if (!orca.terminalCreate) throw new Error('orca: no puede abrir un terminal nuevo para continuar');
   const handle = await orca.terminalCreate(tree.path, title, old.provider === 'opencode' ? command : `${command} "${briefLine}"`);
   const fresh = transaction(db, () => {
     const max = maxWorkerMinutes(readConfig(ctx.dataDir));
     const next = startRun(db, {taskId: task.id, role: old.role, provider: old.provider, sessionRef: handle, attempt: old.attempt, skills: old.skills,
       model: old.model, metadata: {worktreeId: tree.id, recoveredFrom: old.id, phase: 'running', pollGeneration: 0,
-        correctionCount: old.metadata.correctionCount ?? 0, deadlineAt: new Date(Date.now() + max * 60_000).toISOString(), ...(model ? {model} : {})}});
+        correctionCount: old.metadata.correctionCount ?? 0, deadlineAt: new Date(Date.now() + max * 60_000).toISOString(), ...(model ? {model} : {}), ...(sessionId ? {sessionId} : {})}});
     acquire(db, next.id, task.id, task.leases);
     setTaskWait(db, task.id, null);
     appendEvent(db, 'run.recovered', null, {taskId: task.id, oldRun: old.id, newRun: next.id});
