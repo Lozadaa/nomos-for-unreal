@@ -59,6 +59,8 @@ Diagnóstico: la memoria funciona, pero se guarda lo que no sirve. El director h
 
 | Hito | Qué | Por qué |
 |---|---|---|
-| **23 · Legible y con grafo** (en curso, Opus) | Markdown corto y visual en todas las secciones; ponytail y graphify en cada proyecto | Petición del usuario del 29 oct |
-| 24 · Director barato | Director por evento sin historial; Sonnet por defecto en revisor, QA e integrador; tokens por run en el panel (tabla `spends`, hoy vacía) | 862 M del director y 1 289 M de workers |
-| 25 · Modo jam | `nomos jam`: plan de 1 arena y 1 mecánica, build diaria obligatoria con «Por aprobar», Nomos congelado, nota de aprendizaje en Second Brain al cerrar cada hito | Preparar la game jam |
+| **23 · Legible y con grafo** · fusionado `78dbfb7` | Markdown corto y visual en todas las secciones; graphify (solo código, sin clave de LLM) y ponytail en cada proyecto | Petición del usuario del 29 oct |
+| **24 · Director barato** · fusionado `e096e33` | Opus implementa, Sonnet revisa, hace QA e integra; tokens por run en ficha, Producción y `nomos status`; `.nomos/reanudacion.md` automático y una sesión de director por hito | 862 M del director y 1 289 M de workers |
+| **25 · Modo jam** · fusionado `a119e13` | `nomos jam init` (un hito por día); el cierre de hito exige tu aprobación sobre la build estampada; en jam, Decisión «Recortar o seguir» tras 24 h sin build aprobada; las lecciones del cierre van a Second Brain | Preparar la game jam |
+
+Sin probar en real tras los tres hitos: tokens de un worker lanzado por Orca, `graphify --update` tras una integración real, una build de Unreal real en el cierre y la Decisión de 24 h en servicio vivo. Nada publicado con push.
