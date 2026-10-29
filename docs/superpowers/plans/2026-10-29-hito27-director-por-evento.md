@@ -32,9 +32,10 @@ Acepta: prueba del contenido con una base de ejemplo y del límite de líneas.
 
 Acepta: pruebas con Orca falso: agrupación de eventos, un director a la vez, reencolado, tiempo máximo; aceptación real en KratosFabTest con `--data .nomos-hito27` y `NOMOS_MEMORY=off`: un mensaje del usuario desde el panel despierta al director (sonnet), responde y la sesión termina; tokens en Producción; `docs/aceptacion-hito27.md` ≤ 60 líneas.
 
-## Tarea 3 · Modo por defecto en jam
+## Tarea 3 · Modo por defecto en jam y un arreglo del chat
 
 - `nomos jam init` deja `director.mode: "evento"`. Fuera de jam, por defecto `sesion`. Una línea en `references/jam.md`.
+- Defecto visto en la aceptación del hito 29: en el chat del panel, los mensajes que llegan de un compañero del equipo aparecen firmados «Tú». Deben llevar «<Nombre> (<frente>)». Prueba del componente.
 
 ## Cierre
 
