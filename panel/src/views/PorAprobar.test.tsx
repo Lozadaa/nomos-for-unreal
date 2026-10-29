@@ -45,6 +45,25 @@ describe('Por aprobar', () => {
     expect(api).toHaveBeenCalledWith('/approvals/a1/keep', { method: 'POST', body: { side: 'mine' } })
     expect(within(card).getByText('Te quedaste con la tuya · sigue la integración')).toBeInTheDocument()
   })
+  it('hito 28: una línea base enseña propuesta, actual y diferencia con Aprobar y Rechazar; rechazar va al servicio', async () => {
+    vi.mocked(api).mockImplementation(async (path: string) => {
+      if (path !== '/approvals') return { state: 'changes' } as never
+      const f = fixture(); f.items[0] = { ...f.items[0], type: 'baseline', title: 'Línea base: map L_Arena 1280x720', focus: [], evidence: [],
+        summary: 'Propuesta desde «Arena».', baseline: { name: 'map-L_Arena-1280x720', current: 'C:/j/docs/baseline/map-L_Arena-1280x720.png', diff: 'C:/d/diff.png' } }
+      return f as never
+    })
+    mount()
+    const card = await screen.findByRole('article', { name: 'Línea base: map L_Arena 1280x720' })
+    const shots = within(card).getByRole('region', { name: 'Línea base' })
+    expect(within(shots).getAllByRole('figure').map((f) => f.textContent)).toEqual(['Propuesta', 'Actual', 'Diferencia'])
+    expect(within(card).getByText('Línea base propuesta · hasta aprobarla, informa sin fallar')).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Aprobar' })).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Pedir cambios' })).toBeNull()
+    expect(document.body.textContent).not.toMatch(ids)
+    await userEvent.click(within(card).getByRole('button', { name: 'Rechazar' }))
+    expect(api).toHaveBeenCalledWith('/approvals/a1/reject', { method: 'POST', body: {} })
+    expect(within(card).getByText('Rechazada · la siguiente captura propone otra')).toBeInTheDocument()
+  })
   it('hito 25: un cierre de hito bloqueado dice que falta tu aprobación sobre la build jugable', async () => {
     vi.mocked(api).mockImplementation(async () => { const f = fixture(); f.items[0] = { ...f.items[0], title: 'Cierre J1', blocked: 'Falta tu aprobación sobre la build jugable' }; return f as never })
     mount()
