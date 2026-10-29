@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { body, json } from '../http.ts';
 import { id, type Context } from './context.ts';
-import { approve, comment, listApprovals, requestApproval, requestChanges } from '../approvals.ts';
+import { approve, comment, keepVersion, listApprovals, requestApproval, requestChanges } from '../approvals.ts';
 import { requireTask } from '../repo/tasks.ts';
 import { requestIntegration } from './task-closing.ts';
 
@@ -47,9 +47,11 @@ export async function approvals({db, req, res, url, dataDir}: Context): Promise<
   if (req.method === 'POST' && url.pathname === '/approvals/comment') {
     const data = await body(req); json(res, 200, comment(db, null, data.text, data.imageId)); return true;
   }
-  const action = /^\/approvals\/([^/]+)\/(approve|changes|comment)$/.exec(url.pathname);
+  const action = /^\/approvals\/([^/]+)\/(approve|changes|comment|keep)$/.exec(url.pathname);
   if (req.method !== 'POST' || !action) return false;
   const approvalId = id(action[1]), data = await body(req);
+  // hito 29: conflicto en un binario; la integración aplica la versión elegida
+  if (action[2] === 'keep') { json(res, 200, keepVersion(db, approvalId, data.side)); return true; }
   if (action[2] === 'comment') { json(res, 200, comment(db, approvalId, data.text, data.imageId)); return true; }
   if (action[2] === 'changes') { json(res, 200, requestChanges(db, approvalId, data.text, data.imageId)); return true; }
   const done = approve(db, approvalId);

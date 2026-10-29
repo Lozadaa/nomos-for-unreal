@@ -6,6 +6,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { readConfig } from './config.ts';
 import { appendEvent, createMessage } from './store.ts';
 import { latestBuild } from './play.ts';
+import { getTask, moveTask } from './repo/tasks.ts';
 
 /**
  * Hito 29: varios Nomos sobre el mismo juego. El estado compartido vive en la rama `nomos/equipo` del remoto `origin`:
@@ -18,7 +19,7 @@ export type Card = {id: string; name: string; frente: string; updatedAt: string;
   leases: {path: string; taskId: string; until: string; at: string}[];
   decisions: {id: string; title: string}[];
   build: {commit: string; at: string} | null;
-  requests: {to: string; title: string; text: string; at: string; taskId?: string}[]};
+  requests: {to: string; title: string; text: string; at: string; taskId?: string; reopen?: boolean}[]};
 export type Peer = Card & {present: boolean};
 
 export const HEARTBEAT_MS = 5 * 60_000, ABSENT_MS = 30 * 60_000;
@@ -163,8 +164,14 @@ export function recordPeers(db: DatabaseSync, dataDir: string, cards: Card[]): v
       if (!myName || req.to?.toLowerCase() !== myName) continue;
       const key = `${card.id}:${req.at}`;
       if (db.prepare("select 1 from events where type='team.request' and json_extract(payload,'$.key')=?").get(key)) continue;
-      const {messageId} = createMessage(db, `${card.name} (${card.frente}): ${req.title && req.title !== req.text ? `${req.title}. ` : ''}${req.text}`, 'equipo');
+      const {messageId} = createMessage(db, `${card.name} (${card.frente}): ${req.title && !req.text.startsWith(req.title) ? `${req.title}. ` : ''}${req.text}`, 'equipo');
       appendEvent(db, 'team.request', messageId, {key, from: card.name, frente: card.frente, title: req.title, text: req.text, ...(req.taskId ? {taskId: req.taskId} : {})});
+      // T4: perdí un conflicto de binario; mi tarea vuelve a implementando sobre la versión nueva
+      const lost = req.reopen && req.taskId ? getTask(db, req.taskId) : undefined;
+      if (lost && !['done', 'implementando'].includes(lost.state)) {
+        db.prepare('update tasks set review_approved=0 where id=?').run(lost.id);
+        moveTask(db, lost.id, 'implementando', req.text);
+      }
     }
   }
   for (const [id] of known) {

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { Artifact, Run, Task } from './model.ts';
 import type { SchedulerConfig } from './config.ts';
 import { filtered, transaction } from './repo/rows.ts';
-import { moveTask, requireTask } from './repo/tasks.ts';
+import { blockTask, moveTask, requireTask } from './repo/tasks.ts';
 import { listArtifacts } from './repo/artifacts.ts';
 import { holdTask, liftHold } from './hold.ts';
 import { enqueue } from './commands.ts';
@@ -16,7 +16,11 @@ import { openDecision } from './repo/decisions.ts';
  * `approval.areas` (y los cierres de hito) quedan «Por aprobar», retenidas, hasta que él apruebe o pida cambios.
  */
 export type Approval = {id: string; taskId: string; state: 'pending' | 'approved' | 'changes'; focus: string[];
-  createdAt: string; updatedAt: string; resolvedAt: string | null};
+  createdAt: string; updatedAt: string; resolvedAt: string | null;
+  /** hito 29: conflicto en un binario con un peer; `choice` = la versión que se quedó */ conflict?: Conflict | null; choice?: 'mine' | 'theirs' | 'manual' | null};
+/** Hito 29: las dos versiones de un binario en conflicto (quién, tarea, cuándo). */
+export type ConflictSide = {who: string; frente: string; task: string; at: string; taskId?: string | null; peerId?: string | null};
+export type Conflict = {files: string[]; mine: ConflictSide; theirs: ConflictSide};
 export type ApprovalComment = {approvalId: string | null; taskId: string | null; text: string; imageId?: string; kind: 'comment' | 'changes'; at: string};
 const holdReason = 'Esperando tu aprobación';
 export const defaultAreas = ['gameplay', 'arte', 'ui', 'animacion'];
@@ -25,6 +29,8 @@ export function migrateApprovals(db: DatabaseSync): void {
   db.exec(`create table if not exists approvals(id text primary key, task_id text not null,
     state text not null check(state in ('pending','approved','changes')), focus text not null default '[]',
     created_at text not null, updated_at text not null, resolved_at text)`);
+  const columns = db.prepare('pragma table_info(approvals)').all();
+  for (const column of ['conflict', 'choice']) if (!columns.some(row => row.name === column)) db.exec(`alter table approvals add column ${column} text`);
 }
 
 /** `Aprobación: usuario|no` en la spec manda; si no, el área o el rol en `approval.areas`, o un cierre de hito. */
@@ -37,7 +43,8 @@ export function needsApproval(task: Pick<Task, 'title' | 'spec' | 'area' | 'assi
 }
 
 const decode = (row: Record<string, unknown>): Approval => ({id: row.id as string, taskId: row.task_id as string, state: row.state as Approval['state'],
-  focus: JSON.parse(row.focus as string), createdAt: row.created_at as string, updatedAt: row.updated_at as string, resolvedAt: row.resolved_at as string | null});
+  focus: JSON.parse(row.focus as string), createdAt: row.created_at as string, updatedAt: row.updated_at as string, resolvedAt: row.resolved_at as string | null,
+  conflict: row.conflict ? JSON.parse(row.conflict as string) : null, choice: (row.choice ?? null) as Approval['choice']});
 export const getApproval = (db: DatabaseSync, id: string) => { const row = db.prepare('select * from approvals where id=?').get(id); return row ? decode(row) : undefined; };
 export function requireApproval(db: DatabaseSync, id: string): Approval {
   const approval = getApproval(db, id); if (!approval) throw new Error('unknown_approval'); return approval;
@@ -80,10 +87,34 @@ function settle(db: DatabaseSync, approval: Approval, state: Approval['state']):
   return requireApproval(db, approval.id);
 }
 export const approve = (db: DatabaseSync, id: string) => transaction(db, () => {
+  if (requireApproval(db, id).conflict) throw new Error('invalid_transition');
   const done = settle(db, requireApproval(db, id), 'approved');
   appendEvent(db, 'approval.approved', null, {approvalId: id, taskId: done.taskId});
   return done;
 });
+
+/** Hito 29: conflicto en un binario; la tarea queda bloqueada y quien chocó elige versión en «Por aprobar». */
+export function requestConflict(db: DatabaseSync, taskId: string, conflict: Conflict, reason: string): Approval {
+  return transaction(db, () => {
+    const id = randomUUID(), now = new Date().toISOString();
+    db.prepare(`insert into approvals(id,task_id,state,focus,created_at,updated_at,conflict) values(?,?,'pending','[]',?,?,?)`)
+      .run(id, taskId, now, now, JSON.stringify(conflict));
+    blockTask(db, taskId, reason);
+    appendEvent(db, 'approval.requested', null, {approvalId: id, taskId, conflict: true});
+    return requireApproval(db, id);
+  });
+}
+/** «Quedarme con la mía» / «Quedarme con la suya» (o `manual`, si la persona lo resolvió a mano). La integración lo aplica. */
+export function keepVersion(db: DatabaseSync, id: string, side: unknown): Approval {
+  if (side !== 'mine' && side !== 'theirs' && side !== 'manual') throw new Error('invalid_conflict_side');
+  return transaction(db, () => {
+    const approval = requireApproval(db, id), now = new Date().toISOString();
+    if (!approval.conflict || approval.state !== 'pending') throw new Error('invalid_transition');
+    db.prepare("update approvals set state='approved',choice=?,updated_at=?,resolved_at=? where id=?").run(side, now, now, id);
+    appendEvent(db, 'approval.conflict_chosen', null, {approvalId: id, taskId: approval.taskId, side});
+    return requireApproval(db, id);
+  });
+}
 
 const title = (db: DatabaseSync, taskId: string) => requireTask(db, taskId).title;
 /** El texto literal del usuario va como corrección al mismo worker; la tarea vuelve a implementando. */

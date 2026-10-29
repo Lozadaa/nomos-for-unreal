@@ -27,6 +27,24 @@ beforeEach(() => {
 })
 
 describe('Por aprobar', () => {
+  it('hito 29: un conflicto en un mapa enseña las dos versiones y dos botones; la elección va al servicio', async () => {
+    vi.mocked(api).mockImplementation(async (path: string) => {
+      if (path !== '/approvals') return { state: 'approved', choice: 'mine' } as never
+      const f = fixture(); f.items[0] = { ...f.items[0], title: 'Arena de Richard', focus: [], conflict: { files: ['Content/Mapas/L_Arena.umap'],
+        mine: { who: 'Richard', frente: 'combate', task: 'Arena de Richard', at: '2026-10-29T16:00:00Z' },
+        theirs: { who: 'Ana', frente: 'arena', task: 'Arena de Ana', at: '2026-10-29T15:40:00Z' } } }
+      return f as never
+    })
+    mount()
+    const card = await screen.findByRole('article', { name: 'Arena de Richard' })
+    expect(within(card).getByText('Conflicto en L_Arena con Ana')).toBeInTheDocument()
+    const versions = within(card).getByRole('region', { name: 'Las dos versiones' })
+    expect(within(versions).getByText('Arena de Ana')).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Aprobar' })).toBeNull()
+    await userEvent.click(within(card).getByRole('button', { name: 'Quedarme con la mía' }))
+    expect(api).toHaveBeenCalledWith('/approvals/a1/keep', { method: 'POST', body: { side: 'mine' } })
+    expect(within(card).getByText('Te quedaste con la tuya · sigue la integración')).toBeInTheDocument()
+  })
   it('hito 25: un cierre de hito bloqueado dice que falta tu aprobación sobre la build jugable', async () => {
     vi.mocked(api).mockImplementation(async () => { const f = fixture(); f.items[0] = { ...f.items[0], title: 'Cierre J1', blocked: 'Falta tu aprobación sobre la build jugable' }; return f as never })
     mount()

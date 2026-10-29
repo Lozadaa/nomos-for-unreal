@@ -49,6 +49,9 @@ export type RunMetadata = {
   implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
   // integración (hito 6): merge hecho en el workspace y pendiente de publicar
   integration?: {base: string; commit: string; files: string[]; checked?: boolean; /** hito 29: se publica en origin */ remote?: boolean};
+  /** hito 29: conflicto binario abierto en el espacio de integración (aprobación, punta de la rama del worker, si se publica) */
+  binaryConflict?: {approvalId: string; tip: string; remote: boolean};
+  /** hito 29: me quedé con la versión del peer de estos archivos: tras integrar, la tarea vuelve a implementando */ lostConflict?: string[];
   /** hito 29: pushes de main rechazados en esta integración (3 = bloqueada «No se pudo publicar main») */ pushAttempts?: number;
   // hito 5b: contenido pesado al integrar (Decisión de Git LFS)
   lfs?: 'sin' | 'configurando' | 'listo';
