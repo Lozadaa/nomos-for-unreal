@@ -88,6 +88,9 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(config.memory!==undefined && (!object(config.memory) || Object.entries(config.memory).some(([k,v])=>k==='enabled' ? typeof v!=='boolean'
       : k!=='command' || !Array.isArray(v) || !v.length || v.some((c:unknown)=>typeof c!=='string' || !c)))) throw new Error();
     if(config.launcher!==undefined && !['auto','orca','process'].includes(config.launcher)) throw new Error();
+    // hito 29: equipo (rama nomos/equipo del remoto origin); name y frente los pone `nomos team init`
+    if(config.team!==undefined && (!object(config.team) || Object.entries(config.team).some(([k,v])=>k==='enabled' ? typeof v!=='boolean'
+      : ['name','frente','branch'].includes(k) ? typeof v!=='string' || !v.trim() : k!=='pullSeconds' || typeof v!=='number' || !(v>=10 && v<=3600)))) throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;

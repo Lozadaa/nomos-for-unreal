@@ -8,6 +8,7 @@ import { activeHolds } from './hold.ts';
 import { listDecisions } from './repo/decisions.ts';
 import { read } from './repo/rows.ts';
 import type { Task } from './model.ts';
+import { listPeers } from './team.ts';
 
 /** Hito 24: `.nomos/reanudacion.md`, lo que necesita un director nuevo para seguir sin la sesión anterior. */
 const types = 'message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed,task.moved,integration.completed,task.closing_blocked';
@@ -25,6 +26,7 @@ export function renderResume(db: DatabaseSync, dataDir: string, service: string,
   const done = Number(db.prepare("select count(*) n from tasks where state='done'").get()!.n), s = status(db);
   const title = (id: string | null) => cell(id ? read<Task>(db, 'tasks', id)?.title ?? id : null);
   // hito 25: las 5 últimas lecciones que guardaron los cierres de hito
+  const peers = listPeers(db);
   const lessons = db.prepare("select metadata from runs where json_extract(metadata,'$.lessons') is not null order by updated_at desc limit 5").all()
     .flatMap(r => JSON.parse(r.metadata as string).lessons as string[]).slice(0, 5);
   return [`# Reanudación de Nomos`, '', `Generado ${now.toISOString()} por Nomos; no lo edites a mano.`, '',
@@ -34,6 +36,9 @@ export function renderResume(db: DatabaseSync, dataDir: string, service: string,
     ...(tasks.length > 15 ? [`| … | ${tasks.length - 15} más en el panel | |`] : []), '',
     '## Decisiones abiertas', '', ...table('| Tarea | Pregunta |', listDecisions(db, 'open').slice(0, 5).map(d => `| ${title(d.taskId)} | ${cell(d.reason)} |`), 'Ninguna.'), '',
     '## Holds', '', ...table('| Tarea | Espera |', activeHolds(db).slice(0, 5).map(h => `| ${cell(h.title)} | ${cell(h.text)} |`), 'Ninguno.'), '',
+    // hito 29: los otros Nomos del equipo (lo último que se vio de la rama nomos/equipo)
+    ...(peers.length ? ['## Equipo', '', ...table('| Persona | Frente | Presente | En curso | Reservas | Build |', peers.map(p => `| ${cell(p.name)} | ${cell(p.frente)} | ${p.present ? 'sí' : 'no'} | `
+      + `${p.tasks.filter(t => !['pendiente', 'preparada'].includes(t.state)).length} | ${cell(p.leases.map(l => l.path.split('/').at(-1)).join(', '))} | ${cell(p.build?.commit.slice(0, 7))} |`), ''), ''] : []),
     '## Lecciones', '', ...(lessons.length ? lessons.map(l => `- ${l.replace(/\s+/g, ' ')}`) : ['Sin lecciones todavía: llegan con cada cierre de hito.']), '',
     '## Rearmar el vigilante', '', 'Arranca con `/nomos` y arma Monitor (30 min) con:', '',
     '```', `nomos vigila --session ${s.director ?? '<sesion>'} --data "${dataDir}" --types ${types}`, '```', ''].join('\n');

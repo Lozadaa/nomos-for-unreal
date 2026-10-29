@@ -8,7 +8,7 @@ import { useAuthedSrc } from '@/hooks/artifact'
 import { humanError } from '@/lib/errors'
 import { Markdown } from '@/lib/markdown'
 import { viewerName } from '@/lib/deliveries'
-import { stateText, type ApprovalComment, type ApprovalItem } from '@/lib/approvals'
+import { assetName, choiceText, stateText, type ApprovalComment, type ApprovalItem, type ConflictSide } from '@/lib/approvals'
 import type { Artifact } from '@/lib/tasks'
 import { Comments, NoteField } from './ApprovalNote'
 
@@ -27,6 +27,16 @@ function Thumb({ a, onOpen }: { a: Artifact; onOpen: (el: HTMLElement) => void }
   return <li className="aspect-video w-60 shrink-0 overflow-hidden rounded-md border border-subtle bg-card">
     <ViewerButton name={name} onOpen={onOpen}>{src && <img src={src} alt={name} width={320} height={180} loading="lazy" className="size-full object-cover" />}</ViewerButton>
   </li>
+}
+
+/** Una de las dos versiones de un conflicto: quién, en qué frente, qué tarea y cuándo. */
+function Side({ title, side }: { title: string; side: ConflictSide }) {
+  return <div className="flex flex-col gap-1 rounded-md border border-subtle p-3 text-sm">
+    <h4 className={label}>{title}</h4>
+    <p className="font-medium">{side.who}{side.frente && <span className="text-muted-foreground"> · {side.frente}</span>}</p>
+    <p>{side.task}</p>
+    <p className="text-xs text-muted-foreground">{new Date(side.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
+  </div>
 }
 
 type Mode = 'idle' | 'changes'
@@ -52,18 +62,28 @@ export function ApprovalCard({ item, open, patch }: {
   const comment = useAction(() => api(`${base}/comment`, { method: 'POST', body: body() }), {
     optimistic: () => { take(); const undo = patch({ comments: [...item.comments, note('comment')] }); return () => { undo(); restore() } },
   })
-  const failed = approve.error ?? changes.error ?? comment.error
+  // hito 29: conflicto en un binario con otra persona; quien chocó elige versión y Nomos la aplica en Git
+  const keepAs = (side: 'mine' | 'theirs') => [() => api(`${base}/keep`, { method: 'POST', body: { side } }),
+    { optimistic: () => patch({ state: 'approved', choice: side }) }] as const
+  const mine = useAction(...keepAs('mine')), theirs = useAction(...keepAs('theirs')), keeping = mine.pending || theirs.pending
+  const failed = approve.error ?? changes.error ?? comment.error ?? mine.error ?? theirs.error
   const videos = item.evidence.filter((a) => a.kind === 'video'), images = item.evidence.filter((a) => a.kind !== 'video')
-  const pending = item.state === 'pending'
+  const pending = item.state === 'pending', conflict = item.conflict
+  const status = conflict ? (pending ? 'Conflicto: elige con qué versión te quedas' : choiceText[item.choice ?? 'manual']) : stateText[item.state]
 
   return (
     <article aria-label={item.title} data-approval className="flex flex-col gap-4 rounded-lg border border-subtle p-6">
       <header className="flex flex-col gap-1">
         <h3 className="text-lg font-semibold">{item.title}</h3>
         {item.summary && <Markdown clamp className="text-sm text-muted-foreground" text={item.summary} />}
-        <span role="status" className="flex items-center gap-2 text-xs"><StatusDot tone={pending ? 'warning' : item.state === 'approved' ? 'success' : 'neutral'} />{stateText[item.state]}</span>
+        <span role="status" className="flex items-center gap-2 text-xs"><StatusDot tone={pending ? 'warning' : item.state === 'approved' ? 'success' : 'neutral'} />{status}</span>
         {pending && item.blocked && <p className="text-sm font-medium text-warning">{item.blocked}</p>}
+        {conflict && <p className="text-sm font-medium text-warning">Conflicto en {conflict.files.map(assetName).join(', ')} con {conflict.theirs.who}</p>}
       </header>
+      {conflict && <section aria-label="Las dos versiones" className="grid gap-3 sm:grid-cols-2">
+        <Side title="La tuya" side={conflict.mine} />
+        <Side title="La suya" side={conflict.theirs} />
+      </section>}
       {/* para juzgar un golpe hay que verlo grande: cada vídeo a todo el ancho útil (máx. 1280 px); las imágenes, debajo en tira */}
       {videos.length > 0 && <div className="flex flex-col gap-3">{videos.map((a) => <Video key={a.id} a={a} />)}</div>}
       {images.length > 0 && <ul aria-label="Imágenes" className="flex gap-3 overflow-x-auto pb-1">
@@ -78,8 +98,12 @@ export function ApprovalCard({ item, open, patch }: {
         placeholder={mode === 'changes' ? 'Qué debería cambiar (obligatorio)…' : 'Tu opinión; puedes pegar una imagen…'}
         onSubmit={() => void (mode === 'changes' ? changes.fire() : comment.fire())} />
       <div className="flex flex-wrap items-center gap-2">
-        {pending && mode === 'idle' && <Button size="sm" disabled={approve.pending} aria-busy={approve.pending} onClick={() => void approve.fire()}>Aprobar</Button>}
-        {pending && mode === 'idle' && <Button size="sm" variant="outline" onClick={() => setMode('changes')}>Pedir cambios</Button>}
+        {pending && conflict && <>
+          <Button size="sm" disabled={keeping} onClick={() => void mine.fire()}>Quedarme con la mía</Button>
+          <Button size="sm" variant="outline" disabled={keeping} onClick={() => void theirs.fire()}>Quedarme con la suya</Button>
+        </>}
+        {pending && !conflict && mode === 'idle' && <Button size="sm" disabled={approve.pending} aria-busy={approve.pending} onClick={() => void approve.fire()}>Aprobar</Button>}
+        {pending && !conflict && mode === 'idle' && <Button size="sm" variant="outline" onClick={() => setMode('changes')}>Pedir cambios</Button>}
         {pending && mode === 'changes' && <>
           <Button size="sm" disabled={!text.trim() || changes.pending} onClick={() => void changes.fire()}>Enviar los cambios</Button>
           <Button size="sm" variant="ghost" onClick={() => setMode('idle')}>Cancelar</Button>

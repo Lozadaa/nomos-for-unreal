@@ -24,6 +24,11 @@ comandos se ejecutan desde el juego con `--data .nomos`. Si el juego trae Nomos 
    Después `nomos skills install --data .nomos` copia las skills de UI al juego; si
    avisa de cambios locales, se conservan y lo dices en una línea.
    Invocar la skill por sí solo no crea tareas ni arranca workers.
+   **Equipo** ([equipo](references/equipo.md)): `nomos team status --data .nomos`. Si `enabled`, sigue. Si
+   `shared` (la rama `nomos/equipo` ya existe), no preguntes si es compartido: di quién está («Están Richard (combate)
+   y Ana (UI)») y pide nombre y frente. Si no, en un juego nuevo pregunta «¿Este proyecto es compartido con otras
+   personas?»; con «sí», pide nombre y frente. Después `nomos team init --name '<nombre>' --frente '<frente>' --data .nomos`:
+   unirse no pide permiso a nadie; si devuelve `aviso` (frente ya tomado), dilo en una línea y sigue.
 2. El comando abre el navegador. Muestra la URL en `show_pane preview` si existe.
    Reiniciar no invalida los accesos directos (token por carpeta; `--new-token` lo cambia). Un servicio por juego: [panel por proyecto](references/contrato-eventos.md#panel-por-proyecto).
 3. Consulta `nomos status --data .nomos`. Si otra sesión tiene vigilante vivo,
@@ -126,6 +131,8 @@ Modelo Claude por rol (`sonnet`, `opus` o `haiku`; el run lo guarda en `metadata
 | `qa` | `sonnet` | QA visual tras `ui.cycle` |
 | `integrador`, `animacion` | `sonnet` | integración y animación |
 
+En equipo, todo `.umap` y `.uasset` que la tarea vaya a tocar va en `--leases` (sin reserva no se toca un mapa
+ni un Blueprint); un título parecido al de una tarea abierta de un peer abre una Decisión. Ver [equipo](references/equipo.md).
 Con dos tareas sobre el mismo asset, solo una arranca; la otra queda `preparada` con
 `waitReason` «Esperando reserva…» hasta que la primera termine: no la fuerces ni
 subas `attempt`. Cupos en `concurrency`; un Unreal pesado a la vez y RAM libre: [máquina](references/maquina.md). OpenCode es el
@@ -219,7 +226,7 @@ ese archivo ni el token al chat. El servicio solo escucha en `127.0.0.1` y sus r
 
 - [Contrato de eventos y recuperación](references/contrato-eventos.md).
 - [Assets: política, niveles de Fab y Meshy](references/assets.md); [personajes y animación](references/personajes.md).
-- [Ciclo, especificación y Decisiones](references/ciclo-tarea.md).
+- [Ciclo, especificación y Decisiones](references/ciclo-tarea.md); [equipo: varios Nomos sobre el mismo juego](references/equipo.md).
 - [Plantilla del brief del worker](references/brief-worker.md), [del revisor](references/brief-revisor.md)
   y [del QA visual](references/brief-qa-visual.md).
 - [Ciclo UMG](references/ui-ciclo.md), [evidencia](references/evidencia.md), [cierre](references/cierre.md) y [modo jam](references/jam.md).

@@ -14,6 +14,7 @@ export type Task = Entity & {
   attribution: Attribution; archivePath: string | null;
   /** hito 13: mayor arranca antes; empate por fecha de creación */ priority: number;
   /** hito 21: espera deliberada del director (`nomos task hold`) */ hold: Hold | null;
+  /** hito 29: id de equipo de quien la creó (solo con equipo); nadie más la mueve */ owner?: string | null;
 };
 export type Hold = {reason: string; at: string; sinceSeq: number; until?: string; untilEvent?: string};
 /** Quién hizo qué en la tarea (hito 6): implemento, reviso, genero, integro, verifico. */
@@ -47,7 +48,11 @@ export type RunMetadata = {
   // pruebas (hito 5): run implementador cuyo diff se prueba
   implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
   // integración (hito 6): merge hecho en el workspace y pendiente de publicar
-  integration?: {base: string; commit: string; files: string[]; checked?: boolean};
+  integration?: {base: string; commit: string; files: string[]; checked?: boolean; /** hito 29: se publica en origin */ remote?: boolean};
+  /** hito 29: conflicto binario abierto en el espacio de integración (aprobación, punta de la rama del worker, si se publica) */
+  binaryConflict?: {approvalId: string; tip: string; remote: boolean};
+  /** hito 29: me quedé con la versión del peer de estos archivos: tras integrar, la tarea vuelve a implementando */ lostConflict?: string[];
+  /** hito 29: pushes de main rechazados en esta integración (3 = bloqueada «No se pudo publicar main») */ pushAttempts?: number;
   // hito 5b: contenido pesado al integrar (Decisión de Git LFS)
   lfs?: 'sin' | 'configurando' | 'listo';
   continuationOf?: string; busyAttempts?: number;

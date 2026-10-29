@@ -8,7 +8,15 @@ export interface ApprovalItem {
   title: string; area: string; summary: string; evidence: Artifact[]; comments: ApprovalComment[]
   /** Hito 25: el cierre de hito no cierra sin tu «Aprobar» sobre la build jugable. */
   blocked?: string | null
+  /** Hito 29: conflicto en un mapa o asset con otra persona del equipo; `choice` = la versión que se quedó. */
+  conflict?: Conflict | null; choice?: 'mine' | 'theirs' | 'manual' | null
 }
+export interface ConflictSide { who: string; frente: string; task: string; at: string }
+export interface Conflict { files: string[]; mine: ConflictSide; theirs: ConflictSide }
+/** «L_Arena» de `Content/Mapas/L_Arena.umap`. */
+export const assetName = (path: string) => path.split('/').pop()!.replace(/\.(umap|uasset)$/i, '')
+export const choiceText = { mine: 'Te quedaste con la tuya · sigue la integración', theirs: 'Te quedaste con la suya · tu tarea se rehace sobre ella',
+  manual: 'Resuelto a mano · sigue la integración' } as const
 export interface Approvals { pending: number; items: ApprovalItem[]; general: ApprovalComment[] }
 
 export const stateText: Record<ApprovalItem['state'], string> = {

@@ -9,6 +9,8 @@ import type { Run } from '../model.ts';
 import { resumeWorkerStart } from './worker-resume.ts';
 import { reconcileStates } from '../handlers/reconcile.ts';
 import { nextAttempt } from '../scheduler-state.ts';
+import { similarPeerTask, teamConfig } from '../team.ts';
+import { openDecision } from '../repo/decisions.ts';
 
 export function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(text);
@@ -31,7 +33,7 @@ function currentAttempt(db: Context['db'],taskId:string):number {
     and json_extract(metadata,'$.startCommandId')=?`).get(taskId,last.id);
   return ended ? nextAttempt(db,taskId) : Number(last.attempt ?? 1);
 }
-export async function taskWorker({db,req,res,url}: Context): Promise<boolean> {
+export async function taskWorker({db,req,res,url,dataDir}: Context): Promise<boolean> {
   const match=/^\/tasks\/([^/]+)\/(spec|worker|reconcile)$/.exec(url.pathname);
   if (req.method!=='POST' || !match) return false;
   const taskId=id(match[1]);requireTask(db,taskId);
@@ -54,7 +56,14 @@ export async function taskWorker({db,req,res,url}: Context): Promise<boolean> {
         throw new Error('invalid_transition');
       db.prepare('update tasks set review_approved=0,spec=?,acceptance=?,area=?,scope=? where id=?')
         .run(spec.spec,JSON.stringify(spec.acceptance),spec.area,JSON.stringify(spec.scope),task.id);
-      return moveTask(db,task.id,'preparada');
+      moveTask(db,task.id,'preparada');
+      // hito 29: título muy parecido al de una tarea abierta de un peer → Decisión (una vez; al final, para no caducarla)
+      const twin=dataDir && teamConfig(dataDir) ? similarPeerTask(db,task.title) : null;
+      const reason=twin ? `${twin.name} ya tiene “${twin.title}”: ¿duplicar o pedírsela?` : '';
+      if(twin && !db.prepare("select 1 from decisions where task_id=? and reason=? and state!='stale'").get(task.id,reason)) openDecision(db,{taskId:task.id,reason,options:[
+        {id:'duplicar',label:'Duplicar',description:`Seguir con esta tarea aunque ${twin.name} tenga una parecida`},
+        {id:'pedir',label:'Pedírsela',description:`No arrancar esta; pedírsela a ${twin.name} con nomos team ask`}]});
+      return requireTask(db,task.id);
     });
     json(res,200,prepared);return true;
   }

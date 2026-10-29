@@ -10,8 +10,9 @@ import type { WorkerContext } from '../runner.ts';
 import { taskFailures } from '../failure-kind.ts';
 import { linkedMessage } from '../chat.ts';
 import { holdTask, withHold } from '../hold.ts';
+import { identity, teamConfig } from '../team.ts';
 
-export async function tasks({db, req, res, url}: Context): Promise<boolean> {
+export async function tasks({db, req, res, url, dataDir}: Context): Promise<boolean> {
   const checks = /^\/tasks\/([^/]+)\/checks$/.exec(url.pathname);
   if (req.method === 'POST' && checks) {
     const task = requireTask(db, id(checks[1])), data = await body(req);
@@ -75,13 +76,17 @@ export async function tasks({db, req, res, url}: Context): Promise<boolean> {
     || data.assigneeProvider!==undefined && !['codex','claude','opencode'].includes(data.assigneeProvider as string))
     throw new Error('invalid_worker_payload');
   if (data.priority !== undefined && !Number.isSafeInteger(data.priority)) throw new Error('invalid_priority');
-  json(res, 201, createTask(db, {
+  // hito 29: en equipo la tarea lleva su dueño (el título parecido a uno de un peer se pregunta al prepararla, en /spec)
+  const team = dataDir ? teamConfig(dataDir) : null;
+  const task = createTask(db, {
     title: data.title, spec: data.spec, area: area!, acceptance: data.acceptance,
     assigneeRole: data.assigneeRole as string | undefined ?? null,
     assigneeProvider: data.assigneeProvider as string | undefined ?? null,
     scope: data.scope === undefined ? [] : normalizedPaths(data.scope),
     leases: data.leases === undefined ? [] : normalizedPaths(data.leases),
-    ...(data.priority === undefined ? {} : {priority: data.priority as number})
-  }, linkedMessage(db, data.messageId)));
+    ...(data.priority === undefined ? {} : {priority: data.priority as number}),
+    ...(team ? {owner: identity(dataDir!).id} : {})
+  }, linkedMessage(db, data.messageId));
+  json(res, 201, task);
   return true;
 }
