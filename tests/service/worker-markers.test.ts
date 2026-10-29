@@ -83,3 +83,21 @@ test('hito 5b: NOMOS_REVIEW partido a mitad de clave por llenar el ancho del ter
   assert.deepEqual(screenMarkers(frame), [{kind: 'REVIEW', approved: false,
     findings: [{file: 'A.uasset', line: 1, severity: 'high', note: 'Borra MM_Attack_01 y AM_ComboAttack lo referencia.'}]}]);
 });
+
+test('hito 26: el estado a la derecha de Claude Code («No changes this session») no rompe NOMOS_SKILLS ni se traga el NOMOS_DONE de debajo', () => {
+  // pantalla real del ensayo del hito 26 (Claude Code 2.1.312, KratosFabTest)
+  const frame = [
+    "● NOMOS_SKILLS [\"ue-project-context\",\"ue-cpp-foundations\",\"ue-gameplay-framework\",\"ue-module-build-system\"]                                                                               No changes this session",
+    "  Añadí UE_LOG(LogTemp, Log, TEXT(\"KratosRaqueta: lista para jugar\")) en AKratosRaqueta::BeginPlay, justo después de Super::BeginPlay(). El commit",
+    "  aee691a toca solo KratosRaqueta.cpp, con una línea nueva. No compilé ni abrí Unreal, así que no pedí turno.",
+    "  Como prueba usé un grep del texto del log: antes del cambio daba 0 coincidencias y después da 1. Con una sola línea de log no había una prueba de",
+    "  Unreal razonable.",
+    "  NOMOS_DONE {\"summary\":\"La raqueta escribe «KratosRaqueta: lista para jugar» en el log al empezar la",
+    "  partida.\",\"commits\":[\"aee691a\"],\"tests\":\"none\",\"focus\":\"Abre el juego y busca «KratosRaqueta: lista para jugar» en el Output Log, justo al empezar.",
+    "  Debe salir una sola vez por cada raqueta en el nivel, antes del mensaje de malla cargada.\"}",
+    "✻ Worked for 42s · done 12:09 PM"
+  ];
+  assert.deepEqual(screenMarkers(frame), [
+    {kind: 'SKILLS', skills: ['ue-project-context', 'ue-cpp-foundations', 'ue-gameplay-framework', 'ue-module-build-system']},
+    {kind: 'DONE', summary: 'La raqueta escribe «KratosRaqueta: lista para jugar» en el log al empezar la partida.', commits: ['aee691a'], tests: 'none'}]);
+});
