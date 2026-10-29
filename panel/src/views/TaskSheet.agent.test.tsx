@@ -77,3 +77,21 @@ describe('TaskSheet · identidad de agentes compartida con Producción', () => {
     expect(within(dialog).getByRole('img', { name: 'UI Worker · Codex' })).toHaveAttribute('data-state', 'idle')
   })
 })
+
+describe('TaskSheet · spec por secciones (hito 23)', () => {
+  it('Qué y Criterios abiertos; Por qué, Alcance y No tocar plegados con su recuento de líneas', async () => {
+    const spec = '# Golpe\n## Qué\nEl rival cae al suelo.\n## Por qué\nPara sentir el golpe.\n## Criterios de aceptación\n1. Cae en < 0,5 s\n2. Suena el golpe\n## Alcance\n- Source/\n- Config/\n## No tocar\n- Content/'
+    serve([], { ...task, spec, acceptance: ['Cae en < 0,5 s', 'Suena el golpe'] })
+    render(<TaskSheet id={task.id} task={{ ...task, spec }} onClose={() => {}} />)
+    const dialog = screen.getByRole('dialog')
+    const part = async (name: string) => (await within(dialog).findByText(name, { selector: 'summary span' })).closest('details')!
+    expect((await part('Qué')).open).toBe(true)
+    expect((await part('Criterios de aceptación')).open).toBe(true)
+    for (const [name, count] of [['Por qué', '1 línea'], ['Alcance', '2 líneas'], ['No tocar', '1 línea']]) {
+      const details = await part(name)
+      expect(details.open).toBe(false)
+      expect(details.querySelector('summary')).toHaveTextContent(count)
+    }
+    expect(within(dialog).getAllByText('Cae en < 0,5 s')).toHaveLength(1)
+  })
+})

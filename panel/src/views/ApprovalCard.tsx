@@ -6,6 +6,7 @@ import { StatusDot } from '@/components/StatusDot'
 import { useAction } from '@/feel/useAction'
 import { useAuthedSrc } from '@/hooks/artifact'
 import { humanError } from '@/lib/errors'
+import { Markdown } from '@/lib/markdown'
 import { viewerName } from '@/lib/deliveries'
 import { stateText, type ApprovalComment, type ApprovalItem } from '@/lib/approvals'
 import type { Artifact } from '@/lib/tasks'
@@ -59,7 +60,7 @@ export function ApprovalCard({ item, open, patch }: {
     <article aria-label={item.title} data-approval className="flex flex-col gap-4 rounded-lg border border-subtle p-6">
       <header className="flex flex-col gap-1">
         <h3 className="text-lg font-semibold">{item.title}</h3>
-        {item.summary && <p className="text-sm text-muted-foreground">{item.summary}</p>}
+        {item.summary && <Markdown clamp className="text-sm text-muted-foreground" text={item.summary} />}
         <span role="status" className="flex items-center gap-2 text-xs"><StatusDot tone={pending ? 'warning' : item.state === 'approved' ? 'success' : 'neutral'} />{stateText[item.state]}</span>
       </header>
       {/* para juzgar un golpe hay que verlo grande: cada vídeo a todo el ancho útil (máx. 1280 px); las imágenes, debajo en tira */}

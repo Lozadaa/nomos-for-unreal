@@ -30,7 +30,7 @@ export function Bubble({ text, at, from, fresh, taskTitle, children }: {
         {from === 'nomos' ? <><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} /><span>{BRAND.short}</span></> : <span>Tú</span>}
         {at && <time dateTime={at} title={relativeTime(at)}>{relativeTime(at).replace(/^hace /, '')}</time>}
       </span>
-      <Markdown text={text} taskTitle={taskTitle} className={cn('max-w-[85%] min-w-0 rounded-lg border px-3 py-2 text-sm', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')} />
+      <Markdown clamp text={text} taskTitle={taskTitle} className={cn('max-w-[85%] min-w-0 rounded-lg border px-3 py-2 text-sm', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')} />
       {children}
     </li>
   )
