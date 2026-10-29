@@ -14,6 +14,7 @@ import { storedPath } from '../data-paths.ts';
 import { targetBranch } from '../integration/workspace.ts';
 import { commandRun } from './asset-run.ts';
 import { writeResume } from '../resume.ts';
+import { isClosingTask, noPlayableApproval, playableApproved, requestApproval } from '../approvals.ts';
 
 export type FinalizeDeps = {writer?: ArchiveWriter; busyDelayMs?: number};
 const options = [
@@ -71,6 +72,8 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
     };
     try {
       await verify(ctx, task, tree);
+      // hito 25: un cierre de hito necesita que el usuario apruebe la build jugable; se le pide en «Por aprobar»
+      if (isClosingTask(task) && !playableApproved(ctx.db, ctx.dataDir, task.id)) { requestApproval(ctx.db, task); throw new Blocked('approval', noPlayableApproval); }
       // todos los worktrees temporales de la tarea: el del responsable y los de revisión («Descartar» los fuerza todos)
       const trees = filtered<Worktree>(ctx.db, 'worktrees', {taskId: task.id}).filter(t => t.state !== 'closed');
       // cambios sin registrar: se comprueba antes de cerrar terminales, para que el responsable aún pueda commitearlos

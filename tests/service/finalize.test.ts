@@ -139,3 +139,28 @@ test('Orca: terminalClose usa la CLI y un terminal cerrado está muerto', async 
   assert.equal(await orca.terminalAlive('term_fake'), false);
   assert.deepEqual(calls[1].command, ['terminal', 'close', '--terminal', 'term_fake', '--json']);
 });
+
+test('hito 25: un cierre de hito no pasa a done sin build estampada y «Aprobar» del usuario posterior a su último commit y a la build', async () => {
+  const {approve, pendingApproval} = await import('../../service/src/approvals.ts');
+  const {writeBuildInfo} = await import('../../service/src/build-info.ts');
+  const {mkdirSync} = await import('node:fs');
+  const f = integrationFixture();
+  try {
+    withOrca(f); const a = await closing(f, 'jugable');
+    f.db.prepare('update tasks set title=? where id=?').run('Cierre J1: build jugable', a.task.id);
+    const blockedWith = async () => { const r = await finalize(f, a.task.id, {}, `fin-${Math.random()}`); return [r.closed, r.reason, getTask(f.db, a.task.id)!.state]; };
+    assert.deepEqual(await blockedWith(), [false, 'Falta tu aprobación sobre la build jugable', 'cerrando']);
+    assert.equal(f.events('task.closing_blocked').at(-1)!.condition, 'approval');
+    const first = pendingApproval(f.db, a.task.id)!; assert.ok(first, 'el panel lo enseña en «Por aprobar»');
+    const {listApprovals} = await import('../../service/src/approvals.ts');
+    assert.equal(listApprovals(f.db).items[0].blocked, 'Falta tu aprobación sobre la build jugable');
+    approve(f.db, first.id);
+    assert.deepEqual(await blockedWith(), [false, 'Falta tu aprobación sobre la build jugable', 'cerrando'], 'aprobado, pero sin build estampada');
+    const dir = join(f.repo.dir, 'Build', 'Windows-actual'); mkdirSync(dir, {recursive: true});
+    writeFileSync(join(dir, 'Juego.exe'), 'exe');
+    writeBuildInfo(dir, {commit: f.repo.git(f.repo.dir, 'rev-parse', 'HEAD'), branch: 'master', builtAt: new Date().toISOString(), task: null, run: null});
+    assert.deepEqual(await blockedWith(), [false, 'Falta tu aprobación sobre la build jugable', 'cerrando'], 'la aprobación es anterior a la build');
+    approve(f.db, pendingApproval(f.db, a.task.id)!.id);
+    assert.deepEqual((await blockedWith()).slice(0, 1).concat(getTask(f.db, a.task.id)!.state), [true, 'done']);
+  } finally { f.close(); }
+});

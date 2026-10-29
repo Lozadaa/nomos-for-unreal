@@ -8,6 +8,8 @@ import { listArtifacts } from './repo/artifacts.ts';
 import { holdTask, liftHold } from './hold.ts';
 import { enqueue } from './commands.ts';
 import { appendEvent, createMessage } from './store.ts';
+import { latestBuild } from './play.ts';
+import { openDecision } from './repo/decisions.ts';
 
 /**
  * Hito 22, Tarea 4: el usuario aprueba lo que se ve y se juega. Tras la revisión de IA aprobada, las tareas de
@@ -29,7 +31,7 @@ export function migrateApprovals(db: DatabaseSync): void {
 export function needsApproval(task: Pick<Task, 'title' | 'spec' | 'area' | 'assigneeRole'>, config: SchedulerConfig): boolean {
   const declared = /^\s*aprobaci[oó]n\s*:\s*(usuario|no)\b/im.exec(task.spec ?? '');
   if (declared) return declared[1].toLowerCase() === 'usuario';
-  if (/cierre de hito/i.test(task.title)) return true;
+  if (/cierre de hito/i.test(task.title) || isClosingTask(task)) return true;
   const areas = (config as {approval?: {areas?: string[]}}).approval?.areas ?? defaultAreas;
   return areas.includes(task.area) || areas.includes(task.assigneeRole ?? '');
 }
@@ -129,8 +131,33 @@ export function listApprovals(db: DatabaseSync) {
     const task = requireTask(db, a.taskId), visual = (x: Artifact) => x.kind === 'video' || x.kind === 'screenshot';
     const evidence = listArtifacts(db, {taskId: a.taskId}).filter(visual)
       .toSorted((x, y) => Number(y.kind === 'video') - Number(x.kind === 'video') || y.createdAt.localeCompare(x.createdAt));
-    return {...a, title: task.title, area: task.area, summary: summaryOf(task.spec), evidence, comments: notes.filter(c => c.approvalId === a.id)};
+    return {...a, title: task.title, area: task.area, summary: summaryOf(task.spec), evidence, comments: notes.filter(c => c.approvalId === a.id),
+      blocked: task.waitReason === noPlayableApproval ? noPlayableApproval : null};
   });
   return {pending: all.filter(a => a.state === 'pending').length, items, general: notes.filter(c => !c.approvalId)};
 }
 export const pendingCount = (db: DatabaseSync) => Number(db.prepare("select count(*) n from approvals where state='pending'").get()!.n);
+
+/** Hito 25: tarea de cierre de hito, por rol o por título. */
+export const isClosingTask = (task: Pick<Task, 'title' | 'assigneeRole'>) => task.assigneeRole === 'cierre' || /^\s*cierre/i.test(task.title);
+export const noPlayableApproval = 'Falta tu aprobación sobre la build jugable';
+/** Build estampada y un «Aprobar» del usuario posterior al último commit del responsable y a esa build. */
+export function playableApproved(db: DatabaseSync, dataDir: string, taskId: string): boolean {
+  const approved = db.prepare(`select seq,created_at at from events where type='approval.approved' and json_extract(payload,'$.taskId')=?
+    order by seq desc limit 1`).get(taskId), run = implementer(db, taskId), build = latestBuild(dataDir, db).build;
+  const finished = run ? db.prepare(`select max(seq) seq from events where type='run.finished' and json_extract(payload,'$.runId')=?`).get(run.id)?.seq : 0;
+  return !!approved && !!build?.origin && Number(approved.seq) > Number(finished ?? 0) && Date.parse(approved.at as string) >= Date.parse(build.builtAt);
+}
+
+const noBuild = 'Hoy no hay build jugable aprobada';
+/** Hito 25: en jam, un cierre de hito con más de 24 h sin aprobar (ni pregunta ya hecha) abre la Decisión de recortar. */
+export function jamSweep(db: DatabaseSync, config: SchedulerConfig, now = Date.now()): void {
+  if (!(config as {jam?: {enabled?: unknown}}).jam?.enabled) return;
+  for (const task of filtered<Task>(db, 'tasks').filter(t => t.state !== 'done' && isClosingTask(t))) {
+    const last = db.prepare(`select max(at) at from (select created_at at from events where type='approval.approved' and json_extract(payload,'$.taskId')=?
+      union all select created_at from decisions where task_id=? and reason=?)`).get(task.id, task.id, noBuild)!.at as string | null;
+    if (now - Date.parse(last ?? task.createdAt) > 24 * 3_600_000) openDecision(db, {taskId: task.id, reason: noBuild, options: [
+      {id: 'recortar', label: 'Recortar', description: 'Aplica el siguiente recorte de «Recortes si falta tiempo» en docs/plan-jam.md'},
+      {id: 'seguir', label: 'Seguir', description: 'Sigue sin recortar; se vuelve a preguntar tras otras 24 h sin aprobación'}]});
+  }
+}

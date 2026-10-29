@@ -70,3 +70,20 @@ test('Por aprobar enseña vídeo e imágenes por elemento; comentar y aprobar re
     return [item?.state, item?.comments.length]
   }).toEqual(['approved', 1])
 })
+
+test('hito 25: un cierre de hito bloqueado sale en Por aprobar con su build y el motivo', async ({ page, browserName }) => {
+  const title = browserName === 'chromium' ? 'Cierre J1 · Arena jugable' : 'Cierre J2 · Arena jugable'
+  const task = await (await call(page, '/tasks', { title, area: 'qa', acceptance: ['Se juega una ronda entera'],
+    spec: '## Qué\nBuild del día 1: la mecánica en bruto en la arena.\n\n## Por qué\nAlgo jugable cada día.' })).json() as { id: string }
+  evidence(task.id)
+  expect((await call(page, `/tasks/${task.id}/approval`, {})).status()).toBe(201)
+  // lo que deja el cierre al bloquearse (task.closing_blocked «approval»)
+  const db = new DatabaseSync(join(process.env.NOMOS_DATA!, 'nomos.db'))
+  try { db.prepare('update tasks set wait_reason=? where id=?').run('Falta tu aprobación sobre la build jugable', task.id) } finally { db.close() }
+  await page.goto(url().replace('/#', '/aprobar#'))
+  const card = page.getByRole('article', { name: title })
+  await expect(card.getByText('Falta tu aprobación sobre la build jugable')).toBeVisible()
+  await expect(card.locator('video')).toHaveAttribute('controls', '')
+  await expect(card.getByRole('button', { name: 'Aprobar' })).toBeVisible()
+  if (browserName === 'chromium') { await card.scrollIntoViewIfNeeded(); mkdirSync('../docs/capturas-25', { recursive: true }); await page.screenshot({ path: '../docs/capturas-25/cierre-bloqueado-1366.png' }) }
+})
