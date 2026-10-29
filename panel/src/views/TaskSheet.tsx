@@ -10,6 +10,7 @@ import { nameFor } from '@/feel/transitions'
 import { useAfter } from '@/hooks/time'
 import { relativeTime } from '@/lib/time'
 import { Markdown } from '@/lib/markdown'
+import { cn } from '@/lib/utils'
 import { areaLabel, providerLabel, shortId, stageLabel, statusOf, statusText, toneOf, type Task, type TaskDetail } from '@/lib/tasks'
 import { useStore } from '@/store'
 import { Glyph } from '@/visual/Glyph'
@@ -137,11 +138,18 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
 }
 
 const label = 'text-xs font-medium tracking-wider text-muted-foreground uppercase'
+const openSections = ['Qué', 'Criterios de aceptación']
+/** Las secciones `## ` de la spec (hito 23); null si no las tiene. ponytail: no salta `## ` dentro de bloques de código. */
+const specSections = (spec: string) => {
+  const parts = spec.split(/^## (.+)$/m)
+  return parts.length < 3 ? null : parts.slice(1).flatMap((p, i) => i % 2 ? [] : [{ title: p.trim(), body: parts[i + 2].trim() }])
+}
 
 function Summary({ detail, task, agentsByRunId, onStale }: {
   detail: TaskDetail; task: Task; agentsByRunId: ReadonlyMap<string, AgentIdentity>; onStale: () => void
 }) {
   const waiting = useStore((s) => s.waiting[task.id])
+  const sections = specSections(task.spec)
   return (
     <div className="flex flex-col gap-6">
       {detail.decision?.state === 'open' && <DecisionCard decision={detail.decision} task={task} onStale={onStale} />}
@@ -150,11 +158,20 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
           Elegiste {detail.decision.options.find((o) => o.id === detail.decision!.chosenOptionId)?.label ?? 'una opción'}. Se registró tu elección.
         </p>
       )}
-      <section className="flex flex-col gap-2">
+      {sections ? <div className="flex flex-col gap-2">{sections.map(({ title, body }) => {
+        const lines = body.split('\n').filter((l) => l.trim()).length
+        return (
+          <details key={title} open={openSections.includes(title)} className="group flex flex-col gap-2">
+            <summary className={cn(label, 'cursor-pointer')}><span>{title}</span>
+              <span className="normal-case group-open:hidden"> · {lines} {lines === 1 ? 'línea' : 'líneas'}</span></summary>
+            <Markdown clamp className="mt-2 text-sm" text={body} />
+          </details>
+        )
+      })}</div> : <section className="flex flex-col gap-2">
         <h3 className={label}>Qué se pide</h3>
-        <Markdown className="text-sm" text={task.spec || 'Esta tarea no tiene descripción.'} />
-      </section>
-      {task.acceptance.length > 0 && (
+        <Markdown clamp className="text-sm" text={task.spec || 'Esta tarea no tiene descripción.'} />
+      </section>}
+      {!sections && task.acceptance.length > 0 && (
         <section className="flex flex-col gap-2">
           <h3 className={label}>Criterios</h3>
           <ul className="list-disc pl-5 text-sm">{task.acceptance.map((a) => <li key={a}>{a}</li>)}</ul>
@@ -170,7 +187,7 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
                 <AgentAvatar id={r.id} provider={r.provider} model={r.metadata?.model} name={agentsByRunId.get(r.id)?.name} ordinal={agentsByRunId.get(r.id)?.ordinal} state={r.state !== 'running' ? 'idle' : waiting?.runId === r.id || r.metadata?.waiting ? 'waiting' : 'running'} size={32} />
                 <span>{agentsByRunId.get(r.id)?.name}</span>
                 <Glyph kind="role" value={r.role} />
-                {r.summary && <Markdown className="min-w-0 text-muted-foreground" text={r.summary} />}
+                {r.summary && <Markdown clamp className="min-w-0 text-muted-foreground" text={r.summary} />}
               </li>
             ))}
           </ul>

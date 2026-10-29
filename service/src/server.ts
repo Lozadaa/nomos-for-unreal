@@ -6,8 +6,9 @@ import { listProjects, projectCapture, register, unregister } from "./projects.t
 import { readFile } from "node:fs/promises";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { queueGraph } from "./graph.ts";
 import { openDb } from "./db.ts";
 import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
 import { repairArtifactPaths } from "./repair-paths.ts";
@@ -172,6 +173,8 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
     appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));
   runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers(),...createCheckHandlers(),...createClosingHandlers()},
     {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});
+  // hito 23: un juego sin grafo lo crea en segundo plano (comando graph.update)
+  if(!opts.runner?.handlers && !existsSync(join(dirname(opts.dataDir),"graphify-out"))) try { queueGraph(db,opts.dataDir); } catch { /* sin grafo el servicio sigue */ }
   // chat en vivo: leído y sin respuesta en 3 min → director.typing_timeout (el panel dice «sigue trabajando»)
   const typing = setInterval(() => { try { checkTyping(db); } catch { /* base ocupada: el siguiente pase lo ve */ } }, 15_000);
   typing.unref();

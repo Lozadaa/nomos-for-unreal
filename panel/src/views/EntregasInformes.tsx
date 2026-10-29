@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useAuthedSrc } from '@/hooks/artifact'
 import { firstErrors, verdict } from '@/lib/deliveries'
 import type { Artifact } from '@/lib/tasks'
@@ -20,12 +21,21 @@ function ReportLine({ a }: { a: Artifact }) {
     return () => { alive = false }
   }, [src, a])
   const line = verdict(a, text), error = firstErrors(a, text)[0]
+  // hito 23: hallazgos del revisor como filas; lo técnico (archivo:línea) solo en el tooltip
+  const found = (a.provenance as { findings?: unknown } | null)?.findings
+  const notes = (Array.isArray(found) ? found : []).filter((f): f is { file?: string; line?: number; severity?: string; note: string } => typeof f?.note === 'string')
   return (
-    <li className="flex min-w-0 items-center gap-3 px-3 py-2 text-sm">
+    <li className="flex min-w-0 flex-wrap items-center gap-3 px-3 py-2 text-sm">
       <Glyph kind="artifact" value={a.kind} size={16} />
       <span className={bad(line) ? 'shrink-0 text-error' : 'shrink-0'}>{line}</span>
       {error && <span title={error} className="min-w-0 truncate font-mono text-xs text-error">{error.trim()}</span>}
       {src && !(a.provenance as { removed?: unknown } | null)?.removed && <a href={src} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'ml-auto shrink-0' })}>Abrir original</a>}
+      {notes.length > 0 && <ul aria-label="Hallazgos" className="flex basis-full flex-col gap-1 pl-7">
+        {notes.map((f, i) => <li key={i} title={`${f.file ?? ''}:${f.line ?? ''}`} className="flex min-w-0 items-baseline gap-2">
+          <Badge variant={/error|bloq|mayor/i.test(f.severity ?? '') ? 'destructive' : 'secondary'}>{f.severity ?? 'nota'}</Badge>
+          <span className="min-w-0">{f.note}</span>
+        </li>)}
+      </ul>}
     </li>
   )
 }

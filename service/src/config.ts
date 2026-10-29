@@ -62,6 +62,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(scheduler!==undefined && (!object(scheduler) || Object.entries(scheduler).some(([k,v])=>
       k==='heavy' ? !object(v) || Object.entries(v as object).some(([h,n])=>h!=='maxConcurrent' || !count(n) || n<1)
       : k==='minFreeRamGb' ? typeof v!=='number' || !(v>=0 && v<=1024) : k!=='heavyRequiresNoEditor' || typeof v!=='boolean'))) throw new Error();
+    if(config.graphify!==undefined && (!object(config.graphify) || Object.entries(config.graphify).some(([k,v])=>k!=='enabled' || typeof v!=='boolean'))) throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;

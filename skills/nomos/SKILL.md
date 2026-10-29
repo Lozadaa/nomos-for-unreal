@@ -51,7 +51,8 @@ Procesa las líneas del vigilante por `seq` ascendente. Todas llevan `type`; `me
 3. **Petición de trabajo**: escribe .nomos/specs/ID.md con los cinco encabezados
    exactos: `## Qué`, `## Por qué`, `## Criterios de aceptación` (lista numerada),
    `## Alcance` (lista de rutas relativas) y `## No tocar`. Criterios comprobables;
-   no inventes decisiones creativas si faltan datos. Usa el ejemplo de la referencia.
+   no inventes decisiones creativas si faltan datos. Usa el ejemplo de la referencia
+   y las reglas de [Escribir corto](#escribir-corto).
    Decide si es una tarea o varias (sección Repartir) y crea cada una con
    `nomos task create --title '<titulo>' --area <area> --spec-file .nomos/specs/<id>.md --message <messageId>`
    más `--leases`, `--depends`, `--role` y `--provider` cuando apliquen (`--message` también en `decision open` y `worker send`).
@@ -70,7 +71,7 @@ Procesa las líneas del vigilante por `seq` ascendente. Todas llevan `type`; `me
    Ejecuta `nomos run diff <runId>`; compara archivos y criterios con la spec,
    revisa las pruebas aportadas y expresa qué verificaste realmente.
    Si cumple, pide `nomos task review <taskId>` una vez por run (en UI la encola el QA visual).
-   Si falla, escribe .nomos/correcciones/RUN/N.md: archivo, error y esperado;
+   Si falla, escribe .nomos/correcciones/RUN/N.md: Qué se ve mal, Qué debería verse y Dónde;
    envía `nomos worker send <runId> --file .nomos/correcciones/<runId>/<n>.md`.
    Conserva run y worktree. Máximo tres correcciones; si la tercera no cumple,
    abre Decisión antes de una cuarta. Nunca declares la tarea terminada.
@@ -87,6 +88,19 @@ Procesa las líneas del vigilante por `seq` ascendente. Todas llevan `type`; `me
    nunca dupliques un worktree porque el worker esté en silencio.
 
 El ACK es exclusivo de mensajes: no confirmes `run.finished`, `worker.waiting` ni `command.failed`.
+
+## Escribir corto
+
+Quien lee el panel juega y mira; lo técnico es tuyo. Todo texto cabe en una pantalla y habla de comportamiento.
+
+| Texto | Regla | Ejemplo |
+|---|---|---|
+| Spec | `## Qué` ≤ 2 frases de lo que se verá; criterios ≤ 7 líneas que empiezan por lo observable; rutas y clases solo en `## Alcance` y `## No tocar` | «El rival cae al suelo en < 0,5 s» |
+| `summary` de NOMOS_DONE | ≤ 280 caracteres de qué cambió para quien juega; `focus` 2-4 frases si cambia algo visible; commits y cifras en `tests`/`commits` | «Hudson esquiva con B y el rival pierde el objetivo» |
+| `note` del revisor | ≤ 140 caracteres: qué falla y qué se esperaba; lo técnico en `file`/`line` | «El salto no tiene sonido; se esperaba el golpe seco» |
+| Corrección | Tres líneas: **Qué se ve mal**, **Qué debería verse**, **Dónde** (rutas) | ver [ciclo de tarea](references/ciclo-tarea.md#revisar-y-corregir) |
+| Decisión | `reason` 1 frase; opciones ≤ 5 palabras; la evidencia en `evidence` | «¿Qué color lleva el HUD?» |
+| Diario | Una línea por evento, ≤ 160 caracteres, estado sin narración; detalle a `.nomos/logs` | «J1.6 cerrada; build en Build/Windows-actual» |
 
 ## Repartir
 

@@ -3,8 +3,9 @@ import { integrateRun } from './integrate.ts';
 import { createFinalize, type FinalizeDeps } from './finalize.ts';
 import { taskContinue } from './continue.ts';
 import { integrateLfs } from '../integration/lfs.ts';
+import { graphUpdate } from '../graph.ts';
 
 /** Integración y cierre (hito 6): órdenes sin modelo que trabajan sobre la tarea existente. */
 export function createClosingHandlers(deps: FinalizeDeps = {}): Record<string, Handler> {
-  return {'integrate.run': integrateRun, 'finalize.run': createFinalize(deps), 'task.continue': taskContinue, 'integrate.lfs': integrateLfs};
+  return {'integrate.run': integrateRun, 'finalize.run': createFinalize(deps), 'task.continue': taskContinue, 'integrate.lfs': integrateLfs, 'graph.update': graphUpdate};
 }

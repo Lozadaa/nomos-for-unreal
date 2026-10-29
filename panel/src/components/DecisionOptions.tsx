@@ -64,7 +64,7 @@ export function DecisionDetails({ decision, taskTitle }: { decision: Decision; t
       <Popover.Positioner sideOffset={8} className="z-50">
         <Popover.Popup role="dialog" className="flex max-h-96 w-80 flex-col gap-3 overflow-auto rounded-lg border border-strong bg-popover p-4 text-popover-foreground outline-none">
           <Popover.Title className="text-sm font-medium">Detalle de la decisión</Popover.Title>
-          <Popover.Description render={<div />} className="text-sm"><Markdown text={decision.reason} /></Popover.Description>
+          <Popover.Description render={<div />} className="text-sm"><Markdown clamp text={decision.reason} /></Popover.Description>
           {taskTitle && <p className="text-xs text-muted-foreground">{taskTitle}</p>}
           {decision.evidence.length > 0 && <ul aria-label="Evidencia" className="flex flex-col gap-2 text-xs text-muted-foreground">
             {decision.evidence.map((evidence, index) => <li key={index} className="break-words"><span className="font-mono">{evidence.kind}</span> · {evidence.ref}</li>)}

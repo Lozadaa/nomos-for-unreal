@@ -129,3 +129,16 @@ describe('Entregas para mirar (hito 10)', () => {
     expect(artifactName(a('x', 'report', 'r.json', { label: 'QA visual · informe' }))).toBe('QA visual · informe')
   })
 })
+
+it('hito 23: los hallazgos del revisor son filas con chip de severidad y la nota; archivo y línea en el tooltip', async () => {
+  const user = userEvent.setup()
+  vi.mocked(api).mockResolvedValue([a('24', 'report', 'C:/k/review-6cb4.json', { kind: 'REVIEW', approved: false,
+    findings: [{ file: 'Source/Juego/Vida.cpp', line: 12, severity: 'error', note: 'La vida no baja al recibir el golpe' }] })])
+  at()
+  const section = (await screen.findAllByRole('region'))[0]
+  await user.click(within(section).getByText('Informes y registros'))
+  const rows = within(section).getByRole('list', { name: 'Hallazgos' })
+  const row = within(rows).getByText('La vida no baja al recibir el golpe').closest('li')!
+  expect(within(row).getByText('error')).toBeInTheDocument()
+  expect(row).toHaveAttribute('title', 'Source/Juego/Vida.cpp:12')
+})

@@ -20,11 +20,14 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 
 ## Reglas
 
+- Explora con el grafo: `graphify query "<pregunta con nombres del código>"` antes de leer archivos; si aún no hay `graphify-out/`, sigue sin él.
+- Ponytail full está activo: el diff más corto que funciona.
 - Aplica TDD: observa la prueba fallar antes de implementar cada comportamiento.
 - Haz un commit por paso. No hagas push ni merge.
 - No incluyas .nomos-brief.md ni .nomos-inbox en commits.
 - Termina con una línea NOMOS_DONE seguida de JSON con summary string, commits string[] y tests passed, failed o none.
-- Si la tarea cambia lo que se ve o se juega, añade al JSON de NOMOS_DONE `focus`: de 2 a 4 frases de en qué fijarse al probarlo.
+- `summary` ≤ 280 caracteres: qué cambió para quien juega o mira, sin commits, pruebas ni cifras (eso va en `commits` y `tests`). Ejemplo: «El rival cae al suelo al recibir el tercer golpe».
+- Si la tarea cambia lo que se ve o se juega, `focus` es obligatorio: de 2 a 4 frases de en qué fijarse al probarlo.
 - Si corriges después de NOMOS_DONE, commitea y repite la marca; tras una corrección, una marca sin commit nuevo solo cuenta con commits [].
 - Si necesitas una decisión, imprime una línea NOMOS_ASK seguida de JSON con question string y espera.
 - Los marcadores deben comenzar la línea; no los repitas como ejemplos de salida.

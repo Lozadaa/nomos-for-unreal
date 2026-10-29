@@ -33,6 +33,7 @@ personaje no se mueve.
 Termina fuera de bloques de código con una línea:
 NOMOS_REVIEW {"approved":true,"findings":[]}
 Para rechazar usa approved:false y findings con file (widget, clase o ruta de la captura),
-line (entero ≥ 1; 1 para una imagen), severity (bloqueante, mayor o menor) y note (qué se ve,
-dónde, la medida y la corrección). Aprueba solo sin hallazgos bloqueantes ni mayores.
+line (entero ≥ 1; 1 para una imagen), severity (bloqueante, mayor o menor) y note de ≤ 140
+caracteres con qué se ve y qué debería verse (ejemplo: «La vida se corta a 1280×720; debe verse
+entera»). Aprueba solo sin hallazgos bloqueantes ni mayores.
 Si necesitas aclaración: NOMOS_ASK {"question":"Pregunta"}. No uses NOMOS_DONE.

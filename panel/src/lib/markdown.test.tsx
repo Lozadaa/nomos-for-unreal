@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { Markdown } from './markdown'
 
@@ -63,4 +63,47 @@ it('el guion bajo dentro de una palabra no es cursiva (Columna_0_ancha, nombres 
   const box = md('Columna_0_ancha y SM_Raqueta_01 pero _esto sí_')
   expect([...box.querySelectorAll('em')].map((e) => e.textContent)).toEqual(['esto sí'])
   expect(box.textContent).toBe('Columna_0_ancha y SM_Raqueta_01 pero esto sí')
+})
+
+describe('Markdown legible (hito 23)', () => {
+  it('## encabezado es un título de sección pequeño', () => {
+    const box = md('## Qué\nEl rival cae.')
+    expect(box.querySelector('h4')!.textContent).toBe('Qué')
+    expect(box.textContent).not.toContain('##')
+  })
+
+  it('- [x] y - [ ] salen con icono de check, sin corchetes', () => {
+    md('- [x] Cae al suelo\n- [ ] Suena el golpe')
+    expect(screen.getByRole('img', { name: 'hecho' }).closest('li')).toHaveTextContent('Cae al suelo')
+    expect(screen.getByRole('img', { name: 'pendiente' }).closest('li')).toHaveTextContent('Suena el golpe')
+    expect(document.body.textContent).not.toContain('[')
+  })
+
+  it('el bloque de código queda plegado bajo «Detalle técnico» con su número de líneas', () => {
+    const box = md('Texto\n\n```ts\nuno\ndos\ntres\n```')
+    const details = box.querySelector('details')!
+    expect(details.open).toBe(false)
+    expect(details.querySelector('summary')!.textContent).toBe('Detalle técnico · 3 líneas')
+    expect(details.querySelector('pre')!.textContent).toBe('uno\ndos\ntres')
+  })
+
+  it('con clamp, un texto de más de 6 líneas se recorta con «Mostrar todo»', async () => {
+    const text = Array.from({ length: 9 }, (_, i) => `línea ${i + 1}`).join('\n')
+    const { container } = render(<Markdown text={text} clamp />)
+    const button = screen.getByRole('button', { name: 'Mostrar todo' })
+    expect(container.querySelector('[class*="max-h-"]')).not.toBeNull()
+    fireEvent.click(button)
+    expect(screen.getByRole('button', { name: 'Mostrar menos' })).toBeInTheDocument()
+    expect(container.querySelector('[class*="max-h-"]')).toBeNull()
+    cleanup()
+    render(<Markdown text="corto" clamp />)
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('una ruta larga se ve como el nombre del archivo, con la ruta en el tooltip', () => {
+    const path = 'Source/BlockKings/Personajes/Combate/HudsonCharacter.cpp'
+    md(`Cambié ${path} hoy`)
+    expect(screen.getByTitle(path)).toHaveTextContent('HudsonCharacter.cpp')
+    expect(document.body.textContent).toBe('Cambié HudsonCharacter.cpp hoy')
+  })
 })

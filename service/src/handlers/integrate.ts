@@ -17,6 +17,7 @@ import { integrationWorkspace } from '../integration/workspace.ts';
 import { isLfsDecision, lfsGate, onlyAttributes } from '../integration/lfs.ts';
 import { commandRun } from './asset-run.ts';
 import { implementerOf } from './checks.ts';
+import { queueGraph } from '../graph.ts';
 
 const resolveOption = {id: 'resolve', label: 'Resolver en el worktree', description: 'El responsable integra la rama objetivo en su rama y resuelve el conflicto'};
 const discardOption = {id: 'discard', label: 'Descartar la integración', description: 'La tarea vuelve a probando sin integrar'};
@@ -155,6 +156,8 @@ export const integrateRun: Handler = async (command, ctx) => {
   task = requireTask(ctx.db, task.id);
   appendEvent(ctx.db, 'integration.completed', null, {taskId: task.id, runId: run.id, commit: state.commit, base: state.base,
     branch: ws.branch, sourceBranch: tree.branch, files: state.files, rechecked: moved});
+  // hito 23: main cambió, el grafo del juego se pone al día (uno a la vez)
+  try { queueGraph(ctx.db, ctx.dataDir, ctx.projectDir); } catch { /* sin grafo la integración sigue */ }
   attribute(ctx.db, task.id, 'integro', run);
   moveTask(ctx.db, task.id, 'cerrando', `Integrado en ${ws.branch}@${short(state.commit)}`);
   finishRun(ctx.db, run.id, 'done', `Integrado en ${ws.branch}@${short(state.commit)}`);

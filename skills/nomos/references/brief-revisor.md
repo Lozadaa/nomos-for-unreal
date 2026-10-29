@@ -7,6 +7,8 @@ Codex y Claude revisan. OpenCode nunca revisa: el revisor de una tarea de OpenCo
 ## Encargo de revisión
 
 Inspecciona los criterios de aceptación de `.nomos-brief.md` y el diff adjunto `.nomos-review/diff.patch`.
+Explora con el grafo: `graphify query "<pregunta con nombres del código>"` antes de leer archivos; si aún no hay `graphify-out/`, sigue sin él.
+Ponytail full está activo: el diff más corto que funciona; señala lo que sobra.
 El diff incluye los cambios desde la base del implementador, incluidos archivos nuevos de texto.
 No modifiques la implementación, no crees commits y no hagas merge.
 El archivo interno del diff se excluye de Git y de los diffs de artefactos.
@@ -25,8 +27,11 @@ NOMOS_REVIEW {"approved":true,"findings":[]}
 Si hay correcciones, usa `approved: false` y findings con `file`, `line` (entero positivo), `severity` y `note`:
 
 ```text
-NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"Falta criterio de aceptación"}]}
+NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"El README no dice cómo arrancar el juego; se esperaba el paso a paso"}]}
 ```
+
+Cada `note` ≤ 140 caracteres: qué falla y qué se esperaba, en comportamiento; la ruta y la línea van en `file`/`line`.
+Ejemplo: «Al pulsar Esc el menú no se cierra; se esperaba volver al juego».
 
 Si falta una aclaración, usa `NOMOS_ASK {"question":"Pregunta concreta"}`. No termines con `NOMOS_DONE`.
 

@@ -32,6 +32,14 @@ con nota de continuación (`run.recovered`); no hace falta `worker start`. Con `
 «Nomos - arranque») los servicios registrados vuelven al iniciar sesión; `nomos autostart status` dice si está
 instalada. El director sigue teniendo que volver a abrir su sesión y su vigilante.
 
+## Grafo y ponytail
+
+`nomos doctor` exige graphify (CLI en PATH o `~/.local/bin`) y avisa si falta ponytail (`ponytail@ponytail` en
+`enabledPlugins` de `~/.claude/settings.json`). Al arrancar, un juego sin `graphify-out/` lo crea en segundo plano
+(comando `graph.update`: `graphify <juego> --no-viz --code-only`, solo `Source/` y el texto de `Config/`, `docs/` y
+`Content/`) y lo añade al `.gitignore`; tras cada integración en main se encola `--update` (uno a la vez).
+`graphify: {"enabled": false}` en `config.json` lo apaga. Workers y revisores consultan `graphify query` antes de leer.
+
 ## Ramas y líneas base
 
 El worktree de un worker nace de la punta de main; si a su rama le falta main antes de la revisión, Nomos le pide la
