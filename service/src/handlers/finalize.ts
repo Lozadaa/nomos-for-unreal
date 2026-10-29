@@ -13,6 +13,7 @@ import { preserveTask, type ArchiveWriter } from '../archive.ts';
 import { storedPath } from '../data-paths.ts';
 import { targetBranch } from '../integration/workspace.ts';
 import { commandRun } from './asset-run.ts';
+import { writeResume } from '../resume.ts';
 
 export type FinalizeDeps = {writer?: ArchiveWriter; busyDelayMs?: number};
 const options = [
@@ -111,6 +112,7 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
       moveTask(ctx.db, task.id, 'done', 'Cierre verificado');
       finishRun(ctx.db, run.id, 'done', 'Cierre verificado');
       appendEvent(ctx.db, 'task.done', null, {taskId: task.id, runId: run.id, archive: archive.dir, files: Object.keys(archive.manifest.files).length});
+      try { writeResume(ctx.db, ctx.dataDir, 'en marcha'); } catch { /* sin reanudación el cierre vale igual */ }
       return {closed: true, archive: archive.dir};
     } catch (error) {
       const reason = error instanceof Blocked ? error.message

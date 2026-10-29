@@ -17,6 +17,7 @@ import { autostartCli } from './autostart.ts';
 import { alive, killTree, listServers } from './orphans.ts';
 import { doctor, renderDoctor } from './doctor.ts';
 import { dataDirFor, dbFile, legacyEnv } from './legacy.ts';
+import { writeResume } from './resume.ts';
 
 function openBrowser(url: string) {
   const [command, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
@@ -46,13 +47,13 @@ async function main() {
     "new-token": { type: "boolean", default: false } } });
   const [command, ...args] = positionals; const dataDir = resolve(values.data!);
   const session = values.session?.trim(); const port = Number(values.port);
-  const commands = ["start", "status", "vigila", "ack", "typing", "reply", "stop", "seed", "doctor"];
+  const commands = ["start", "status", "vigila", "ack", "typing", "reply", "stop", "seed", "doctor", "reanudacion"];
   if (!commands.includes(command) || !Number.isInteger(port) || port < 1 || port > 65535
     || (["ack", "vigila"].includes(command) && !session) || (values.types!==undefined && command!=='vigila') || (values["new-token"] && command!=='start')
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim())) || (command === "typing" && args.length !== 1)
-    || (["start", "status", "vigila", "stop", "seed", "doctor"].includes(command) && args.length)) {
-    throw new Error("Uso: nomos start [--new-token]|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|clean [--dry-run]|autostart on|off|status|play [--stop|--status] [--data CARPETA]");
+    || (["start", "status", "vigila", "stop", "seed", "doctor", "reanudacion"].includes(command) && args.length)) {
+    throw new Error("Uso: nomos start [--new-token]|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|clean [--dry-run]|autostart on|off|status|play [--stop|--status]|reanudacion [--data CARPETA]");
   }
   if (command === "doctor") {
     mkdirSync(dataDir, { recursive: true });
@@ -62,6 +63,13 @@ async function main() {
       console.log(renderDoctor(rows));
       if (rows.some(row => row.state === "falla")) process.exitCode = 1;
     } finally { db.close(); }
+    return;
+  }
+  if (command === "reanudacion") {
+    const info = readServiceInfo(dataDir), up = info ? await isAlive(info) : false;
+    const db = openDb(dbFile(dataDir));
+    try { writeResume(db, dataDir, up ? `en marcha (puerto ${info!.port})` : 'parado'); console.log(join(dataDir, 'reanudacion.md')); }
+    finally { db.close(); }
     return;
   }
   if (command === "seed") {

@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { queueGraph } from "./graph.ts";
 import { tokensByRole } from "./transcript.ts";
+import { writeResume } from "./resume.ts";
 import { openDb } from "./db.ts";
 import { dbFile, legacyEnv, migratedFrom } from "./legacy.ts";
 import { repairArtifactPaths } from "./repair-paths.ts";
@@ -183,6 +184,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
     clearInterval(typing);
     try { unregister(opts.dataDir); } catch { /* registro ilegible: caduca solo por pid */ }
     runner!();await runner!.drained;
+    try { writeResume(db, opts.dataDir, 'parado'); } catch { /* sin reanudación la parada sigue */ }
     db.close();
     if (readServiceInfo(opts.dataDir)?.token === token) rmSync(file, { force: true });
   });

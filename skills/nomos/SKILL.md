@@ -168,6 +168,9 @@ DONE él mismo ni fuerza retirar un worktree. «Ajusta esto» sobre una tarea `d
 anterior. `/nomos pausar|reanudar` (`nomos pausar --data .nomos`) frena o vuelve a
 permitir arranques nuevos; lo que ya integra o cierra termina. Ver [cierre](references/cierre.md).
 Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta `Build/Windows-actual/`, estámpalo con `nomos build stamp Build/Windows-actual` y, antes de decir «listo para probar», mira `nomos play --status`: `stale: true` (anterior a main) = fusiona y empaqueta otra vez ([build jugable](references/cierre.md#build-jugable)). Si `nomos status` dice «ejecuta nomos clean», hazlo ([disco](references/cierre.md#disco)).
+**Una sesión de director por hito; nunca más de 200 eventos del vigilante en la misma sesión.** Cuando la tarea de cierre del hito
+queda `done`, anuncia en una línea que terminas la sesión y que la siguiente arranca con `/nomos` y lee `.nomos/reanudacion.md`
+(Nomos lo reescribe al cerrar cada tarea y al parar; `nomos reanudacion --data .nomos` lo regenera): [reanudación](references/cierre.md#reanudacion).
 
 ## Solución de problemas (Troubleshooting)
 
