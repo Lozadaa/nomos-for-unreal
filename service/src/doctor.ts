@@ -13,7 +13,7 @@ import { capabilityList, configFs, type CheckResult } from './capability-checks.
 import { readServiceInfo, isAlive } from './service-info.ts';
 import type { Lane } from './commands.ts';
 import { stalledTasks } from './stall.ts';
-import { findGraphify, ponytailEnabled } from './graph.ts';
+import { findGraphify, hasCode, ponytailEnabled } from './graph.ts';
 
 type Probe = {isRunning?(): Promise<boolean>; open?(): Promise<void>};
 export type CheckDeps = {orca?: Probe; meshy?: {balance(): Promise<number>}; env?: NodeJS.ProcessEnv;
@@ -85,7 +85,8 @@ export async function doctor(dataDir: string, db: DatabaseSync, deps: CheckDeps 
     ? {state: 'ok', detail: 'Orca abierto'} : {state: 'falla', detail: 'Orca no está abierto: ábrelo o usa «Abrir Orca» en Capacidades'});
   // hito 23: el grafo de cada juego es imprescindible; ponytail (plugin de Claude Code) solo avisa
   const env = deps.env ?? process.env, graphify = findGraphify(env);
-  rows.push({id: 'graphify', label: 'graphify', ...graphify ? {state: 'ok' as const, detail: graphify}
+  rows.push({id: 'graphify', label: 'graphify', ...!hasCode(dirname(dataDir)) ? {state: 'ok' as const, detail: 'sin código C++, apagado (solo indexa código; no ve Blueprints ni mapas)'}
+    : graphify ? {state: 'ok' as const, detail: graphify}
     : {state: 'falla' as const, detail: 'graphify no encontrado (PATH o ~/.local/bin): instala el CLI de graphify'}});
   rows.push({id: 'ponytail', label: 'ponytail', ...ponytailEnabled(env) ? {state: 'ok' as const, detail: 'Plugin activo en ~/.claude/settings.json'}
     : {state: 'aviso' as const, detail: 'Falta "ponytail@ponytail": true en enabledPlugins de ~/.claude/settings.json'}});

@@ -28,10 +28,15 @@ export function ponytailEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 // solo el texto del juego: nunca .uasset/.umap, ni Binaries, Intermediate, Saved o Plugins
 const allow = '/*\n!Source/\n!Config/\n!docs/\n!Content/\n!Content/**/\nContent/**/*.*\n!Content/**/*.json\n!Content/**/*.ini\n!Content/**/*.md\n';
 
-/** Encola `graph.update` (crea o actualiza el grafo) salvo `graphify.enabled:false`, sin graphify, fuera de un juego o con uno ya en cola. */
+/** Hito 26: graphify solo indexa código; sin `.cpp`/`.h` bajo `Source/` (juego solo Blueprints) queda apagado. */
+export function hasCode(projectDir: string): boolean {
+  try { return readdirSync(join(projectDir, 'Source'), {recursive: true}).some(f => /\.(cpp|h)$/i.test(String(f))); } catch { return false; }
+}
+
+/** Encola `graph.update` (crea o actualiza el grafo) salvo `graphify.enabled:false`, sin graphify, fuera de un juego, sin C++ o con uno ya en cola. */
 export function queueGraph(db: DatabaseSync, dataDir: string, projectDir = dirname(dataDir)): boolean {
   if ((readConfig(dataDir) as {graphify?: {enabled?: boolean}}).graphify?.enabled === false || !findGraphify()) return false;
-  if (!readdirSync(projectDir).some(f => f.endsWith('.uproject'))) return false;
+  if (!readdirSync(projectDir).some(f => f.endsWith('.uproject')) || !hasCode(projectDir)) return false;
   if (db.prepare("select 1 from commands where type='graph.update' and state in ('pending','running')").get()) return false;
   const ignore = join(projectDir, '.gitignore'), ignored = existsSync(ignore) ? readFileSync(ignore, 'utf8') : '';
   const missing = ['graphify-out/', '.graphifyignore'].filter(line => !ignored.split(/\r?\n/).includes(line));
