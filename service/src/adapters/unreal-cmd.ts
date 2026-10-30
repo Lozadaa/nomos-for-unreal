@@ -22,6 +22,8 @@ export function createUnrealCmd(opts: {bin?: string | null; baseArgs?: string[];
   async function runPython(uproject: string, script: string, env: Record<string, string> = {}, timeoutMs = opts.timeoutMs ?? 180_000,
     run: RenderOpts = {}): Promise<RunResult> {
     if (!existsSync(bin)) throw new Error('unreal_missing');
+    // barras normales: con barras invertidas el editor lee \r y \n de rutas como ...\richa\...\nomos_x.py (Herbalist H0.3)
+    script = script.replace(/\\/g, '/');
     const dir = mkdtempSync(join(tmpdir(), 'nomos-unreal-'));
     const report = env.NOMOS_REPORT ?? join(dir, 'report.json');
     // con render se lanza el juego (`-game <mapa>`) en ventana a resolución fija: la captura es el viewport del juego
