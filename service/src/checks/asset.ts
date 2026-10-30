@@ -17,7 +17,9 @@ function intake(asset: Record<string, any>): string[] {
 
 /** Assets: verifyPack del hito 4 sobre cada carpeta tocada más los criterios de entrada. */
 export const assetCheck: Executor = async (ctx, {project, files}, deps) => {
-  const folders = [...new Set(packages(files, f => /\.uasset$/i.test(f)).map(p => p.split('/').slice(0, -1).join('/')))];
+  // los actores externos (OFPA) van uno por carpeta: cientos de editores por un mapa; los verifica la comprobación de mapa
+  const folders = [...new Set(packages(files, f => /\.uasset$/i.test(f)).map(p => p.split('/').slice(0, -1).join('/')))]
+    .filter(root => !/\/__External(Actors|Objects)__\//.test(root));
   const summary: string[] = [], logs: string[] = [];
   let engine: string | null = null;
   for (const root of folders) {

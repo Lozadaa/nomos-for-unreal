@@ -12,6 +12,7 @@ import { enqueue } from '../commands.ts';
 import { appendEvent } from '../store.ts';
 import { withEditor } from '../editor/queue.ts';
 import { targetProject, type Project } from './asset-run.ts';
+import { targetBranch } from '../integration/workspace.ts';
 import { createEditorMcpHandlers } from './editor-mcp.ts';
 import { createUiCycle, uiCycleKey } from './ui-cycle.ts';
 import { selectChecks, type CheckId } from '../checks/select.ts';
@@ -89,7 +90,8 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
       return {passed: false, returned: true};
     }
     const files = Array.isArray(payload.files) ? payload.files.filter((f): f is string => typeof f === 'string')
-      : tree ? await ctx.git.changedFiles!(tree.path, tree.baseCommit) : [];
+      // Herbalist H2.2: contra la rama objetivo (merge-base), no contra el fork: lo fusionado desde main no es de la tarea
+      : tree ? await ctx.git.changedFiles!(tree.path, await targetBranch(ctx).catch(() => tree.baseCommit)) : [];
     const worktree = dir ?? tree?.path ?? project.dir, selected = selectChecks(files, task.scope);
     // los archivos borrados cuentan para elegir comprobaciones, no para validar ni compilar assets que ya no existen
     const present = files.filter(file => existsSync(join(worktree, file)));

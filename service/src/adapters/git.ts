@@ -94,7 +94,8 @@ export function createGit(): Git {
     },
     async changedFiles(dir,base) {
       if (!base) throw new Error('invalid_base');
-      const tracked=(await run(dir,['diff','--name-only','-z',base,...paths])).split('\0');
+      // --merge-base: con una rama como base solo cuenta lo propio del árbol; con un commit ancestro es lo mismo de antes
+      const tracked=(await run(dir,['diff','--name-only','-z','--merge-base',base,...paths])).split('\0');
       const untracked=(await run(dir,['ls-files','--others','--exclude-standard','-z'])).split('\0');
       return [...new Set([...tracked,...untracked])].filter(p=>p&&!local(p)).sort();
     },
