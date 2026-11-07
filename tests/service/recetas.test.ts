@@ -26,8 +26,27 @@ test('acelera: la receta se valida antes de abrir el editor (esquema, rutas, cla
     'actores[0]: exactamente uno de clase, bp o malla', 'actores[0].pos: [x, y, z] en cm', 'actores[1]: campo desconocido raro',
     'actores[1].clase: nombre de clase (PointLight) o /Script/Modulo.Clase',
     'actores[1].propiedades.k: número, booleano, texto, {vector}, {rotador}, {color} o {transform}']);
-  assert.match((validarReceta({receta: 1, plantilla: 'nada'}) as {errores: string[]}).errores[0], /plantilla desconocida: nada \(hay escena, sondeo, bp_datos\)/);
+  assert.match((validarReceta({receta: 1, plantilla: 'nada'}) as {errores: string[]}).errores[0], /plantilla desconocida: nada \(hay escena, sondeo, bp_datos, importar_malla, camara_tercera_persona, post_exterior, poblar_pcg\)/);
   assert.match((validarReceta({receta: 1, plantilla: 'sondeo'}) as {errores: string[]}).errores[0], /carpetas, mapa o los dos/);
+});
+
+test('harness: importar_malla, camara_tercera_persona, post_exterior y poblar_pcg se validan antes de abrir el editor', () => {
+  const ok = (r: object) => assert.equal(validarReceta({receta: 1, ...r}).ok, true, JSON.stringify(r));
+  ok({plantilla: 'importar_malla', fuente: 'C:/arte/roca.fbx', destino: '/Game/Arte', modulo: true, alto_cm: [10, 400]});
+  ok({plantilla: 'camara_tercera_persona', bp: '/Game/J/BP_Jugador', brazo: 560, offset: [0, 60, 170], fov: 75, lag: 8});
+  ok({plantilla: 'post_exterior', mapa: '/Game/J/L', exposicion: 0, sol: {pitch: -28, kelvin: 5200}, niebla: {opacidad_max: 0.7}});
+  ok({plantilla: 'poblar_pcg', mapa: '/Game/J/L', etiqueta: 'rocas', pos: [0, 0, 0], extension: [2000, 700, 100],
+    paleta: [{malla: '/Engine/BasicShapes/Cone', peso: 2, material: '/Engine/BasicShapes/BasicShapeMaterial'}], escala: [0.7, 2.2], semilla: 7});
+  ok({plantilla: 'poblar_pcg', mapa: '/Game/J/L', etiqueta: 'g', pos: [0, 0, 0], extension: [1, 1, 1], grafo: '/PCG/X/PCG_Grafo'});
+  const errores = (r: object) => (validarReceta({receta: 1, ...r}) as {errores: string[]}).errores;
+  assert.deepEqual(errores({plantilla: 'importar_malla', fuente: 'roca.exe', destino: 'C:/'}),
+    ['fuente: ruta absoluta a un .fbx, .glb, .gltf u .obj', 'destino: carpeta /Game/...']);
+  assert.deepEqual(errores({plantilla: 'camara_tercera_persona', bp: '/Game/J/BP', fov: 400, sigue_raton: 'si'}),
+    ['fov: número entre 30 y 140', 'sigue_raton: true o false']);
+  assert.deepEqual(errores({plantilla: 'post_exterior', mapa: '/Game/J/L', sol: {pitch: -200, luna: 1}}),
+    ['sol: campo desconocido luna', 'sol.pitch: número entre -90 y 90']);
+  assert.deepEqual(errores({plantilla: 'poblar_pcg', mapa: '/Game/J/L', etiqueta: 'r', pos: [0, 0, 0], extension: [0, 1, 1]}),
+    ['extension: [x, y, z] semiejes en cm, positivos', 'poblar_pcg: paleta o grafo (uno de los dos)']);
 });
 
 test('acelera: nomos ue receta la ejecuta en el editor caliente y, repetida sin cambios, sale de la caché sin abrir el editor', async () => {

@@ -46,7 +46,22 @@ reglas con su evidencia. Lo útil quedó en Nomos con nuestras palabras (el repo
 - Dos hallazgos propios al probarlo: en `-game` los actores no exponen `get_actor_hidden_in_game` a Python, y aparecen
   actores de depuración sin geometría (`ChaosDebugDrawActor`, `GameplayDebuggerCategoryReplicator`).
 
-### Recetas y código que salen de ahí (pendiente, por valor)
+### Hecho (rama `recetas-harness`, 2026-11-07), probado en el juego de ejemplo
+
+Juego de ejemplo `Unreal Projects/PiedraPapel` (piedra, papel o tijera contra la CPU, C++ sobre la plantilla de tercera
+persona): su nivel se monta entero con ocho recetas en `Recetas/` (43 s en frío, de ellos 35 de arranque del editor;
+cada receta en caliente tarda 0,2-2,4 s). Todo lo de la tabla de abajo está hecho salvo lo marcado:
+
+- Veredicto de posesión y suelo en `map`: comprobado en el juego real con el PlayerStart a 30 m («está cayendo al
+  capturar, en Z 2416»). Los textos de log salen de GameModeBase.cpp de 5.8: «fell out of world» no existe.
+- Captura magenta: se repite una vez; si sigue, la comprobación falla diciendo que son shaders. Lo de «suelo lavado»
+  no: no hay una medida fiable.
+- `nomos ue crash`: probado con un crash real de BlockKings (apunta a `CombatPlayerController.cpp:73`).
+- `set_transform` quedó como `transformar()` en las recetas: cambia solo lo pedido.
+- Hallazgos al probar: los Blueprints de una plantilla renombrada necesitan `[CoreRedirects]`; guardar el mapa desde
+  un tick dispara avisos modales que vuelven a llamar al tick (cerrojo) y devuelven False aunque el .umap se escribe.
+
+### Recetas y código que salen de ahí
 
 | Qué | Detalle | Por qué |
 |---|---|---|
