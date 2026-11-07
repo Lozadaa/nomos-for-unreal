@@ -1,0 +1,7 @@
+{"receta": 1, "plantilla": "escena", "mapa": "/Game/AceleraPrueba/L_Escena", "etiqueta": "AC1", "nuevo": true, "base": true,
+ "actores": [
+  {"nombre": "Lampara", "bp": "/Game/AceleraPrueba/BP_Lampara", "pos": [0, 150, 400], "apoyar": true, "carpeta": "Atrezo"},
+  {"nombre": "Mesa", "malla": "/Engine/BasicShapes/Cube", "pos": [0, -150, 40], "escala": [2, 1, 0.8], "material": "/Game/BenchA/M01/M_A_EscudoAzul", "carpeta": "Atrezo"},
+  {"nombre": "Bola", "malla": "/Engine/BasicShapes/Sphere", "pos": [200, 0, 700], "apoyar": true},
+  {"nombre": "Foco", "clase": "PointLight", "pos": [0, 0, 300], "propiedades": {"intensity": 8000, "light_color": {"color": [1, 0.8, 0.6, 1]}}},
+  {"nombre": "Rotulo", "clase": "TextRenderActor", "pos": [0, 0, 250], "rot": [0, 180, 0], "texto": "Acelera"}]}

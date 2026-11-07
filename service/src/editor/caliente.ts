@@ -5,9 +5,14 @@ import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { defaultUnrealCmd } from '../adapters/unreal-cmd.ts';
+import { createUnrealCmd, defaultUnrealCmd } from '../adapters/unreal-cmd.ts';
 import { quote, runLogged } from '../adapters/process.ts';
 import { assetConfig } from '../catalog/paths.ts';
+import { request, serviceInfo } from '../client.ts';
+import type { ServiceInfo } from '../service-info.ts';
+import { openDb } from '../db.ts';
+import { dbFile } from '../legacy.ts';
+import { enCache, plantillasRecetas, recordar, validarReceta } from './recetas.ts';
 
 /**
  * x10: editor caliente. En Herbalist los workers abrieron UnrealEditor-Cmd en frío 1 090 veces (21 h): la
@@ -77,13 +82,17 @@ export async function runWarm(uproject: string, file: string, env: Record<string
   // `limite`: el editor abandona un trabajo de varios ticks (nomos_pendiente) que pase de ahí
   writeFileSync(pending, JSON.stringify({id, script: file.replace(/\\/g, '/'), env, limite: timeoutMs / 1000}));
   renameSync(pending, join(dir, 'entrada', `${id}.json`));
+  // mientras corre un script el editor no late (el tick está ocupado) y leer el latido puede fallar mientras se reemplaza:
+  // se da por cerrado solo si su proceso ya no existe
+  let pid = warmBeat(uproject)?.pid;
   for (const end = Date.now() + timeoutMs + 5000; Date.now() < end; await sleep(100)) {
+    pid ??= warmBeat(uproject)?.pid;
     if (existsSync(done)) {
       const result = JSON.parse(readFileSync(done, 'utf8'));
       rmSync(done, {force: true});
       return {...result, arranque};
     }
-    if (!warmBeat(uproject)) { await sleep(1500); if (!existsSync(done) && !warmBeat(uproject)) throw new Error('El editor caliente se cerró durante el script'); }
+    if (pid ? !alive(pid) : !warmBeat(uproject)) { await sleep(1500); if (!existsSync(done)) throw new Error('El editor caliente se cerró durante el script'); }
   }
   throw new Error('unreal_timeout');
 }
@@ -154,20 +163,56 @@ export function findUproject(dir: string): string {
 }
 
 /**
- * `nomos ue py SCRIPT [--env K=V]… [--proyecto X.uproject] [--timeout S]`: el script en el editor caliente;
+ * Pide el turno de Unreal de `tarea` al servicio y espera a que se lo den (`nomos worker turn --wait` y `ue … --tarea`).
+ * Antes de volver cierra los editores calientes de otros que el servicio dice que siguen abiertos (un editor a la vez).
+ * `held`: el turno ya era suyo (pedido a mano).
+ */
+export async function pedirTurno(info: ServiceInfo, tarea: string, uproject?: string, cadaMs = 5000): Promise<{held: boolean}> {
+  const path = `/tasks/${encodeURIComponent(tarea)}/turn`;
+  for (let last = ''; ; await sleep(cadaMs)) {
+    const answer = await request(info, path, uproject ? {uproject} : {}) as {granted: boolean; reason?: string; held?: boolean; cerrar?: string[]};
+    if (answer.granted) {
+      for (const otro of answer.cerrar ?? []) await stopWarm(otro);
+      return {held: !!answer.held};
+    }
+    if (answer.reason !== last) console.error(last = answer.reason ?? '');
+  }
+}
+
+/** x10: turno por operación. Con `--tarea`, `ue py`/`ue test` piden el turno, ejecutan y lo sueltan dejando el editor
+ *  caliente abierto (el servicio lo apunta y lo cierra si otro necesita Unreal). Un turno pedido a mano no se suelta. */
+async function conTurno<T>(turno: {info: ServiceInfo; tarea: string} | null, uproject: string, fn: () => Promise<T>): Promise<T> {
+  if (!turno) return fn();
+  const {held} = await pedirTurno(turno.info, turno.tarea, uproject, 2000);
+  try { return await fn(); } finally {
+    if (!held) await request(turno.info, `/tasks/${encodeURIComponent(turno.tarea)}/turn/release`, warmBeat(uproject) ? {caliente: uproject} : {});
+  }
+}
+
+/**
+ * `nomos ue py SCRIPT [--env K=V]… [--proyecto X.uproject] [--timeout S] [--tarea ID]`: el script en el editor caliente;
  * `nomos ue test FILTRO` corre «Automation RunTests» en él y escribe el resumen JSON;
  * `nomos ue parar` lo cierra y `nomos ue estado` dice si está abierto. Sale con 1 si el script o algún test falla.
  * En pruebas `NOMOS_UE_FAKE` es el editor falso (se lanza con node).
  */
 export async function ueCli(argv: string[]): Promise<boolean> {
   // solo si `ue` es la orden (el primer posicional): `nomos reply ID ue …` no es esto
-  const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout'].includes(argv[i - 1] ?? ''));
+  const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout', '--tarea'].includes(argv[i - 1] ?? ''));
   if (first !== 'ue') return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},
-    env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}}});
+    env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}, tarea: {type: 'string'},
+    validar: {type: 'boolean'}, forzar: {type: 'boolean'}}});
   const [, action, file, ...extra] = positionals;
-  if (!['py', 'test', 'parar', 'estado'].includes(action) || extra.length || ['py', 'test'].includes(action) !== !!file)
-    throw new Error('Uso: nomos ue py SCRIPT.py [--env K=V]… [--proyecto X.uproject] [--timeout S] | ue test FILTRO [--proyecto X] [--timeout S] | ue parar | ue estado');
+  if (!['py', 'test', 'receta', 'recetas', 'parar', 'estado'].includes(action) || extra.length || ['py', 'test', 'receta'].includes(action) !== !!file)
+    throw new Error('Uso: nomos ue py SCRIPT.py [--env K=V]… [--proyecto X.uproject] [--timeout S] | ue test FILTRO [--proyecto X] [--timeout S]'
+      + ' | ue receta RECETA.json [--validar] [--forzar] | ue recetas | ue parar | ue estado');
+  if (action === 'recetas') { console.log(JSON.stringify(plantillasRecetas, null, 2)); return true; }
+  if (action === 'receta' && values.validar) {
+    const v = validarReceta(JSON.parse(readFileSync(file, 'utf8')));
+    console.log(JSON.stringify(v.ok ? {ok: true} : v));
+    if (!v.ok) process.exitCode = 1;
+    return true;
+  }
   const uproject = resolve(values.proyecto ?? findUproject(process.cwd()));
   const fake = process.env.NOMOS_UE_FAKE;
   const opts: WarmOpts = fake ? {bin: process.execPath, baseArgs: [fake], startTimeoutMs: 20_000}
@@ -175,10 +220,42 @@ export async function ueCli(argv: string[]): Promise<boolean> {
   if (action === 'estado') { const beat = warmBeat(uproject); console.log(JSON.stringify(beat ? {abierto: true, ...beat} : {abierto: false})); return true; }
   if (action === 'parar') { console.log(JSON.stringify({cerrado: await stopWarm(uproject)})); return true; }
   const timeout = values.timeout ? {timeoutMs: Number(values.timeout) * 1000} : {};
+  const turno = values.tarea ? {info: serviceInfo(resolve(values.data ?? '.nomos')), tarea: values.tarea} : null;
   if (action === 'test') {
-    const r = await runTests(uproject, file, {...opts, ...timeout});
+    const r = await conTurno(turno, uproject, () => runTests(uproject, file, {...opts, ...timeout}));
     console.log(JSON.stringify(r, null, 2));
     if (!r.ok) process.exitCode = 1;
+    return true;
+  }
+  if (action === 'receta') {
+    const v = validarReceta(JSON.parse(readFileSync(file, 'utf8')));
+    if (!v.ok) throw new Error(`Receta no válida:\n${v.errores.join('\n')}`);
+    const dataDir = resolve(values.data ?? '.nomos'), ue = createUnrealCmd({bin: opts.bin}).engineVersion() ?? 'desconocida';
+    mkdirSync(dataDir, {recursive: true});
+    const db = openDb(dbFile(dataDir));
+    try {
+      const t0 = Date.now();
+      if (!values.forzar && enCache(db, uproject, v.receta, ue)) { console.log(JSON.stringify({ok: true, plantilla: v.receta.plantilla, acierto: true, ms: Date.now() - t0})); return true; }
+      const tmp = mkdtempSync(join(tmpdir(), 'nomos-receta-')), job = join(tmp, 'receta.json'), report = join(tmp, 'informe.json');
+      writeFileSync(job, JSON.stringify(v.receta));
+      try {
+        const env = {NOMOS_RECETA_JOB: job, NOMOS_REPORT: report}, script = join(unrealDir, 'nomos_recetas.py');
+        const r = await conTurno(turno, uproject, async () => {
+          if (calienteActivo()) try { return await runWarm(uproject, script, env, {...opts, ...timeout}); } catch (e) {
+            if (e instanceof Error && e.message === 'unreal_timeout') throw e;
+            console.error(`editor caliente: ${e instanceof Error ? e.message : e}; receta en frío`);
+            await stopWarm(uproject);
+          }
+          const frio = await createUnrealCmd({bin: opts.bin, baseArgs: opts.baseArgs}).runPython(uproject, script, env, timeout.timeoutMs ?? 30 * 60_000);
+          return {ok: frio.exitCode === 0, salida: '', error: frio.exitCode === 0 ? null : frio.log.split(/\r?\n/).filter(l => /error/i.test(l)).slice(-10).join('\n'), ms: 0};
+        });
+        const informe = existsSync(report) ? JSON.parse(readFileSync(report, 'utf8')) : {ok: false, errores: [r.error ?? 'el editor no dejó informe']};
+        const ok = r.ok && informe.ok === true;
+        if (ok) recordar(db, v.receta, ue);
+        console.log(JSON.stringify({...informe, ok, ms: Date.now() - t0}, null, 2));
+        if (!ok) process.exitCode = 1;
+      } finally { rmSync(tmp, {recursive: true, force: true}); }
+    } finally { db.close(); }
     return true;
   }
   const env = Object.fromEntries((values.env ?? []).map(pair => {
@@ -186,7 +263,7 @@ export async function ueCli(argv: string[]): Promise<boolean> {
     if (eq < 1) throw new Error(`--env espera CLAVE=valor: ${pair}`);
     return [pair.slice(0, eq), pair.slice(eq + 1)];
   }));
-  const result = await runWarm(uproject, resolve(file), env, {...opts, ...timeout});
+  const result = await conTurno(turno, uproject, () => runWarm(uproject, resolve(file), env, {...opts, ...timeout}));
   console.error(result.arranque === null ? `editor caliente: ${result.ms} ms` : `editor caliente: abierto en ${result.arranque.toFixed(0)} s; script ${result.ms} ms`);
   if (result.salida) process.stdout.write(result.salida.endsWith('\n') ? result.salida : result.salida + '\n');
   if (result.error) console.error(result.error);

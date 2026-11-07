@@ -25,6 +25,8 @@ const write = (path, data) => { writeFileSync(path + '.tmp', JSON.stringify(data
 const desde = Date.now() / 1000; let ultimo = Date.now(), trabajos = 0;
 // el arranque en frío: 300 ms antes del primer latido
 await new Promise(r => setTimeout(r, 300));
+// la inactividad cuenta desde que el editor está listo (como nomos_caliente.py tras -ExecCmds), no desde que arranca el proceso
+ultimo = Date.now();
 const timer = setInterval(() => {
   for (const f of readdirSync(entrada).filter(f => f.endsWith('.json')).sort()) {
     const job = JSON.parse(readFileSync(join(entrada, f), 'utf8')); rmSync(join(entrada, f));
@@ -41,6 +43,8 @@ const timer = setInterval(() => {
       if (ok) { mkdirSync(join(dir, 'tests'), {recursive: true}); writeFileSync(join(dir, 'tests', 'index.json'), '﻿' + JSON.stringify(informe(job.env.NOMOS_TEST_FILTRO))); }
       else error = `RuntimeError: No automation tests matched '${job.env.NOMOS_TEST_FILTRO}'`;
     } else {
+      // LENTO: un script largo que bloquea los ticks (sin latido) unos segundos, como un import grande en el editor real
+      if (readFileSync(job.script, 'utf8').includes('LENTO')) { rmSync(join(dir, 'latido.json'), {force: true}); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2500); }
       ok = !readFileSync(job.script, 'utf8').includes('FALLA'); error = ok ? null : 'Traceback: FALLA';
       if (job.env?.NOMOS_REPORT) writeFileSync(job.env.NOMOS_REPORT, JSON.stringify({ok}));
     }
@@ -48,6 +52,8 @@ const timer = setInterval(() => {
     ultimo = Date.now();
   }
   if (Date.now() - ultimo > idle) return end();
-  write(join(dir, 'latido.json'), {pid: process.pid, en: Date.now() / 1000, desde, trabajos});
+  // como nomos_caliente.py: si el reemplazo falla (el antivirus mirando el .tmp), se escribe directo; el cliente tolera una lectura a medias
+  const latido = {pid: process.pid, en: Date.now() / 1000, desde, trabajos};
+  try { write(join(dir, 'latido.json'), latido); } catch { try { writeFileSync(join(dir, 'latido.json'), JSON.stringify(latido)); } catch { /* el siguiente tick */ } }
 }, 100);
 function end() { clearInterval(timer); if (existsSync(join(dir, 'latido.json'))) rmSync(join(dir, 'latido.json')); process.exit(0); }

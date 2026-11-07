@@ -103,8 +103,11 @@ def tick(_dt):
             unreal.log_error('nomos_caliente: ' + traceback.format_exc())
         estado['ultimo'] = ahora = time.time()
     if ahora - estado['latido'] >= 1:
-        escribe(LATIDO, {'pid': os.getpid(), 'en': ahora, 'desde': estado['desde'], 'trabajos': estado['trabajos']})
-        estado['latido'] = ahora
+        try:
+            escribe(LATIDO, {'pid': os.getpid(), 'en': ahora, 'desde': estado['desde'], 'trabajos': estado['trabajos']})
+            estado['latido'] = ahora
+        except OSError:
+            pass  # reemplazo bloqueado (cliente leyendo, antivirus): el siguiente tick
     if estado['fin'] or ahora - estado['ultimo'] > INACTIVO:
         unreal.unregister_slate_post_tick_callback(manejador)
         try:

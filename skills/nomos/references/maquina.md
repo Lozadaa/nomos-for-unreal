@@ -16,20 +16,25 @@ recibe `scheduler.waiting`. No apagues el planificador por la RAM ni arranques p
 
 ## Turno desde el worker
 
-El brief de cada worker trae la orden exacta. Antes de abrir el editor, empaquetar o lanzar PIE:
+El brief de cada worker trae las órdenes exactas. El Python del editor va al **editor caliente**:
+`nomos ue py --tarea <taskId> <script.py> [--env K=V]` abre Unreal una vez por worktree (≈20 s) y los scripts
+siguientes tardan 0,1 s; los tests de automatización, por `nomos ue test --tarea <taskId> <filtro>` (JSON con pasados y
+fallidos, exit 1 si falla). **El turno es por orden**: cada `ue py`/`ue test` pide el turno, espera si está ocupado y
+lo suelta al acabar, así las comprobaciones de Nomos (`checks.run`, `ui.cycle`) entran entre dos scripts. El caliente
+queda abierto sin turno; si otro (una comprobación u otro worker) necesita Unreal, se cierra antes (un editor a la vez)
+y el siguiente `ue py` lo vuelve a abrir. `nomos ue estado` y `nomos ue parar`; se cierra solo tras 10 min sin trabajo
+o si cambian `Binaries` o el `.uproject`. FASTVFX genera y captura en él.
+
+Para abrir Unreal por otra vía (build, empaquetado, `-game`):
 
 ```
 nomos worker turn <taskId> --wait      # bloquea hasta editor.granted
-nomos worker turn <taskId> --release   # al cerrar Unreal
+nomos worker turn <taskId> --release   # al cerrar Unreal (cierra también el caliente del worktree)
 ```
 
-En los briefs que escribas, usa esa orden; nunca un bucle propio de espera de RAM (`esperar-maquina.ps1`).
-
-Con el turno, el Python del editor va al **editor caliente**: `nomos ue py <script.py> [--env K=V]` abre Unreal una
-vez por worktree (≈20 s) y los scripts siguientes tardan 0,1 s. `nomos ue estado` y `nomos ue parar`; se cierra
-solo tras 10 min sin trabajo, al devolver el turno o si cambian `Binaries` o el `.uproject`. Los tests de
-automatización van por `nomos ue test <filtro>` (mismo editor; JSON con pasados y fallidos, exit 1 si falla) y FASTVFX
-genera y captura en él. Juego con `-game` y UBT siguen en frío. `NOMOS_CALIENTE=off` vuelve a `UnrealEditor-Cmd`.
+Un turno pedido así que se retiene **3 min sin ningún proceso de Unreal** (editor, UBT, UAT, ShaderCompileWorker) se
+libera solo cuando alguien lo espera (evento `editor.released` con `motivo: inactivo`). En los briefs que escribas, usa
+esas órdenes; nunca un bucle propio de espera de RAM (`esperar-maquina.ps1`). `NOMOS_CALIENTE=off` vuelve a `UnrealEditor-Cmd`.
 
 ## Tras un reinicio
 

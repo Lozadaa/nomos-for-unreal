@@ -1,12 +1,11 @@
 import { parseArgs } from 'node:util';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { setTimeout as sleep } from 'node:timers/promises';
 import { request, serviceInfo } from './client.ts';
 import { parseTaskSpec } from './task-spec.ts';
 import { areas } from './routes/context.ts';
 import { buildSummary } from './build-info.ts';
-import { findUproject, stopWarm } from './editor/caliente.ts';
+import { findUproject, pedirTurno, stopWarm } from './editor/caliente.ts';
 
 const groups=['task','worker','run','decision','approval'];
 function commandIndex(argv: string[]): number {
@@ -102,12 +101,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
       try {await stopWarm(findUproject(process.cwd()));} catch { /* sin .uproject o sin editor caliente */ }
       console.log(JSON.stringify(await request(info,path+'/release',{})));return true;
     }
-    for (let last='';;) {
-      const answer=await request(info,path,{});
-      if (answer.granted) {console.log(JSON.stringify(answer));return true;}
-      if (answer.reason!==last) console.error(last=answer.reason);
-      await sleep(5000);
-    }
+    await pedirTurno(info,positionals[2]);console.log(JSON.stringify({granted:true}));return true;
   }
   const flags: Record<string,string[]>={
     'task.create':['title','area','spec-file','leases','depends','role','provider','message','priority'],'task.priority':[],'task.spec':['spec-file'],'task.show':[],'task.review':[],'task.check':['run','acepta-nueva-base'],

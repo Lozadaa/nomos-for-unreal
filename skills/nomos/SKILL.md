@@ -162,6 +162,9 @@ Detalle, niveles y guion del Launcher en [assets](references/assets.md).
 **VFX y materiales**: la spec pide una receta y `nomos fastvfx crear <receta> --preview`, no Python nodo a nodo;
 plantillas, caché y límites en [fastvfx](references/fastvfx.md). A mano solo si ninguna plantilla sirve.
 
+**Escenas, sondeos y BP + DataAsset**: la spec pide una receta y `nomos ue receta --tarea <id> <receta.json>`, no un
+script por tarea; plantillas y ejemplos en [recetas](references/recetas.md).
+
 ## Personajes y animación
 
 Personaje: siempre candidatos primero, `nomos asset candidates --task <id> "<petición>" --animation AM_Clip`

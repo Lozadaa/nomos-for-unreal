@@ -7,19 +7,29 @@ SIN UI (captura de control), en el mismo fotograma pausado. Probado en UE 5.8.3:
 Variables de entorno:
   NOMOS_REPORT  ruta del informe JSON
   NOMOS_SHOT    PNG con la UI;  NOMOS_CONTROL  PNG sin UI (opcional: sin ella no hay captura de control)
-  NOMOS_WAIT    segundos de juego antes de capturar (30 por defecto)
+  NOMOS_WAIT    tope de segundos de juego antes de capturar (30 por defecto): se captura antes si el juego está listo
+                (nomos_listo.py: fotogramas estables y sin shaders compilando); NOMOS_WAIT_FIJA=1 espera el tope entero
   NOMOS_WIDGETS lista JSON de clases de widget esperadas; sin ella vale cualquier UserWidget en el viewport
   NOMOS_VIEWS   (hito 10) lista JSON de vistas extra {view, path}: cámara libre que orbita al pawn, HighResShot sin UI
   NOMOS_VIEWS_BUDGET  segundos para las vistas extra (90); pasado el plazo se entregan las que haya y se anota
 """
-import json, os, shutil, time, unreal
+import json, os, shutil, sys, time, unreal
+
+# el juego ejecuta este archivo con exec(): los módulos hermanos se cargan desde la carpeta de NOMOS_SCRIPT
+sys.path.insert(0, os.path.dirname(os.environ.get("NOMOS_SCRIPT", "")))
+from nomos_listo import Listo  # noqa: E402
 
 REPORT = os.environ["NOMOS_REPORT"]
 SHOT = os.environ.get("NOMOS_SHOT") or os.path.join(unreal.Paths.project_saved_dir(), "nomos-ui.png")
 CONTROL = os.environ.get("NOMOS_CONTROL", "")
+# acelera B: NOMOS_WAIT ya no es una espera fija sino el tope; se captura en cuanto el juego está listo (nomos_listo.py).
+# NOMOS_WAIT_FIJA=1 vuelve a esperar NOMOS_WAIT entero (para comparar)
 WAIT = float(os.environ.get("NOMOS_WAIT", "30"))
+FIJA = os.environ.get("NOMOS_WAIT_FIJA") == "1"
+LISTO = Listo(WAIT)
 EXPECTED = json.loads(os.environ.get("NOMOS_WIDGETS") or "[]")
-UI_WAIT, FILE_WAIT = 20.0, 20.0
+# margen para que aparezca la UI tras estar listo: 20 s si la captura es de UI (control o widgets pedidos); si no (mapa), 5 s
+UI_WAIT, FILE_WAIT = 20.0 if CONTROL or EXPECTED or FIJA else 5.0, 20.0
 SHOTS = os.path.join(unreal.Paths.project_saved_dir(), "Screenshots")
 
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "map": None, "widgets": [],
@@ -132,7 +142,7 @@ def start_views():
     state.update(phase="view-aim", view=0, views_t=time.time())
 
 
-def tick(_dt):
+def tick(dt):
     if state["handle"] is None:
         return
     try:
@@ -148,7 +158,9 @@ def tick(_dt):
             found = [w for w in unreal.WidgetLibrary.get_all_widgets_of_class(state["world"], unreal.UserWidget, True) or [] if w.is_in_viewport()]
             report["widgets"] = [w.get_class().get_name() for w in found]
             ready = report["widgets"] and (not EXPECTED or any(e in report["widgets"] for e in EXPECTED))
-            if elapsed >= WAIT and (ready or elapsed >= WAIT + UI_WAIT):
+            listo = elapsed >= WAIT if FIJA else LISTO.tick(dt)
+            if listo and (ready or elapsed >= (WAIT if FIJA else LISTO.espera) + UI_WAIT):
+                report["espera"] = {"s": round(elapsed, 2), "motivo": "fija" if FIJA else LISTO.motivo}
                 state["found"] = found
                 console("pause")  # mismo fotograma para las dos capturas: solo cambia la UI
                 shoot(SHOT, "ui")

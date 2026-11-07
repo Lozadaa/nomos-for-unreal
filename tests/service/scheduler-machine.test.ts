@@ -7,7 +7,7 @@ import { openDb } from '../../service/src/db.ts';
 import { createTask, requireTask } from '../../service/src/repo/tasks.ts';
 import { startRun, finishRun } from '../../service/src/repo/runs.ts';
 import { plan, tick, machineWaits } from '../../service/src/scheduler.ts';
-import { isHeavy, requestTurn, releaseTurn } from '../../service/src/unreal-turn.ts';
+import { isHeavy, noteWarm, requestTurn, releaseTurn, turnIdleMs, warmToClose } from '../../service/src/unreal-turn.ts';
 import { withEditor } from '../../service/src/editor/queue.ts';
 import { listEvents } from '../../service/src/store.ts';
 import type { Machine } from '../../service/src/machine.ts';
@@ -119,4 +119,28 @@ test('config: scheduler.heavy.maxConcurrent, minFreeRamGb y heavyRequiresNoEdito
   for (const bad of [{scheduler: {heavy: {maxConcurrent: 0}}}, {scheduler: {minFreeRamGb: '6'}}, {scheduler: {otra: 1}}, {scheduler: {heavyRequiresNoEditor: 1}}]) {
     write(bad); assert.throws(() => readConfig(f.dataDir), /invalid_worker_config/, JSON.stringify(bad));
   }
+});
+
+test('x10: un turno retenido a mano sin ningún Unreal abierto se libera a los turnIdleMs; con editor o UBT, no', t => {
+  const f = setup(t);
+  const holder = f.working('J1.3 Primera', 'gameplay'), other = f.working('J1.4 Otra', 'gameplay');
+  assert.deepEqual(requestTurn(f.db, f.dataDir, holder.taskId, f.probe, 0), {granted: true});
+  assert.deepEqual(requestTurn(f.db, f.dataDir, holder.taskId, f.probe, 1), {granted: true, held: true}, 'ya era suyo');
+  f.machine.editors = 1;
+  assert.equal(requestTurn(f.db, f.dataDir, other.taskId, f.probe, 1000).granted, false);
+  assert.equal(requestTurn(f.db, f.dataDir, other.taskId, f.probe, 1000 + turnIdleMs).granted, false, 'con el editor abierto lo sigue teniendo');
+  f.machine.editors = 0; f.machine.tools = 1;
+  assert.equal(requestTurn(f.db, f.dataDir, other.taskId, f.probe, 2000 + turnIdleMs).granted, false, 'compilando con UBT, tampoco');
+  f.machine.tools = 0;
+  const t0 = 3000 + turnIdleMs;
+  assert.equal(requestTurn(f.db, f.dataDir, other.taskId, f.probe, t0).granted, false);
+  assert.equal(requestTurn(f.db, f.dataDir, other.taskId, f.probe, t0 + turnIdleMs - 1).granted, false);
+  assert.deepEqual(requestTurn(f.db, f.dataDir, other.taskId, f.probe, t0 + turnIdleMs), {granted: true});
+  const freed = listEvents(f.db, 0).find(e => e.type === 'editor.released')!;
+  assert.deepEqual([(freed.payload as any).taskId, (freed.payload as any).motivo], [holder.taskId, 'inactivo']);
+  // los calientes que quedaron abiertos al soltar el turno se cierran una vez, salvo el de quien lo recibe
+  noteWarm(f.db, 'C:/a/A.uproject', holder.taskId); noteWarm(f.db, 'C:/b/B.uproject', other.taskId);
+  assert.deepEqual(warmToClose(f.db, 'c:/B/b.uproject'), ['c:/a/a.uproject']);
+  assert.deepEqual(warmToClose(f.db), ['c:/b/b.uproject']);
+  assert.deepEqual(warmToClose(f.db), []);
 });

@@ -1,0 +1,66 @@
+{
+ "out-bp": {
+  "ok": true,
+  "ms": 17708,
+  "ms_editor": 373.2,
+  "errores": [],
+  "borrados": null,
+  "creado": true
+ },
+ "out-escena-1": {
+  "ok": true,
+  "ms": 233,
+  "ms_editor": 184.4,
+  "errores": [],
+  "borrados": 9,
+  "creado": null
+ },
+ "out-escena-2": {
+  "ok": true,
+  "ms": 230,
+  "ms_editor": 183.1,
+  "errores": [],
+  "borrados": 9,
+  "creado": null
+ },
+ "out-escena-3": {
+  "ok": true,
+  "ms": 236,
+  "ms_editor": 190.1,
+  "errores": [],
+  "borrados": 9,
+  "creado": null
+ },
+ "out-sondeo": {
+  "ok": true,
+  "ms": 218,
+  "ms_editor": 93,
+  "errores": [],
+  "borrados": null,
+  "creado": null
+ },
+ "frio-bp": {
+  "ok": true,
+  "ms": 14575,
+  "ms_editor": 144.6,
+  "errores": [],
+  "borrados": null,
+  "creado": false
+ },
+ "frio-escena": {
+  "ok": true,
+  "ms": 14897,
+  "ms_editor": 270.4,
+  "errores": [],
+  "borrados": 9,
+  "creado": null
+ },
+ "frio-sondeo": {
+  "ok": true,
+  "ms": 15894,
+  "ms_editor": 177.6,
+  "errores": [],
+  "borrados": null,
+  "creado": null
+ }
+}

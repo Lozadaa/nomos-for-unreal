@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Run, Task } from './model.ts';
-import { filtered } from './repo/rows.ts';
+import { filtered, read } from './repo/rows.ts';
 import { getTask, requireTask } from './repo/tasks.ts';
 import { acquire, holders, listLeases, releasePath } from './leases.ts';
 import { selectChecks } from './checks/select.ts';
@@ -70,9 +70,12 @@ function workerRun(db: DatabaseSync, taskId: string): Run {
  * su run, la misma que usan las comprobaciones). Entre los que esperan, la mayor prioridad y luego el primero en pedir.
  */
 export function requestTurn(db: DatabaseSync, dataDir: string, taskId: string, probe: MachineProbe = probeMachine,
-  now = Date.now()): {granted: boolean; reason?: string} {
-  const run = workerRun(db, taskId), path = editorPath(dataDir), held = holders(db, path)[0];
-  if (held?.runId === run.id) return {granted: true};
+  now = Date.now()): {granted: boolean; reason?: string; held?: true} {
+  const run = workerRun(db, taskId), path = editorPath(dataDir);
+  // `held`: ya era suyo (turno pedido a mano); `ue py --tarea` no lo suelta al acabar
+  if (holders(db, path)[0]?.runId === run.id) return {granted: true, held: true};
+  reclaimIdle(db, path, probe, now);
+  const held = holders(db, path)[0];
   let queue = queues.get(db);
   if (!queue) queues.set(db, queue = new Map());
   for (const [id, entry] of queue) if (entry.seen < now - forgetMs) queue.delete(id);
@@ -97,4 +100,41 @@ export function releaseTurn(db: DatabaseSync, dataDir: string, taskId: string): 
   queues.get(db)?.delete(taskId);
   if (released) appendEvent(db, 'editor.released', null, {taskId, project: editorPath(dataDir).slice(7)});
   return {released};
+}
+
+/** x10: sin Unreal abierto (ni editor ni UBT/UAT) durante este tiempo, el turno que un worker retiene a mano se libera. */
+export const turnIdleMs = 3 * 60_000;
+const idle = new WeakMap<DatabaseSync, Map<string, number>>();
+/**
+ * Lo llama quien espera la reserva `path` (otro worker o una comprobación): si la tiene un worker y en el PC no hay
+ * ningún proceso de Unreal desde hace `turnIdleMs`, se la quita (evento `editor.released` con `motivo: inactivo`).
+ * ponytail: el PC entero como señal (no se sabe de quién es cada proceso); un Unreal ajeno abierto lo mantiene.
+ */
+export function reclaimIdle(db: DatabaseSync, path: string, probe: MachineProbe = probeMachine, now = Date.now()): boolean {
+  const lease = holders(db, path)[0], run = lease && read<Run>(db, 'runs', lease.runId);
+  if (!run || run.role === 'revisor' || !workers.includes(run.provider)) return false;
+  let seen = idle.get(db);
+  if (!seen) idle.set(db, seen = new Map());
+  const m = probe();
+  if (m.editors + (m.tools ?? 0) > 0) { seen.delete(run.id); return false; }
+  const since = seen.get(run.id) ?? now;
+  seen.set(run.id, since);
+  if (now - since < turnIdleMs || !releasePath(db, lease.taskId, path)) return false;
+  seen.delete(run.id);
+  appendEvent(db, 'editor.released', null, {taskId: lease.taskId, project: path.slice(7), motivo: 'inactivo', minutos: Math.round((now - since) / 60_000)});
+  return true;
+}
+
+/** x10: editores calientes que quedaron abiertos al soltar un turno por operación (`ue py --tarea`): uproject → tarea. */
+const warm = new WeakMap<DatabaseSync, Map<string, string>>();
+export function noteWarm(db: DatabaseSync, uproject: string, taskId: string): void {
+  let open = warm.get(db);
+  if (!open) warm.set(db, open = new Map());
+  open.set(uproject.toLowerCase(), taskId);
+}
+/** Los calientes que hay que cerrar antes de que otro abra Unreal (un editor a la vez): todos menos el de `own`. Los olvida. */
+export function warmToClose(db: DatabaseSync, own?: string): string[] {
+  const open = warm.get(db), out = [...open?.keys() ?? []].filter(u => u !== own?.toLowerCase());
+  for (const u of out) open!.delete(u);
+  return out;
 }

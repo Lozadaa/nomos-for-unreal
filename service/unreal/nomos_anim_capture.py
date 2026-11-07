@@ -17,6 +17,7 @@ import json, os, shutil, sys, time, unreal
 # el juego ejecuta este archivo con exec(): los módulos hermanos se cargan desde la carpeta de NOMOS_SCRIPT
 sys.path.insert(0, os.path.dirname(os.environ.get("NOMOS_SCRIPT", "")))
 from nomos_anim_follow import BONES, center, follow_report, followers, pose, stretch  # noqa: E402
+from nomos_listo import Listo  # noqa: E402
 
 REPORT = os.environ["NOMOS_REPORT"]
 OUT = os.environ.get("NOMOS_SHOT_DIR") or unreal.Paths.project_saved_dir()
@@ -29,6 +30,8 @@ MAX_PELVIS_DIFF = 0.15
 # vídeo (corrección 2): con NOMOS_VIDEO_DIR, el clip entero a 30 fps paso a paso, de 3 a 8 s, un PNG por fotograma
 VIDEO_DIR, FPS, MIN_S, MAX_S = os.environ.get("NOMOS_VIDEO_DIR") or "", 30, 3.0, 8.0
 WAIT, FILE_WAIT, MAX_RATIO = float(os.environ.get("NOMOS_WAIT", "10")), 20.0, 3.0
+# acelera B: NOMOS_WAIT es el tope; la primera captura sale en cuanto el juego está listo (nomos_listo.py); NOMOS_WAIT_FIJA=1, el tope entero
+FIJA, LISTO = os.environ.get("NOMOS_WAIT_FIJA") == "1", Listo(WAIT)
 SHOTS = os.path.join(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_saved_dir()), "Screenshots")
 
 report = {"engine": str(unreal.SystemLibrary.get_engine_version()), "map": None, "clip": None, "length": 0,
@@ -121,7 +124,7 @@ def next_video_frame():
     state.update(phase="settle", t=time.time())
 
 
-def tick(_dt):
+def tick(dt):
     if state["handle"] is None:
         return
     try:
@@ -135,7 +138,7 @@ def tick(_dt):
                     report["errors"].append("El juego no arrancó en 120 s")
                     finish()
                 return
-            if elapsed < WAIT:
+            if not (elapsed >= WAIT if FIJA else LISTO.tick(dt)):
                 return
             world = state["world"]
             report["map"] = world.get_outermost().get_name()
