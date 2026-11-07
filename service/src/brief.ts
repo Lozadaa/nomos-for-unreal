@@ -16,12 +16,12 @@ export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): strin
     scope:task.scope.map(path=>`- ${path}`).join('\n') || '(vacío: no autoriza archivos)',
     provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run),
     context:rules.projectContext ?? 'Sin contexto adicional.',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
-    turn:rules.turn ? `- Antes de abrir Unreal (editor, build, empaquetado, PIE) pide turno y espera: \`${rules.turn} --wait\`. `
-      +`Al cerrarlo, devuélvelo: \`${rules.turn} --release\`. No escribas bucles propios de espera de RAM.\n`
-      // x10: el Python del editor va al editor caliente (0,1 s por script frente a 12-15 s de arranque en frío)
-      +`- Con el turno, el Python del editor va por \`${rules.turn.replace(/worker turn \S+/, 'ue py')} <script.py> [--env K=V]\`, no por UnrealEditor-Cmd -ExecutePythonScript: `
-      +`el editor queda abierto entre scripts y se cierra al devolver el turno.\n`
-      +`- Los tests de automatización, por \`${rules.turn.replace(/worker turn \S+/, 'ue test')} <filtro>\` (mismo editor; JSON con pasados y fallidos, exit 1 si falla), `
-      +`no por UnrealEditor-Cmd -ExecCmds="Automation RunTests …".\n` : ''};
+    // x10: el Python del editor y los tests van al editor caliente (0,1 s por script frente a 12-15 s en frío) y piden
+    // y sueltan el turno solos en cada orden, para que las comprobaciones de Nomos no esperen detrás de un turno retenido
+    turn:rules.turn ? `- El Python del editor va por \`${rules.turn.replace(/worker turn (\S+)/, 'ue py --tarea $1')} <script.py> [--env K=V]\` `
+      +`y los tests de automatización por \`${rules.turn.replace(/worker turn (\S+)/, 'ue test --tarea $1')} <filtro>\` (JSON con pasados y fallidos, exit 1 si falla), `
+      +`no por UnrealEditor-Cmd. Cada orden pide el turno de Unreal, espera si está ocupado y lo suelta al acabar; el editor queda abierto entre órdenes.\n`
+      +`- Para abrir Unreal por otra vía (build, empaquetado, -game) pide turno y espera: \`${rules.turn} --wait\`; al terminar, devuélvelo: \`${rules.turn} --release\`. `
+      +`Un turno retenido sin ningún Unreal abierto se libera solo a los 3 min. No escribas bucles propios de espera de RAM.\n` : ''};
   return template.replace(/\{\{(\w+)\}\}/g,(_,key)=>values[key] ?? '');
 }

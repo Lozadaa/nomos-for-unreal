@@ -7,7 +7,7 @@ import type { Run } from '../model.ts';
 import { id, type Context } from './context.ts';
 import { projectInfo } from '../project-root.ts';
 import { agentLabel } from '../editor/queue.ts';
-import { releaseTurn, requestTurn } from '../unreal-turn.ts';
+import { noteWarm, releaseTurn, requestTurn, warmToClose } from '../unreal-turn.ts';
 
 /** Editor por proyecto: el juego del servicio más cualquier proyecto con reserva `editor/<nombre>`. */
 function editors(db: Context['db'], dataDir: string | undefined) {
@@ -29,8 +29,16 @@ export async function leases({db,req,res,url,dataDir}: Context): Promise<boolean
   // hito 22: `nomos worker turn --wait|--release` (el worker pide Unreal desde su terminal)
   const turn=/^\/tasks\/([^/]+)\/turn(\/release)?$/.exec(url.pathname);
   if(req.method==='POST' && turn && dataDir) {
-    const taskId=id(turn[1]);await body(req);
-    json(res,200,turn[2] ? releaseTurn(db,dataDir,taskId) : requestTurn(db,dataDir,taskId));return true;
+    // x10: `ue py --tarea` manda su .uproject (`uproject` al pedir, `caliente` al soltar con el editor caliente abierto);
+    // a quien recibe el turno se le dicen los calientes de otros que debe cerrar antes de abrir Unreal (`cerrar`)
+    const taskId=id(turn[1]),data=await body(req) as {uproject?:unknown;caliente?:unknown};
+    if(turn[2]) {
+      const released=releaseTurn(db,dataDir,taskId);
+      if(released.released && typeof data.caliente==='string') noteWarm(db,data.caliente,taskId);
+      json(res,200,released);return true;
+    }
+    const answer=requestTurn(db,dataDir,taskId),cerrar=answer.granted ? warmToClose(db,typeof data.uproject==='string' ? data.uproject : undefined) : [];
+    json(res,200,cerrar.length ? {...answer,cerrar} : answer);return true;
   }
   const match=/^\/tasks\/([^/]+)\/leases$/.exec(url.pathname);
   if(req.method!=='POST' || !match) return false;

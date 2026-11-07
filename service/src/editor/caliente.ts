@@ -8,6 +8,8 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { defaultUnrealCmd } from '../adapters/unreal-cmd.ts';
 import { quote, runLogged } from '../adapters/process.ts';
 import { assetConfig } from '../catalog/paths.ts';
+import { request, serviceInfo } from '../client.ts';
+import type { ServiceInfo } from '../service-info.ts';
 
 /**
  * x10: editor caliente. En Herbalist los workers abrieron UnrealEditor-Cmd en frío 1 090 veces (21 h): la
@@ -158,17 +160,44 @@ export function findUproject(dir: string): string {
 }
 
 /**
- * `nomos ue py SCRIPT [--env K=V]… [--proyecto X.uproject] [--timeout S]`: el script en el editor caliente;
+ * Pide el turno de Unreal de `tarea` al servicio y espera a que se lo den (`nomos worker turn --wait` y `ue … --tarea`).
+ * Antes de volver cierra los editores calientes de otros que el servicio dice que siguen abiertos (un editor a la vez).
+ * `held`: el turno ya era suyo (pedido a mano).
+ */
+export async function pedirTurno(info: ServiceInfo, tarea: string, uproject?: string, cadaMs = 5000): Promise<{held: boolean}> {
+  const path = `/tasks/${encodeURIComponent(tarea)}/turn`;
+  for (let last = ''; ; await sleep(cadaMs)) {
+    const answer = await request(info, path, uproject ? {uproject} : {}) as {granted: boolean; reason?: string; held?: boolean; cerrar?: string[]};
+    if (answer.granted) {
+      for (const otro of answer.cerrar ?? []) await stopWarm(otro);
+      return {held: !!answer.held};
+    }
+    if (answer.reason !== last) console.error(last = answer.reason ?? '');
+  }
+}
+
+/** x10: turno por operación. Con `--tarea`, `ue py`/`ue test` piden el turno, ejecutan y lo sueltan dejando el editor
+ *  caliente abierto (el servicio lo apunta y lo cierra si otro necesita Unreal). Un turno pedido a mano no se suelta. */
+async function conTurno<T>(turno: {info: ServiceInfo; tarea: string} | null, uproject: string, fn: () => Promise<T>): Promise<T> {
+  if (!turno) return fn();
+  const {held} = await pedirTurno(turno.info, turno.tarea, uproject, 2000);
+  try { return await fn(); } finally {
+    if (!held) await request(turno.info, `/tasks/${encodeURIComponent(turno.tarea)}/turn/release`, warmBeat(uproject) ? {caliente: uproject} : {});
+  }
+}
+
+/**
+ * `nomos ue py SCRIPT [--env K=V]… [--proyecto X.uproject] [--timeout S] [--tarea ID]`: el script en el editor caliente;
  * `nomos ue test FILTRO` corre «Automation RunTests» en él y escribe el resumen JSON;
  * `nomos ue parar` lo cierra y `nomos ue estado` dice si está abierto. Sale con 1 si el script o algún test falla.
  * En pruebas `NOMOS_UE_FAKE` es el editor falso (se lanza con node).
  */
 export async function ueCli(argv: string[]): Promise<boolean> {
   // solo si `ue` es la orden (el primer posicional): `nomos reply ID ue …` no es esto
-  const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout'].includes(argv[i - 1] ?? ''));
+  const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout', '--tarea'].includes(argv[i - 1] ?? ''));
   if (first !== 'ue') return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},
-    env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}}});
+    env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}, tarea: {type: 'string'}}});
   const [, action, file, ...extra] = positionals;
   if (!['py', 'test', 'parar', 'estado'].includes(action) || extra.length || ['py', 'test'].includes(action) !== !!file)
     throw new Error('Uso: nomos ue py SCRIPT.py [--env K=V]… [--proyecto X.uproject] [--timeout S] | ue test FILTRO [--proyecto X] [--timeout S] | ue parar | ue estado');
@@ -179,8 +208,9 @@ export async function ueCli(argv: string[]): Promise<boolean> {
   if (action === 'estado') { const beat = warmBeat(uproject); console.log(JSON.stringify(beat ? {abierto: true, ...beat} : {abierto: false})); return true; }
   if (action === 'parar') { console.log(JSON.stringify({cerrado: await stopWarm(uproject)})); return true; }
   const timeout = values.timeout ? {timeoutMs: Number(values.timeout) * 1000} : {};
+  const turno = values.tarea ? {info: serviceInfo(resolve(values.data ?? '.nomos')), tarea: values.tarea} : null;
   if (action === 'test') {
-    const r = await runTests(uproject, file, {...opts, ...timeout});
+    const r = await conTurno(turno, uproject, () => runTests(uproject, file, {...opts, ...timeout}));
     console.log(JSON.stringify(r, null, 2));
     if (!r.ok) process.exitCode = 1;
     return true;
@@ -190,7 +220,7 @@ export async function ueCli(argv: string[]): Promise<boolean> {
     if (eq < 1) throw new Error(`--env espera CLAVE=valor: ${pair}`);
     return [pair.slice(0, eq), pair.slice(eq + 1)];
   }));
-  const result = await runWarm(uproject, resolve(file), env, {...opts, ...timeout});
+  const result = await conTurno(turno, uproject, () => runWarm(uproject, resolve(file), env, {...opts, ...timeout}));
   console.error(result.arranque === null ? `editor caliente: ${result.ms} ms` : `editor caliente: abierto en ${result.arranque.toFixed(0)} s; script ${result.ms} ms`);
   if (result.salida) process.stdout.write(result.salida.endsWith('\n') ? result.salida : result.salida + '\n');
   if (result.error) console.error(result.error);

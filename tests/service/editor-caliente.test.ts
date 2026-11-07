@@ -87,3 +87,57 @@ test('nomos ue test: los tests de automatización en el editor caliente, con res
     assert.deepEqual([JSON.parse(frio.stdout).modo, JSON.parse(frio.stdout).pasados], ['frio', 2]);
   } finally { await stopWarm(uproject); }
 });
+
+// x10 (acelera A): con --tarea, `ue py` pide el turno al empezar y lo suelta al acabar, sin cerrar el editor caliente
+test('x10: ue py --tarea pide el turno, cierra los calientes de otros que le dice el servicio y lo suelta al acabar', async () => {
+  const {createServer} = await import('node:http');
+  const {execFile} = await import('node:child_process');
+  const {promisify} = await import('node:util');
+  const {dir, uproject} = game(), otro = game();
+  await runWarm(otro.uproject, join(otro.dir, 'a.py'), {}, opts);
+  const llamadas: {url: string; body: any}[] = [];
+  let concedido = false, held = false;
+  const server = createServer((req, res) => {
+    let raw = ''; req.on('data', c => raw += c); req.on('end', () => {
+      llamadas.push({url: req.url!, body: JSON.parse(raw || '{}')});
+      const answer = req.url!.endsWith('/release') ? {released: true}
+        : held ? {granted: true, held: true}
+        : concedido ? {granted: true, cerrar: [otro.uproject]} : {granted: false, reason: 'Espera a que J1 suelte Unreal'};
+      concedido = true;
+      res.writeHead(200, {'Content-Type': 'application/json'}); res.end(JSON.stringify(answer));
+    });
+  });
+  await new Promise<void>(r => server.listen(0, '127.0.0.1', r));
+  const dataDir = join(dir, '.nomos'); mkdirSync(dataDir);
+  writeFileSync(join(dataDir, 'service.json'), JSON.stringify({pid: process.pid, port: (server.address() as any).port, token: 't', startedAt: 'x'}));
+  const cli = join(import.meta.dirname, '..', '..', 'service', 'src', 'cli.ts');
+  const ue = (...args: string[]) => promisify(execFile)(process.execPath, [cli, 'ue', 'py', 'a.py', '--tarea', 'T1', '--data', dataDir, ...args],
+    {cwd: dir, env: {...process.env, NOMOS_UE_FAKE: fake}, encoding: 'utf8'});
+  try {
+    const r = await ue();
+    assert.match(r.stdout, /ejecutado a\.py/); assert.match(r.stderr, /Espera a que J1 suelte Unreal/);
+    assert.deepEqual(llamadas.map(l => l.url), ['/tasks/T1/turn', '/tasks/T1/turn', '/tasks/T1/turn/release']);
+    assert.equal(llamadas[0].body.uproject, uproject);
+    assert.equal(llamadas[2].body.caliente, uproject, 'suelta el turno avisando de que su caliente sigue abierto');
+    assert.ok(warmBeat(uproject), 'el caliente sigue abierto para el siguiente script');
+    assert.equal(warmBeat(otro.uproject), null, 'el caliente de otro se cerró antes de abrir el suyo');
+    // con el turno pedido a mano (worker turn --wait) no lo suelta
+    held = true; llamadas.length = 0;
+    await ue();
+    assert.deepEqual(llamadas.map(l => l.url), ['/tasks/T1/turn']);
+  } finally { server.close(); await stopWarm(uproject); await stopWarm(otro.uproject); }
+});
+
+test('x10: una comprobación con la reserva libre cierra antes el editor caliente de su proyecto', async () => {
+  const {openDb} = await import('../../service/src/db.ts');
+  const {createTask} = await import('../../service/src/repo/tasks.ts');
+  const {startRun} = await import('../../service/src/repo/runs.ts');
+  const {withEditor} = await import('../../service/src/editor/queue.ts');
+  const {dir, uproject} = game(), db = openDb(':memory:');
+  try {
+    await runWarm(uproject, join(dir, 'a.py'), {}, opts);
+    const run = startRun(db, {taskId: createTask(db, {title: 'qa', area: 'ui'}).id, role: 'qa', provider: 'unreal'});
+    const dentro = await withEditor({db} as any, {dir, uproject, name: 'Juego'}, run, async () => warmBeat(uproject));
+    assert.equal(dentro, null, 'la comprobación no abre su Unreal con el caliente aún abierto');
+  } finally { db.close(); await stopWarm(uproject); }
+});
