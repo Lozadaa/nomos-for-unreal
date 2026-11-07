@@ -6,6 +6,7 @@ import { request, serviceInfo } from './client.ts';
 import { parseTaskSpec } from './task-spec.ts';
 import { areas } from './routes/context.ts';
 import { buildSummary } from './build-info.ts';
+import { findUproject, stopWarm } from './editor/caliente.ts';
 
 const groups=['task','worker','run','decision','approval'];
 function commandIndex(argv: string[]): number {
@@ -96,7 +97,11 @@ export async function directorCli(argv: string[]): Promise<boolean> {
     const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'},wait:{type:'boolean'},release:{type:'boolean'}}});
     if (positionals.length!==3 || !values.wait===!values.release) throw new Error('Uso: nomos worker turn TAREA --wait|--release');
     const info=serviceInfo(resolve(values.data ?? '.nomos')),path='/tasks/'+encodeURIComponent(positionals[2])+'/turn';
-    if (values.release) {console.log(JSON.stringify(await request(info,path+'/release',{})));return true;}
+    if (values.release) {
+      // x10: devolver Unreal también cierra el editor caliente de este worktree
+      try {await stopWarm(findUproject(process.cwd()));} catch { /* sin .uproject o sin editor caliente */ }
+      console.log(JSON.stringify(await request(info,path+'/release',{})));return true;
+    }
     for (let last='';;) {
       const answer=await request(info,path,{});
       if (answer.granted) {console.log(JSON.stringify(answer));return true;}
