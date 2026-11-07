@@ -55,7 +55,7 @@ if (mode === 'hang') {
   write({engine, generador: 1, acciones, errores: acciones.filter(a => !a.ok).map(a => a.ruta), ok: acciones.every(a => a.ok)});
 } else if (script.endsWith('nomos_fastvfx_preview.py')) {
   const job = JSON.parse(readFileSync(process.env.NOMOS_FASTVFX_PREVIEW, 'utf8'));
-  for (const i of job.items) { mkdirSync(dirname(i.png), {recursive: true}); png(i.png, 64, 36, false); }
+  for (const i of job.items) { mkdirSync(dirname(i.png), {recursive: true}); png(i.png, 64, 36, mode !== 'fastvfx_vacia'); }
   write({engine, items: job.items.map(i => ({asset: i.asset, png: i.png, frame: i.frame})), errores: [], ok: true});
 } else if (script.endsWith('nomos_import.py')) {
   write({ok: mode === 'ok', assets: mode === 'ok' ? [`${process.env.NOMOS_DEST}/${process.env.NOMOS_NAME}`] : [], errors: []});

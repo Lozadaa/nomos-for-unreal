@@ -119,7 +119,8 @@ export async function fastvfxCli(argv: string[]): Promise<boolean> {
           fila = {id: t.id, ok: l.ok, clase: l.recetas[0].clase, ms_total: l.ms_total, ms_generacion: l.ms_generacion, ms_preview: l.ms_preview,
             ms_primer_preview: l.ms_primer_preview, ms_compilacion: l.recetas[0].ms_compilacion, ms_guardado: l.recetas[0].ms_guardado,
             ms_editor_script: l.recetas[0].ms_editor, aperturas: l.aperturas, acciones: l.acciones, aciertos: l.aciertos, llamadas_llm: 0,
-            estadisticas: l.recetas[0].estadisticas ?? null, preview: l.recetas[0].preview ?? null, errores: l.errores, carga: c};
+            estadisticas: l.recetas[0].estadisticas ?? null, preview: l.recetas[0].preview ?? null, pixeles_efecto: l.recetas[0].pixeles_efecto ?? null,
+            errores: l.errores, carga: c};
         } catch (e) { fila = {id: t.id, ok: false, error: e instanceof Error ? e.message : String(e), carga: c}; }
         salida.tareas.push(fila);
         console.log(JSON.stringify(fila));

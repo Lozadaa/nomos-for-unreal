@@ -129,3 +129,13 @@ test('una acción que falla deja la receta en error y fuera de la caché', async
     assert.equal(db.prepare('select ok from fastvfx_log').get()!.ok, 0);
   } finally { delete process.env.NOMOS_FAKE; }
 });
+
+test('una captura sin efecto (sistema que no pinta) es un fallo de validación', async () => {
+  const {opciones} = entorno();
+  process.env.NOMOS_FAKE = 'fastvfx_vacia';
+  try {
+    const l = await ejecutar([azul], {...opciones, preview: true});
+    assert.equal(l.recetas[0].ok, false);
+    assert.match(l.recetas[0].error!, /no muestra el efecto/);
+  } finally { delete process.env.NOMOS_FAKE; }
+});

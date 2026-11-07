@@ -46,12 +46,13 @@ def lanzar(item, edad=None):
     sistema = unreal.load_asset(item["asset"])  # en -game, EditorAssetLibrary dentro de un tick cierra el juego (Herbalist H6.4)
     comp = unreal.NiagaraFunctionLibrary.spawn_system_at_location(st["world"], sistema, ORIGEN, unreal.Rotator(0, 0, 0),
                                                                    unreal.Vector(1, 1, 1), False, True, unreal.NCPoolMethod.NONE, False)
-    for k, v in (item.get("usuario") or {}).items():
-        if isinstance(v, int) and not isinstance(v, bool):
-            comp.set_variable_int(k, v)
-        elif isinstance(v, (int, float)):
+    # [tipo, valor]: con un entero en un parámetro float, set_variable_int crea otra variable y el sistema no pinta nada
+    for k, (tipo, v) in (item.get("usuario") or {}).items():
+        if tipo == "int":
+            comp.set_variable_int(k, int(v))
+        elif tipo == "float":
             comp.set_variable_float(k, float(v))
-        elif isinstance(v, list):
+        elif tipo == "color":
             comp.set_variable_linear_color(k, unreal.LinearColor(*v))
     if edad is not None:
         comp.set_age_update_mode(unreal.NiagaraAgeUpdateMode.DESIRED_AGE)

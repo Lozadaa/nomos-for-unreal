@@ -1,10 +1,11 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, statfsSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statfsSync, statSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import type { UnrealCmd } from '../adapters/unreal-cmd.ts';
 import { acquire, release } from '../leases.ts';
+import { decodePng } from '../checks/png.ts';
 import { probeMachine, type MachineProbe } from '../machine.ts';
 import { acierto, guardar, leer } from './cache.ts';
 import { defectos, escenario, plantillas, type Plantilla } from './plantillas.ts';
@@ -21,7 +22,7 @@ export type Opciones = {
 export type ResultadoReceta = {
   receta: string; ruta: string; plantilla: string; clase: Clase; ok: boolean; error?: string;
   ms_editor: number; ms_compilacion: number; ms_guardado: number; estadisticas?: Record<string, number>;
-  usuario?: Record<string, unknown>; preview?: string | null;
+  usuario?: Record<string, unknown>; preview?: string | null; pixeles_efecto?: number;
 };
 export type Lote = {
   lote: string; ok: boolean; recetas: ResultadoReceta[]; aperturas: number; ms_total: number; ms_generacion: number; ms_preview: number;
@@ -35,6 +36,18 @@ const libre = (dir: string) => { const f = statfsSync(dir); return f.bavail * f.
 /** Materiales de los emisores de un sistema base (MIs del maestro con lo que fija cada rol). */
 const matsBase = (p: Plantilla) => Object.fromEntries(Object.keys(p.roles ?? {}).map(rol => [rol, `${p.base}_Mats/MI_${rol}`]));
 const matsVariante = (r: RecetaValida) => Object.fromEntries(Object.keys(r.plantilla.roles ?? {}).map(rol => [rol, `${r.ruta}_Mats/MI_${rol}`]));
+/** Fracción de píxeles «de efecto» en una captura del escenario (gris y negro): muy saturados o casi blancos.
+ *  Por debajo de `previewVacia` la captura no muestra el efecto (sistema que no pinta, shader sin compilar). */
+export function pixelesEfecto(png: Uint8Array): number {
+  const {data} = decodePng(png);
+  let n = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const max = Math.max(data[i], data[i + 1], data[i + 2]), min = Math.min(data[i], data[i + 1], data[i + 2]);
+    if (max - min > 60 || min > 200) n++;
+  }
+  return n / (data.length / 4);
+}
+export const previewVacia = 0.0005;
 const usuario = (r: RecetaValida) => Object.fromEntries(Object.entries(r.parametros).filter(([k]) => r.plantilla.parametros[k].destino === 'usuario'));
 
 /** Acciones que construyen la estructura de una plantilla: maestro, o maestro + MIs de rol + sistema base. */
@@ -153,7 +166,9 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
       if (capturar.length && leer(o.db, escenario)) {
         const carpeta = join(dir, 'Saved', 'FastVfx', 'previews');
         mkdirSync(carpeta, {recursive: true});
-        const items = capturar.map(({r}) => ({tipo: r.plantilla.tipo, asset: r.ruta, frame: r.frame, usuario: r.plantilla.tipo === 'niagara' ? usuario(r) : undefined,
+        const tipado = (r: RecetaValida) => Object.fromEntries(Object.entries(usuario(r)).map(([k, v]) =>
+          [k, [r.plantilla.parametros[k].tipo === 'entero' ? 'int' : 'float', v]]));
+        const items = capturar.map(({r}) => ({tipo: r.plantilla.tipo, asset: r.ruta, frame: r.frame, usuario: r.plantilla.tipo === 'niagara' ? tipado(r) : undefined,
           png: join(carpeta, `${r.nombre}-${claveSalida(r, ue).slice(0, 8)}.png`).replace(/\\/g, '/')}));
         const job = join(tmp, 'preview.json');
         writeFileSync(job, JSON.stringify({calentar: 6, items}));
@@ -165,6 +180,15 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
         for (const {r} of capturar) {
           const png = capturas.find(c => c.asset === r.ruta && c.png && existsSync(c.png))?.png ?? null;
           res.get(r.nombre)!.preview = png;
+          if (png) {
+            const efecto = pixelesEfecto(readFileSync(png));
+            res.get(r.nombre)!.pixeles_efecto = Math.round(efecto * 1e5) / 1e5;
+            if (efecto < previewVacia) {
+              const q = res.get(r.nombre)!;
+              q.ok = false; q.error = `La captura no muestra el efecto (${(efecto * 100).toFixed(3)} % de píxeles de efecto)`;
+              fallos.push(`${r.ruta}: ${q.error}`);
+            }
+          }
           if (png) primerPreview = Math.min(primerPreview ?? Infinity, statSync(png).mtimeMs - reloj0);
           else fallos.push(`${r.ruta}: sin captura de preview`);
         }
