@@ -90,6 +90,12 @@ midió con un worker escribiendo recetas: el tiempo del modelo en escribir el JS
     aunque el proceso siguiera vivo con el tick ocupado. Ahora mira el pid. El editor falso y `nomos_caliente.py` ya no
     se caen si falla el reemplazo del latido. Test nuevo: un script que bloquea los ticks 2,5 s sin latido.
   - `orca-create`: el plazo de 500 ms no cubría el arranque del Orca falso (node) con la suite cargando la máquina; pasa a 4 s.
+  - Salió otro en las pasadas completas: «el editor caliente se cierra solo…» (2 de 5) daba «no arrancó a tiempo».
+    - Causa: el editor falso contaba los 0,5 s de inactividad desde que arrancaba el proceso, no desde que estaba listo.
+      Con carga, vencían antes del primer latido.
+    - Arreglo: el falso cuenta desde que está listo y el test usa 2 s.
+  - En una pasada, `runner-lifecycle` falló con EPERM al borrar su carpeta temporal y el proceso se quedó colgado; lo
+    maté a mano. No toca nada de esta rama y no se repitió en las otras 5 pasadas.
 
 ## Lo que no se pudo hacer o probar
 
