@@ -11,6 +11,7 @@ Acciones:
              emisor vacío y los módulos que trae el motor, con parámetros de usuario expuestos
   variante   duplica un sistema base y le cambia los materiales de los renderers por MIs propias (sin tocar el grafo)
   escenario  crea el nivel de preview (cámara fija, suelo, luz y una esfera para materiales)
+  borrar     borra un asset dentro del editor (editor caliente: un Niagara cargado no se rehace, pero borrado sí)
 
 Medidas: cada acción anota ms de construcción, compilación (recompile + FinishCompilation que hace get_statistics),
 guardado y las estadísticas que da MaterialEditingLibrary.get_statistics. En Niagara, los parámetros de usuario se leen
@@ -505,7 +506,13 @@ def accion_escenario(a, medida):
     medida["ms_guardado"] = ms(t0)
 
 
-ACCIONES = {"maestro": accion_maestro, "mi": accion_mi, "niagara": accion_niagara, "variante": accion_variante, "escenario": accion_escenario}
+def accion_borrar(a, medida):
+    """Con el editor caliente el sistema puede estar cargado: se borra aquí, no del disco (probado en UE 5.8.3)."""
+    if EAL.does_asset_exist(a["ruta"]) and not EAL.delete_asset(a["ruta"]):
+        raise RuntimeError(f"No se pudo borrar {a['ruta']}")
+
+
+ACCIONES = {"borrar": accion_borrar, "maestro": accion_maestro, "mi": accion_mi, "niagara": accion_niagara, "variante": accion_variante, "escenario": accion_escenario}
 
 inicio = time.perf_counter()
 for accion in JOB["acciones"]:

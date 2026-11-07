@@ -3,6 +3,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createUnrealCmd } from '../adapters/unreal-cmd.ts';
+import { stopWarm } from '../editor/caliente.ts';
 import { openDb } from '../db.ts';
 import { dbFile } from '../legacy.ts';
 import { olvidar } from './cache.ts';
@@ -78,7 +79,7 @@ export async function fastvfxCli(argv: string[]): Promise<boolean> {
     }
     const db = abrir();
     try {
-      const lote = await ejecutar(recetas, {db, unreal: createUnrealCmd(), uproject: uprojectDe(values.proyecto), preview: values.preview});
+      const lote = await ejecutar(recetas, {db, unreal: createUnrealCmd(), uproject: uprojectDe(values.proyecto), preview: values.preview, caliente: {}});
       console.log(JSON.stringify(lote, null, 2));
       if (!lote.ok) process.exitCode = 1;
     } finally { db.close(); }
@@ -102,20 +103,22 @@ export async function fastvfxCli(argv: string[]): Promise<boolean> {
       lote: null as Lote | null};
     try {
       if (values.modo === 'frio' || values.modo === 'lote') {
-        // frío de verdad: sin assets generados, sin capturas y sin caché de FASTVFX (la DDC del motor no se toca)
+        // frío de verdad: sin assets generados, sin capturas y sin caché de FASTVFX (la DDC del motor no se toca); el editor
+        // caliente se cierra antes, que tendría cargados los assets que se borran
+        await stopWarm(uproject);
         rmSync(join(dir, 'Content', ...raiz.split('/').slice(2)), {recursive: true, force: true});
         rmSync(join(dir, 'Saved', 'FastVfx'), {recursive: true, force: true});
         olvidar(db);
       }
       if (values.modo === 'lote') {
-        salida.lote = await ejecutar(tareas.map(t => t.receta), {db, unreal, uproject, preview: true, lote: `bench-lote-${Date.now()}`});
+        salida.lote = await ejecutar(tareas.map(t => t.receta), {db, unreal, uproject, preview: true, caliente: {}, lote: `bench-lote-${Date.now()}`});
         console.log(JSON.stringify({ok: salida.lote.ok, ms_total: salida.lote.ms_total, aperturas: salida.lote.aperturas}));
       } else for (const t of tareas) {
         const receta = values.modo === 'retoque' ? retoque(t.receta) : t.receta;
         const c = carga();
         let fila: Record<string, unknown>;
         try {
-          const l = await ejecutar([receta], {db, unreal, uproject, preview: true, lote: `bench-${values.modo}-${t.id}-${Date.now()}`});
+          const l = await ejecutar([receta], {db, unreal, uproject, preview: true, caliente: {}, lote: `bench-${values.modo}-${t.id}-${Date.now()}`});
           fila = {id: t.id, ok: l.ok, clase: l.recetas[0].clase, ms_total: l.ms_total, ms_generacion: l.ms_generacion, ms_preview: l.ms_preview,
             ms_primer_preview: l.ms_primer_preview, ms_compilacion: l.recetas[0].ms_compilacion, ms_guardado: l.recetas[0].ms_guardado,
             ms_editor_script: l.recetas[0].ms_editor, aperturas: l.aperturas, acciones: l.acciones, aciertos: l.aciertos, llamadas_llm: 0,
