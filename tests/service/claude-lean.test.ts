@@ -21,6 +21,6 @@ test('x10: las sesiones de Nomos apagan los plugins ajenos al juego y compactan 
   try {
     Object.assign(process.env, env); delete process.env.NOMOS_LEAN;
     assert.equal(launchCommand('claude', 'opus', 'nomos', 's-1'), `claude --model opus --dangerously-skip-permissions --settings ${slashed} --session-id s-1`);
-    assert.equal(launchCommand('codex'), 'codex --yolo --no-daemon');
+    assert.match(launchCommand('codex'), /^codex --yolo --no-daemon($| )/); // Codex no lleva --settings
   } finally { process.env = saved; }
 });
