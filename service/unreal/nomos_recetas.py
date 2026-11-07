@@ -1,4 +1,5 @@
-"""Nomos · recetas de editor (acelera C): escena, sondeo y bp_datos (UE 5.8, editor caliente o -ExecutePythonScript).
+"""Nomos · recetas de editor (acelera C y harness): escena, sondeo, bp_datos, importar_malla,
+camara_tercera_persona, post_exterior y poblar_pcg (UE 5.8, editor caliente o -ExecutePythonScript).
 
 Lee una receta ya validada por el servicio (NOMOS_RECETA_JOB, ver service/src/editor/recetas.ts) y deja el informe en
 NOMOS_REPORT. Solo datos: `plantilla` elige una función de este archivo y los valores se convierten aquí; nunca se ejecuta
@@ -271,12 +272,325 @@ def bp_datos(r):
         report["datos"] = {"ruta": d["ruta"], "creado": nuevo_da}
 
 
-t0 = time.perf_counter()
-try:
-    {"escena": escena, "sondeo": sondeo, "bp_datos": bp_datos}[RECETA["plantilla"]](RECETA)
+
+# --- utilidades de las recetas del harness ----------------------------------------------------------------------------
+def rot_(x):
+    return x if isinstance(x, unreal.Rotator) else rot(x)
+
+
+def transformar(o, pos=None, rot=None, escala=None):
+    """Cambia solo lo pedido y conserva el resto del transform. Con un set_actor_transform a medias el motor deja
+    escala 1 o rotación 0 en silencio (regla del harness: «escalas reseteadas»)."""
+    t = o.get_actor_transform()
+    o.set_actor_transform(unreal.Transform(unreal.Vector(*pos) if pos is not None else t.translation,
+                                           rot_(rot) if rot is not None else t.rotation.rotator(),
+                                           unreal.Vector(*escala) if escala is not None else t.scale3d), False, False)
+
+
+def cargar_nivel(ruta):
+    if not unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).load_level(ruta):
+        raise RuntimeError(f"No se pudo cargar el nivel {ruta}")
+    return unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+
+
+def guardar_nivel():
+    """Guarda el mapa abierto y lo comprueba en disco. Probado en UE 5.8.3: desde un tick (la espera de PCG) los dos
+    guardados devuelven False tras un aviso de control de versiones y aun así el .umap se escribe; manda el archivo."""
+    mundo = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+    rel = mundo.get_outermost().get_name()[len("/Game/"):]
+    umap = os.path.join(unreal.SystemLibrary.convert_to_absolute_path(unreal.Paths.project_content_dir()), rel + ".umap")
+    antes = os.path.getmtime(umap) if os.path.exists(umap) else 0
+    if not unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).save_current_level():
+        unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, False)
+    if not os.path.exists(umap) or os.path.getmtime(umap) <= antes:
+        report["errores"].append("No se pudo guardar el nivel")
+
+
+def de_clase(actores, c):
+    return [a for a in actores.get_all_level_actors() if isinstance(a, c)]
+
+
+# --- importar_malla ---------------------------------------------------------------------------------------------------
+# texturas de datos (no color): sin sRGB. Las normales las detecta el importador solo.
+DATOS = ("height", "_h.", "_h_", "mask", "rough", "_orm", "_arm", "_ao.", "metal", "opacity")
+
+
+def importar_malla(r):
+    t = unreal.AssetImportTask()
+    t.filename = r["fuente"]
+    t.destination_path = r["destino"]
+    if r.get("nombre"):
+        t.destination_name = r["nombre"]
+    t.automated, t.save, t.replace_existing = True, True, True
+    unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([t])
+    rutas = [str(p) for p in t.imported_object_paths]
+    if not rutas:
+        raise RuntimeError(f"El importador no creó nada desde {r['fuente']}")
+    hechos = []
+    for ruta in rutas:
+        a = unreal.load_asset(ruta)
+        item = {"ruta": ruta.split(".")[0], "clase": a.get_class().get_name()}
+        if isinstance(a, unreal.StaticMesh):
+            caja = a.get_bounding_box()
+            lo, hi = caja.min, caja.max
+            tam = [round(hi.x - lo.x, 1), round(hi.y - lo.y, 1), round(hi.z - lo.z, 1)]
+            item.update(tam=tam, base_z=round(lo.z, 1))
+            if max(tam) > 5000:
+                report["errores"].append(f"{item['ruta']} mide {max(tam) / 100:.0f} m: ¿exportado ×100 (cm sobre cm)?")
+            elif max(tam) < 2:
+                report["errores"].append(f"{item['ruta']} mide {max(tam):.2f} cm: ¿exportado en metros sin escalar (×0,01)?")
+            alto = r.get("alto_cm")
+            if alto and not alto[0] <= tam[2] <= alto[1]:
+                report["errores"].append(f"{item['ruta']} mide {tam[2]} cm de alto; se esperaba entre {alto[0]} y {alto[1]}")
+            if r.get("modulo") and abs(lo.z) > max(1.0, 0.02 * tam[2]):
+                report["errores"].append(f"{item['ruta']}: el pivote no está en la base (base a {lo.z:.1f} cm); en un módulo va en Z = 0")
+        elif isinstance(a, unreal.Texture2D) and any(k in ruta.lower().rsplit("/", 1)[-1] + "." for k in DATOS):
+            if a.get_editor_property("srgb"):
+                a.set_editor_property("srgb", False)
+                EAL.save_loaded_asset(a, only_if_is_dirty=False)
+                item["srgb"] = "apagado (textura de datos)"
+        hechos.append(item)
+    report["assets"] = hechos
+
+
+# --- camara_tercera_persona -------------------------------------------------------------------------------------------
+def camara_tercera_persona(r):
+    """Brazo y cámara del pawn. Si el Blueprint ya los tiene (también heredados de C++) los ajusta en su objeto por
+    defecto; si no, los añade. Deja una sola cámara activa y comprueba que la lente quede fuera de la malla."""
+    bp = asset(r["bp"])
+    cdo = unreal.get_default_object(bp.generated_class())
+    brazos = cdo.get_components_by_class(unreal.SpringArmComponent)
+    camaras = cdo.get_components_by_class(unreal.CameraComponent)
+    if not brazos or not camaras:
+        sds = unreal.get_engine_subsystem(unreal.SubobjectDataSubsystem)
+        lib = unreal.SubobjectDataBlueprintFunctionLibrary
+        handles = sds.k2_gather_subobject_data_for_blueprint(bp)
+        padre = handles[0]
+        if not brazos:
+            h, motivo = sds.add_new_subobject(unreal.AddNewSubobjectParams(parent_handle=padre, new_class=unreal.SpringArmComponent, blueprint_context=bp))
+            if not lib.is_handle_valid(h):
+                raise RuntimeError(f"No se pudo añadir el brazo: {motivo}")
+            sds.rename_subobject(h, unreal.Text("Brazo"))
+            padre = h
+        if not camaras:
+            h, motivo = sds.add_new_subobject(unreal.AddNewSubobjectParams(parent_handle=padre, new_class=unreal.CameraComponent, blueprint_context=bp))
+            if not lib.is_handle_valid(h):
+                raise RuntimeError(f"No se pudo añadir la cámara: {motivo}")
+            sds.rename_subobject(h, unreal.Text("Camara"))
+        unreal.BlueprintEditorLibrary.compile_blueprint(bp)
+        cdo = unreal.get_default_object(bp.generated_class())
+        brazos = cdo.get_components_by_class(unreal.SpringArmComponent)
+        camaras = cdo.get_components_by_class(unreal.CameraComponent)
+    brazo, cam = brazos[0], camaras[0]
+    largo, offset = float(r.get("brazo", 400)), r.get("offset", [0, 0, 60])
+    brazo.set_editor_property("target_arm_length", largo)
+    brazo.set_editor_property("socket_offset", unreal.Vector(*offset))
+    brazo.set_editor_property("use_pawn_control_rotation", bool(r.get("sigue_raton", True)))
+    brazo.set_editor_property("do_collision_test", bool(r.get("colision", True)))
+    lag = float(r.get("lag", 0))
+    brazo.set_editor_property("enable_camera_lag", lag > 0)
+    if lag > 0:
+        brazo.set_editor_property("camera_lag_speed", lag)
+    cam.set_editor_property("field_of_view", float(r.get("fov", 90)))
+    cam.set_editor_property("use_pawn_control_rotation", False)  # la gira el brazo; las dos a la vez pelean
+    activas = [c for c in camaras if c.get_editor_property("auto_activate")]
+    for c in activas[1:]:
+        c.set_editor_property("auto_activate", False)
+        report["avisos"].append(f"{c.get_name()}: desactivada; el pawn usa la primera cámara activa")
+    radio = 0.0
+    for m in cdo.get_components_by_class(unreal.SkeletalMeshComponent):
+        malla = m.get_editor_property("skeletal_mesh_asset")
+        if malla:
+            radio = max(radio, malla.get_bounds().sphere_radius)
+    distancia = (largo ** 2 + sum(x * x for x in offset)) ** 0.5
+    if radio and distancia < radio * 1.1:
+        report["errores"].append(f"La lente queda dentro de la malla: {distancia:.0f} cm de brazo con una malla de {radio:.0f} cm de radio")
+    unreal.BlueprintEditorLibrary.compile_blueprint(bp)
+    if not EAL.save_loaded_asset(bp, only_if_is_dirty=False):
+        report["errores"].append(f"No se pudo guardar {r['bp']}")
+    report.update(bp=r["bp"], brazo=largo, fov=float(r.get("fov", 90)), camaras=len(camaras), radio_malla=round(radio, 1))
+
+
+# --- post_exterior ----------------------------------------------------------------------------------------------------
+def pon_pp(ajustes, campo, valor):
+    ajustes.set_editor_property("override_" + campo, True)
+    ajustes.set_editor_property(campo, valor)
+
+
+def post_exterior(r):
+    actores = cargar_nivel(r["mapa"])
+    hechos = []
+    if r.get("cielo", True):
+        for c, nombre, pos in ((unreal.DirectionalLight, "Sol", [0, 0, 600]), (unreal.SkyAtmosphere, "Atmosfera", [0, 0, 0]),
+                               (unreal.SkyLight, "LuzCielo", [0, 0, 400]), (unreal.ExponentialHeightFog, "Niebla", [0, 0, 100])):
+            if not de_clase(actores, c):
+                a = actores.spawn_actor_from_class(c, unreal.Vector(*pos), unreal.Rotator(roll=0, pitch=-40, yaw=0) if c is unreal.DirectionalLight else unreal.Rotator())
+                a.set_actor_label(nombre)
+                hechos.append(f"añadido {nombre}")
+    soles, atmosferas, nieblas = de_clase(actores, unreal.DirectionalLight), de_clase(actores, unreal.SkyAtmosphere), de_clase(actores, unreal.ExponentialHeightFog)
+    for nombre, lista in (("SkyAtmosphere", atmosferas), ("ExponentialHeightFog", nieblas), ("DirectionalLight", soles)):
+        if len(lista) > 1:
+            report["avisos"].append(f"Hay {len(lista)} {nombre}: dos a la vez dan neblina o doble sol")
+    for a in de_clase(actores, unreal.SkyLight):
+        a.light_component.set_editor_property("real_time_capture", bool(atmosferas))
+    ppvs = [v for v in de_clase(actores, unreal.PostProcessVolume) if v.get_editor_property("unbound")]
+    if not ppvs:
+        v = actores.spawn_actor_from_class(unreal.PostProcessVolume, unreal.Vector(0, 0, 0), unreal.Rotator())
+        v.set_actor_label("PostExterior")
+        v.set_editor_property("unbound", True)
+        ppvs = [v]
+        hechos.append("añadido PostExterior sin límites")
+    for v in ppvs:  # todos los sin límites: si no, se pelean
+        aj = v.get_editor_property("settings")
+        pon_pp(aj, "auto_exposure_method", unreal.AutoExposureMethod.AEM_MANUAL)
+        pon_pp(aj, "auto_exposure_apply_physical_camera_exposure", False)
+        pon_pp(aj, "auto_exposure_bias", float(r.get("exposicion", 0)))
+        pon_pp(aj, "motion_blur_amount", 0.0)
+        v.set_editor_property("settings", aj)
+    sol = r.get("sol") or {}
+    for a in soles[:1]:
+        luz = a.light_component
+        luz.set_editor_property("atmosphere_sun_light", True)
+        if "pitch" in sol or "yaw" in sol:
+            g = a.get_actor_rotation()
+            transformar(a, rot=[sol.get("pitch", g.pitch), sol.get("yaw", g.yaw), 0])
+        if "intensidad" in sol:
+            luz.set_editor_property("intensity", float(sol["intensidad"]))
+        if "kelvin" in sol:
+            luz.set_editor_property("use_temperature", True)
+            luz.set_editor_property("temperature", float(sol["kelvin"]))
+        pitch = a.get_actor_rotation().pitch
+        if not atmosferas and pitch > -15:
+            report["avisos"].append(f"Sol bajo (pitch {pitch:.0f}) sin SkyAtmosphere: con la niebla por defecto sale todo blanco")
+    niebla = r.get("niebla") or {}
+    for a in nieblas[:1]:
+        c = a.get_component_by_class(unreal.ExponentialHeightFogComponent)
+        for clave, prop in (("densidad", "fog_density"), ("opacidad_max", "fog_max_opacity"), ("inicio", "start_distance")):
+            if clave in niebla:
+                c.set_editor_property(prop, float(niebla[clave]))
+        if c.get_editor_property("fog_max_opacity") > 0.9:
+            report["avisos"].append("FogMaxOpacity > 0,9: franja gris en el horizonte a contraluz")
+    guardar_nivel()
+    report.update(mapa=r["mapa"], hechos=hechos, volumenes=len(ppvs), exposicion=float(r.get("exposicion", 0)))
+
+
+# --- poblar_pcg -------------------------------------------------------------------------------------------------------
+def grafo_esparcir(r):
+    """Grafo propio: rejilla de puntos en el volumen, desplazamiento, giro y escala al azar, spawner con la paleta."""
+    ruta = "/Game/Nomos/PCG/PCG_" + r["etiqueta"].replace(".", "_").replace("-", "_")
+    if EAL.does_asset_exist(ruta):
+        EAL.delete_asset(ruta)  # se rehace entero: cambiar la paleta de un spawner existente no se aplica al reejecutar
+    carpeta, nombre = ruta.rsplit("/", 1)
+    g = unreal.AssetToolsHelpers.get_asset_tools().create_asset(nombre, carpeta, unreal.PCGGraph, unreal.PCGGraphFactory())
+    if g is None:
+        raise RuntimeError(f"No se pudo crear el grafo {ruta}")
+    sep = float(r.get("separacion", 300))
+    rejilla, s1 = g.add_node_of_type(unreal.PCGCreatePointsGridSettings)
+    s1.set_editor_property("grid_extents", unreal.Vector(r["extension"][0], r["extension"][1], 0))
+    s1.set_editor_property("cell_size", unreal.Vector(sep, sep, 100))
+    s1.set_editor_property("coordinate_space", unreal.PCGCoordinateSpace.ORIGINAL_COMPONENT)
+    var, s2 = g.add_node_of_type(unreal.PCGTransformPointsSettings)
+    e = r.get("escala", [0.6, 1.4])
+    s2.set_editor_property("offset_min", unreal.Vector(-sep * 0.45, -sep * 0.45, 0))
+    s2.set_editor_property("offset_max", unreal.Vector(sep * 0.45, sep * 0.45, 0))
+    s2.set_editor_property("rotation_max", unreal.Rotator(roll=0, pitch=0, yaw=360))
+    s2.set_editor_property("uniform_scale", True)
+    s2.set_editor_property("scale_min", unreal.Vector(e[0], e[0], e[0]))
+    s2.set_editor_property("scale_max", unreal.Vector(e[1], e[1], e[1]))
+    spawner, s3 = g.add_node_of_type(unreal.PCGStaticMeshSpawnerSettings)
+    sel = s3.get_editor_property("mesh_selector_parameters")
+    entradas = []
+    for p in r["paleta"]:
+        en = unreal.PCGMeshSelectorWeightedEntry()
+        d = en.get_editor_property("descriptor")
+        d.set_editor_property("static_mesh", asset(p["malla"]))
+        if p.get("material"):
+            d.set_editor_property("override_materials", [asset(p["material"])])
+        en.set_editor_property("descriptor", d)
+        en.set_editor_property("weight", int(p.get("peso", 1)))
+        entradas.append(en)
+    sel.set_editor_property("mesh_entries", entradas)
+    g.add_edge(rejilla, "Out", var, "In")
+    g.add_edge(var, "Out", spawner, "In")
+    g.add_edge(spawner, "Out", g.get_output_node(), "In")
+    EAL.save_loaded_asset(g, only_if_is_dirty=False)
+    return g
+
+
+def instancias(a):
+    return sum(c.get_instance_count() for c in a.get_components_by_class(unreal.InstancedStaticMeshComponent))
+
+
+def poblar_pcg(r):
+    if os.environ.get("NOMOS_CALIENTE") in (None, "", "off"):
+        raise RuntimeError("poblar_pcg necesita el editor caliente: la generación de PCG es asíncrona y en frío no hay ticks")
+    actores = cargar_nivel(r["mapa"])
+    viejos = [a for a in actores.get_all_level_actors() if r["etiqueta"] in [str(t) for t in a.tags]]
+    actores.destroy_actors(viejos)  # se recrea el volumen: cambiar material o descriptor no se aplica al reejecutar
+    grafo = asset(r["grafo"]) if r.get("grafo") else grafo_esparcir(r)
+    v = actores.spawn_actor_from_class(unreal.PCGVolume, unreal.Vector(*r["pos"]), unreal.Rotator())
+    v.set_actor_label("PCG_" + r["etiqueta"])
+    v.set_editor_property("tags", [unreal.Name(r["etiqueta"])])
+    transformar(v, escala=[max(x, 1) / 100 for x in r["extension"]])  # el pincel del volumen mide 200 cm
+    c = v.get_component_by_class(unreal.PCGComponent)
+    c.set_graph(grafo)
+    c.set_editor_property("seed", int(r.get("semilla", 42)))
+    c.generate(True)
+    estado = {"t": time.time(), "n": -1, "quieto": time.time()}
+    report.update(mapa=r["mapa"], etiqueta=r["etiqueta"], grafo=grafo.get_path_name().split(".")[0], borrados=len(viejos))
+
+    def esperar():
+        # el aviso modal del guardado procesa ticks y volvería a entrar aquí (probado: errores duplicados)
+        if estado.get("dentro"):
+            return False
+        estado["dentro"] = True
+        try:
+            return esperar_()
+        finally:
+            estado["dentro"] = False
+
+    def esperar_():
+        n = instancias(v)
+        if n != estado["n"]:
+            estado.update(n=n, quieto=time.time())
+        if n > 0 and time.time() - estado["quieto"] > 1.5:
+            report["instancias"] = n
+            guardar_nivel()
+            return True
+        if time.time() - estado["t"] > 60:
+            report["instancias"] = n
+            report["errores"].append("0 instancias tras 60 s: el grafo no generó nada (fallo silencioso típico de PCG)" if n == 0
+                                     else f"La generación no se estabilizó en 60 s ({n} instancias)")
+            return True
+        return False
+    return esperar
+
+
+def cerrar():
     report["ok"] = not report["errores"]
+    report["ms_editor"] = round((time.perf_counter() - t0) * 1000, 1)
+    with open(REPORT, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=1, ensure_ascii=False)
+
+
+PLANTILLAS = {"escena": escena, "sondeo": sondeo, "bp_datos": bp_datos, "importar_malla": importar_malla,
+              "camara_tercera_persona": camara_tercera_persona, "post_exterior": post_exterior, "poblar_pcg": poblar_pcg}
+t0 = time.perf_counter()
+pendiente = None
+try:
+    pendiente = PLANTILLAS[RECETA["plantilla"]](RECETA)
 except Exception:  # noqa: BLE001
     report["errores"].append(traceback.format_exc())
-report["ms_editor"] = round((time.perf_counter() - t0) * 1000, 1)
-with open(REPORT, "w", encoding="utf-8") as f:
-    json.dump(report, f, indent=1, ensure_ascii=False)
+if callable(pendiente):
+    def nomos_pendiente():
+        """Editor caliente (nomos_caliente.py): se llama en cada tick hasta True; entonces se escribe el informe."""
+        try:
+            hecho = pendiente()
+        except Exception:  # noqa: BLE001
+            report["errores"].append(traceback.format_exc())
+            hecho = True
+        if hecho:
+            cerrar()
+        return hecho
+else:
+    cerrar()

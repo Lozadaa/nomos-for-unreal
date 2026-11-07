@@ -47,3 +47,10 @@ export function pixelDiffRatio(a: Rgba, b: Rgba, tolerance = 8): number {
       || Math.abs(a.data[p + 2] - b.data[p + 2]) > tolerance) changed++;
   return changed / (a.width * a.height);
 }
+
+/** Fracción de píxeles magenta (el material por defecto mientras compilan shaders): una captura así no se juzga, se repite. */
+export function fraccionMagenta(img: Rgba): number {
+  let n = 0;
+  for (let p = 0; p < img.data.length; p += 4) if (img.data[p] > 200 && img.data[p + 1] < 70 && img.data[p + 2] > 200) n++;
+  return n / (img.width * img.height);
+}

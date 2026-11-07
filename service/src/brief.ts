@@ -22,8 +22,10 @@ export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): strin
       +`y los tests de automatización por \`${rules.turn.replace(/worker turn (\S+)/, 'ue test --tarea $1')} <filtro>\` (JSON con pasados y fallidos, exit 1 si falla), `
       +`no por UnrealEditor-Cmd. Cada orden pide el turno de Unreal, espera si está ocupado y lo suelta al acabar; el editor queda abierto entre órdenes.\n`
       // acelera C: montar escenas, sondear assets y crear BP + DataAsset sin escribir Python (los scripts que más se repetían)
-      +`- Para colocar actores en un mapa, inventariar assets o crear un Blueprint hijo con su DataAsset, escribe una receta JSON en vez de un script: `
-      +`\`${rules.turn.replace(/worker turn (\S+)/, 'ue receta --tarea $1')} <receta.json>\` (plantillas y campos: \`${rules.turn.replace(/worker turn \S+/, 'ue recetas')}\`; repetida sin cambios no abre el editor).\n`
+      +`- Para colocar actores en un mapa, inventariar assets, crear un Blueprint hijo con su DataAsset, importar una malla, ajustar la cámara del pawn, `
+      +`dejar la luz exterior lista para capturas o esparcir mallas con PCG, escribe una receta JSON en vez de un script: `
+      +`\`${rules.turn.replace(/worker turn (\S+)/, 'ue receta --tarea $1')} <receta.json>\` (plantillas y campos: \`${rules.turn.replace(/worker turn \S+/, 'ue recetas')}\`; repetida sin cambios no abre el editor). `
+      +`Si Unreal se cae, lee el informe con \`${rules.turn.replace(/worker turn \S+/, 'ue crash')}\` antes de relanzar.\n`
       +`- Para abrir Unreal por otra vía (build, empaquetado, -game) pide turno y espera: \`${rules.turn} --wait\`; al terminar, devuélvelo: \`${rules.turn} --release\`. `
       +`Un turno retenido sin ningún Unreal abierto se libera solo a los 3 min. No escribas bucles propios de espera de RAM.\n` : ''};
   return template.replace(/\{\{(\w+)\}\}/g,(_,key)=>values[key] ?? '');

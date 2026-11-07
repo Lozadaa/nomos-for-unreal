@@ -13,7 +13,7 @@ const write = report => writeFileSync(process.env.NOMOS_REPORT, JSON.stringify({
 const engine = '5.8.3-58210709+++UE5+Release-5.8';
 
 // PNG RGBA sin filtro: fondo gris y, con UI, una barra roja en la esquina (más del 0,5 % de los píxeles)
-function png(path, width, height, ui, shift = 0) {
+function png(path, width, height, ui, shift = 0, fondo = [90, 90, 90, 255]) {
   const chunk = (type, data) => {
     const body = Buffer.concat([Buffer.from(type), data]), out = Buffer.alloc(body.length + 8);
     out.writeUInt32BE(data.length, 0); body.copy(out, 4); out.writeUInt32BE(crc32(body), body.length + 4);
@@ -22,7 +22,7 @@ function png(path, width, height, ui, shift = 0) {
   const raw = Buffer.alloc((width * 4 + 1) * height);
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     const bar = ui && y < height / 5 && x >= shift % width && x < shift % width + width / 3, o = y * (width * 4 + 1) + 1 + x * 4;
-    raw.set(bar ? [220, 40, 40, 255] : [90, 90, 90, 255], o);
+    raw.set(bar ? [220, 40, 40, 255] : fondo, o);
   }
   const header = Buffer.alloc(13);
   header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header.set([8, 6, 0, 0, 0], 8);
@@ -117,14 +117,19 @@ if (mode === 'hang') {
   const width = Math.max(8, Math.round(Number(arg('ResX') ?? 1280) / 40)), height = Math.max(8, Math.round(Number(arg('ResY') ?? 720) / 40));
   if (mode === 'fail') write({ok: false, engine, map: null, widgets: [], screenshot: null, control: null, errors: ['El juego no arrancó en 120 s']});
   else {
-    png(process.env.NOMOS_SHOT, width, height, mode !== 'noui');
+    // «magenta» imita shaders sin compilar siempre; «magenta_once», solo la primera vez (marca junto a la captura)
+    const marca = `${process.env.NOMOS_SHOT}.magenta`, rosa = mode === 'magenta' || (mode === 'magenta_once' && !existsSync(marca));
+    if (mode === 'magenta_once') writeFileSync(marca, '1');
+    png(process.env.NOMOS_SHOT, width, height, mode !== 'noui', 0, rosa ? [255, 0, 255, 255] : undefined);
     if (process.env.NOMOS_CONTROL) png(process.env.NOMOS_CONTROL, width, height, false);
     const map = args.find(a => a.startsWith('/Game/')) ?? '/Game/Maps/Nivel1';
     // hito 10: las vistas del rig; «views_slow» imita un editor que pasa de 90 s y solo deja la primera
     const requested = JSON.parse(process.env.NOMOS_VIEWS || '[]'), done = mode === 'views_slow' ? requested.slice(0, 1) : requested;
     for (const v of done) png(v.path, width, height, false, v.view.length);
     write({ok: true, engine, map, widgets: mode === 'noui' ? [] : ['WBP_Vida_C'], screenshot: process.env.NOMOS_SHOT,
-      control: process.env.NOMOS_CONTROL || null, errors: [], views: Object.fromEntries(done.map(v => [v.view, v.path])),
+      control: process.env.NOMOS_CONTROL || null, errors: [],
+      jugador: mode === 'cayendo' ? {pawn: {clase: 'BP_Jugador_C', pos: [0, 0, -800], base_z: -890, suelo_z: null, cayendo: true}, player_start: [[0, 0, 100]]}
+        : {pawn: {clase: 'BP_Jugador_C', pos: [0, 0, 92], base_z: 2, suelo_z: 0, cayendo: false}, player_start: [[0, 0, 100]]}, views: Object.fromEntries(done.map(v => [v.view, v.path])),
       ...(mode === 'views_slow' ? {views_note: `Vistas extra cortadas a los 90 s: ${done.length} de ${requested.length}`} : {})});
   }
 } else {

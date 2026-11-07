@@ -2,7 +2,7 @@
 
 ## Crash
 
-- **Lee el informe antes de relanzar.** En Windows hay dos sitios: `%LOCALAPPDATA%\UnrealEngine\5.8\Saved\Crashes` y
+- **Lee el informe antes de relanzar: `nomos ue crash`** (mensaje, pila y 60 líneas del log desde el fallo). Busca en dos sitios: `%LOCALAPPDATA%\UnrealEngine\5.8\Saved\Crashes` y
   `<proyecto>\Saved\Crashes` (también el del worktree). La carpeta más reciente tiene `CrashContext.runtime-xml` con
   `<ErrorMessage>` y, si hay `.log`, la pila. Busca `Fatal error`, `Assertion failed` o `Critical error` y lee ~60
   líneas desde ahí. Sin log en la carpeta, el último de `Saved/Logs`. [probado]
