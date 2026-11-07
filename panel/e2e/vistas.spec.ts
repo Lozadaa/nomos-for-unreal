@@ -11,7 +11,7 @@ const origin = () => new URL(url()).origin
 const call = (page: Page, path: string, data?: unknown) =>
   page.request.fetch(origin() + path, { method: data ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token()}` }, data })
 
-const routes = [['/', 'Producción'], ['/actividad', 'Actividad'], ['/entregas', 'Entregas'], ['/catalogo', 'Catálogo'], ['/chat', 'Chat'],
+const routes = [['/', 'Habla con Nomos'], ['/produccion', 'Todas las tareas'], ['/actividad', 'Actividad'], ['/entregas', 'Entregas'], ['/catalogo', 'Catálogo'], ['/chat', 'Chat'],
   ['/decisiones', 'Decisiones'], ['/presupuesto', 'Presupuesto'], ['/capacidades', 'Capacidades'], ['/estilo', 'Estilo']] as const
 
 for (const [path, name] of routes) {
@@ -20,7 +20,7 @@ for (const [path, name] of routes) {
     page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()) })
     page.on('pageerror', (e) => problems.push(e.message))
     await page.goto(url().replace('/#', `${path}#`))
-    await expect(page.getByRole('link', { name: new RegExp(`^${name}`) }).first()).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('heading', { name: new RegExp(`^${name}`) }).first()).toBeVisible()
     await page.waitForTimeout(600)
     expect(problems).toEqual([])
   })
@@ -41,7 +41,7 @@ test('Entregas: las imágenes y el modelo GLB cargan pese a la política de segu
 })
 
 test('Producción se actualiza en vivo por SSE: una tarea creada fuera del panel aparece sin recargar', async ({ page }) => {
-  await page.goto(url())
+  await page.goto(url().replace('/#', '/produccion#'))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
   const created = await call(page, '/tasks', { title: 'Creada desde fuera', spec: '', area: 'qa', acceptance: [] })
   expect(created.status()).toBe(201)

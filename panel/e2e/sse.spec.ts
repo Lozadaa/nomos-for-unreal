@@ -13,7 +13,7 @@ const auth = (t: string) => ({ headers: { Authorization: `Bearer ${t}` } })
 // hito 16: el token es de la carpeta de datos; reiniciar no invalida los accesos directos ni la pestaña abierta
 test('nomos stop/start: el panel lo dice, reconecta solo con el mismo token y no hay duplicados', async ({ page }) => {
   const first = service.start()
-  await page.goto(service.url(first))
+  await page.goto(service.url(first).replace('/#', '/produccion#'))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
   const rows = page.locator('[data-task-id]')
   const before = await rows.count()
@@ -61,7 +61,7 @@ test('nomos stop/start: el panel lo dice, reconecta solo con el mismo token y no
 
 test('nomos stop/start --new-token: el token viejo deja de valer y el panel dice Sesión caducada', async ({ page }) => {
   const first = service.start()
-  await page.goto(service.url(first))
+  await page.goto(service.url(first).replace('/#', '/produccion#'))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
   const rows = page.locator('[data-task-id]')
   const before = await rows.count()
@@ -73,7 +73,7 @@ test('nomos stop/start --new-token: el token viejo deja de valer y el panel dice
   await expect(page.getByText(/Sesión caducada/)).toBeVisible({ timeout: 15_000 })
 
   // solo cambia el hash: hace falta recargar para que el panel lea el token nuevo (como al abrirlo de nuevo desde Nomos)
-  await page.goto(service.url(second))
+  await page.goto(service.url(second).replace('/#', '/produccion#'))
   await page.reload()
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
   await expect(rows).toHaveCount(before)

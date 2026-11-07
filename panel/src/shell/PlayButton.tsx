@@ -67,7 +67,7 @@ export function PlayButton({ play, starting = false, onPlay, onStop, now, classN
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
-    {hint && state === 'none' && play?.reason && <span className="text-xs text-muted-foreground">{play.reason}</span>}
+    {hint && state === 'none' && play?.reason && <span className="hidden text-xs text-muted-foreground md:inline">{play.reason}</span>}
     </span>
   )
 }

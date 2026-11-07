@@ -22,7 +22,7 @@ test('Pruebas: «Lanzar pruebas» encola checks.run y la fila aparece por SSE si
   db.prepare(`insert into runs(id,created_at,updated_at,task_id,role,provider,attempt,state,started_at,finished_at,summary,skills,metadata)
     values(?,?,?,?,'implementacion','claude',1,'done',?,?,'Hecho','[]','{}')`).run(`e2e-run-${task.id}`, now, now, task.id, now, now)
   db.close()
-  await page.goto(url())
+  await page.goto(url().replace('/#', '/produccion#'))
   await page.getByRole('button', { name: new RegExp(title) }).click()
   await page.getByRole('tab', { name: 'Pruebas' }).click()
   await expect(page.getByText('Esta tarea aún no tiene pruebas')).toBeVisible()

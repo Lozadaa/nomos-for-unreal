@@ -37,7 +37,7 @@ export function Header({ project, status, onCommand, onTogglePause, play }: { pr
       </div>
       {status?.paused && <span className="hidden items-center gap-2 text-sm text-warning sm:inline-flex" title="No empieza nada nuevo; lo que está a medias termina"><Glyph kind="directorState" value="esperando" tone="warning" />En pausa</span>}
       <div className="ml-auto flex items-center gap-1">
-        {play && <div data-tour-anchor="play" className="mr-1 sm:mr-2"><PlayButton {...play} hint={false} /></div>}
+        {play && <div data-tour-anchor="play" className="mr-1 sm:mr-2"><PlayButton {...play} /></div>}
         <Button variant="ghost" size="icon-lg" aria-label="Buscar" title="Buscar (Ctrl+K)" onClick={(event) => onCommand(event.currentTarget)}><Search className="size-5" /></Button>
         {routed && <MoreMenu paused={status ? status.paused : undefined} onTogglePause={onTogglePause} />}
       </div>
