@@ -1,0 +1,307 @@
+{
+  "modo": "lote",
+  "fecha": "2026-11-07T14:45:06.084Z",
+  "ue": "5.8.3",
+  "carga_inicio": {
+    "ffmpeg": 1,
+    "chrome": 17,
+    "node": 2
+  },
+  "tareas": [],
+  "lote": {
+    "lote": "bench-lote-1794062706733",
+    "ok": true,
+    "recetas": [
+      {
+        "receta": "MI_Escudo_Azul",
+        "ruta": "/Game/FastVfx/Generado/MI_Escudo_Azul",
+        "plantilla": "M_Master_VFX",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 319.7,
+        "ms_compilacion": 42.8,
+        "ms_guardado": 31.6,
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-01f61a33.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 158,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.01754
+      },
+      {
+        "receta": "MI_Plasma_Rojo",
+        "ruta": "/Game/FastVfx/Generado/MI_Plasma_Rojo",
+        "plantilla": "M_Master_VFX",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 335.7,
+        "ms_compilacion": 51.4,
+        "ms_guardado": 32.8,
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Plasma_Rojo-f0d4be29.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 122,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.03976
+      },
+      {
+        "receta": "MI_Calor_Distorsion",
+        "ruta": "/Game/FastVfx/Generado/MI_Calor_Distorsion",
+        "plantilla": "M_Master_VFX",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 344.6,
+        "ms_compilacion": 42.9,
+        "ms_guardado": 48.4,
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Calor_Distorsion-fd05a87c.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 122,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.00442
+      },
+      {
+        "receta": "MI_Holo_Cian",
+        "ruta": "/Game/FastVfx/Generado/MI_Holo_Cian",
+        "plantilla": "M_Master_Hologram",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 147.4,
+        "ms_compilacion": 10,
+        "ms_guardado": 27.4,
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Holo_Cian-e027ef27.png",
+        "estadisticas": {
+          "instrucciones_vs": 293,
+          "instrucciones_ps": 173,
+          "samplers": 1,
+          "muestras_textura_ps": 3
+        },
+        "pixeles_efecto": 0.01044
+      },
+      {
+        "receta": "MI_Holo_Verde",
+        "ruta": "/Game/FastVfx/Generado/MI_Holo_Verde",
+        "plantilla": "M_Master_Hologram",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 145.9,
+        "ms_compilacion": 9.2,
+        "ms_guardado": 27.8,
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Holo_Verde-638251d9.png",
+        "estadisticas": {
+          "instrucciones_vs": 293,
+          "instrucciones_ps": 173,
+          "samplers": 1,
+          "muestras_textura_ps": 3
+        },
+        "pixeles_efecto": 0.00865
+      },
+      {
+        "receta": "MI_Portal_Violeta",
+        "ruta": "/Game/FastVfx/Generado/MI_Portal_Violeta",
+        "plantilla": "M_Master_VFX",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 344.3,
+        "ms_compilacion": 63.9,
+        "ms_guardado": 25.4,
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Portal_Violeta-e3a0cb41.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 126,
+          "samplers": 1,
+          "muestras_textura_ps": 0
+        },
+        "pixeles_efecto": 0.01972
+      },
+      {
+        "receta": "FX_Energy_Azul",
+        "ruta": "/Game/FastVfx/Generado/FX_Energy_Azul",
+        "plantilla": "FX_Energy_Base",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 395.5,
+        "ms_compilacion": 71.3,
+        "ms_guardado": 178.29999999999998,
+        "usuario": {
+          "Particulas": 120,
+          "Vida": 1,
+          "Escala": 1,
+          "defecto_en_asset": {
+            "Particulas": 80,
+            "Vida": 1,
+            "Escala": 1
+          }
+        },
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Azul-27e61353.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 132,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.03125
+      },
+      {
+        "receta": "FX_Energy_Roja",
+        "ruta": "/Game/FastVfx/Generado/FX_Energy_Roja",
+        "plantilla": "FX_Energy_Base",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 383.90000000000003,
+        "ms_compilacion": 42.7,
+        "ms_guardado": 185.89999999999998,
+        "usuario": {
+          "Particulas": 260,
+          "Vida": 1.2,
+          "Escala": 1,
+          "defecto_en_asset": {
+            "Particulas": 80,
+            "Vida": 1,
+            "Escala": 1
+          }
+        },
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Roja-462c3fd4.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 132,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.04351
+      },
+      {
+        "receta": "FX_Energy_Verde",
+        "ruta": "/Game/FastVfx/Generado/FX_Energy_Verde",
+        "plantilla": "FX_Energy_Base",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 368,
+        "ms_compilacion": 40.4,
+        "ms_guardado": 183.3,
+        "usuario": {
+          "Particulas": 80,
+          "Vida": 1,
+          "Escala": 0.6,
+          "defecto_en_asset": {
+            "Particulas": 80,
+            "Vida": 1,
+            "Escala": 1
+          }
+        },
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Verde-52c5983b.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 132,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.00824
+      },
+      {
+        "receta": "FX_Energy_Dorada",
+        "ruta": "/Game/FastVfx/Generado/FX_Energy_Dorada",
+        "plantilla": "FX_Energy_Base",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 361.5,
+        "ms_compilacion": 39.6,
+        "ms_guardado": 181.2,
+        "usuario": {
+          "Particulas": 80,
+          "Vida": 1.5,
+          "Escala": 1,
+          "defecto_en_asset": {
+            "Particulas": 80,
+            "Vida": 1,
+            "Escala": 1
+          }
+        },
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Dorada-4ff78273.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 132,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.03021
+      },
+      {
+        "receta": "FX_Energy_Violeta",
+        "ruta": "/Game/FastVfx/Generado/FX_Energy_Violeta",
+        "plantilla": "FX_Energy_Base",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 370.6,
+        "ms_compilacion": 41,
+        "ms_guardado": 184.39999999999998,
+        "usuario": {
+          "Particulas": 60,
+          "Vida": 1,
+          "Escala": 1.4,
+          "defecto_en_asset": {
+            "Particulas": 80,
+            "Vida": 1,
+            "Escala": 1
+          }
+        },
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Violeta-ddab02f8.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 132,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.03952
+      },
+      {
+        "receta": "FX_Energy_Blanca",
+        "ruta": "/Game/FastVfx/Generado/FX_Energy_Blanca",
+        "plantilla": "FX_Energy_Base",
+        "clase": "estructural",
+        "ok": true,
+        "ms_editor": 563.4,
+        "ms_compilacion": 171.10000000000002,
+        "ms_guardado": 164.3,
+        "usuario": {
+          "Particulas": 400,
+          "Vida": 0.7,
+          "Escala": 1,
+          "defecto_en_asset": {
+            "Particulas": 80,
+            "Vida": 1,
+            "Escala": 1
+          }
+        },
+        "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Blanca-3eafc269.png",
+        "estadisticas": {
+          "instrucciones_vs": 297,
+          "instrucciones_ps": 132,
+          "samplers": 2,
+          "muestras_textura_ps": 1
+        },
+        "pixeles_efecto": 0.00221
+      }
+    ],
+    "aperturas": 2,
+    "ms_total": 54200,
+    "ms_generacion": 24888,
+    "ms_preview": 28466,
+    "ms_primer_preview": 43165,
+    "aciertos": 0,
+    "errores": [],
+    "acciones": 44,
+    "sustituidas": 8
+  },
+  "carga_fin": {
+    "ffmpeg": 1,
+    "chrome": 17,
+    "node": 2
+  }
+}

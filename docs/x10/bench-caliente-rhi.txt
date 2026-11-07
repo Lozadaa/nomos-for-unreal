@@ -1,0 +1,4 @@
+-NullRHI arranque=14.369 s memoria="2,935,128 K"
+-RenderOffscreen arranque=12.7465 s memoria="3,925,172 K"
+-NullRHI arranque=11.0804 s memoria="2,931,016 K"
+-RenderOffscreen arranque=12.9199 s memoria="3,956,496 K"

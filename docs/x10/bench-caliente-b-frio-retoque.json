@@ -1,0 +1,143 @@
+{
+  "modo": "retoque",
+  "fecha": "2026-11-07T14:41:53.249Z",
+  "ue": "5.8.3",
+  "carga_inicio": {
+    "ffmpeg": 0,
+    "chrome": 17,
+    "node": 2
+  },
+  "tareas": [
+    {
+      "id": "M01",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 37469,
+      "ms_generacion": 16881,
+      "ms_preview": 19953,
+      "ms_primer_preview": 34700,
+      "ms_compilacion": 9.9,
+      "ms_guardado": 70.9,
+      "ms_editor_script": 290,
+      "aperturas": 2,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-7f30933b.png",
+      "pixeles_efecto": 0.01625,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 17,
+        "node": 2
+      }
+    },
+    {
+      "id": "M02",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 38051,
+      "ms_generacion": 17358,
+      "ms_preview": 19932,
+      "ms_primer_preview": 35194,
+      "ms_compilacion": 10.7,
+      "ms_guardado": 71.1,
+      "ms_editor_script": 287,
+      "aperturas": 2,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-e6f89951.png",
+      "pixeles_efecto": 0.01804,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 18,
+        "node": 2
+      }
+    },
+    {
+      "id": "N01",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 37491,
+      "ms_generacion": 16887,
+      "ms_preview": 19963,
+      "ms_primer_preview": 34769,
+      "ms_compilacion": 42.6,
+      "ms_guardado": 171.6,
+      "ms_editor_script": 295.3,
+      "aperturas": 2,
+      "acciones": 4,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Azul-97a5f39c.png",
+      "pixeles_efecto": 0.02981,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 20,
+        "node": 2
+      }
+    },
+    {
+      "id": "N02",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 38069,
+      "ms_generacion": 17012,
+      "ms_preview": 20444,
+      "ms_primer_preview": 35017,
+      "ms_compilacion": 38.3,
+      "ms_guardado": 176.39999999999998,
+      "ms_editor_script": 294.4,
+      "aperturas": 2,
+      "acciones": 4,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Azul-5c8e3717.png",
+      "pixeles_efecto": 0.03167,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 20,
+        "node": 2
+      }
+    },
+    {
+      "id": "N03",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 36991,
+      "ms_generacion": 16419,
+      "ms_preview": 19945,
+      "ms_primer_preview": 34131,
+      "ms_compilacion": 47.4,
+      "ms_guardado": 174.3,
+      "ms_editor_script": 299.59999999999997,
+      "aperturas": 2,
+      "acciones": 4,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Roja-f686927c.png",
+      "pixeles_efecto": 0.04215,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 17,
+        "node": 2
+      }
+    }
+  ],
+  "lote": null,
+  "carga_fin": {
+    "ffmpeg": 1,
+    "chrome": 17,
+    "node": 2
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "modo": "frio",
+  "fecha": "2026-11-07T14:38:32.131Z",
+  "ue": "5.8.3",
+  "carga_inicio": {
+    "ffmpeg": 0,
+    "chrome": 20,
+    "node": 2
+  },
+  "tareas": [
+    {
+      "id": "M01",
+      "ok": true,
+      "clase": "estructural",
+      "ms_total": 39431,
+      "ms_generacion": 18851,
+      "ms_preview": 19935,
+      "ms_primer_preview": 36870,
+      "ms_compilacion": 55.1,
+      "ms_guardado": 32.2,
+      "ms_editor_script": 338.4,
+      "aperturas": 2,
+      "acciones": 3,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": {
+        "instrucciones_vs": 297,
+        "instrucciones_ps": 158,
+        "samplers": 2,
+        "muestras_textura_ps": 1
+      },
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-af872a32.png",
+      "pixeles_efecto": 0.01584,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 20,
+        "node": 2
+      }
+    },
+    {
+      "id": "M02",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 38253,
+      "ms_generacion": 17513,
+      "ms_preview": 20096,
+      "ms_primer_preview": 35578,
+      "ms_compilacion": 9.3,
+      "ms_guardado": 72.5,
+      "ms_editor_script": 298.8,
+      "aperturas": 2,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-01f61a33.png",
+      "pixeles_efecto": 0.01752,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 16,
+        "node": 2
+      }
+    },
+    {
+      "id": "N01",
+      "ok": true,
+      "clase": "estructural",
+      "ms_total": 41949,
+      "ms_generacion": 20885,
+      "ms_preview": 20430,
+      "ms_primer_preview": 38830,
+      "ms_compilacion": 117.8,
+      "ms_guardado": 196.5,
+      "ms_editor_script": 466.5,
+      "aperturas": 2,
+      "acciones": 10,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": {
+        "instrucciones_vs": 297,
+        "instrucciones_ps": 132,
+        "samplers": 2,
+        "muestras_textura_ps": 1
+      },
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Azul-df18221d.png",
+      "pixeles_efecto": 0.02851,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 18,
+        "node": 2
+      }
+    },
+    {
+      "id": "N02",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 38070,
+      "ms_generacion": 16859,
+      "ms_preview": 20598,
+      "ms_primer_preview": 35116,
+      "ms_compilacion": 45.60000000000001,
+      "ms_guardado": 194.70000000000002,
+      "ms_editor_script": 334.40000000000003,
+      "aperturas": 2,
+      "acciones": 4,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Azul-27e61353.png",
+      "pixeles_efecto": 0.0307,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 17,
+        "node": 2
+      }
+    },
+    {
+      "id": "N03",
+      "ok": true,
+      "clase": "nuevo",
+      "ms_total": 38629,
+      "ms_generacion": 18038,
+      "ms_preview": 19943,
+      "ms_primer_preview": 35667,
+      "ms_compilacion": 110.60000000000001,
+      "ms_guardado": 330.29999999999995,
+      "ms_editor_script": 765.3,
+      "aperturas": 2,
+      "acciones": 5,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": {
+        "instrucciones_vs": 297,
+        "instrucciones_ps": 132,
+        "samplers": 2,
+        "muestras_textura_ps": 1
+      },
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Roja-27a7f7f4.png",
+      "pixeles_efecto": 0.04138,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 16,
+        "node": 2
+      }
+    }
+  ],
+  "lote": null,
+  "carga_fin": {
+    "ffmpeg": 0,
+    "chrome": 18,
+    "node": 2
+  }
+}
