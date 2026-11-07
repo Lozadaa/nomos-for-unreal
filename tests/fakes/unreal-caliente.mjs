@@ -50,7 +50,8 @@ const timer = setInterval(() => {
     ultimo = Date.now();
   }
   if (Date.now() - ultimo > idle) return end();
-  // como nomos_caliente.py: un reemplazo que falla (el cliente leyendo, el antivirus) no tumba el editor
-  try { write(join(dir, 'latido.json'), {pid: process.pid, en: Date.now() / 1000, desde, trabajos}); } catch { /* el siguiente tick */ }
+  // como nomos_caliente.py: si el reemplazo falla (el antivirus mirando el .tmp), se escribe directo; el cliente tolera una lectura a medias
+  const latido = {pid: process.pid, en: Date.now() / 1000, desde, trabajos};
+  try { write(join(dir, 'latido.json'), latido); } catch { try { writeFileSync(join(dir, 'latido.json'), JSON.stringify(latido)); } catch { /* el siguiente tick */ } }
 }, 100);
 function end() { clearInterval(timer); if (existsSync(join(dir, 'latido.json'))) rmSync(join(dir, 'latido.json')); process.exit(0); }
