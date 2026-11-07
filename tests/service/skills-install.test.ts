@@ -9,7 +9,7 @@ import { removeDir } from '../remove-dir.ts';
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'nomos-skills-')), source = join(root, 'skills'), game = join(root, 'Juego');
-  for (const name of ['game-ui-art-director', 'ue-umg-ui', 'ue-visual-qa', 'nomos']) {
+  for (const name of ['game-ui-art-director', 'ue-umg-ui', 'ue-visual-qa', 'ue-oficio', 'nomos']) {
     mkdirSync(join(source, name, 'references'), {recursive: true});
     writeFileSync(join(source, name, 'SKILL.md'), `---\nname: ${name}\n---\nv1\n`);
     writeFileSync(join(source, name, 'references', 'a.md'), 'ref\n');
@@ -18,15 +18,15 @@ function fixture() {
   return {root, source, game, close: () => removeDir(root)};
 }
 
-test('instala las tres skills de UI en <juego>/.claude/skills y es idempotente', () => {
+test('instala las skills del juego (UI y ue-oficio) en <juego>/.claude/skills y es idempotente', () => {
   const f = fixture();
   try {
     const first = installSkills(f.game, f.source);
     assert.deepEqual(first.map(r => [r.name, r.action]), gameSkills.map(name => [name, 'installed']));
     assert.equal(readFileSync(join(f.game, '.claude', 'skills', 'ue-umg-ui', 'references', 'a.md'), 'utf8'), 'ref\n');
     assert.ok(!existsSync(join(f.game, '.claude', 'skills', 'nomos')), 'la skill del director no se copia al juego');
-    assert.deepEqual(installSkills(f.game, f.source).map(r => r.action), ['unchanged', 'unchanged', 'unchanged']);
-    assert.deepEqual(installedSkills(f.game).map(s => s.name), gameSkills);
+    assert.deepEqual(installSkills(f.game, f.source).map(r => r.action), ['unchanged', 'unchanged', 'unchanged', 'unchanged']);
+    assert.deepEqual(installedSkills(f.game).map(s => s.name), [...gameSkills].sort(), "el inventario sale ordenado por nombre");
   } finally { f.close(); }
 });
 
@@ -39,12 +39,12 @@ test('actualiza una copia sin tocar y nunca sobrescribe un SKILL.md modificado e
     const local = join(f.game, '.claude', 'skills', 'ue-visual-qa', 'SKILL.md');
     writeFileSync(local, '---\nname: ue-visual-qa\n---\nmío\n');
     const result = installSkills(f.game, f.source);
-    assert.deepEqual(result.map(r => r.action), ['unchanged', 'updated', 'kept-local']);
+    assert.deepEqual(result.map(r => r.action), ['unchanged', 'updated', 'kept-local', 'unchanged']);
     assert.match(readFileSync(join(f.game, '.claude', 'skills', 'ue-umg-ui', 'SKILL.md'), 'utf8'), /v2/);
     assert.match(readFileSync(local, 'utf8'), /mío/);
     assert.match(readFileSync(join(f.game, '.claude', 'skills', 'ue-visual-qa', '.nomos-skill.new', 'SKILL.md'), 'utf8'), /v2/);
     assert.match(result[2].message!, /cambios locales/);
-    assert.deepEqual(installSkills(f.game, f.source).map(r => r.action), ['unchanged', 'unchanged', 'kept-local']);
+    assert.deepEqual(installSkills(f.game, f.source).map(r => r.action), ['unchanged', 'unchanged', 'kept-local', 'unchanged']);
   } finally { f.close(); }
 });
 

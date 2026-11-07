@@ -2,15 +2,16 @@ import { readdirSync, lstatSync, realpathSync } from 'node:fs';
 import { join, resolve, relative, isAbsolute } from 'node:path';
 
 const groups:Record<string,string[]>={
-  implementation:['ue-project-context','ue-cpp-foundations','ue-gameplay-framework','ue-module-build-system'],
-  ability:['ue-gameplay-abilities','ue-niagara-effects','ue-animation-system','ue-audio-system'],
-  vfx:['ue-niagara-effects','ue-materials-rendering','vfx-fx'],
-  ui:['game-ui-art-director','ue-ui-umg-slate','game-ui-design','game-ui-ux','ue-umg-ui','ux-writing','ue-visual-qa'],
-  assets:['blender-director','asset-optimization','collision-proxy','lod-pipeline','unreal-export','qa-review','ue-asset-intake'],
-  animation:['rigging','ue-animation-system'],
-  world:['environment-artist','set-dressing','ue-procedural-generation','ue-world-level-streaming','lighting'],
+  // ue-oficio (skill propia): trampas de Python 5.8, importar, cámara, luz, PCG y crashes; la carga todo rol que toca el editor
+  implementation:['ue-project-context','ue-cpp-foundations','ue-gameplay-framework','ue-module-build-system','ue-oficio'],
+  ability:['ue-gameplay-abilities','ue-niagara-effects','ue-animation-system','ue-audio-system','ue-oficio'],
+  vfx:['ue-niagara-effects','ue-materials-rendering','vfx-fx','ue-oficio'],
+  ui:['game-ui-art-director','ue-ui-umg-slate','game-ui-design','game-ui-ux','ue-umg-ui','ux-writing','ue-visual-qa','ue-oficio'],
+  assets:['blender-director','asset-optimization','collision-proxy','lod-pipeline','unreal-export','qa-review','ue-asset-intake','ue-oficio'],
+  animation:['rigging','ue-animation-system','ue-oficio'],
+  world:['environment-artist','set-dressing','ue-procedural-generation','ue-world-level-streaming','lighting','ue-oficio'],
   audio:['ue-audio-system'],
-  qa:['ue-testing-debugging','ue-visual-qa','ue-test-package','unreal-packaging'],
+  qa:['ue-testing-debugging','ue-visual-qa','ue-test-package','unreal-packaging','ue-oficio'],
   review:['code-review','superpowers:requesting-code-review'],
   scope:['ue-jam-director','game-jam']
 };

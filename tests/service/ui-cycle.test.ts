@@ -70,6 +70,7 @@ async function qaReview(t: any, verdict: string, before?: (f: any) => void) {
   const test = recordTestRun(f.db, {taskId: f.task.id, runId: f.implementer.id, checkId: 'umg', result: 'running', commit: 'abc'});
   const dir = join(f.dataDir, 'artifacts', 'tests', test.id); mkdirSync(dir, {recursive: true});
   writeFileSync(join(dir, 'ui-1280x720.png'), 'png'); writeFileSync(join(dir, 'ui-1280x720-control.png'), 'png');
+  writeFileSync(join(dir, 'ui-1280x720.png.json'), '{"camara":{}}');
   addArtifact(f.db, {taskId: f.task.id, runId: f.implementer.id, kind: 'screenshot', path: join(dir, 'ui-1280x720.png'),
     provenance: {testRunId: test.id, resolution: '1280x720', map: '/Game/Maps/Nivel1', control: join(dir, 'ui-1280x720-control.png')}});
   const state = f.state(); state.treePath = join(f.dir, 'qa-tree'); state.terminalHandle = 'term_qa'; state.tail = [];
@@ -79,6 +80,9 @@ async function qaReview(t: any, verdict: string, before?: (f: any) => void) {
   assert.match(brief, /QA visual/);
   assert.match(brief, /\.nomos-review\/ui-1280x720\.png` · 1280x720 · mapa \/Game\/Maps\/Nivel1/);
   assert.ok(existsSync(join(f.reviewTree().path, '.nomos-review', 'ui-1280x720-control.png')));
+  // la escena de la captura viaja con ella y el brief la nombra
+  assert.ok(existsSync(join(f.reviewTree().path, '.nomos-review', 'ui-1280x720.png.json')));
+  assert.match(brief, /escena `\.nomos-review\/ui-1280x720\.png\.json`/);
   assert.ok(f.reviewer().skills.includes('ue-visual-qa'));
   assert.deepEqual(f.reviewer().metadata.qa, {testRunId: test.id});
   before?.(f);

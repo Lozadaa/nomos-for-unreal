@@ -5,7 +5,8 @@ import { parseArgs } from 'node:util';
 import { legacySkillMark } from './legacy.ts';
 
 /** Skills propias que el juego necesita para la UI (hito 5); la del director se queda en Nomos. */
-export const gameSkills = ['game-ui-art-director', 'ue-umg-ui', 'ue-visual-qa'];
+/** `ue-oficio`: lo que un agente tarda horas en redescubrir en UE 5.8 (destilado de per-simmons/unreal-agent-harness). */
+export const gameSkills = ['game-ui-art-director', 'ue-umg-ui', 'ue-visual-qa', 'ue-oficio'];
 // hito 30: embebido en el juego (`Tools/Nomos`), las skills están en `<juego>/.claude/skills`
 const ownSkills = resolve(import.meta.dirname, '..', '..', 'skills');
 export const nomosSkills = existsSync(ownSkills) ? ownSkills : resolve(import.meta.dirname, '..', '..', '..', '..', '.claude', 'skills');
