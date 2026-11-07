@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Composer } from '@/components/Composer'
@@ -25,7 +25,7 @@ import { EquipoStrip } from './Equipo'
 type Filter = 'todas' | Stage
 
 /** La última captura (o fotograma de vídeo) de cada tarea, para la miniatura de su fila. */
-function useLatestCaptures(): Map<string, string> {
+export function useLatestCaptures(): Map<string, string> {
   const { data } = useResource<Artifact[]>('/artifacts', /^artifact\./)
   return useMemo(() => {
     const latest = new Map<string, Artifact>()
@@ -55,6 +55,7 @@ export function Produccion() {
   const loaded = useStore((s) => s.loaded)
   const [params] = useSearchParams()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const openId = params.get('tarea')
   const [filterParam, setFilter] = useParam('etapa', 'todas')
   const filter = filterParam as Filter
@@ -82,7 +83,7 @@ export function Produccion() {
     const next = new URLSearchParams(params)
     if (id) next.set('tarea', id); else next.delete('tarea')
     const query = next.toString()
-    return query ? `/?${query}` : '/'
+    return query ? `${pathname}?${query}` : pathname
   }
   const open = (task: Task, from: HTMLElement) => { opener.current = from; void go(withTask(task.id)) }
   const close = async () => {

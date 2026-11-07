@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import userEvent from '@testing-library/user-event'
 import type { Task } from '@/lib/tasks'
 
@@ -51,11 +52,14 @@ describe('cierre en el panel', () => {
     expect(api).toHaveBeenCalledWith('/tasks/t1/archive')
   })
 
-  it('la cabecera dice «Pausado» con el glifo del director en espera y ofrece Reanudar', () => {
-    render(<TooltipProvider><Header project="Juego" onCommand={() => {}} onTogglePause={() => {}}
-      status={{ service: true, listener: true, listenerAgeSec: 1, director: 's', lastAckSeq: 0, lastAckAt: null, pending: 0, paused: true }} /></TooltipProvider>)
-    expect(screen.getByText('Pausado')).toBeInTheDocument()
+  it('la cabecera dice «En pausa» con el glifo del director en espera y «Más» ofrece reanudar', async () => {
+    vi.mocked(api).mockResolvedValue([])
+    const header = <TooltipProvider><Header project="Juego" onCommand={() => {}} onTogglePause={() => {}}
+      status={{ service: true, listener: true, listenerAgeSec: 1, director: 's', lastAckSeq: 0, lastAckAt: null, pending: 0, paused: true }} /></TooltipProvider>
+    render(<RouterProvider router={createMemoryRouter([{ path: '*', element: header }])} />)
+    expect(screen.getByText('En pausa')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Esperando' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reanudar' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Más' }))
+    expect(await screen.findByRole('button', { name: 'Reanudar el trabajo' })).toBeInTheDocument()
   })
 })

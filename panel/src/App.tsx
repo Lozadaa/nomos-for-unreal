@@ -1,7 +1,8 @@
 import { createBrowserRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { Layout } from '@/shell/Layout'
-import { views } from '@/shell/Tabs'
+import { views } from '@/shell/MoreMenu'
+import { Inicio } from '@/views/Inicio'
 import { Produccion } from '@/views/Produccion'
 import { Actividad } from '@/views/Actividad'
 import { Capacidades } from '@/views/Capacidades'
@@ -15,7 +16,7 @@ import { Proyectos } from '@/views/Proyectos'
 import { PorAprobar } from '@/views/PorAprobar'
 
 const pages: Record<string, React.ReactElement> = {
-  '/': <Produccion />, '/aprobar': <PorAprobar />, '/actividad': <Actividad />, '/entregas': <Entregas />, '/catalogo': <Catalogo />, '/chat': <Chat />,
+  '/': <Inicio />, '/produccion': <Produccion />, '/aprobar': <PorAprobar />, '/actividad': <Actividad />, '/entregas': <Entregas />, '/catalogo': <Catalogo />, '/chat': <Chat />,
   '/decisiones': <Decisiones />, '/presupuesto': <Presupuesto />, '/capacidades': <Capacidades />, '/estilo': <Estilo />,
 }
 

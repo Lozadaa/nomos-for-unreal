@@ -5,7 +5,7 @@ import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, Comma
 import { withViewTransition } from '@/feel/transitions'
 import { useAction } from '@/feel/useAction'
 import { useIndexCatalog } from '@/hooks/assetCommands'
-import { views } from './Tabs'
+import { views } from './MoreMenu'
 
 export interface TaskRef { id: string; title: string; state?: string }
 
