@@ -4,6 +4,7 @@ import { join, resolve, relative, isAbsolute } from 'node:path';
 const groups:Record<string,string[]>={
   implementation:['ue-project-context','ue-cpp-foundations','ue-gameplay-framework','ue-module-build-system'],
   ability:['ue-gameplay-abilities','ue-niagara-effects','ue-animation-system','ue-audio-system'],
+  vfx:['ue-niagara-effects','ue-materials-rendering','vfx-fx'],
   ui:['game-ui-art-director','ue-ui-umg-slate','game-ui-design','game-ui-ux','ue-umg-ui','ux-writing','ue-visual-qa'],
   assets:['blender-director','asset-optimization','collision-proxy','lod-pipeline','unreal-export','qa-review','ue-asset-intake'],
   animation:['rigging','ue-animation-system'],
@@ -20,6 +21,7 @@ const aliases:Record<string,string>={
   arte:'assets',assets:'assets',asset:'assets',art:'assets',
   personaje:'animation',animacion:'animation',animation:'animation',character:'animation',
   escenarios:'world',nivel:'world',mundo:'world',environment:'world',world:'world',
+  vfx:'vfx',efectos:'vfx',materiales:'vfx',material:'vfx',niagara:'vfx',
   audio:'audio',qa:'qa',builds:'qa',testing:'qa',
   revisor:'review',reviewer:'review',review:'review',
   alcance:'scope',jam:'scope','game-jam':'scope'

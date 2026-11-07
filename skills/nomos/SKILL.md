@@ -159,6 +159,9 @@ formas orgánicas, `rig` ni `animate`. Migra con `asset migrate`, importa con
 `asset prepare`; licencia desconocida y presupuesto agotado abren Decisión.
 Detalle, niveles y guion del Launcher en [assets](references/assets.md).
 
+**VFX y materiales**: la spec pide una receta y `nomos fastvfx crear <receta> --preview`, no Python nodo a nodo;
+plantillas, caché y límites en [fastvfx](references/fastvfx.md). A mano solo si ninguna plantilla sirve.
+
 ## Personajes y animación
 
 Personaje: siempre candidatos primero, `nomos asset candidates --task <id> "<petición>" --animation AM_Clip`
@@ -236,7 +239,7 @@ ese archivo ni el token al chat. El servicio solo escucha en `127.0.0.1` y sus r
 ## Recursos adicionales (Additional Resources)
 
 - [Contrato de eventos y recuperación](references/contrato-eventos.md).
-- [Assets: política, niveles de Fab y Meshy](references/assets.md); [personajes y animación](references/personajes.md).
+- [Assets: política, niveles de Fab y Meshy](references/assets.md); [personajes y animación](references/personajes.md); [VFX y materiales por receta](references/fastvfx.md).
 - [Ciclo, especificación y Decisiones](references/ciclo-tarea.md); [equipo: varios Nomos sobre el mismo juego](references/equipo.md).
 - [Plantilla del brief del worker](references/brief-worker.md), [del revisor](references/brief-revisor.md)
   y [del QA visual](references/brief-qa-visual.md).

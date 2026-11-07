@@ -1,0 +1,43 @@
+{
+  "modo": "frio",
+  "fecha": "2026-11-07T03:41:11.400Z",
+  "ue": "5.8.3",
+  "carga_inicio": {
+    "ffmpeg": 3,
+    "chrome": 24,
+    "node": 4
+  },
+  "tareas": [
+    {
+      "id": "M01",
+      "ok": true,
+      "clase": "estructural",
+      "ms_total": 42818,
+      "ms_generacion": 21251,
+      "ms_preview": 20766,
+      "ms_primer_preview": 39904,
+      "ms_compilacion": 64.4,
+      "ms_guardado": 40.6,
+      "ms_editor_script": 372.3,
+      "aperturas": 2,
+      "acciones": 3,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": {
+        "instrucciones_vs": 297,
+        "instrucciones_ps": 158,
+        "samplers": 2,
+        "muestras_textura_ps": 1
+      },
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-af872a32.png",
+      "pixeles_efecto": 0.01582,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 3,
+        "chrome": 24,
+        "node": 4
+      }
+    }
+  ],
+  "lote": null
+}

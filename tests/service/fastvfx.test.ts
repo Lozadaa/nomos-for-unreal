@@ -139,3 +139,9 @@ test('una captura sin efecto (sistema que no pinta) es un fallo de validación',
     assert.match(l.recetas[0].error!, /no muestra el efecto/);
   } finally { delete process.env.NOMOS_FAKE; }
 });
+
+test('el área vfx o materiales da al worker las skills de Niagara y materiales', async () => {
+  const {skillsForRole} = await import('../../service/src/skills.ts');
+  assert.deepEqual(skillsForRole('worker', 'Materiales'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx']);
+  assert.deepEqual(skillsForRole('vfx', 'gameplay'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx']);
+});
