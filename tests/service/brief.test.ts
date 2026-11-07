@@ -22,6 +22,7 @@ test('hito 22: el brief da la orden de turno de Unreal (--wait y --release) solo
     assert.match(brief,new RegExp(`worker turn ${task.id} --data "\.nomos" --wait`));
     assert.match(brief,/--release/);
     assert.ok(brief.includes('`node "cli.ts" ue py --data ".nomos" <script.py> [--env K=V]`'), 'x10: el Python del editor va al editor caliente');
+    assert.ok(brief.includes('`node "cli.ts" ue test --data ".nomos" <filtro>`'), 'los tests de automatización también');
     assert.doesNotMatch(renderBrief(task,run),/worker turn/);
   } finally {db.close();}
 });
