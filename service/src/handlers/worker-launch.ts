@@ -1,4 +1,5 @@
 import { isOpencodeModel, type WorkerModel, type WorkerProvider } from '../config.ts';
+import { leanSettingsFile } from '../claude-lean.ts';
 
 export const briefLine='Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.';
 function adapter(provider:string):WorkerProvider {
@@ -13,8 +14,10 @@ function opencode(model:string,flags=''):string {
 export function launchCommand(provider:string,model:string='sonnet',title='nomos',sessionId?:string):string {
   const kind=adapter(provider);
   return kind==='codex' ? 'codex --yolo --no-daemon' : kind==='opencode' ? `${opencode(model)} --title ${title} ${briefLine}`
-    : `claude --model ${model as WorkerModel} --dangerously-skip-permissions${sessionId ? ` --session-id ${sessionId}` : ''}`;
+    : `claude --model ${model as WorkerModel} --dangerously-skip-permissions${lean()}${sessionId ? ` --session-id ${sessionId}` : ''}`;
 }
+// x10: sin los plugins del usuario que un juego no usa y compactando a 200 k (ver claude-lean.ts)
+const lean=()=>{const file=leanSettingsFile();return file ? ` --settings ${file}` : '';};
 export function readyPattern(provider:string):RegExp {
   const kind=adapter(provider);
   return kind==='codex' ? /Ask\s*Codex/i : kind==='opencode' ? /opencode run/i : /bypass permissions|Try "/i;
