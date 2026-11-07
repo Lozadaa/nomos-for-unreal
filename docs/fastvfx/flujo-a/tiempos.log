@@ -1,0 +1,40 @@
+M01 escribir inicio 1794023435.480
+M01 escribir fin 1794023457.508
+M06 escribir inicio 1794023457.551
+M06 escribir fin 1794023478.260
+N01 escribir inicio 1794023478.292
+N01 escribir fin 1794023513.365
+M01 editor inicio 1794023693.904
+M01 editor fin 1794023714.385 codigo 0
+M06 editor inicio 1794023734.593
+M06 editor fin 1794023754.242 codigo 0
+N01 editor inicio 1794023759.170
+N01 editor fin 1794023781.522 codigo 0
+M02 escribir inicio 1794023788.964
+M02 escribir fin 1794023790.054
+M02 editor inicio 1794023790.133
+M02 editor fin 1794023807.794 codigo 0
+N02 escribir inicio 1794023815.251
+N02 escribir fin 1794023816.462
+N02 editor inicio 1794023816.538
+N02 editor fin 1794023833.107 codigo 0
+N02 arreglo inicio 1794023838.200
+N02 arreglo fin 1794023838.277
+N02 editor inicio 1794023838.359
+N02 editor fin 1794023862.307 codigo 0
+N03 escribir inicio 1794023877.868
+N03 escribir fin 1794023878.368
+N03 editor inicio 1794023879.120
+N03 editor fin 1794023911.479 codigo 0
+M01 preview inicio 1794023931.161
+M01 preview fin 1794023956.800 png 1794023953
+M02 preview inicio 1794023961.892
+M02 preview fin 1794023988.347 png 1794023985
+M06 preview inicio 1794023991.035
+M06 preview fin 1794024020.641 png 1794024018
+N01 preview inicio 1794024021.234
+N01 preview fin 1794024045.993 png 1794024043
+N02 preview inicio 1794024046.718
+N02 preview fin 1794024070.324 png 1794024068
+N03 preview inicio 1794024070.420
+N03 preview fin 1794024091.082 png 1794024089
