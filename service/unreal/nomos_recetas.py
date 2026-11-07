@@ -55,14 +55,28 @@ def valor(v):
 def poner(objetos, props, donde):
     """Cada propiedad en el primer objeto que la acepte (el actor y luego sus componentes)."""
     for k, v in (props or {}).items():
+        x = valor(v)
+        # un color puede ser FLinearColor o FColor (light_color de las luces es FColor): se prueban los dos
+        intentos = [x, srgb(x)] if isinstance(x, unreal.LinearColor) else [x]
         for o in objetos:
-            try:
-                o.set_editor_property(k, valor(v))
+            if any(_pon(o, k, y) for y in intentos):
                 break
-            except Exception:  # noqa: BLE001  esta no la tiene: la siguiente
-                continue
         else:
             report["errores"].append(f"{donde}: ninguna parte acepta la propiedad {k}")
+
+
+def srgb(c):
+    """FLinearColor → FColor sRGB (en UE 5.8 Python no hay to_fcolor). ponytail: gamma 2,2 aproximada."""
+    a = lambda x: round(max(0.0, min(1.0, x)) ** (1 / 2.2) * 255)
+    return unreal.Color(r=a(c.r), g=a(c.g), b=a(c.b), a=round(max(0.0, min(1.0, c.a)) * 255))
+
+
+def _pon(o, k, v):
+    try:
+        o.set_editor_property(k, v)
+        return True
+    except Exception:  # noqa: BLE001  este objeto no la tiene (o no con ese tipo)
+        return False
 
 
 # --- escena ----------------------------------------------------------------------------------------------------------
@@ -124,7 +138,10 @@ def escena(r):
 
 def apoyar(world, a):
     """Baja (o sube) el actor hasta que la base de su caja toca lo que hay debajo (traza vertical que lo ignora a él)."""
-    origen, extension = a.get_actor_bounds(False)
+    # solo lo que colisiona: los iconos del editor y las luces no cuentan para la base (probado: si no, flota)
+    origen, extension = a.get_actor_bounds(True)
+    if extension.z <= 0:
+        origen, extension = a.get_actor_bounds(False)
     l = a.get_actor_location()
     golpe = unreal.SystemLibrary.line_trace_single(world, unreal.Vector(l.x, l.y, origen.z + extension.z + 5000),
                                                    unreal.Vector(l.x, l.y, origen.z - 100000), unreal.TraceTypeQuery.TRACE_TYPE_QUERY1,
@@ -174,7 +191,14 @@ def sondeo(r):
                 sds = unreal.get_engine_subsystem(unreal.SubobjectDataSubsystem)
                 lib = unreal.SubobjectDataBlueprintFunctionLibrary
                 objs = [lib.get_object(lib.get_data(h)) for h in sds.k2_gather_subobject_data_for_blueprint(d.get_asset())]
-                item["componentes"] = [componente(o) for o in objs if isinstance(o, unreal.ActorComponent)]
+                # el gather de UE 5.8 repite cada componente añadido: uno por nombre, sin el sufijo de plantilla
+                vistos = {}
+                for o in objs:
+                    if isinstance(o, unreal.ActorComponent):
+                        c = componente(o)
+                        c["nombre"] = c["nombre"].replace("_GEN_VARIABLE", "")
+                        vistos.setdefault(c["nombre"], c)
+                item["componentes"] = list(vistos.values())
             assets.append(item)
     report["assets"] = assets
     if r.get("mapa"):
