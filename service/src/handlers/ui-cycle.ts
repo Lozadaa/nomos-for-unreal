@@ -12,7 +12,7 @@ import { enqueue } from '../commands.ts';
 import { workerSkillsBrief } from '../brief.ts';
 import { withEditor } from '../editor/queue.ts';
 import { runCheck, type CheckDeps } from '../checks/run.ts';
-import { umgCapture, type UmgOptions } from '../checks/umg.ts';
+import { umgAttempt, umgCapture, type UmgOptions } from '../checks/umg.ts';
 import { selectChecks } from '../checks/select.ts';
 import { checkRun, implementerOf, sendCorrection, treeOf } from './checks.ts';
 
@@ -36,7 +36,9 @@ export function createUiCycle(deps: CheckDeps = {}): Handler {
     if (outcome.result === 'failed') {
       finishRun(ctx.db, run.id, 'failed', 'La comprobación umg falló');
       const event = ctx.db.prepare(`select payload from events where type='test.failed' and json_extract(payload,'$.testRunId')=?`).get(outcome.id);
-      sendCorrection(ctx, task, implementer, outcome, event ? JSON.parse(event.payload as string).summary.split('\n') : [], run.id);
+      // docs/x10/umg-bucles.md: al worker, el diagnóstico medido y la comparación con su intento anterior, no el resumen en bruto
+      const attempt = umgAttempt(ctx.db, task.id, outcome.id, event ? JSON.parse(event.payload as string).summary : '');
+      sendCorrection(ctx, task, implementer, outcome, [attempt.head, ...attempt.diagnosis, ...attempt.comparison], run.id);
       return {testRunId: outcome.id, passed: false};
     }
     finishRun(ctx.db, run.id, 'done', 'Capturas listas para el QA visual');

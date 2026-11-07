@@ -119,3 +119,52 @@ test('hito 7: QA aprobado en revisando encola la revisión de código aunque ya 
   assert.deepEqual(reviews.map(c => payloadOf(c)), [{taskId: f.task.id, implementerRunId: f.implementer.id}]);
   assert.equal(reviews[0].idempotencyKey, `review.after-qa:${f.reviewer().id}`);
 });
+
+// docs/x10/umg-bucles.md: resúmenes reales de Herbalist (35 umg fallidas)
+test('umgFindings: regla, zona, medido y esperado de cada fallo real de umg', async () => {
+  const {umgFindings} = await import('../../service/src/checks/umg.ts');
+  assert.deepEqual(umgFindings('1280×720: la captura no contiene la UI (difiere un 0,01 % de la captura sin widgets)\nWidgets en el viewport: HerbInspectionWidget, WB_InteractPrompt_C')
+    .map(f => [f.rule, f.where, f.measured, f.expected]),
+    [['UI visible', '1280×720 · widgets HerbInspectionWidget, WB_InteractPrompt_C', '0,01 %', '≥ 0,5 %']]);
+  assert.deepEqual(umgFindings('umg-ui-1280x720: la captura difiere un 46,07 % de la línea base (tolerancia 35 %)\n1280×720: UI visible (53,0 % de píxeles), widgets HerbCareIcon\nCapturas listas: esperando el QA visual')
+    .map(f => [f.rule, f.where, f.measured, f.expected]), [['línea base', 'umg-ui-1280x720', '46,07 %', '≤ 35 %']]);
+  assert.deepEqual(umgFindings('docs/produccion/evidencia/UI3-2/piezas-iconos.png:1 [mayor] 1080p, fila detectado: iconos danger dan 2,03:1 (<3)')
+    .map(f => [f.rule, f.where, f.weight]), [['QA mayor', 'docs/produccion/evidencia/UI3-2/piezas-iconos.png:1', 2]]);
+  assert.deepEqual(umgFindings('Tiempo máximo agotado: se cerró el editor').map(f => f.rule), ['comprobación']);
+});
+
+test('compareUmg: el mismo valor (94,74 → 94,73 %) sigue igual; acercarse a la tolerancia o quitar hallazgos es mejora', async () => {
+  const {umgFindings, compareUmg} = await import('../../service/src/checks/umg.ts');
+  const base = (a: string, b: string, t = '40') => umgFindings(`umg-ui-1280x720: la captura difiere un ${a} % de la línea base (tolerancia ${t} %)\numg-ui-1920x1080: la captura difiere un ${b} % de la línea base (tolerancia ${t} %)`);
+  const same = compareUmg(base('94,74', '94,7'), base('94,73', '94,73'));
+  assert.equal(same.improved, false);
+  assert.match(same.lines.join('\n'), /Sigue igual: línea base · umg-ui-1280x720 \(94,74 % → 94,73 %, se espera ≤ 40 %\)/);
+  assert.equal(compareUmg(base('46,07', '48,44', '35'), base('43,92', '49,37', '35')).improved, false, 'el ruido de la captura no es mejora');
+  const better = compareUmg(base('60', '61'), base('45', '61'));
+  assert.equal(better.improved, true);
+  assert.match(better.lines.join('\n'), /Mejora: línea base · umg-ui-1280x720 \(60 % → 45 %/);
+  const qa = (...notes: string[]) => umgFindings(notes.map(n => `.nomos-review/ui-1280x720.png:1 [mayor] ${n}`).join('\n'));
+  const fewer = compareUmg(qa('falta la pausa', 'contraste 2,1:1'), qa('contraste 2,9:1'));
+  assert.equal(fewer.improved, true);
+  assert.match(fewer.lines.join('\n'), /Resuelto: QA mayor · ui-1280x720\.png:1/);
+  assert.equal(compareUmg(qa('falta la hoja de las cinco piezas'), qa('sigue faltando la hoja de piezas')).improved, false);
+});
+
+test('ui.cycle fallido: el worker recibe el diagnóstico corto (regla, zona, medido frente a esperado) y la comparación con el intento anterior', async () => {
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
+  try {
+    process.env.NOMOS_FAKE = 'noui';
+    const cycle = (id: string) => f.handlers['ui.cycle']({id, type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: id} as any, f.ctx);
+    await cycle('u1');
+    const first = payloadOf(filtered<Command>(f.db, 'commands', {type: 'worker.send'}).at(-1)!).text;
+    assert.match(first, /Diagnóstico umg \(intento 1\)/);
+    assert.match(first, /UI visible · 1280×720 · widgets ninguno: mide 0(,0+)? % · se espera ≥ 0,5 %/);
+    assert.doesNotMatch(first, /Frente al intento anterior/);
+    writeFileSync(join(f.projectDir, 'Source/Juego/JuegoVidaWidget.cpp'), '// otro intento');
+    await cycle('u2');
+    const second = payloadOf(filtered<Command>(f.db, 'commands', {type: 'worker.send'}).at(-1)!).text;
+    assert.match(second, /Diagnóstico umg \(intento 2, 2 seguidos sin mejora\)/);
+    assert.match(second, /Frente al intento anterior:\n- Sigue igual: UI visible · 1280×720/);
+    assert.ok(second.length < 1500, 'texto corto, sin volcar el log');
+  } finally { f.close(); }
+});
