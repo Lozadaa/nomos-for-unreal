@@ -3,7 +3,8 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 export type WorkerProvider = 'codex' | 'claude' | 'opencode';
-export type Limits = {corrections: number};
+/** `umgRetries`: fallos umg seguidos sin mejora medible antes de parar en una Decisión (docs/x10/umg-bucles.md). */
+export type Limits = {corrections: number; umgRetries: number};
 export type WorkerModel = 'sonnet' | 'opus' | 'haiku';
 const models=['sonnet','opus','haiku'];
 export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,number>>; defaultProvider?: WorkerProvider;
@@ -52,7 +53,7 @@ export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.cre
 /** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
 export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
 export const directorConfig = (config: SchedulerConfig) => ({mode: config.director?.mode ?? 'sesion', debounceSeconds: config.director?.debounceSeconds ?? 60});
-export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3});
+export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3, umgRetries: config.limits?.umgRetries ?? 3});
 /** Hito 30: brain.py de Second Brain en `SECOND_BRAIN_ROOT` o en `~/Documents/SecondBrain`; sin él, null y la memoria queda apagada. */
 export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): string[] | null {
   const home = env.USERPROFILE || env.HOME || homedir();
@@ -78,7 +79,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
       || Object.entries(config.models).some(([k,v])=>!modelRoles.includes(k) || !models.includes(v as string)))) throw new Error();
     if(config.opencodeModel!==undefined && !isOpencodeModel(config.opencodeModel)) throw new Error();
     if(config.limits!==undefined && (!config.limits || typeof config.limits!=='object' || Array.isArray(config.limits)
-      || Object.entries(config.limits).some(([k,v])=>k!=='corrections' || !count(v)))) throw new Error();
+      || Object.entries(config.limits).some(([k,v])=>!['corrections','umgRetries'].includes(k) || !count(v)))) throw new Error();
     if(config.orca!==undefined && (!config.orca || typeof config.orca!=='object' || Array.isArray(config.orca)
       || Object.entries(config.orca).some(([k,v])=>!['graceMinutes','maxWorkerMinutes','createTimeoutMs'].includes(k) || typeof v!=='number'
         || (k==='createTimeoutMs' ? !(v>0 && v<=3_600_000) : !(v>=0 && v<=24*60) || k==='maxWorkerMinutes' && v<=0)))) throw new Error();

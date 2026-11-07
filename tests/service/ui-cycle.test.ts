@@ -65,7 +65,7 @@ test('NOMOS_DONE de un worker ui encola ui.cycle con clave por run y corrección
   }
 });
 
-async function qaReview(t: any, verdict: string) {
+async function qaReview(t: any, verdict: string, before?: (f: any) => void) {
   const f = await reviewFixture(t);
   const test = recordTestRun(f.db, {taskId: f.task.id, runId: f.implementer.id, checkId: 'umg', result: 'running', commit: 'abc'});
   const dir = join(f.dataDir, 'artifacts', 'tests', test.id); mkdirSync(dir, {recursive: true});
@@ -81,6 +81,7 @@ async function qaReview(t: any, verdict: string) {
   assert.ok(existsSync(join(f.reviewTree().path, '.nomos-review', 'ui-1280x720-control.png')));
   assert.ok(f.reviewer().skills.includes('ue-visual-qa'));
   assert.deepEqual(f.reviewer().metadata.qa, {testRunId: test.id});
+  before?.(f);
   f.output(verdict); await f.poll();
   return {f, test};
 }
@@ -167,4 +168,55 @@ test('ui.cycle fallido: el worker recibe el diagnóstico corto (regla, zona, med
     assert.match(second, /Frente al intento anterior:\n- Sigue igual: UI visible · 1280×720/);
     assert.ok(second.length < 1500, 'texto corto, sin volcar el log');
   } finally { f.close(); }
+});
+
+test('tope: tras 3 fallos umg seguidos sin mejora no hay otra vuelta; Decisión con el resumen de los intentos y «Devolver» reinicia el contador', async () => {
+  const {listDecisions, resolveDecision} = await import('../../service/src/repo/decisions.ts');
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
+  try {
+    process.env.NOMOS_FAKE = 'noui';
+    const cycle = (id: string) => f.handlers['ui.cycle']({id, type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: id} as any, f.ctx) as Promise<any>;
+    const sends = () => filtered<Command>(f.db, 'commands', {type: 'worker.send'});
+    for (const [i, id] of ['t1', 't2', 't3'].entries()) {
+      writeFileSync(join(f.projectDir, 'Source/Juego/JuegoVidaWidget.cpp'), `// intento ${i}`);
+      const result = await cycle(id);
+      if (id !== 't3') assert.equal(result.passed, false);
+      else assert.deepEqual([result.deferred, result.reason], [true, 'Esperando decisión: QA de UI sin mejora medible']);
+    }
+    assert.equal(sends().length, 2, 'el tercer intento sin mejora no vuelve al worker');
+    const [decision] = listDecisions(f.db, 'open');
+    assert.equal(decision.reason, 'QA de UI sin mejora medible');
+    assert.deepEqual(decision.evidence[0], {kind: 'command', ref: 't3'});
+    assert.deepEqual(decision.evidence.slice(1).map(e => e.kind), ['intento 1', 'intento 2', 'intento 3']);
+    assert.match(decision.evidence[3].ref, /UI visible · 1280×720 · widgets ninguno: 0,00 %/);
+    assert.deepEqual(decision.options.map(o => o.id), ['return', 'retry']);
+    assert.equal(requireTask(f.db, f.task.id).decisionId, decision.id);
+    assert.equal((await cycle('t3')).deferred, true, 'mientras nadie decide, la orden espera');
+    resolveDecision(f.db, decision.id, 'return', 'director');
+    assert.deepEqual(await cycle('t3'), {returned: true});
+    assert.equal(sends().length, 3);
+    assert.match(payloadOf(sends().at(-1)!).text, /Diagnóstico umg \(intento 3, 3 seguidos sin mejora\)/);
+    writeFileSync(join(f.projectDir, 'Source/Juego/JuegoVidaWidget.cpp'), '// intento 4');
+    assert.equal((await cycle('t4')).passed, false);
+    assert.match(payloadOf(sends().at(-1)!).text, /Diagnóstico umg \(intento 4\):/, 'la decisión reinicia el contador');
+  } finally { f.close(); }
+});
+
+test('tope en el QA visual: el tercer rechazo sin mejora abre la Decisión con un ui.cycle en espera y no reenvía al worker', async t => {
+  const {umgAttempt} = await import('../../service/src/checks/umg.ts');
+  const {listDecisions} = await import('../../service/src/repo/decisions.ts');
+  const note = '{"file":".nomos-review/ui-1280x720.png","line":1,"severity":"mayor","note":"falta la hoja de las cinco piezas"}';
+  const seed = (f: any) => { for (const id of ['a', 'b']) umgAttempt(f.db, f.task.id, id, '.nomos-review/ui-1280x720.png:1 [mayor] falta la hoja de las piezas'); };
+  const {f} = await qaReview(t, `NOMOS_REVIEW {"approved":false,"findings":[${note}]}`, seed);
+  const [decision] = listDecisions(f.db, 'open');
+  assert.equal(decision.reason, 'QA de UI sin mejora medible');
+  const [cycle] = filtered<Command>(f.db, 'commands', {type: 'ui.cycle'});
+  assert.deepEqual(decision.evidence[0], {kind: 'command', ref: cycle.id});
+  assert.equal(filtered<Command>(f.db, 'commands', {type: 'worker.send'}).filter(c => /QA visual/.test(payloadOf(c).text)).length, 0);
+});
+
+test('limits.umgRetries configura el tope (3 por defecto)', async () => {
+  const {limits} = await import('../../service/src/config.ts');
+  assert.equal(limits({}).umgRetries, 3);
+  assert.equal(limits({limits: {umgRetries: 5}}).umgRetries, 5);
 });

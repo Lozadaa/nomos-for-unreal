@@ -16,6 +16,7 @@ import { attribute } from '../attribution.ts';
 import { finishReviewApproval } from '../approvals.ts';
 import { readConfig } from '../config.ts';
 import { umgAttempt } from '../checks/umg.ts';
+import { umgStuck } from './ui-cycle.ts';
 
 export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Marker,{kind:'REVIEW'}>):Promise<void> {
   const {db}=ctx,snapshot=run.metadata.review;
@@ -50,6 +51,8 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
       }
       // docs/x10/umg-bucles.md: los hallazgos y, debajo, qué cambió desde el intento anterior
       const attempt=umgAttempt(db,run.taskId,qa.testRunId,findings.slice(0,30).join('\n'));
+      // tope: la Decisión la espera un ui.cycle nuevo, que reenvía el diagnóstico o vuelve a capturar según se elija
+      if(umgStuck(ctx,task,attempt,()=>enqueue(db,'ui.cycle',{taskId:run.taskId,runId:implementer!.id},`ui.cycle:atasco:${qa.testRunId}`).id)) return;
       const text=`Correcciones de QA visual:\n${findings.join('\n')}\n\n${[attempt.head.replace(/:$/,''),...attempt.comparison].join('\n')}`;
       enqueue(db,'worker.send',{runId:implementer!.id,text},`review.correction:${run.id}`);
       moveTask(db,run.taskId,'implementando');
