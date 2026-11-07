@@ -220,3 +220,28 @@ test('limits.umgRetries configura el tope (3 por defecto)', async () => {
   assert.equal(limits({}).umgRetries, 3);
   assert.equal(limits({limits: {umgRetries: 5}}).umgRetries, 5);
 });
+
+test('caché: con los mismos archivos que un intento fallido no se relanza Unreal; el fallo se recuerda y cuenta sin mejora', async () => {
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
+  try {
+    const cycle = (id: string) => f.handlers['ui.cycle']({id, type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: id} as any, f.ctx) as Promise<any>;
+    const launches = () => f.events('test.running').length;
+    writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({limits: {umgRetries: 10}})); // aquí no se mide el tope
+    process.env.NOMOS_FAKE = 'noui';
+    const first = await cycle('k1');
+    assert.equal(launches(), 1);
+    const again = await cycle('k2');
+    assert.deepEqual([again.passed, again.cached, launches()], [false, first.testRunId, 1], 'misma entrada → mismo resultado, sin Unreal');
+    const text = payloadOf(filtered<Command>(f.db, 'commands', {type: 'worker.send'}).at(-1)!).text;
+    assert.match(text, /Mismos archivos que el intento 1: no se relanzó Unreal/);
+    assert.match(text, /intento 2, 2 seguidos sin mejora/);
+    assert.equal(filtered<TestRun>(f.db, 'test_runs', {id: again.testRunId})[0].result, 'failed');
+    writeFileSync(join(f.projectDir, 'Source/Juego/JuegoVidaWidget.cpp'), '// cambio');
+    await cycle('k3');
+    assert.equal(launches(), 2, 'otro contenido sí se prueba');
+    process.env.NOMOS_FAKE = 'fail';
+    writeFileSync(join(f.projectDir, 'Source/Juego/JuegoVidaWidget.cpp'), '// otro');
+    await cycle('k4'); await cycle('k5');
+    assert.equal(launches(), 4, 'un juego que no dejó capturas no se cachea: puede ser pasajero');
+  } finally { f.close(); }
+});

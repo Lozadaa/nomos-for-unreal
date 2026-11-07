@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { capture } from './map.ts';
 import { decodePng, pixelDiffRatio } from './png.ts';
@@ -100,7 +101,9 @@ export type UmgAttempt = {taskId: string; testRunId: string; findings: UmgFindin
 const findingLine = (f: UmgFinding) => `- ${f.where === '-' ? f.rule : label(f)}: ${f.rule.startsWith('QA') ? f.measured : `mide ${f.measured} · se espera ${f.expected}`}`;
 
 /** Registra el intento umg fallido y arma su diagnóstico corto: qué falla, dónde, medido frente a esperado y qué cambió desde el anterior. */
-export function umgAttempt(db: DatabaseSync, taskId: string, testRunId: string, summary: string, inputHash: string | null = null): UmgAttempt {
+export function umgAttempt(db: DatabaseSync, taskId: string, testRunId: string, summary: string): UmgAttempt {
+  // la clave de entrada la guardó ui.cycle en su run de pruebas (también vale para el veredicto del QA visual de esas capturas)
+  const inputHash = (db.prepare(`select json_extract(r.metadata,'$.umgInput') h from test_runs t join runs r on r.id=t.run_id where t.id=?`).get(testRunId)?.h ?? null) as string | null;
   const last = db.prepare(`select type, payload from events where json_extract(payload,'$.taskId')=? and (type in ('umg.attempt','umg.reset')
     or type='test.passed' and json_extract(payload,'$.check')='umg') order by seq desc limit 1`).get(taskId);
   const previous = last?.type === 'umg.attempt' ? JSON.parse(last.payload as string) as UmgAttempt : undefined;
@@ -114,3 +117,13 @@ export function umgAttempt(db: DatabaseSync, taskId: string, testRunId: string, 
   appendEvent(db, 'umg.attempt', null, result);
   return result;
 }
+
+/** Clave de entrada de un ciclo UMG (como la caché de FASTVFX): el contenido de los archivos dados y lo pedido. Misma clave → mismo resultado.
+ *  ponytail: lee cada archivo entero; con uassets de cientos de MB convendría la fecha y el tamaño. */
+export function umgInputHash(paths: string[], extra: unknown): string {
+  const hash = createHash('sha256').update(JSON.stringify(extra));
+  for (const path of paths.toSorted()) hash.update(`\0${path}\0`).update(existsSync(path) ? readFileSync(path) : '');
+  return hash.digest('hex').slice(0, 24);
+}
+/** Lo que un intento cacheado puede repetir: solo fallos medidos; si el juego no dejó capturas o se agotó el tiempo, puede ser pasajero. */
+export const umgCacheable = (a: UmgAttempt) => a.findings.length > 0 && a.findings.every(f => !['captura', 'comprobación'].includes(f.rule));

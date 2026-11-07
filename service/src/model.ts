@@ -47,6 +47,7 @@ export type RunMetadata = {
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;
   // pruebas (hito 5): run implementador cuyo diff se prueba
   implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
+  /** docs/x10/umg-bucles.md: clave de entrada del ciclo UMG de esta run (caché de intentos fallidos). */ umgInput?: string;
   // integración (hito 6): merge hecho en el workspace y pendiente de publicar
   integration?: {base: string; commit: string; files: string[]; checked?: boolean; /** hito 29: se publica en origin */ remote?: boolean};
   /** hito 29: conflicto binario abierto en el espacio de integración (aprobación, punta de la rama del worker, si se publica) */
