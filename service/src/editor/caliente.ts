@@ -106,8 +106,9 @@ export function findUproject(dir: string): string {
  * En pruebas `NOMOS_UE_FAKE` es el editor falso (se lanza con node).
  */
 export async function ueCli(argv: string[]): Promise<boolean> {
-  const at = argv.findIndex((arg, i) => arg === 'ue' && !['--data', '--env', '--proyecto', '--timeout'].includes(argv[i - 1] ?? ''));
-  if (at < 0) return false;
+  // solo si `ue` es la orden (el primer posicional): `nomos reply ID ue …` no es esto
+  const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout'].includes(argv[i - 1] ?? ''));
+  if (first !== 'ue') return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},
     env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}}});
   const [, action, file, ...extra] = positionals;
