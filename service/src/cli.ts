@@ -11,6 +11,7 @@ import { seed } from "./seed.ts";
 import { directorCli } from './cli-director.ts';
 import { renderDirectorBrief } from './director.ts';
 import { assetCli } from './cli-asset.ts';
+import { fastvfxCli } from './fastvfx/cli.ts';
 import { skillsCli } from './skills-install.ts';
 import { embedCli } from './embed.ts';
 import { buildCli } from './build-info.ts';
@@ -44,7 +45,7 @@ async function withData(argv: string[]): Promise<string[]> {
 async function main() {
   for (const name of legacyEnv()) console.warn(`Aviso: ${name} ahora se llama NOMOS_${name.slice(7)}`);
   const argv = await withData(process.argv.slice(2));
-  if (skillsCli(argv) || embedCli(argv) || buildCli(argv) || await cleanCli(argv) || await autostartCli(argv) || await directorCli(argv) || await assetCli(argv)
+  if (skillsCli(argv) || embedCli(argv) || buildCli(argv) || await cleanCli(argv) || await autostartCli(argv) || await directorCli(argv) || await assetCli(argv) || await fastvfxCli(argv)
     || await teamCli(argv, dir => openDb(dbFile(dir))) || await ueCli(argv)) return;
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" },
