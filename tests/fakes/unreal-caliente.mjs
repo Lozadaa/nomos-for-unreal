@@ -25,6 +25,8 @@ const write = (path, data) => { writeFileSync(path + '.tmp', JSON.stringify(data
 const desde = Date.now() / 1000; let ultimo = Date.now(), trabajos = 0;
 // el arranque en frío: 300 ms antes del primer latido
 await new Promise(r => setTimeout(r, 300));
+// la inactividad cuenta desde que el editor está listo (como nomos_caliente.py tras -ExecCmds), no desde que arranca el proceso
+ultimo = Date.now();
 const timer = setInterval(() => {
   for (const f of readdirSync(entrada).filter(f => f.endsWith('.json')).sort()) {
     const job = JSON.parse(readFileSync(join(entrada, f), 'utf8')); rmSync(join(entrada, f));

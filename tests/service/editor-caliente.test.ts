@@ -50,8 +50,8 @@ test('x10: un script que bloquea los ticks (sin latido) no se da por editor cerr
 
 test('x10: el editor caliente se cierra solo sin trabajo y nomos ue py lo usa desde la carpeta del juego', async () => {
   const {dir, uproject} = game();
-  await runWarm(uproject, join(dir, 'a.py'), {}, {...opts, idleSeconds: 0.5});
-  for (const end = Date.now() + 5000; warmBeat(uproject) && Date.now() < end;) await sleep(100);
+  await runWarm(uproject, join(dir, 'a.py'), {}, {...opts, idleSeconds: 2});
+  for (const end = Date.now() + 10_000; warmBeat(uproject) && Date.now() < end;) await sleep(100);
   assert.equal(warmBeat(uproject), null, 'inactivo: se cierra');
   const cli = join(import.meta.dirname, '..', '..', 'service', 'src', 'cli.ts');
   const env = {...process.env, NOMOS_UE_FAKE: fake};
