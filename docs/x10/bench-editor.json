@@ -1,0 +1,72 @@
+{
+  "fecha": "2026-11-07T04:13:35.809Z",
+  "proyecto": "KratosFabTest",
+  "script": "sonda.py (lista los assets de /Game)",
+  "frio": [
+    {
+      "s": 13.14,
+      "ok": true,
+      "assets": 920
+    },
+    {
+      "s": 14.733,
+      "ok": true,
+      "assets": 920
+    },
+    {
+      "s": 12.277,
+      "ok": true,
+      "assets": 920
+    }
+  ],
+  "caliente": [
+    {
+      "s": 10.676,
+      "ok": true,
+      "arranque": 10.566,
+      "ms": 9,
+      "salida": "assets 920 version 5.8.3-58210709+++UE5+Release-5.8",
+      "error": null
+    },
+    {
+      "s": 0.108,
+      "ok": true,
+      "arranque": null,
+      "ms": 5,
+      "salida": "assets 920 version 5.8.3-58210709+++UE5+Release-5.8",
+      "error": null
+    },
+    {
+      "s": 0.108,
+      "ok": true,
+      "arranque": null,
+      "ms": 8,
+      "salida": "assets 920 version 5.8.3-58210709+++UE5+Release-5.8",
+      "error": null
+    },
+    {
+      "s": 0.108,
+      "ok": true,
+      "arranque": null,
+      "ms": 8,
+      "salida": "assets 920 version 5.8.3-58210709+++UE5+Release-5.8",
+      "error": null
+    },
+    {
+      "s": 0.109,
+      "ok": true,
+      "arranque": null,
+      "ms": 6,
+      "salida": "assets 920 version 5.8.3-58210709+++UE5+Release-5.8",
+      "error": null
+    },
+    {
+      "s": 0.109,
+      "ok": true,
+      "arranque": null,
+      "ms": 6,
+      "salida": "assets 920 version 5.8.3-58210709+++UE5+Release-5.8",
+      "error": null
+    }
+  ]
+}

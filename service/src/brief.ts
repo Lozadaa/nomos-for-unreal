@@ -17,6 +17,9 @@ export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): strin
     provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run),
     context:rules.projectContext ?? 'Sin contexto adicional.',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
     turn:rules.turn ? `- Antes de abrir Unreal (editor, build, empaquetado, PIE) pide turno y espera: \`${rules.turn} --wait\`. `
-      +`Al cerrarlo, devuélvelo: \`${rules.turn} --release\`. No escribas bucles propios de espera de RAM.\n` : ''};
+      +`Al cerrarlo, devuélvelo: \`${rules.turn} --release\`. No escribas bucles propios de espera de RAM.\n`
+      // x10: el Python del editor va al editor caliente (0,1 s por script frente a 12-15 s de arranque en frío)
+      +`- Con el turno, el Python del editor va por \`${rules.turn.replace(/worker turn \S+/, 'ue py')} <script.py> [--env K=V]\`, no por UnrealEditor-Cmd -ExecutePythonScript: `
+      +`el editor queda abierto entre scripts y se cierra al devolver el turno.\n` : ''};
   return template.replace(/\{\{(\w+)\}\}/g,(_,key)=>values[key] ?? '');
 }

@@ -13,3 +13,5 @@ if (!process.env.NOMOS_MACHINE_FAKE) {
   process.env.NOMOS_MACHINE_FAKE = join(tmpdir(), `nomos-maquina-pruebas-${process.pid}.json`);
   writeFileSync(process.env.NOMOS_MACHINE_FAKE, JSON.stringify({freeGb: 64, editors: 0}));
 }
+// x10: los comandos de lanzamiento de las pruebas no llevan --settings (lo prueba claude-lean.test.ts)
+process.env.NOMOS_LEAN ??= 'off';

@@ -25,6 +25,11 @@ nomos worker turn <taskId> --release   # al cerrar Unreal
 
 En los briefs que escribas, usa esa orden; nunca un bucle propio de espera de RAM (`esperar-maquina.ps1`).
 
+Con el turno, el Python del editor va al **editor caliente**: `nomos ue py <script.py> [--env K=V]` abre Unreal una
+vez por worktree (12-15 s) y los scripts siguientes tardan 0,1 s. `nomos ue estado` y `nomos ue parar`; se cierra
+solo tras 10 min sin trabajo, al devolver el turno o si cambian `Binaries` o el `.uproject`. Juego con `-game`,
+`Automation RunTests` y UBT siguen en frío.
+
 ## Tras un reinicio
 
 El servicio cierra solo las runs con el terminal muerto (`terminal_handle_stale`) y las relanza en el mismo worktree
