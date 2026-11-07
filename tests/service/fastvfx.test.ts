@@ -184,3 +184,14 @@ test('editor caliente: si no arranca o NOMOS_CALIENTE=off, FASTVFX vuelve al cam
     assert.deepEqual([off.ok, off.aperturas], [true, 1]);
   } finally { delete process.env.NOMOS_CALIENTE; }
 });
+
+test('editor caliente: una captura vacía en el editor se repite en -game antes de darla por mala', async () => {
+  const {stopWarm} = await import('../../service/src/editor/caliente.ts');
+  const {opciones} = entorno();
+  process.env.NOMOS_FAKE = 'fastvfx_vacia';
+  try {
+    const l = await ejecutar([azul], {...opciones, preview: true, caliente});
+    assert.equal(l.aperturas, 2, 'el arranque del caliente y el reintento en -game');
+    assert.match(l.recetas[0].error!, /no muestra el efecto/);
+  } finally { delete process.env.NOMOS_FAKE; await stopWarm(opciones.uproject); }
+});

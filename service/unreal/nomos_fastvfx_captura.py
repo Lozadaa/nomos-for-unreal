@@ -81,6 +81,12 @@ def terminar():
     return True
 
 
+# un sistema creado o duplicado en esta sesión no llega a activarse (is_active False, la captura sale vacía) hasta que
+# se recarga del disco lo que guardó el generador (probado en UE 5.8.3); recargar uno ya bueno cuesta décimas
+niagaras = sorted({i["asset"] for i in JOB["items"] if i["tipo"] == "niagara"})
+if niagaras:
+    unreal.EditorLoadingAndSavingUtils.reload_packages([EAL.load_asset(a).get_outermost() for a in niagaras])
+
 # calentar: todo a la vez y una captura por tick, para que se compilen las permutaciones de shader que falten
 for item in JOB["items"]:
     if item["tipo"] == "niagara":

@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -97,6 +97,10 @@ export async function stopWarm(uproject: string): Promise<boolean> {
   renameSync(join(dir, 'entrada', `${id}.tmp`), join(dir, 'entrada', `${id}.json`));
   for (const end = Date.now() + 30_000; Date.now() < end && alive(beat.pid); ) await sleep(200);
   if (alive(beat.pid)) spawn('taskkill', ['/pid', String(beat.pid), '/T', '/F'], {windowsHide: true}).on('error', () => {});
+  // hasta que no queda el proceso: quien cierra el caliente suele abrir otro Unreal justo después (un editor a la vez)
+  // (process.kill(pid, 0) ya falla mientras Windows aún lista el proceso cerrándose: se mira tasklist, como probeMachine)
+  const listado = () => process.platform === 'win32' && (spawnSync('tasklist', ['/FI', `PID eq ${beat.pid}`, '/NH'], {encoding: 'utf8', windowsHide: true}).stdout ?? '').includes(String(beat.pid));
+  for (const end = Date.now() + 15_000; Date.now() < end && (alive(beat.pid) || listado()); ) await sleep(200);
   rmSync(join(dir, 'latido.json'), {force: true});
   return true;
 }

@@ -203,15 +203,26 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
           png: join(carpeta, `${r.nombre}-${claveSalida(r, ue).slice(0, 8)}.png`).replace(/\\/g, '/')}));
         const job = join(tmp, 'preview.json');
         // en el juego todo se carga y compila al abrir: 6 s; en el editor caliente los shaders ya están (los compiló la generación)
-        const trabajo = (caliente: boolean) => {
-          writeFileSync(job, JSON.stringify({calentar: caliente ? calentarCaliente : 6, mapa: escenario, items}));
-          return {NOMOS_FASTVFX_PREVIEW: job};
-        };
+        type Captura = {asset: string; png: string | null};
+        const vacia = (c?: Captura) => !c?.png || !existsSync(c.png) || pixelesEfecto(readFileSync(c.png)) < previewVacia;
+        const capturas: Captura[] = [];
         const t = ahora();
-        const {reportJson} = await py('nomos_fastvfx_captura.py', trabajo, o.timeoutMs ?? 600_000,
-          {render: {width: 960, height: 540, map: escenario}, script: 'nomos_fastvfx_preview.py'});
+        for (let pendientes = items; pendientes.length; ) {
+          const enCaliente = !!warm, estos = pendientes;
+          const trabajo = (caliente: boolean) => {
+            writeFileSync(job, JSON.stringify({calentar: caliente ? calentarCaliente : 6, mapa: escenario, items: estos}));
+            return {NOMOS_FASTVFX_PREVIEW: job};
+          };
+          const {reportJson} = await py('nomos_fastvfx_captura.py', trabajo, o.timeoutMs ?? 600_000,
+            {render: {width: 960, height: 540, map: escenario}, script: 'nomos_fastvfx_preview.py'});
+          const hechas = (reportJson as {items?: Captura[]})?.items ?? [];
+          // ponytail: una captura vacía del editor caliente se repite en -game (en UE 5.8.3, 2 de 37: un holograma tenue,
+          // sin la exposición automática del juego, y un Niagara que no se activó); en frío no hay reintento
+          pendientes = enCaliente && warm ? estos.filter(i => vacia(hechas.find(c => c.asset === i.asset))) : [];
+          capturas.push(...hechas.filter(c => !pendientes.some(i => i.asset === c.asset)));
+          if (pendientes.length) { warm = null; await stopWarm(o.uproject); }
+        }
         msPreview = ahora() - t;
-        const capturas = ((reportJson as {items?: {asset: string; png: string | null}[]})?.items ?? []);
         for (const {r} of capturar) {
           const png = capturas.find(c => c.asset === r.ruta && c.png && existsSync(c.png))?.png ?? null;
           res.get(r.nombre)!.preview = png;
