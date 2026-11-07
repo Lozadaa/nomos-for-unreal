@@ -23,6 +23,7 @@ import { dataDirFor, dbFile, legacyEnv } from './legacy.ts';
 import { writeResume } from './resume.ts';
 import { teamCli } from './team.ts';
 import { ueCli } from './editor/caliente.ts';
+import { metricasCli } from './metricas.ts';
 
 function openBrowser(url: string) {
   const [command, args] = process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
@@ -46,7 +47,7 @@ async function main() {
   for (const name of legacyEnv()) console.warn(`Aviso: ${name} ahora se llama NOMOS_${name.slice(7)}`);
   const argv = await withData(process.argv.slice(2));
   if (skillsCli(argv) || embedCli(argv) || buildCli(argv) || await cleanCli(argv) || await autostartCli(argv) || await directorCli(argv) || await assetCli(argv) || await fastvfxCli(argv)
-    || await teamCli(argv, dir => openDb(dbFile(dir))) || await ueCli(argv)) return;
+    || await teamCli(argv, dir => openDb(dbFile(dir))) || await ueCli(argv) || await metricasCli(argv)) return;
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     data: { type: "string", default: ".nomos" }, port: { type: "string", default: "8780" },
     force: { type: "boolean", default: false }, session: { type: "string" }, types: { type: "string" }, "no-open": { type: "boolean", default: false },
@@ -59,7 +60,7 @@ async function main() {
     || (command === "ack" && (args.length !== 1 || !Number.isSafeInteger(Number(args[0])) || Number(args[0]) < 1))
     || (command === "reply" && (args.length < 2 || !args.slice(1).join(" ").trim())) || (command === "typing" && args.length !== 1) || (command === "brief" && (args.length !== 1 || args[0] !== "director"))
     || (["start", "status", "vigila", "stop", "seed", "doctor", "reanudacion"].includes(command) && args.length)) {
-    throw new Error("Uso: nomos start [--new-token]|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|embed JUEGO [--update]|clean [--dry-run]|autostart on|off|status|play [--stop|--status]|reanudacion [--data CARPETA]|brief director|jam init --tema T --dias N [--force]");
+    throw new Error("Uso: nomos start [--new-token]|status|vigila --session ID|ack SEQ --session ID|typing ID|reply ID TEXTO|stop|seed [--force]|doctor|embed JUEGO [--update]|clean [--dry-run]|autostart on|off|status|play [--stop|--status]|reanudacion [--data CARPETA]|metricas [--desde FECHA] [--json]|brief director|jam init --tema T --dias N [--force]");
   }
   if (command === "doctor") {
     mkdirSync(dataDir, { recursive: true });

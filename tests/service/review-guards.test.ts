@@ -19,12 +19,15 @@ test('REVIEW fragmentado se ensambla y JSON inválido incompleto espera con lín
   assert.deepEqual(screenMarkers(['• NOMOS_REVIEW {"approved":true,','  "findings":[]}']),
     [{kind:'REVIEW',approved:true,findings:[]}]);
 });
-test('revisor respeta cupo reservado FIFO sin bloquear toda la tarea',async t=>{
-  const f=await reviewFixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":1}}');
+// tiempo muerto: el revisor tiene cupo propio (`concurrency.revisor`, 1): no espera detrás de un implementador en cola
+test('el revisor no espera a un implementador en cola; sin cupo de revisor espera sin bloquear la tarea',async t=>{
+  const f=await reviewFixture(t);writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":1,"revisor":0}}');
   const other=createTask(f.db,{title:'Anterior',area:'qa'});
   enqueue(f.db,'worker.start',{taskId:other.id,provider:'codex',role:'implementacion',skills:[],attempt:1},'earlier');
-  const result=await f.startReview();assert.deepEqual(result,{deferred:true,reason:'Sin hueco en codex'});
+  const result=await f.startReview();assert.deepEqual(result,{deferred:true,reason:'Sin hueco para revisar'});
   assert.equal(f.reviewer(),undefined);assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
+  writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":1}}');
+  await f.startReview();assert.equal(f.reviewer()?.provider,'codex','arranca aunque el implementador anterior siga en cola');
 });
 test('Decisión pendiente impide crear revisor antes de recursos',async t=>{
   const f=await reviewFixture(t);const before=f.state().creates;

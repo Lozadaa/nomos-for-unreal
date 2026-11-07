@@ -48,7 +48,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   if (history.some(r=>r.state==='running'&&r.id!==reusable?.id)) throw new Error('worker_exists');
   // hito 13: la Decisión ofrece reconciliar (y reintentar o dejar preparada) o cancelar; ninguna opción es decorativa
   if (!review && (task.worktreeId || history.some(r=>r.metadata.uncertain))) return askReconcile(db,task,cmd.id);
-  const waiting=schedulingBlocked(ctx,task,payload.provider,cmd.id,false,reusable?.id);
+  const waiting=schedulingBlocked(ctx,task,payload.provider,cmd.id,false,reusable?.id,payload.role);
   if(waiting) return {deferred:true,reason:waiting};
   await requireGameProject(projectDir);
   if (!await workerPolicy(ctx,task,review ? `review:${review.snapshot.generation}` : `start:${payload.attempt ?? 1}`,true)) {
@@ -57,7 +57,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   if (dispatchBlocked(db,guard)) return pauseForDecision(db,task.id);
   if(review && !await review.valid()) throw new Error('invalid_review_snapshot');
   if(review && requireTask(db,task.id).decisionId) return {policyBlocked:true,decisionId:requireTask(db,task.id).decisionId};
-  const changed=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,false,reusable?.id);
+  const changed=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,false,reusable?.id,payload.role);
   if(changed) return {deferred:true,reason:changed};
   const short=task.id.slice(0,8);
   const skills=[...new Set([...payload.skills,...skillsForRole(payload.role,task.area)])];
@@ -90,7 +90,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     ({repoId}=await orca.repoAdd(projectDir));
   }
   if(review && !await review.valid()) throw new Error('invalid_review_snapshot');
-  const beforeTree=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,!review,run.id);
+  const beforeTree=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,!review,run.id,payload.role);
   if(beforeTree) {
     release(db,run.id);updateRun(db,run.id,{waiting:true,question:beforeTree});setTaskWait(db,task.id,beforeTree);
     return {deferred:true,reason:beforeTree};
@@ -142,7 +142,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   }
   const pauseDispatch=()=>{
     if(dispatchBlocked(db,guard)) {queuePoll(db,run);return pauseForDecision(db,task.id,run.id);}
-    const reason=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,!review,run.id);
+    const reason=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,!review,run.id,payload.role);
     if(!reason) return;
     setTaskWait(db,task.id,reason);
     decisionGate(ctx,requireTask(db,task.id),'dispatch',reason,{runId:run.id,reason});

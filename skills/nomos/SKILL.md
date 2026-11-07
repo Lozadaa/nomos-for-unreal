@@ -70,6 +70,8 @@ Procesa las líneas del vigilante por `seq` ascendente. Todas llevan `type`; `me
    `nomos decision resolve <id> --option <opcion> --by nomos`.
    Si falta elección o respuesta libre, espera el texto del usuario; el silencio no
    autoriza nada. Resolver no envía instrucciones al worker. Un problema repetido no abre otra Decisión (`decision.updated`, `seenCount`).
+   Las obvias (reconciliar, cambios sin registrar, comprobación no disponible, pedir integración o revisión) se resuelven solas a los 5 min
+   (`decision.auto_resolved`, por `nomos-auto`): no las esperes; mira `nomos metricas` para ver cuánto tiempo muerto queda.
 5. Ante `run.finished`, consulta `nomos task show <taskId>` y estado actual del run
    antes de actuar. Descarta eventos antiguos si hay trabajo posterior o Decisión abierta.
    Si el run es `revisor`, espera `review.finished`; no lo revises tú.
