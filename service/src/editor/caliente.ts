@@ -5,11 +5,14 @@ import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { defaultUnrealCmd } from '../adapters/unreal-cmd.ts';
+import { createUnrealCmd, defaultUnrealCmd } from '../adapters/unreal-cmd.ts';
 import { quote, runLogged } from '../adapters/process.ts';
 import { assetConfig } from '../catalog/paths.ts';
 import { request, serviceInfo } from '../client.ts';
 import type { ServiceInfo } from '../service-info.ts';
+import { openDb } from '../db.ts';
+import { dbFile } from '../legacy.ts';
+import { enCache, plantillasRecetas, recordar, validarReceta } from './recetas.ts';
 
 /**
  * x10: editor caliente. En Herbalist los workers abrieron UnrealEditor-Cmd en frío 1 090 veces (21 h): la
@@ -197,10 +200,19 @@ export async function ueCli(argv: string[]): Promise<boolean> {
   const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout', '--tarea'].includes(argv[i - 1] ?? ''));
   if (first !== 'ue') return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},
-    env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}, tarea: {type: 'string'}}});
+    env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}, tarea: {type: 'string'},
+    validar: {type: 'boolean'}, forzar: {type: 'boolean'}}});
   const [, action, file, ...extra] = positionals;
-  if (!['py', 'test', 'parar', 'estado'].includes(action) || extra.length || ['py', 'test'].includes(action) !== !!file)
-    throw new Error('Uso: nomos ue py SCRIPT.py [--env K=V]… [--proyecto X.uproject] [--timeout S] | ue test FILTRO [--proyecto X] [--timeout S] | ue parar | ue estado');
+  if (!['py', 'test', 'receta', 'recetas', 'parar', 'estado'].includes(action) || extra.length || ['py', 'test', 'receta'].includes(action) !== !!file)
+    throw new Error('Uso: nomos ue py SCRIPT.py [--env K=V]… [--proyecto X.uproject] [--timeout S] | ue test FILTRO [--proyecto X] [--timeout S]'
+      + ' | ue receta RECETA.json [--validar] [--forzar] | ue recetas | ue parar | ue estado');
+  if (action === 'recetas') { console.log(JSON.stringify(plantillasRecetas, null, 2)); return true; }
+  if (action === 'receta' && values.validar) {
+    const v = validarReceta(JSON.parse(readFileSync(file, 'utf8')));
+    console.log(JSON.stringify(v.ok ? {ok: true} : v));
+    if (!v.ok) process.exitCode = 1;
+    return true;
+  }
   const uproject = resolve(values.proyecto ?? findUproject(process.cwd()));
   const fake = process.env.NOMOS_UE_FAKE;
   const opts: WarmOpts = fake ? {bin: process.execPath, baseArgs: [fake], startTimeoutMs: 20_000}
@@ -213,6 +225,37 @@ export async function ueCli(argv: string[]): Promise<boolean> {
     const r = await conTurno(turno, uproject, () => runTests(uproject, file, {...opts, ...timeout}));
     console.log(JSON.stringify(r, null, 2));
     if (!r.ok) process.exitCode = 1;
+    return true;
+  }
+  if (action === 'receta') {
+    const v = validarReceta(JSON.parse(readFileSync(file, 'utf8')));
+    if (!v.ok) throw new Error(`Receta no válida:\n${v.errores.join('\n')}`);
+    const dataDir = resolve(values.data ?? '.nomos'), ue = createUnrealCmd({bin: opts.bin}).engineVersion() ?? 'desconocida';
+    mkdirSync(dataDir, {recursive: true});
+    const db = openDb(dbFile(dataDir));
+    try {
+      const t0 = Date.now();
+      if (!values.forzar && enCache(db, uproject, v.receta, ue)) { console.log(JSON.stringify({ok: true, plantilla: v.receta.plantilla, acierto: true, ms: Date.now() - t0})); return true; }
+      const tmp = mkdtempSync(join(tmpdir(), 'nomos-receta-')), job = join(tmp, 'receta.json'), report = join(tmp, 'informe.json');
+      writeFileSync(job, JSON.stringify(v.receta));
+      try {
+        const env = {NOMOS_RECETA_JOB: job, NOMOS_REPORT: report}, script = join(unrealDir, 'nomos_recetas.py');
+        const r = await conTurno(turno, uproject, async () => {
+          if (calienteActivo()) try { return await runWarm(uproject, script, env, {...opts, ...timeout}); } catch (e) {
+            if (e instanceof Error && e.message === 'unreal_timeout') throw e;
+            console.error(`editor caliente: ${e instanceof Error ? e.message : e}; receta en frío`);
+            await stopWarm(uproject);
+          }
+          const frio = await createUnrealCmd({bin: opts.bin, baseArgs: opts.baseArgs}).runPython(uproject, script, env, timeout.timeoutMs ?? 30 * 60_000);
+          return {ok: frio.exitCode === 0, salida: '', error: frio.exitCode === 0 ? null : frio.log.split(/\r?\n/).filter(l => /error/i.test(l)).slice(-10).join('\n'), ms: 0};
+        });
+        const informe = existsSync(report) ? JSON.parse(readFileSync(report, 'utf8')) : {ok: false, errores: [r.error ?? 'el editor no dejó informe']};
+        const ok = r.ok && informe.ok === true;
+        if (ok) recordar(db, v.receta, ue);
+        console.log(JSON.stringify({...informe, ok, ms: Date.now() - t0}, null, 2));
+        if (!ok) process.exitCode = 1;
+      } finally { rmSync(tmp, {recursive: true, force: true}); }
+    } finally { db.close(); }
     return true;
   }
   const env = Object.fromEntries((values.env ?? []).map(pair => {

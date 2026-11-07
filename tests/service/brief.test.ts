@@ -24,6 +24,7 @@ test('hito 22: el brief da la orden de turno de Unreal (--wait y --release) solo
     assert.ok(brief.includes(`\`node "cli.ts" ue py --tarea ${task.id} --data ".nomos" <script.py> [--env K=V]\``), 'x10: el Python del editor va al editor caliente');
     assert.ok(brief.includes(`\`node "cli.ts" ue test --tarea ${task.id} --data ".nomos" <filtro>\``), 'los tests de automatización también');
     assert.match(brief, /lo suelta al acabar/, 'acelera: el turno es por orden');
+    assert.ok(brief.includes(`ue receta --tarea ${task.id} --data ".nomos" <receta.json>`), 'acelera: recetas en vez de scripts');
     assert.doesNotMatch(renderBrief(task,run),/worker turn/);
   } finally {db.close();}
 });
