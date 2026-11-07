@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import type { UnrealCmd } from '../adapters/unreal-cmd.ts';
+import type { RenderOpts, RunResult, UnrealCmd } from '../adapters/unreal-cmd.ts';
+import { calienteActivo, ensureWarm, runWarm, stopWarm, warmBeat, type WarmOpts } from '../editor/caliente.ts';
 import { acquire, release } from '../leases.ts';
 import { decodePng } from '../checks/png.ts';
 import { probeMachine, type MachineProbe } from '../machine.ts';
@@ -18,6 +19,8 @@ export const discoMinimoGb = 3;
 export type Opciones = {
   db: DatabaseSync; unreal: UnrealCmd; uproject: string; preview?: boolean;
   probe?: MachineProbe; discoLibreGb?: () => number; timeoutMs?: number; lote?: string;
+  /** x10: generar y capturar en el editor caliente del proyecto (salvo NOMOS_CALIENTE=off); si no arranca, en frío. */
+  caliente?: WarmOpts;
 };
 export type ResultadoReceta = {
   receta: string; ruta: string; plantilla: string; clase: Clase; ok: boolean; error?: string;
@@ -48,6 +51,8 @@ export function pixelesEfecto(png: Uint8Array): number {
   return n / (data.length / 4);
 }
 export const previewVacia = 0.0005;
+/** Segundos de calentado de la captura en el editor caliente (renderiza cada tick mientras tanto). */
+const calentarCaliente = 2;
 const usuario = (r: RecetaValida) => Object.fromEntries(Object.entries(r.parametros).filter(([k]) => r.plantilla.parametros[k].destino === 'usuario'));
 
 /** Acciones que construyen la estructura de una plantilla: maestro, o maestro + MIs de rol + sistema base. */
@@ -56,8 +61,9 @@ function estructura(p: Plantilla, dir: string, ue: string, db: DatabaseSync, hec
   hechas.add(p.id);
   if (p.tipo === 'material') return [{tipo: 'maestro', plantilla: p.id, ruta: p.base, defectos: defectos(p)}];
   const maestro = Object.values(plantillas).find(m => m.base === p.maestro)!;
-  // un sistema Niagara cargado no se rehace en la misma sesión: se borra del disco con el editor cerrado
-  if (existsSync(archivoAsset(dir, p.base))) borrar.push(archivoAsset(dir, p.base));
+  // un sistema Niagara cargado no se rehace en la misma sesión: se borra con delete_asset dentro del editor (acción
+  // «borrar»), que sí deja rehacerlo aunque esté cargado (editor caliente; probado en UE 5.8.3)
+  if (existsSync(archivoAsset(dir, p.base))) borrar.push(p.base);
   return [...estructura(maestro, dir, ue, db, hechas, borrar),
     ...Object.entries(p.roles!).map(([rol, def]) => ({tipo: 'mi', ruta: matsBase(p)[rol], padre: maestro.base, medir: false,
       escalares: {...def.escalares, Intensidad: def.intensidad}, switches: def.switches ?? {}})),
@@ -88,7 +94,8 @@ function accionesReceta(r: RecetaValida, clase: Clase): Accion[] {
 }
 
 /** Ejecuta un lote de recetas: valida, consulta la caché, construye lo que falte en UNA apertura del editor
- *  (y, con preview, otra en modo juego para las capturas) y deja medida de todo en la base. */
+ *  (y, con preview, otra en modo juego para las capturas) y deja medida de todo en la base. Con el editor caliente
+ *  las dos cosas van al editor ya abierto del proyecto y las capturas se hacen en él con SceneCapture2D. */
 export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
   const t0 = ahora(), reloj0 = Date.now(), lote = o.lote ?? `fx-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${randomUUID().slice(0, 8)}`;
   const validas: RecetaValida[] = [];
@@ -111,7 +118,7 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
       : undefined);
     acciones.push(...estructura(r.plantilla, dir, ue, o.db, hechas, borrar));
     if (r.plantilla.tipo === 'niagara' && (clase === 'nuevo' || clase === 'estructural') && existsSync(archivoAsset(dir, r.ruta)))
-      borrar.push(archivoAsset(dir, r.ruta));  // copia hecha desde una base anterior: se vuelve a copiar
+      borrar.push(r.ruta);  // copia hecha desde una base anterior: se vuelve a copiar
     if (clase !== 'acierto' && clase !== 'usuario') acciones.push(...accionesReceta(r, clase));
     return {r, clase, previa};
   });
@@ -128,21 +135,41 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
   if (acciones.length || conPreview.length) {
     const gb = o.discoLibreGb ? o.discoLibreGb() : libre(dir);
     if (gb < discoMinimoGb) throw new Error(`Solo quedan ${gb.toFixed(1)} GB libres en disco (mínimo ${discoMinimoGb}): no se abre Unreal`);
-    const m = (o.probe ?? probeMachine)();
-    if (m.editors > 0) throw new Error(`Ya hay ${m.editors} editor(es) de Unreal abiertos: FASTVFX espera a que se cierren (un editor a la vez)`);
+    let warm = calienteActivo() && o.caliente ? o.caliente : null;
+    // el editor caliente de este proyecto es el que se va a usar: no cuenta como «otro editor»
+    const m = (o.probe ?? probeMachine)(), propio = warm && warmBeat(o.uproject) ? 1 : 0;
+    if (m.editors - propio > 0) throw new Error(`Ya hay ${m.editors - propio} editor(es) de Unreal abiertos: FASTVFX espera a que se cierren (un editor a la vez)`);
     const recurso = `editor/${dirname(o.uproject).split(/[\\/]/).at(-1)}`;
     const reserva = acquire(o.db, lote, 'fastvfx', [recurso]);
     if (!reserva.ok) throw new Error(`Editor ocupado por la tarea ${reserva.conflicts[0].taskId}: FASTVFX no abre otro`);
     const tmp = mkdtempSync(join(tmpdir(), 'nomos-fastvfx-'));
+    /** El script en el editor caliente y, si no arranca, muere o no deja informe, en frío (`frio.script`: el de -game
+     *  para las capturas). `env(caliente)` escribe el trabajo para uno u otro. Un tiempo agotado no se repite en frío. */
+    const py = async (script: string, env: (caliente: boolean) => Record<string, string>, timeoutMs: number,
+      frio: RenderOpts & {script?: string}): Promise<RunResult> => {
+      if (warm) try {
+        if (await ensureWarm(o.uproject, warm) !== null) aperturas++;
+        const report = join(tmp, `${script}.json`);
+        const r = await runWarm(o.uproject, join(scripts, script), {...env(true), NOMOS_REPORT: report}, {...warm, timeoutMs});
+        if (existsSync(report)) return {exitCode: r.ok ? 0 : 1, log: r.error ?? '', reportJson: JSON.parse(readFileSync(report, 'utf8'))};
+        throw new Error(r.error ?? 'sin informe');
+      } catch (e) {
+        if (e instanceof Error && e.message === 'unreal_timeout') throw e;
+        // ponytail: el caliente se cierra y se sigue en frío (un editor a la vez); no se distingue «no arrancó» de «murió»
+        console.error(`FASTVFX: editor caliente no disponible (${e instanceof Error ? e.message.split('\n')[0] : e}); en frío`);
+        warm = null;
+        await stopWarm(o.uproject);
+      }
+      aperturas++;
+      return o.unreal.runPython(o.uproject, join(scripts, frio.script ?? script), env(false), timeoutMs, frio);
+    };
     try {
-      for (const f of borrar) rmSync(f, {force: true});
       if (acciones.length) {
         const job = join(tmp, 'trabajo.json');
-        writeFileSync(job, JSON.stringify({acciones}));
+        writeFileSync(job, JSON.stringify({acciones: [...borrar.map(ruta => ({tipo: 'borrar', ruta})), ...acciones]}));
         const t = ahora();
-        const {reportJson, exitCode} = await o.unreal.runPython(o.uproject, join(scripts, 'nomos_fastvfx.py'), {NOMOS_FASTVFX_JOB: job},
-          o.timeoutMs ?? 900_000, {offscreen: true});
-        msGeneracion = ahora() - t; aperturas++;
+        const {reportJson, exitCode} = await py('nomos_fastvfx.py', () => ({NOMOS_FASTVFX_JOB: job}), o.timeoutMs ?? 900_000, {offscreen: true});
+        msGeneracion = ahora() - t;
         const informe = reportJson as {acciones?: Record<string, unknown>[]} | undefined;
         if (!informe?.acciones) fallos.push(`El editor terminó con código ${exitCode} sin informe de FASTVFX`);
         for (const a of informe?.acciones ?? []) {
@@ -175,12 +202,27 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
         const items = capturar.map(({r}) => ({tipo: r.plantilla.tipo, asset: r.ruta, frame: r.frame, usuario: r.plantilla.tipo === 'niagara' ? tipado(r) : undefined,
           png: join(carpeta, `${r.nombre}-${claveSalida(r, ue).slice(0, 8)}.png`).replace(/\\/g, '/')}));
         const job = join(tmp, 'preview.json');
-        writeFileSync(job, JSON.stringify({calentar: 6, items}));
+        // en el juego todo se carga y compila al abrir: 6 s; en el editor caliente los shaders ya están (los compiló la generación)
+        type Captura = {asset: string; png: string | null};
+        const vacia = (c?: Captura) => !c?.png || !existsSync(c.png) || pixelesEfecto(readFileSync(c.png)) < previewVacia;
+        const capturas: Captura[] = [];
         const t = ahora();
-        const {reportJson} = await o.unreal.runPython(o.uproject, join(scripts, 'nomos_fastvfx_preview.py'), {NOMOS_FASTVFX_PREVIEW: job},
-          o.timeoutMs ?? 600_000, {render: {width: 960, height: 540, map: escenario}});
-        msPreview = ahora() - t; aperturas++;
-        const capturas = ((reportJson as {items?: {asset: string; png: string | null}[]})?.items ?? []);
+        for (let pendientes = items; pendientes.length; ) {
+          const enCaliente = !!warm, estos = pendientes;
+          const trabajo = (caliente: boolean) => {
+            writeFileSync(job, JSON.stringify({calentar: caliente ? calentarCaliente : 6, mapa: escenario, items: estos}));
+            return {NOMOS_FASTVFX_PREVIEW: job};
+          };
+          const {reportJson} = await py('nomos_fastvfx_captura.py', trabajo, o.timeoutMs ?? 600_000,
+            {render: {width: 960, height: 540, map: escenario}, script: 'nomos_fastvfx_preview.py'});
+          const hechas = (reportJson as {items?: Captura[]})?.items ?? [];
+          // ponytail: una captura vacía del editor caliente se repite en -game (en UE 5.8.3, 2 de 37: un holograma tenue,
+          // sin la exposición automática del juego, y un Niagara que no se activó); en frío no hay reintento
+          pendientes = enCaliente && warm ? estos.filter(i => vacia(hechas.find(c => c.asset === i.asset))) : [];
+          capturas.push(...hechas.filter(c => !pendientes.some(i => i.asset === c.asset)));
+          if (pendientes.length) { warm = null; await stopWarm(o.uproject); }
+        }
+        msPreview = ahora() - t;
         for (const {r} of capturar) {
           const png = capturas.find(c => c.asset === r.ruta && c.png && existsSync(c.png))?.png ?? null;
           res.get(r.nombre)!.preview = png;

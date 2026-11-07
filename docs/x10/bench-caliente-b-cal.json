@@ -1,0 +1,158 @@
+{
+  "modo": "frio",
+  "fecha": "2026-11-07T14:53:50.236Z",
+  "ue": "5.8.3",
+  "carga_inicio": {
+    "ffmpeg": 0,
+    "chrome": 20,
+    "node": 2
+  },
+  "tareas": [
+    {
+      "id": "M01",
+      "ok": true,
+      "clase": "estructural",
+      "ms_total": 17565,
+      "ms_generacion": 14151,
+      "ms_preview": 2732,
+      "ms_primer_preview": 17361,
+      "ms_compilacion": 44.4,
+      "ms_guardado": 27.9,
+      "ms_editor_script": 338,
+      "aperturas": 1,
+      "acciones": 3,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": {
+        "instrucciones_vs": 297,
+        "instrucciones_ps": 158,
+        "samplers": 2,
+        "muestras_textura_ps": 1
+      },
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-af872a32.png",
+      "pixeles_efecto": 0.01171,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 20,
+        "node": 2
+      }
+    },
+    {
+      "id": "M02",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 3499,
+      "ms_generacion": 114,
+      "ms_preview": 2724,
+      "ms_primer_preview": 3310,
+      "ms_compilacion": 3.2,
+      "ms_guardado": 28.5,
+      "ms_editor_script": 74.3,
+      "aperturas": 0,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-01f61a33.png",
+      "pixeles_efecto": 0.01303,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 17,
+        "node": 2
+      }
+    },
+    {
+      "id": "N01",
+      "ok": true,
+      "clase": "estructural",
+      "ms_total": 4379,
+      "ms_generacion": 1427,
+      "ms_preview": 2289,
+      "ms_primer_preview": 4210,
+      "ms_compilacion": 41,
+      "ms_guardado": 163.6,
+      "ms_editor_script": 258.4,
+      "aperturas": 0,
+      "acciones": 10,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": {
+        "instrucciones_vs": 297,
+        "instrucciones_ps": 132,
+        "samplers": 2,
+        "muestras_textura_ps": 1
+      },
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Azul-df18221d.png",
+      "pixeles_efecto": 0.02755,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 16,
+        "node": 2
+      }
+    },
+    {
+      "id": "N02",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 3029,
+      "ms_generacion": 221,
+      "ms_preview": 2182,
+      "ms_primer_preview": 2889,
+      "ms_compilacion": 6.800000000000001,
+      "ms_guardado": 84.6,
+      "ms_editor_script": 106.69999999999999,
+      "aperturas": 0,
+      "acciones": 4,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Azul-27e61353.png",
+      "pixeles_efecto": 0.02866,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 16,
+        "node": 2
+      }
+    },
+    {
+      "id": "N03",
+      "ok": true,
+      "clase": "nuevo",
+      "ms_total": 3152,
+      "ms_generacion": 329,
+      "ms_preview": 2187,
+      "ms_primer_preview": 3010,
+      "ms_compilacion": 6,
+      "ms_guardado": 162.7,
+      "ms_editor_script": 225.10000000000002,
+      "aperturas": 0,
+      "acciones": 5,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": {
+        "instrucciones_vs": 297,
+        "instrucciones_ps": 132,
+        "samplers": 2,
+        "muestras_textura_ps": 1
+      },
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/FX_Energy_Roja-27a7f7f4.png",
+      "pixeles_efecto": 0.02612,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 17,
+        "node": 2
+      }
+    }
+  ],
+  "lote": null,
+  "carga_fin": {
+    "ffmpeg": 1,
+    "chrome": 17,
+    "node": 2
+  }
+}

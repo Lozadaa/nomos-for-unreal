@@ -1,0 +1,11 @@
+{
+  "filtro": "System.Core.Math",
+  "ok": true,
+  "modo": "caliente",
+  "pasados": 40,
+  "avisos": 0,
+  "fallidos": 0,
+  "no_ejecutados": 0,
+  "fallos": [],
+  "ms": 9735
+}

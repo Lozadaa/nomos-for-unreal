@@ -54,3 +54,26 @@ test('x10: el editor caliente se cierra solo sin trabajo y nomos ue py lo usa de
     assert.match(spawnSync(process.execPath, [cli, 'ue', 'parar'], {cwd: dir, env, encoding: 'utf8'}).stdout, /"cerrado":true/);
   } finally { await stopWarm(uproject); }
 });
+
+test('nomos ue test: los tests de automatización en el editor caliente, con resumen JSON y exit 1 si fallan', async () => {
+  const {dir, uproject} = game();
+  const cli = join(import.meta.dirname, '..', '..', 'service', 'src', 'cli.ts');
+  const env = {...process.env, NOMOS_UE_FAKE: fake};
+  const ue = (args: string[], extra = {}) => spawnSync(process.execPath, [cli, 'ue', 'test', ...args], {cwd: dir, env: {...env, ...extra}, encoding: 'utf8'});
+  try {
+    const ok = ue(['System.Core.Math']);
+    assert.equal(ok.status, 0, ok.stderr);
+    const r = JSON.parse(ok.stdout);
+    assert.deepEqual([r.ok, r.modo, r.pasados, r.fallidos], [true, 'caliente', 2, 0]);
+    const bad = ue(['Juego.Falla']);
+    assert.equal(bad.status, 1);
+    assert.deepEqual(JSON.parse(bad.stdout).fallos, [{test: 'Juego.Falla.Uno', errores: ['Expected 1, got 2']}]);
+    const none = ue(['Nada.QueNoExiste']);
+    assert.equal(none.status, 1); assert.match(none.stderr, /No automation tests matched/);
+    assert.equal(ue(['a;Quit']).status, 1, 'un filtro con ; metería otra orden de consola');
+    // sin editor caliente: en frío, con -ExecCmds="Automation RunTests …; Quit"
+    const frio = ue(['System.Core.Math'], {NOMOS_CALIENTE: 'off'});
+    assert.equal(frio.status, 0, frio.stderr);
+    assert.deepEqual([JSON.parse(frio.stdout).modo, JSON.parse(frio.stdout).pasados], ['frio', 2]);
+  } finally { await stopWarm(uproject); }
+});

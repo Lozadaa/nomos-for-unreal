@@ -1,5 +1,5 @@
 // Editor sin GUI falso: imita UnrealEditor-Cmd (-ExecutePythonScript o -game con -ExecCmds="py …") escribiendo el informe en NOMOS_REPORT.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 
@@ -38,22 +38,22 @@ if (mode === 'hang') {
 } else if (mode === 'noreport') {
   process.exitCode = 3;
 } else if (script.endsWith('nomos_fastvfx.py')) {
-  // FASTVFX: cada acción del trabajo «sale bien» y deja su .uasset (o .umap) en Content; NOMOS_FAKE=fastvfx_fail hace fallar las MI
+  // FASTVFX: cada acción del trabajo «sale bien» y deja su .uasset (o .umap) en Content; NOMOS_FAKE=fastvfx_fail hace fallar las MI.
+  // Como en Unreal, un sistema Niagara que ya existe no se rehace (hay que borrarlo antes con la acción «borrar»)
   const job = JSON.parse(readFileSync(process.env.NOMOS_FASTVFX_JOB, 'utf8'));
   const content = join(dirname(args.find(a => a.endsWith('.uproject'))), 'Content');
   const acciones = job.acciones.map(a => {
-    const ok = !(mode === 'fastvfx_fail' && a.tipo === 'mi');
-    if (ok) {
-      const file = join(content, ...a.ruta.replace(/^\/Game\//, '').split('/')) + (a.tipo === 'escenario' ? '.umap' : '.uasset');
-      mkdirSync(dirname(file), {recursive: true}); writeFileSync(file, 'fake');
-    }
+    const file = join(content, ...a.ruta.replace(/^\/Game\//, '').split('/')) + (a.tipo === 'escenario' ? '.umap' : '.uasset');
+    const ok = !(mode === 'fastvfx_fail' && a.tipo === 'mi') && !(a.tipo === 'niagara' && existsSync(file));
+    if (a.tipo === 'borrar') rmSync(file, {force: true});
+    else if (ok) { mkdirSync(dirname(file), {recursive: true}); writeFileSync(file, 'fake'); }
     return {tipo: a.tipo, ruta: a.ruta, receta: a.receta ?? null, ok, ms_total: 10, ms_construccion: 5, ms_guardado: 2,
       ...(a.tipo === 'maestro' || a.tipo === 'mi' ? {ms_compilacion: 3, estadisticas: {instrucciones_vs: 297, instrucciones_ps: 132, samplers: 2, muestras_textura_ps: 1}} : {}),
       ...(a.tipo === 'niagara' || a.tipo === 'variante' ? {parametros_usuario: {Particulas: 80, Vida: 1, Escala: 1}} : {}),
-      ...(ok ? {} : {error: 'Parámetros que el padre no tiene'})};
+      ...(ok ? {} : {error: a.tipo === 'niagara' ? `${a.ruta} ya existe` : 'Parámetros que el padre no tiene'})};
   });
   write({engine, generador: 1, acciones, errores: acciones.filter(a => !a.ok).map(a => a.ruta), ok: acciones.every(a => a.ok)});
-} else if (script.endsWith('nomos_fastvfx_preview.py')) {
+} else if (script.endsWith('nomos_fastvfx_preview.py') || script.endsWith('nomos_fastvfx_captura.py')) {
   const job = JSON.parse(readFileSync(process.env.NOMOS_FASTVFX_PREVIEW, 'utf8'));
   for (const i of job.items) { mkdirSync(dirname(i.png), {recursive: true}); png(i.png, 64, 36, mode !== 'fastvfx_vacia'); }
   write({engine, items: job.items.map(i => ({asset: i.asset, png: i.png, frame: i.frame})), errores: [], ok: true});

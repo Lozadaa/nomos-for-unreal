@@ -153,3 +153,45 @@ test('el mismo asset dos veces en un lote: vale la última receta', async () => 
   assert.equal(l.recetas.length, 1);
   assert.equal(l.acciones, 2);  // maestro + una MI
 });
+
+const caliente = {bin: process.execPath, baseArgs: [join(import.meta.dirname, '..', 'fakes', 'unreal-caliente.mjs')], startTimeoutMs: 20_000};
+
+test('editor caliente: el lote abre un solo editor, el Niagara se borra dentro y la captura no lanza el juego', async () => {
+  const {stopWarm, warmBeat} = await import('../../service/src/editor/caliente.ts');
+  const {opciones, ue} = entorno();
+  try {
+    const l = await ejecutar([escudo, azul], {...opciones, preview: true, caliente});
+    assert.equal(l.ok, true, JSON.stringify(l.errores));
+    assert.equal(l.aperturas, 1, 'una apertura: el arranque del editor caliente, sin otra en -game');
+    assert.ok(l.recetas.every(r => r.preview && existsSync(r.preview) && r.pixeles_efecto! > 0));
+    // el editor caliente del mismo proyecto no cuenta como «otro editor»; otro más, sí
+    ue('5.8.4');
+    const otra = await ejecutar([azul], {...opciones, caliente, probe: () => ({freeGb: 16, editors: 1})});
+    assert.deepEqual([otra.ok, otra.aperturas, otra.recetas[0].clase], [true, 0, 'estructural'], JSON.stringify(otra.errores));
+    await assert.rejects(ejecutar([{...escudo, parametros: {...escudo.parametros, Intensidad: 9}}], {...opciones, caliente,
+      probe: () => ({freeGb: 16, editors: 2})}), /un editor a la vez/);
+    assert.ok(warmBeat(opciones.uproject), 'el editor caliente sigue abierto para el siguiente lote');
+  } finally { await stopWarm(opciones.uproject); }
+});
+
+test('editor caliente: si no arranca o NOMOS_CALIENTE=off, FASTVFX vuelve al camino en frío', async () => {
+  const {opciones} = entorno();
+  const roto = await ejecutar([escudo], {...opciones, preview: true, caliente: {...caliente, bin: join(tmpdir(), 'no-existe', 'UnrealEditor-Cmd.exe')}});
+  assert.deepEqual([roto.ok, roto.aperturas], [true, 2], JSON.stringify(roto.errores));
+  process.env.NOMOS_CALIENTE = 'off';
+  try {
+    const off = await ejecutar([{...escudo, parametros: {...escudo.parametros, Intensidad: 8}}], {...opciones, caliente});
+    assert.deepEqual([off.ok, off.aperturas], [true, 1]);
+  } finally { delete process.env.NOMOS_CALIENTE; }
+});
+
+test('editor caliente: una captura vacía en el editor se repite en -game antes de darla por mala', async () => {
+  const {stopWarm} = await import('../../service/src/editor/caliente.ts');
+  const {opciones} = entorno();
+  process.env.NOMOS_FAKE = 'fastvfx_vacia';
+  try {
+    const l = await ejecutar([azul], {...opciones, preview: true, caliente});
+    assert.equal(l.aperturas, 2, 'el arranque del caliente y el reintento en -game');
+    assert.match(l.recetas[0].error!, /no muestra el efecto/);
+  } finally { delete process.env.NOMOS_FAKE; await stopWarm(opciones.uproject); }
+});
