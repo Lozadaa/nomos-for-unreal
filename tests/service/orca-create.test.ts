@@ -16,8 +16,10 @@ test('worktreeCreate espera lo que se le pide aunque pase del plazo general de O
 
 test('si el plazo de creación se agota, retira el worktree huérfano antes de devolver el error', async t => {
   const {orca, file, calls} = fixture(t);
-  writeFileSync(file, JSON.stringify({repos: [], tail: [], createDelayMs: 5000}));
-  await assert.rejects(orca.worktreeCreate('repo-1', 'nomos-frio', 'claude', 500), code('timeout'));
+  writeFileSync(file, JSON.stringify({repos: [], tail: [], createDelayMs: 10_000}));
+  // el plazo tiene que cubrir el arranque del Orca falso (node): con 500 ms y la máquina cargada por la suite, a veces se
+  // cortaba antes de que el falso apuntara el árbol y no había huérfano que retirar
+  await assert.rejects(orca.worktreeCreate('repo-1', 'nomos-frio', 'claude', 4000), code('timeout'));
   assert.deepEqual(state(file).removed, ['repo-1::C:/Juego trabajador']);
   assert.deepEqual(calls.map(c => c.command.slice(0, 2)), [['worktree', 'create'], ['worktree', 'list'], ['worktree', 'rm']]);
 });

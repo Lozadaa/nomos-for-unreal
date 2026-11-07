@@ -38,6 +38,16 @@ test('x10: el editor caliente arranca una vez y los scripts siguientes reutiliza
   assert.equal(await stopWarm(uproject), false, 'parar sin editor no hace nada');
 });
 
+test('x10: un script que bloquea los ticks (sin latido) no se da por editor cerrado mientras el proceso viva', async () => {
+  const {dir, uproject} = game();
+  writeFileSync(join(dir, 'lento.py'), 'LENTO');
+  try {
+    await runWarm(uproject, join(dir, 'a.py'), {}, opts);
+    const r = await runWarm(uproject, join(dir, 'lento.py'), {}, opts);
+    assert.equal(r.ok, true, r.error ?? '');
+  } finally { await stopWarm(uproject); }
+});
+
 test('x10: el editor caliente se cierra solo sin trabajo y nomos ue py lo usa desde la carpeta del juego', async () => {
   const {dir, uproject} = game();
   await runWarm(uproject, join(dir, 'a.py'), {}, {...opts, idleSeconds: 0.5});

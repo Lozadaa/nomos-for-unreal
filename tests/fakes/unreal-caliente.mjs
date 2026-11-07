@@ -41,6 +41,8 @@ const timer = setInterval(() => {
       if (ok) { mkdirSync(join(dir, 'tests'), {recursive: true}); writeFileSync(join(dir, 'tests', 'index.json'), '﻿' + JSON.stringify(informe(job.env.NOMOS_TEST_FILTRO))); }
       else error = `RuntimeError: No automation tests matched '${job.env.NOMOS_TEST_FILTRO}'`;
     } else {
+      // LENTO: un script largo que bloquea los ticks (sin latido) unos segundos, como un import grande en el editor real
+      if (readFileSync(job.script, 'utf8').includes('LENTO')) { rmSync(join(dir, 'latido.json'), {force: true}); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2500); }
       ok = !readFileSync(job.script, 'utf8').includes('FALLA'); error = ok ? null : 'Traceback: FALLA';
       if (job.env?.NOMOS_REPORT) writeFileSync(job.env.NOMOS_REPORT, JSON.stringify({ok}));
     }
@@ -48,6 +50,7 @@ const timer = setInterval(() => {
     ultimo = Date.now();
   }
   if (Date.now() - ultimo > idle) return end();
-  write(join(dir, 'latido.json'), {pid: process.pid, en: Date.now() / 1000, desde, trabajos});
+  // como nomos_caliente.py: un reemplazo que falla (el cliente leyendo, el antivirus) no tumba el editor
+  try { write(join(dir, 'latido.json'), {pid: process.pid, en: Date.now() / 1000, desde, trabajos}); } catch { /* el siguiente tick */ }
 }, 100);
 function end() { clearInterval(timer); if (existsSync(join(dir, 'latido.json'))) rmSync(join(dir, 'latido.json')); process.exit(0); }

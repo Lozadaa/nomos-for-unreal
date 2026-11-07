@@ -77,13 +77,17 @@ export async function runWarm(uproject: string, file: string, env: Record<string
   // `limite`: el editor abandona un trabajo de varios ticks (nomos_pendiente) que pase de ahí
   writeFileSync(pending, JSON.stringify({id, script: file.replace(/\\/g, '/'), env, limite: timeoutMs / 1000}));
   renameSync(pending, join(dir, 'entrada', `${id}.json`));
+  // mientras corre un script el editor no late (el tick está ocupado) y leer el latido puede fallar mientras se reemplaza:
+  // se da por cerrado solo si su proceso ya no existe
+  let pid = warmBeat(uproject)?.pid;
   for (const end = Date.now() + timeoutMs + 5000; Date.now() < end; await sleep(100)) {
+    pid ??= warmBeat(uproject)?.pid;
     if (existsSync(done)) {
       const result = JSON.parse(readFileSync(done, 'utf8'));
       rmSync(done, {force: true});
       return {...result, arranque};
     }
-    if (!warmBeat(uproject)) { await sleep(1500); if (!existsSync(done) && !warmBeat(uproject)) throw new Error('El editor caliente se cerró durante el script'); }
+    if (pid ? !alive(pid) : !warmBeat(uproject)) { await sleep(1500); if (!existsSync(done)) throw new Error('El editor caliente se cerró durante el script'); }
   }
   throw new Error('unreal_timeout');
 }
