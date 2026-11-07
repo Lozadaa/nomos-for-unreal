@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { decodePng, fraccionMagenta } from './png.ts';
 import { join } from 'node:path';
 import type { UnrealCmd } from '../adapters/unreal-cmd.ts';
 import { unrealOf, type CheckDeps, type Executor } from './run.ts';
@@ -21,14 +22,43 @@ export function defaultMap(projectDir: string, log = ''): string | null {
 }
 
 /** Juego a resolución fija (`-game <mapa>`, 10 min como máximo): captura con UI y, si `NOMOS_CONTROL`, sin UI. */
-export function capture(unreal: UnrealCmd, uproject: string, map: string | undefined, [width, height]: [number, number],
+export async function capture(unreal: UnrealCmd, uproject: string, map: string | undefined, [width, height]: [number, number],
   shot: string, deps: CheckDeps, extra: Record<string, string> = {}) {
-  return unreal.runPython(uproject, join(scripts, 'nomos_pie_capture.py'),
+  const run = () => unreal.runPython(uproject, join(scripts, 'nomos_pie_capture.py'),
     {NOMOS_SHOT: shot, NOMOS_WAIT: String(deps.playSeconds ?? 30), ...extra}, 10 * 60_000, {render: {width, height, map}});
+  // más de un 20 % magenta = shaders sin compilar: se repite una vez (ya en caché) y, si sigue, la captura no vale
+  const magenta = () => { try { return existsSync(shot) && fraccionMagenta(decodePng(readFileSync(shot))) > 0.2; } catch { return false; } };
+  const first = await run();
+  if (!magenta()) return first;
+  const second = await run();
+  if (!magenta()) return {...second, log: `${first.log}
+NOMOS captura magenta repetida
+${second.log}`};
+  const report = (second.reportJson ?? {}) as {errors?: string[]};
+  return {...second, reportJson: {...report, ok: false,
+    errors: [...report.errors ?? [], 'Captura magenta dos veces: shaders sin compilar; no es un fallo de arte, repite cuando terminen']}};
+}
+
+type Jugador = {pawn: {clase: string; pos: number[]; base_z: number; suelo_z: number | null; cayendo: boolean} | null; player_start: number[][]} | null;
+
+/** Veredicto de posesión y suelo (regla «el jugador apareció bien» del harness): un juego que arranca con el jugador
+ *  cayendo o sin pawn pasaba `map`. Sin datos (sonda fallida) o mapa sin PlayerStart ni pawn (menú) no dice nada.
+ *  Textos de log comprobados en GameModeBase.cpp de UE 5.8. */
+export function veredictoJugador(j: Jugador | undefined, log: string): string[] {
+  const out: string[] = [];
+  if (/NO PLAYERSTART with positive rating|Player start not found|StartSpot was null/.test(log)) out.push('El juego no encontró PlayerStart al arrancar');
+  if (!j) return out;
+  const p = j.pawn;
+  if (!p) return j.player_start.length ? [...out, 'Hay PlayerStart pero ningún pawn poseído al capturar (¿cayó fuera del mundo?)'] : out;
+  if (p.cayendo) out.push(`El jugador (${p.clase}) está cayendo al capturar, en Z ${p.pos[2]}`);
+  else if (p.suelo_z === null) out.push(`No hay suelo bajo el jugador (${p.clase}) en ${p.pos.join(', ')}`);
+  else if (p.base_z - p.suelo_z > 50) out.push(`El jugador flota ${Math.round(p.base_z - p.suelo_z)} cm sobre el suelo`);
+  else if (p.suelo_z - p.base_z > 50) out.push(`El jugador está ${Math.round(p.suelo_z - p.base_z)} cm bajo el suelo`);
+  return out;
 }
 
 type Validation = {ok: boolean; engine?: string; assets: {package: string; errors: string[]}[]};
-type Pie = {ok: boolean; map?: string; errors: string[]; engine?: string};
+type Pie = {ok: boolean; map?: string; errors: string[]; engine?: string; jugador?: Jugador};
 
 /** Mapas: Data Validation sobre los assets tocados (si falla, bloquea con la lista) y, si pasa, juego 30 s con captura 1280×720. */
 export const mapCheck: Executor = async (ctx, {project, files, dir}, deps) => {
@@ -49,8 +79,9 @@ export const mapCheck: Executor = async (ctx, {project, files, dir}, deps) => {
   const base = {resolution: '1280x720', map: played}, views = viewShots(run.reportJson, count, base);
   const sheet = await contactSheet(count > 1 ? ffmpegOf(ctx, deps) : null,
     [{view: 'player', path: shot}, ...views.shots.map(s => ({view: String(s.provenance!.view), path: s.path}))], join(dir, 'map-hoja.jpg'));
-  return {result: 'passed', log, map: played, mapDefault: !map, engine: pie.engine, config: '1280x720',
-    summary: [`${touched.length} assets válidos; captura en ${played}`, ...views.notes],
+  const jugador = veredictoJugador(pie.jugador, run.log);
+  return {result: jugador.length ? 'failed' : 'passed', ...(jugador.length ? {blocking: jugador} : {}), log, map: played, mapDefault: !map, engine: pie.engine, config: '1280x720',
+    summary: [...jugador, `${touched.length} assets válidos; captura en ${played}`, ...views.notes],
     artifacts: [{kind: 'screenshot', path: shot, provenance: {...base, view: 'player'}}, ...views.shots,
       ...(sheet ? [{kind: 'screenshot' as const, path: sheet, provenance: {...base, sheet: true, label: 'Mapa · hoja de contactos'}}] : [])]};
 };

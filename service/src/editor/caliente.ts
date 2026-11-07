@@ -13,6 +13,7 @@ import type { ServiceInfo } from '../service-info.ts';
 import { openDb } from '../db.ts';
 import { dbFile } from '../legacy.ts';
 import { enCache, plantillasRecetas, recordar, validarReceta } from './recetas.ts';
+import { carpetasCrash, ultimoCrash } from './crash.ts';
 
 /**
  * x10: editor caliente. En Herbalist los workers abrieron UnrealEditor-Cmd en frío 1 090 veces (21 h): la
@@ -203,9 +204,9 @@ export async function ueCli(argv: string[]): Promise<boolean> {
     env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}, tarea: {type: 'string'},
     validar: {type: 'boolean'}, forzar: {type: 'boolean'}}});
   const [, action, file, ...extra] = positionals;
-  if (!['py', 'test', 'receta', 'recetas', 'parar', 'estado'].includes(action) || extra.length || ['py', 'test', 'receta'].includes(action) !== !!file)
+  if (!['py', 'test', 'receta', 'recetas', 'parar', 'estado', 'crash'].includes(action) || extra.length || ['py', 'test', 'receta'].includes(action) !== !!file)
     throw new Error('Uso: nomos ue py SCRIPT.py [--env K=V]… [--proyecto X.uproject] [--timeout S] | ue test FILTRO [--proyecto X] [--timeout S]'
-      + ' | ue receta RECETA.json [--validar] [--forzar] | ue recetas | ue parar | ue estado');
+      + ' | ue receta RECETA.json [--validar] [--forzar] | ue recetas | ue parar | ue estado | ue crash [--proyecto X]');
   if (action === 'recetas') { console.log(JSON.stringify(plantillasRecetas, null, 2)); return true; }
   if (action === 'receta' && values.validar) {
     const v = validarReceta(JSON.parse(readFileSync(file, 'utf8')));
@@ -214,6 +215,7 @@ export async function ueCli(argv: string[]): Promise<boolean> {
     return true;
   }
   const uproject = resolve(values.proyecto ?? findUproject(process.cwd()));
+  if (action === 'crash') { console.log(JSON.stringify(ultimoCrash(carpetasCrash(dirname(uproject)), dirname(uproject)), null, 2)); return true; }
   const fake = process.env.NOMOS_UE_FAKE;
   const opts: WarmOpts = fake ? {bin: process.execPath, baseArgs: [fake], startTimeoutMs: 20_000}
     : {bin: assetConfig(resolve(values.data ?? '.nomos')).unrealPath ?? undefined};

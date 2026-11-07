@@ -88,3 +88,31 @@ def escena(world, png):
         # no va a `errors`: eso suspendería la comprobación por una ayuda; queda en el log y en el informe
         unreal.log_warning(f"NOMOS_ESCENA no se pudo escribir: {e}")
         return None
+
+
+def jugador(world):
+    """Dónde está el jugador respecto al suelo, para el veredicto de `map` (service/src/checks/map.ts). Sale de la regla
+    del harness «el jugador apareció bien»: pawn poseído, base de la cápsula sobre el suelo y sin caer. Devuelve None si
+    falla la sonda (la captura sigue)."""
+    try:
+        starts = [_v(s.get_actor_location()) for s in unreal.GameplayStatics.get_all_actors_of_class(world, unreal.PlayerStart)][:4]
+        pawn = unreal.GameplayStatics.get_player_pawn(world, 0)
+        if not pawn:
+            return {"pawn": None, "player_start": starts}
+        l = pawn.get_actor_location()
+        capsula = pawn.get_component_by_class(unreal.CapsuleComponent)
+        if capsula:
+            base = l.z - capsula.get_scaled_capsule_half_height()
+        else:
+            origen, extension = pawn.get_actor_bounds(True)
+            base = origen.z - extension.z
+        mov = pawn.get_movement_component()
+        cayendo = bool(mov and hasattr(mov, "is_falling") and mov.is_falling())
+        golpe = unreal.SystemLibrary.line_trace_single(world, l, unreal.Vector(l.x, l.y, l.z - 100000), unreal.TraceTypeQuery.TRACE_TYPE_QUERY1,
+                                                       False, [pawn], unreal.DrawDebugTrace.NONE, True)
+        suelo = golpe.to_tuple()[4].z if golpe else None  # impact_point
+        return {"pawn": {"clase": pawn.get_class().get_name(), "pos": _v(l), "base_z": round(base, 1),
+                         "suelo_z": None if suelo is None else round(suelo, 1), "cayendo": cayendo}, "player_start": starts}
+    except Exception as e:  # noqa: BLE001
+        unreal.log_warning(f"NOMOS_JUGADOR {e}")
+        return None

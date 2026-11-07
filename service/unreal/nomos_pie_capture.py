@@ -21,7 +21,7 @@ import json, os, shutil, sys, time, unreal
 # el juego ejecuta este archivo con exec(): los módulos hermanos se cargan desde la carpeta de NOMOS_SCRIPT
 sys.path.insert(0, os.path.dirname(os.environ.get("NOMOS_SCRIPT", "")))
 from nomos_listo import Listo  # noqa: E402
-from nomos_escena import escena  # noqa: E402
+from nomos_escena import escena, jugador  # noqa: E402
 
 REPORT = os.environ["NOMOS_REPORT"]
 SHOT = os.environ.get("NOMOS_SHOT") or os.path.join(unreal.Paths.project_saved_dir(), "nomos-ui.png")
@@ -169,6 +169,7 @@ def tick(dt):
                 state["found"] = found
                 console("pause")  # mismo fotograma para las dos capturas: solo cambia la UI
                 report["escena"] = escena(state["world"], SHOT)
+                report["jugador"] = jugador(state["world"])
                 shoot(SHOT, "ui")
         elif state["phase"] == "ui" and landed("screenshot"):
             if not CONTROL:
