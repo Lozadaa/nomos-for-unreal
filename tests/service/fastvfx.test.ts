@@ -145,3 +145,11 @@ test('el área vfx o materiales da al worker las skills de Niagara y materiales'
   assert.deepEqual(skillsForRole('worker', 'Materiales'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx']);
   assert.deepEqual(skillsForRole('vfx', 'gameplay'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx']);
 });
+
+test('el mismo asset dos veces en un lote: vale la última receta', async () => {
+  const {opciones} = entorno();
+  const l = await ejecutar([escudo, {...escudo, parametros: {...escudo.parametros, Intensidad: 7}}], opciones);
+  assert.equal(l.sustituidas, 1);
+  assert.equal(l.recetas.length, 1);
+  assert.equal(l.acciones, 2);  // maestro + una MI
+});

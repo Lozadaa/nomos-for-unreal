@@ -1,0 +1,118 @@
+{
+  "modo": "retoque",
+  "fecha": "2026-11-07T04:26:08.305Z",
+  "ue": "5.8.3",
+  "carga_inicio": {
+    "ffmpeg": 0,
+    "chrome": 19,
+    "node": 2
+  },
+  "tareas": [
+    {
+      "id": "M02",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 38789,
+      "ms_generacion": 17685,
+      "ms_preview": 20447,
+      "ms_primer_preview": 35927,
+      "ms_compilacion": 10,
+      "ms_guardado": 70.5,
+      "ms_editor_script": 286,
+      "aperturas": 2,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Escudo_Azul-e6f89951.png",
+      "pixeles_efecto": 0.01805,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 19,
+        "node": 2
+      }
+    },
+    {
+      "id": "M03",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 38581,
+      "ms_generacion": 17202,
+      "ms_preview": 20827,
+      "ms_primer_preview": 35832,
+      "ms_compilacion": 10.8,
+      "ms_guardado": 73.2,
+      "ms_editor_script": 303.1,
+      "aperturas": 2,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Plasma_Rojo-b1d52ed3.png",
+      "pixeles_efecto": 0.04085,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 0,
+        "chrome": 18,
+        "node": 2
+      }
+    },
+    {
+      "id": "M04",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 39518,
+      "ms_generacion": 18583,
+      "ms_preview": 20318,
+      "ms_primer_preview": 36717,
+      "ms_compilacion": 11.2,
+      "ms_guardado": 81.3,
+      "ms_editor_script": 307.2,
+      "aperturas": 2,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Plasma_Rojo-084e1fea.png",
+      "pixeles_efecto": 0.04084,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 17,
+        "node": 2
+      }
+    },
+    {
+      "id": "M05",
+      "ok": true,
+      "clase": "parametros",
+      "ms_total": 39189,
+      "ms_generacion": 17768,
+      "ms_preview": 20745,
+      "ms_primer_preview": 36112,
+      "ms_compilacion": 9.9,
+      "ms_guardado": 69.9,
+      "ms_editor_script": 297.5,
+      "aperturas": 2,
+      "acciones": 1,
+      "aciertos": 0,
+      "llamadas_llm": 0,
+      "estadisticas": null,
+      "preview": "C:/Users/richa/Documents/Unreal Projects/FastVfxBench/Saved/FastVfx/previews/MI_Calor_Distorsion-56b0ca32.png",
+      "pixeles_efecto": 0.00442,
+      "errores": [],
+      "carga": {
+        "ffmpeg": 1,
+        "chrome": 21,
+        "node": 2
+      }
+    }
+  ],
+  "lote": null,
+  "carga_fin": {
+    "ffmpeg": 1,
+    "chrome": 20,
+    "node": 2
+  }
+}

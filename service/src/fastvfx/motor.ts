@@ -26,7 +26,7 @@ export type ResultadoReceta = {
 };
 export type Lote = {
   lote: string; ok: boolean; recetas: ResultadoReceta[]; aperturas: number; ms_total: number; ms_generacion: number; ms_preview: number;
-  ms_primer_preview: number | null; aciertos: number; errores: string[]; acciones: number;
+  ms_primer_preview: number | null; aciertos: number; errores: string[]; acciones: number; sustituidas: number;
 };
 
 type Accion = Record<string, unknown> & {tipo: string; ruta: string; receta?: string};
@@ -98,6 +98,10 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
     if (v.ok) validas.push(v.receta); else errores.push(...v.errores.map(e => `receta ${i + 1}: ${e}`));
   });
   if (errores.length) throw new Error(`Recetas no válidas:\n${errores.join('\n')}`);
+  // el mismo asset dos veces en un lote: vale la última receta (la anterior quedaría pisada)
+  const ultimas = [...new Map(validas.map(r => [r.ruta.toLowerCase(), r])).values()];
+  const sustituidas = validas.length - ultimas.length;
+  validas.splice(0, validas.length, ...ultimas);
   const dir = dirname(o.uproject), ue = o.unreal.engineVersion() ?? 'desconocida';
   const hechas = new Set<string>(), borrar: string[] = [], acciones: Accion[] = [];
   const plan = validas.map(r => {
@@ -212,7 +216,7 @@ export async function ejecutar(recetas: unknown[], o: Opciones): Promise<Lote> {
   const salida: Lote = {lote, ok: !fallos.length && [...res.values()].every(q => q.ok), recetas: [...res.values()], aperturas,
     ms_total: Math.round(ahora() - t0), ms_generacion: Math.round(msGeneracion), ms_preview: Math.round(msPreview),
     ms_primer_preview: primerPreview === null ? null : Math.round(primerPreview), aciertos: plan.filter(p => p.clase === 'acierto').length,
-    errores: fallos, acciones: acciones.length};
+    errores: fallos, acciones: acciones.length, sustituidas};
   o.db.prepare(`insert into fastvfx_lotes(id,creado,recetas,aperturas,ms_total,ms_generacion,ms_preview,ms_primer_preview,ok,detalle)
     values(?,?,?,?,?,?,?,?,?,?)`).run(lote, new Date().toISOString(), plan.length, aperturas, salida.ms_total, salida.ms_generacion,
     salida.ms_preview, salida.ms_primer_preview, salida.ok ? 1 : 0, JSON.stringify(salida));
