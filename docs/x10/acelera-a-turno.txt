@@ -1,0 +1,16 @@
+{"t":0.293,"e":"turno-a-mano"}
+{"t":13.115,"e":"ue-py","i":0,"ms":12822}
+{"t":21.506,"e":"ue-py","i":1,"ms":387}
+{"t":30.556,"e":"ue-py","i":2,"ms":1043}
+{"t":39.08,"e":"ue-py","i":3,"ms":391}
+{"t":47.467,"e":"ue-py","i":4,"ms":387}
+{"t":61.795,"e":"check-dentro","espera_s":56.77}
+{"modo":"antes","scripts":5,"pausa_s":8,"turno_retenido_s":[59.013,1794067507.654],"total_retenido_s":1794067566.667,"espera_check_s":56.77,"total_s":61.795}
+--- despues
+{"t":12.61,"e":"ue-py","i":0,"ms":12600}
+{"t":18.596,"e":"check-dentro","espera_s":13.57}
+{"t":33.267,"e":"ue-py","i":1,"ms":12647}
+{"t":41.687,"e":"ue-py","i":2,"ms":419}
+{"t":50.112,"e":"ue-py","i":3,"ms":415}
+{"t":58.549,"e":"ue-py","i":4,"ms":434}
+{"modo":"despues","scripts":5,"pausa_s":8,"turno_retenido_s":[12.297,12.356,0.121,0.118,0.126],"total_retenido_s":25.018,"espera_check_s":13.57,"total_s":66.552}

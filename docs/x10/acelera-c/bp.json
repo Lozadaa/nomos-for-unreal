@@ -1,0 +1,5 @@
+{"receta": 1, "plantilla": "bp_datos", "ruta": "/Game/AceleraPrueba/BP_Lampara", "padre": "/Script/Engine.Actor",
+ "componentes": [{"nombre": "Pie", "clase": "StaticMeshComponent", "malla": "/Engine/BasicShapes/Cylinder", "escala": [0.2, 0.2, 1]},
+                 {"nombre": "Bombilla", "clase": "PointLightComponent", "pos": [0, 0, 120]}],
+ "propiedades": {"can_be_damaged": false},
+ "datos": {"ruta": "/Game/AceleraPrueba/DA_Etiqueta", "clase": "/Script/Engine.PrimaryAssetLabel", "propiedades": {"label_assets_in_my_directory": true}}}
