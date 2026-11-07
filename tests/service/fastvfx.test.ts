@@ -142,8 +142,8 @@ test('una captura sin efecto (sistema que no pinta) es un fallo de validación',
 
 test('el área vfx o materiales da al worker las skills de Niagara y materiales', async () => {
   const {skillsForRole} = await import('../../service/src/skills.ts');
-  assert.deepEqual(skillsForRole('worker', 'Materiales'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx']);
-  assert.deepEqual(skillsForRole('vfx', 'gameplay'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx']);
+  assert.deepEqual(skillsForRole('worker', 'Materiales'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx', 'ue-oficio']);
+  assert.deepEqual(skillsForRole('vfx', 'gameplay'), ['ue-niagara-effects', 'ue-materials-rendering', 'vfx-fx', 'ue-oficio']);
 });
 
 test('el mismo asset dos veces en un lote: vale la última receta', async () => {

@@ -30,6 +30,38 @@ harness de Unreal en calidad y rapidez; un juego completo en días, no en semana
 | f) un escritor del editor, verificador determinista, revisión según complejidad | prosa | Turno por orden, comprobaciones deterministas, revisor siempre | Saltar el revisor LLM cuando el diff son solo assets o recetas con comprobaciones en verde. 4 h |
 | g) métricas y canario | `BUILD-LOG.md` a mano | `nomos metricas` (esta rama) | Canario en Herbalist con las mismas tareas antes y después |
 
+## Absorbido (rama `absorbe-harness`, 2026-11-07)
+
+Tres agentes leyeron los ~1 MB de docs del repo (agente/QA/lanzador; PIE/personajes/look; PCG/Blender/mundo) y dejaron
+reglas con su evidencia. Lo útil quedó en Nomos con nuestras palabras (el repo no tiene licencia):
+
+- **Skill nueva `ue-oficio`** (`skills/ue-oficio`), que se instala en el juego con las de UI y cargan todos los roles que
+  tocan el editor (implementación, habilidad, VFX, UI, assets, animación, mundo, QA): diez reglas de cabecera y seis
+  referencias: `python-ue58`, `importar`, `camara-pawn`, `iluminacion`, `pcg`, `diagnostico`. Cada regla dice si se
+  probó, si sale del código del motor o si es un plan sin probar.
+- **JSON de escena junto a cada captura de `-game`** (`service/unreal/nomos_escena.py`): cámara, pawn y hasta 40 actores
+  visibles con posición, tamaño, base y píxel. Probado con UE 5.8.3 en `FastVfxBench` (captura del jugador + vista
+  lateral, 22-23 s, igual que sin él). En la primera pasada destapó un objeto flotando 20 cm sobre el suelo del mapa de
+  banco. El QA visual recibe el JSON con la captura y `ue-visual-qa` tiene criterios para leerlo («Capturas de escena»).
+- Dos hallazgos propios al probarlo: en `-game` los actores no exponen `get_actor_hidden_in_game` a Python, y aparecen
+  actores de depuración sin geometría (`ChaosDebugDrawActor`, `GameplayDebuggerCategoryReplicator`).
+
+### Recetas y código que salen de ahí (pendiente, por valor)
+
+| Qué | Detalle | Por qué |
+|---|---|---|
+| Veredicto de posesión y suelo en `map` | Tras jugar: pawn de la clase esperada, \|Z pawn − Z PlayerStart\| < 50 cm, base de la cápsula sobre el suelo, log sin «fell out of world», «KillZ» ni «No PlayerStart» | Un juego que «arranca» con el jugador cayendo pasa hoy la comprobación |
+| Captura inválida por shaders | > 20 % de píxeles magenta o suelo lavado → repetir, no mandar al QA | Evita rechazos falsos del QA visual |
+| Receta `importar_malla` | Importa, mide, rechaza ×100/×0,01 y pivote fuera de la base en módulos, sRGB off en altura/máscara, `TC_Default` en decals | El error más repetido del repo y de Herbalist (escala) |
+| Receta `camara_tercera_persona` | Offset relativo, FOV, control de rotación y brazo; valida una sola cámara activa y lente fuera de la malla | Cámaras que tiemblan o ven el interior del pawn |
+| Receta `post_exterior` | PPV sin límites, exposición manual, motion blur 0, avisos de sol bajo sin atmósfera y niebla opaca | Capturas blancas o negras |
+| Receta `poblar_pcg` | Volumen, paleta, semilla; genera y exige ISM > 0; recrea el volumen si cambia material | PCG falla en silencio |
+| `nomos ue crash` | Último informe de las dos carpetas de Crashes, `ErrorMessage` y 60 líneas de pila | El worker deja de relanzar a ciegas |
+| Utilidad `set_transform` en recetas | Lee el transform y completa lo que falte | Escalas reseteadas en silencio |
+
+Descartado y por qué: el MCP de Epic como base, la ejecución remota de Python (elige editor al azar con varios abiertos),
+los scripts de macOS y todo lo de Cesium, NYC y splats.
+
 ## Camino hacia «muy rápido», por orden
 
 1. **Tiempo muerto** (esta rama): Decisiones obvias solas, cupo del revisor, `nomos metricas`. Pendiente: verlo en Herbalist.

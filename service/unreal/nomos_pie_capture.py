@@ -12,12 +12,16 @@ Variables de entorno:
   NOMOS_WIDGETS lista JSON de clases de widget esperadas; sin ella vale cualquier UserWidget en el viewport
   NOMOS_VIEWS   (hito 10) lista JSON de vistas extra {view, path}: cámara libre que orbita al pawn, HighResShot sin UI
   NOMOS_VIEWS_BUDGET  segundos para las vistas extra (90); pasado el plazo se entregan las que haya y se anota
+
+Junto a cada PNG queda `<png>.json` (escena.py): cámara, pawn y los actores que se ven, con su posición en el mundo y en la
+imagen. Idea tomada de per-simmons/unreal-agent-harness (capturas anotadas): el revisor razona posiciones sin otra sonda.
 """
 import json, os, shutil, sys, time, unreal
 
 # el juego ejecuta este archivo con exec(): los módulos hermanos se cargan desde la carpeta de NOMOS_SCRIPT
 sys.path.insert(0, os.path.dirname(os.environ.get("NOMOS_SCRIPT", "")))
 from nomos_listo import Listo  # noqa: E402
+from nomos_escena import escena  # noqa: E402
 
 REPORT = os.environ["NOMOS_REPORT"]
 SHOT = os.environ.get("NOMOS_SHOT") or os.path.join(unreal.Paths.project_saved_dir(), "nomos-ui.png")
@@ -122,6 +126,7 @@ def view_tick():
         aim(item)
         state.update(phase="view-wait", t=time.time())
     elif state["phase"] == "view-wait" and time.time() - state["t"] > 1.0:
+        report.setdefault("escenas", {})[item["view"]] = escena(state["world"], item["path"])
         state.update(before=pngs(), target=item["path"], phase="view-shot", t=time.time())
         console("HighResShot 1280x720")
     elif state["phase"] == "view-shot":
@@ -163,6 +168,7 @@ def tick(dt):
                 report["espera"] = {"s": round(elapsed, 2), "motivo": "fija" if FIJA else LISTO.motivo}
                 state["found"] = found
                 console("pause")  # mismo fotograma para las dos capturas: solo cambia la UI
+                report["escena"] = escena(state["world"], SHOT)
                 shoot(SHOT, "ui")
         elif state["phase"] == "ui" and landed("screenshot"):
             if not CONTROL:

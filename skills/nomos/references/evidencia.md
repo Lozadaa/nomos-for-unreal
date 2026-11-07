@@ -40,6 +40,8 @@ juzga la regresión visual) y tres de una cámara libre que orbita al pawn: `lef
 y `top` (picado a 6 m y 45°), más una hoja de contactos 2×2 `*-hoja.jpg` (`provenance.sheet=true`, necesita ffmpeg).
 En build el ejecutable da la del jugador y el editor (`-game`, mismo mapa) las otras tres. `config.json: checks.views`
 (4 por defecto; `1` = solo la del jugador). Si las vistas extra pasan de 90 s se entregan las que haya y se anota en el resumen.
+Junto a cada PNG de `-game` queda `<png>.json` con cámara, pawn y actores visibles (posición, tamaño, base y píxel): el
+revisor mide flotantes, escalas y encuadre con números (criterios en `ue-visual-qa`, «Capturas de escena»).
 
 Línea base visual de map y build: `docs/baseline/<check>-<mapa>-<captura>.png`, siempre con
 mapa. Si ni el diff ni el informe lo dicen, es `GameDefaultMap` de `Config/DefaultEngine.ini`

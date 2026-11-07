@@ -114,9 +114,12 @@ export function qaBrief(ctx: WorkerContext, task: Task, run: Run, snapshot: Revi
     .filter(a => (a.provenance as Record<string, JsonValue>)?.testRunId === testRunId);
   const lines = shots.map(shot => {
     const p = shot.provenance as Record<string, string>;
-    copyFileSync(locatedPath(join(ctx.dataDir, 'artifacts'), shot.path), join(dir, basename(shot.path)));
+    const source = locatedPath(join(ctx.dataDir, 'artifacts'), shot.path);
+    copyFileSync(source, join(dir, basename(shot.path)));
     if (p.control && existsSync(p.control)) copyFileSync(p.control, join(dir, basename(p.control)));
-    return `- \`.nomos-review/${basename(shot.path)}\` · ${p.resolution} · mapa ${p.map ?? 'por defecto'} · control \`.nomos-review/${basename(p.control ?? '')}\``;
+    // la escena de la captura (cámara y actores visibles, nomos_escena.py) viaja con ella si existe
+    const scene = existsSync(source + '.json') ? (copyFileSync(source + '.json', join(dir, basename(shot.path) + '.json')), ` · escena \`.nomos-review/${basename(shot.path)}.json\``) : '';
+    return `- \`.nomos-review/${basename(shot.path)}\` · ${p.resolution} · mapa ${p.map ?? 'por defecto'} · control \`.nomos-review/${basename(p.control ?? '')}\`${scene}`;
   });
   const test = filtered<TestRun>(ctx.db, 'test_runs', {id: testRunId})[0];
   const direction = join(ctx.projectDir, 'docs', 'ui-direction.md');

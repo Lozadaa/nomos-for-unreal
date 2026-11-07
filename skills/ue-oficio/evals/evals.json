@@ -1,0 +1,23 @@
+{
+  "skill_name": "ue-oficio",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Tarea assets: «Importa Content/Arte/Fuente/maceta.glb y colócala sobre la mesa del invernadero» en UE 5.8.3 con nomos ue py.",
+      "expected_output": "Importa con AssetImportTask automatizado, mide los límites antes de colocar, detecta y corrige escala ×10 o Y arriba, coloca con EditorActorSubsystem apoyando con un trace hacia abajo, escribe el transform completo y comprueba la base en el JSON de escena de la captura.",
+      "files": ["references/importar.md", "references/python-ue58.md"]
+    },
+    {
+      "id": 2,
+      "prompt": "Corrección de QA: «la captura del mapa sale blanca y quemada» en un nivel nuevo con sol y niebla.",
+      "expected_output": "Revisa exposición manual y bias antes de tocar luces, comprueba que hay SkyAtmosphere y SkyLight, que no hay dos PostProcessVolume sin límites ni niebla duplicada, ajusta FogMaxOpacity y la altura del sol con valores medidos y repite la captura.",
+      "files": ["references/iluminacion.md"]
+    },
+    {
+      "id": 3,
+      "prompt": "El editor caliente se cayó al ejecutar un script de PCG y el worktree no se puede retirar: «Archivos en uso».",
+      "expected_output": "Lee el informe del crash en las dos carpetas de Crashes, busca un CrashReportClient del worktree y lo cierra solo si apunta a ese worktree, ejecuta los grafos PCG de uno en uno y verifica instancias > 0.",
+      "files": ["references/diagnostico.md", "references/pcg.md"]
+    }
+  ]
+}

@@ -39,3 +39,22 @@ píxeles en ambas, no escala; si a 720p se sale o se solapa, el anclaje está ma
 | bloqueante | La UI no aparece; texto ilegible (< 3:1); el foco no se ve; algo esencial fuera de pantalla |
 | mayor | Contraste entre 3:1 y 4,5:1 en texto normal; texto truncado; solape con otro elemento |
 | menor | Desalineado de 1-2 px; tamaño algo por debajo de la dirección sin perder legibilidad |
+
+## Capturas de escena (mapa, vistas extra)
+
+Cada captura de `-game` trae al lado `<captura>.png.json`: cámara (pos, rot, fov), pawn y hasta 40 actores visibles con
+`pos`, `tam` (límites en cm), `base_z`, `dist` y `px`. Úsalo para medir, no para adivinar:
+
+| Señal | Cómo se mide | Severidad |
+|---|---|---|
+| Objeto flotando | `base_z` del objeto > `base_z + tam[2]` del apoyo que tiene debajo, más de 2 cm | mayor |
+| Escala imposible | `tam` fuera de lo que pide la spec o de 1 cm-50 m (×100 o ×10 al importar) | bloqueante |
+| Lo pedido no está | el actor de la tarea no aparece en `actores` o su `px` cae en el 5 % del borde | mayor |
+| Magenta sólido o suelo lavado en blanco | shaders compilando: la captura no vale; pide repetirla, no la corrijas | sin severidad, repetir |
+| Imagen blanca o quemada | exposición (bias alto) antes que luces | mayor |
+| Franja gris en el horizonte a contraluz | `FogMaxOpacity` alto | menor |
+| Piedra con grano de lija | normal demasiado fuerte (≈0,3 es lo sano) | menor |
+| Metal negro bajo cielo despejado | falta tinte claro o emisivo leve | menor |
+| Repetición evidente | mismo módulo o color en fila, superficies sin normal, aristas sin bisel, suelo vacío | menor |
+
+Detalle del oficio en la skill `ue-oficio` (iluminacion, importar).
