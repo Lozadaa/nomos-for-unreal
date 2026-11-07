@@ -32,11 +32,12 @@ test('hito 7: el diff de revisión no lleva el contenido de Config sin seguir ni
 test('intención review reserva proveedor FIFO sin leases y run existente no cuenta dos veces',async t=>{
   const f=await reviewFixture(t);f.db.prepare('update tasks set leases=? where id=?').run('["Docs"]',f.task.id);
   const cmd=enqueue(f.db,'review.start',{taskId:f.task.id,implementerRunId:f.implementer.id,provider:'codex'},'queued-review');
-  assert.equal(reservations(f.db).usage.codex,1);assert.equal(reservations(f.db).leases.length,0);
+  // tiempo muerto: la intención de revisar reserva el cupo `revisor`, no el del proveedor
+  assert.deepEqual([reservations(f.db).usage.codex,reservations(f.db).usage.revisor],[0,1]);assert.equal(reservations(f.db).leases.length,0);
   f.db.prepare("update commands set state='done' where id=?").run(cmd.id);await f.startReview();
   const own=f.reviewer().metadata.startCommandId!;
   f.db.prepare("update commands set state='pending' where id=?").run(own);
-  assert.equal(reservations(f.db).usage.codex,1);
+  assert.deepEqual([reservations(f.db).usage.codex,reservations(f.db).usage.revisor],[0,1]);
 });
 test('recovery falla arranque review incierto sin tocar implementador y repone review.poll',async t=>{
   const f=await reviewFixture(t);await f.startReview();
@@ -56,20 +57,17 @@ test('una revisión pedida a OpenCode pasa a otro proveedor: OpenCode nunca revi
   assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
 });
 
-test('recalcula proveedor de intención con configuración vigente sin perder FIFO',async t=>{
+test('recalcula proveedor de intención con configuración vigente y arranca sin esperar al implementador en cola',async t=>{
   const f=await reviewFixture(t);
   writeFileSync(join(f.dataDir,'config.json'),'{"concurrency":{"codex":1,"claude":0}}');
-  const earlier=enqueue(f.db,'worker.start',{taskId:'anterior',provider:'codex',role:'implementacion',skills:[]},'earlier');
+  enqueue(f.db,'worker.start',{taskId:'anterior',provider:'codex',role:'implementacion',skills:[]},'earlier');
   const command=enqueue(f.db,'review.start',{taskId:f.task.id,implementerRunId:f.implementer.id,provider:'claude'},'changed-provider');
   f.db.prepare("update commands set state='running' where id=?").run(command.id);
-  const before=f.state().creates;
-  assert.deepEqual(await f.handlers['review.start'](command,f.ctx),{deferred:true,reason:'Sin hueco en codex'});
-  assert.equal(f.state().creates,before);
-  assert.equal(JSON.parse(f.db.prepare('select payload from commands where id=?').get(command.id)!.payload as string).provider,'codex');
-  assert.equal(reservations(f.db).usage.codex,2);
-  f.db.prepare("update commands set state='done' where id=?").run(earlier.id);
   const state=f.state();state.treePath=join(f.dir,'review-provider');state.terminalHandle='term_review';state.tail=[];
   writeFileSync(f.file,JSON.stringify(state));
   const result=await f.handlers['review.start'](command,f.ctx);
   assert.equal((result as any).runId,f.reviewer().id);assert.equal(f.reviewer().provider,'codex');
+  assert.equal(JSON.parse(f.db.prepare('select payload from commands where id=?').get(command.id)!.payload as string).provider,'codex');
+  // el implementador en cola sigue reservando su cupo; el revisor gasta el suyo
+  assert.deepEqual([reservations(f.db).usage.codex,reservations(f.db).usage.revisor],[1,1]);
 });

@@ -47,13 +47,9 @@ test('preparación reutilizable recalcula proveedor sin perder run, command ni F
   assert.deepEqual(await f.handlers['review.start'](cmd,f.ctx),{deferred:true,reason:'Sin hueco en codex'});
   const prepared=f.reviewer();assert.equal(prepared.provider,'codex');assert.equal(prepared.sessionRef,null);
   assert.equal(prepared.metadata.phase,'preparing');assert.equal(prepared.metadata.worktreeId,undefined);
-  const before=f.state().creates;
-  claude(f);
-  const earlier=enqueue(f.db,'worker.start',{taskId:'anterior',provider:'claude',role:'implementacion',skills:[]},'earlier');
-  f.db.prepare('update commands set rowid=? where id=?').run(0,earlier.id);
-  assert.deepEqual(await f.handlers['review.start'](cmd,f.ctx),{deferred:true,reason:'Sin hueco en claude'});
-  assert.equal(f.state().creates,before);assert.equal(f.reviewer().id,prepared.id);
-  f.db.prepare("update commands set state='done' where id=?").run(earlier.id);
+  const before=f.state().creates;claude(f);
+  // tiempo muerto: un implementador en cola ya no retrasa la revisión (cupo propio del revisor)
+  enqueue(f.db,'worker.start',{taskId:'anterior',provider:'claude',role:'implementacion',skills:[]},'earlier');
   writeFileSync(f.file,JSON.stringify({...f.state(),tail:[],treePath:join(f.dir,'review-switched'),terminalHandle:'term_review'}));
   const result=await f.handlers['review.start'](cmd,f.ctx);
   assert.equal((result as any).runId,prepared.id);assert.equal(f.reviewer().provider,'claude');

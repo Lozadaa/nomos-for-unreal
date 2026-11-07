@@ -7,7 +7,11 @@ export type WorkerProvider = 'codex' | 'claude' | 'opencode';
 export type Limits = {corrections: number; umgRetries: number};
 export type WorkerModel = 'sonnet' | 'opus' | 'haiku';
 const models=['sonnet','opus','haiku'];
-export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,number>>; defaultProvider?: WorkerProvider;
+/** Tiempo muerto: cupo aparte para revisores y QA, que no compiten con los implementadores por `claude`. */
+export type Quota = Record<WorkerProvider,number> & {revisor: number};
+export type SchedulerConfig = {concurrency?: Partial<Quota>; defaultProvider?: WorkerProvider;
+  /** Tiempo muerto: minutos tras los que una Decisión con respuesta obvia se resuelve sola (5; 0 la apaga). */
+  decisiones?: {autoMinutos?: number};
   /** Hito 7: fracción de píxeles distintos que tolera la regresión visual (2 % por defecto). */
   visualTolerance?: number; limits?: Partial<Limits>;
   /** Modelo Claude de implementación cuando `models` no lo fija (compatibilidad). */
@@ -29,10 +33,12 @@ export type SchedulerConfig = {concurrency?: Partial<Record<WorkerProvider,numbe
   /** Hito 22: el PC aguanta un Unreal pesado a la vez y pide RAM libre para abrirlo. */
   scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean}};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
-export function concurrency(config: SchedulerConfig): Record<WorkerProvider,number> {
-  return config.concurrency===undefined ? {codex:0,claude:2,opencode:0}
-    : {codex:config.concurrency.codex ?? 0,claude:config.concurrency.claude ?? 0,opencode:config.concurrency.opencode ?? 0};
+export function concurrency(config: SchedulerConfig): Quota {
+  const revisor=config.concurrency?.revisor ?? 1;
+  return config.concurrency===undefined ? {codex:0,claude:2,opencode:0,revisor}
+    : {codex:config.concurrency.codex ?? 0,claude:config.concurrency.claude ?? 0,opencode:config.concurrency.opencode ?? 0,revisor};
 }
+export const autoDecisionMinutes = (config: SchedulerConfig) => config.decisiones?.autoMinutos ?? 5;
 export const visualTolerance = (config: SchedulerConfig) => config.visualTolerance ?? 0.02;
 export type ModelRole = 'implementacion' | 'revisor' | 'qa' | 'integrador' | 'animacion' | 'director';
 const modelRoles=['implementacion','revisor','qa','integrador','animacion','director'];
@@ -71,7 +77,9 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(!config || typeof config!=='object' || Array.isArray(config)) throw new Error();
     if(config.concurrency!==undefined && (!config.concurrency || typeof config.concurrency!=='object'
       || Array.isArray(config.concurrency) || Object.entries(config.concurrency).some(([k,v])=>
-        !['codex','claude','opencode'].includes(k) || !count(v)))) throw new Error();
+        !['codex','claude','opencode','revisor'].includes(k) || !count(v)))) throw new Error();
+    if(config.decisiones!==undefined && (!config.decisiones || typeof config.decisiones!=='object' || Array.isArray(config.decisiones)
+      || Object.entries(config.decisiones).some(([k,v])=>k!=='autoMinutos' || typeof v!=='number' || !(v>=0 && v<=24*60)))) throw new Error();
     if(config.defaultProvider!==undefined && !['codex','claude','opencode'].includes(config.defaultProvider)) throw new Error();
     if(config.visualTolerance!==undefined && (typeof config.visualTolerance!=='number' || !(config.visualTolerance>=0 && config.visualTolerance<=1))) throw new Error();
     if(config.workerModel!==undefined && !models.includes(config.workerModel)) throw new Error();

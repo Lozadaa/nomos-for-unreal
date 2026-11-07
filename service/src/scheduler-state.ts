@@ -8,6 +8,7 @@ import { concurrency,type SchedulerConfig,type WorkerProvider } from './config.t
 import { taskCode } from './play.ts';
 import { unsettled } from './handlers/reconcile.ts';
 
+export type Usage=Record<WorkerProvider|'revisor',number>;
 export type StartIntent={id:string;taskId:string;provider:WorkerProvider;attempt:number;review?:boolean;generation?:string};
 export function startIntents(db:DatabaseSync,beforeId?:string):StartIntent[] {
   const rows=db.prepare("select rowid,id,type,payload,state from commands where type in ('worker.start','review.start') order by rowid").all();
@@ -20,15 +21,17 @@ export function startIntents(db:DatabaseSync,beforeId?:string):StartIntent[] {
   });
 }
 export function reservations(db:DatabaseSync,beforeId?:string) {
-  const runs=filtered<Run>(db,'runs'),usage={codex:0,claude:0,opencode:0},leases:LeaseConflict[]=[...listLeases(db)];
-  for(const run of runs) if(run.state==='running' && run.role!=='director' && (run.provider==='codex'||run.provider==='claude')) usage[run.provider]++;
-  for(const run of lingering(db,runs)) usage[run.provider as 'codex'|'claude']++;
+  // tiempo muerto: revisores y QA (role `revisor`) tienen cupo propio y no ocupan el de los implementadores
+  const runs=filtered<Run>(db,'runs'),usage:Usage={codex:0,claude:0,opencode:0,revisor:0},leases:LeaseConflict[]=[...listLeases(db)];
+  const slot=(run:Pick<Run,'role'|'provider'>)=>run.role==='revisor' ? 'revisor' : run.provider as 'codex'|'claude';
+  for(const run of runs) if(run.state==='running' && run.role!=='director' && (run.provider==='codex'||run.provider==='claude')) usage[slot(run)]++;
+  for(const run of lingering(db,runs)) usage[slot(run)]++;
   for(const intent of startIntents(db,beforeId)) {
     if(intent.provider==='opencode') continue;
     if(runs.some(r=>intent.review ? r.metadata.startCommandId===intent.id && (r.state==='running'
       || r.metadata.review?.generation===intent.generation)
       : r.role!=='revisor'&&r.taskId===intent.taskId&&r.attempt===intent.attempt)) continue;
-    usage[intent.provider]++;
+    usage[intent.review ? 'revisor' : intent.provider]++;
     const task=getTask(db,intent.taskId);
     for(const path of task && !intent.review ? normalizedPaths(task.leases) : []) leases.push({path,taskId:intent.taskId,runId:intent.id});
   }
