@@ -9,7 +9,7 @@ import { patchTask } from '@/store'
 // Decisiones que abre checks.run (comprobación no disponible, assets rotos): también se responden desde la pestaña Pruebas
 export const isCheckDecision = (d: Decision) => d.evidence.some((e) => e.kind === 'gate:checks' || e.kind === 'command')
 
-export function DecisionCard({ decision, task, onStale }: { decision: Decision; task: Task; onStale: () => void }) {
+export function DecisionCard({ decision, task, onStale, bare = false, heading }: { decision: Decision; task: Task; onStale: () => void; bare?: boolean; heading?: React.ReactNode }) {
   const [chosen, setChosen] = useState<string | null>(null)
   const option = useRef('')
   const action = useAction(
@@ -22,9 +22,9 @@ export function DecisionCard({ decision, task, onStale }: { decision: Decision; 
   )
   const choose = (id: string) => { option.current = id; setChosen(id); void action.fire() }
   return (
-    <section aria-label="Decisión pendiente" data-decision-card className="flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4">
+    <section aria-label="Decisión pendiente" data-decision-card className={bare ? 'flex flex-col gap-3' : 'flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4'}>
       <div className="flex items-start justify-between gap-3">
-        <h3 aria-label={decision.reason} title={decision.reason} className="text-base font-medium">{decisionText(decision).reason}</h3>
+        <h3 aria-label={decision.reason} title={decision.reason} className="text-base font-medium">{heading ?? decisionText(decision).reason}</h3>
         <DecisionDetails decision={decision} taskTitle={task.title} />
       </div>
       {repeatText(decision) && <p className="text-xs text-muted-foreground">{repeatText(decision)}</p>}

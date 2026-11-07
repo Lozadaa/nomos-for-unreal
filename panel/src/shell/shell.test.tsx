@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { DirectorDot, directorState } from './DirectorDot'
-import { Tabs } from './Tabs'
+import { MoreMenu, views } from './MoreMenu'
 import { CommandMenu } from './CommandMenu'
 
 const status = (over = {}) => ({ service: true, listener: false, listenerAgeSec: null, director: null, lastAckSeq: 0, lastAckAt: null, pending: 0, paused: false, ...over })
@@ -35,20 +35,18 @@ describe('DirectorDot', () => {
   })
 })
 
-describe('Tabs', () => {
-  const at = (path: string) => {
-    const router = createMemoryRouter([{ path: '*', element: <Tabs /> }], { initialEntries: [path] })
+describe('MoreMenu', () => {
+  it('sin pestañas: «Más» abre el panel lateral con el resto de vistas y la pausa', async () => {
+    const toggle = vi.fn()
+    const router = createMemoryRouter([{ path: '*', element: <MoreMenu paused={false} onTogglePause={toggle} /> }], { initialEntries: ['/'] })
     render(<RouterProvider router={router} />)
-  }
-  it('marca la pestaña activa por ruta', () => {
-    at('/actividad')
-    expect(screen.getByRole('link', { name: 'Actividad' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Producción' })).not.toHaveAttribute('aria-current')
-  })
-  it('Producción es la ruta raíz y no queda activa en otras rutas', () => {
-    at('/')
-    expect(screen.getByRole('link', { name: 'Producción' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getAllByRole('link')).toHaveLength(10)
+    expect(screen.queryByRole('link', { name: /Todas las tareas/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Más' }))
+    const nav = await screen.findByRole('navigation', { name: 'Vistas' })
+    expect(nav.querySelectorAll('a')).toHaveLength(views.length - 1)
+    expect(screen.getByRole('link', { name: /Todas las tareas/ })).toHaveAttribute('href', '/produccion')
+    fireEvent.click(screen.getByRole('button', { name: 'Pausar el trabajo' }))
+    expect(toggle).toHaveBeenCalledTimes(1)
   })
 })
 

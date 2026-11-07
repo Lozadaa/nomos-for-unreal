@@ -39,7 +39,7 @@ test('Por aprobar enseña vídeo e imágenes por elemento; comentar y aprobar re
 
   if (browserName === 'chromium') await page.setViewportSize({ width: 1920, height: 1080 })
   await page.goto(url().replace('/#', '/aprobar#'))
-  await expect(page.getByRole('link', { name: /Por aprobar/ })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('heading', { name: 'Por aprobar', exact: true })).toBeVisible()
   const card = page.getByRole('article', { name: title })
   await expect(card).toBeVisible()
   const video = card.locator('video')

@@ -12,7 +12,7 @@ import type { ApprovalComment, ApprovalItem, Approvals } from '@/lib/approvals'
 import { ApprovalCard } from './ApprovalCard'
 import { Comments, NoteField } from './ApprovalNote'
 
-const viewerItems = (items: ApprovalItem[]): ViewerItem[] => items.flatMap((i) => i.evidence.filter((a) => a.kind !== 'video')
+export const viewerItems = (items: ApprovalItem[]): ViewerItem[] => items.flatMap((i) => i.evidence.filter((a) => a.kind !== 'video')
   .map((a) => ({ id: a.id, name: viewerName(a), meta: [i.title], type: viewerType(a.path), path: `/artifacts/${encodeURIComponent(a.id)}/file` })))
 
 /** El comentario general: no es de ningún elemento y llega al director como mensaje. */

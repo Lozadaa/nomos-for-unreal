@@ -8,6 +8,7 @@ import { useNow } from '@/hooks/time'
 import { useResource } from '@/hooks/useResource'
 import { useAction } from '@/feel/useAction'
 import { BRAND } from '@/lib/brand'
+import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
 import { EmptyState } from '@/visual/art/EmptyState'
 import { Bubble, CreatedCards, MessageStatus, Typing, type ChatMessage } from './ChatParts'
@@ -17,7 +18,7 @@ interface Outbox { key: string; text: string; sentAt: number; messageId?: string
 /** Hito 10: la conversación sale de GET /messages y se vuelve a pedir con cada evento del chat (SSE), sin recargar. */
 const live = /^(message\.|director\.typing|task\.created|decision\.opened|worker\.message_sent)/
 
-export function Chat() {
+export function Chat({ className, autoFocus = false }: { className?: string; autoFocus?: boolean } = {}) {
   const { data } = useResource<ChatMessage[]>('/messages', live)
   const conversation = data ?? []
   const tasks = useStore((s) => s.tasks)
@@ -64,7 +65,7 @@ export function Chat() {
   const submit = () => { if (text.trim()) void send.fire() }
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-var(--k-header)-var(--k-tabs)-3rem)] min-h-96 w-full min-w-0 max-w-(--k-prose) flex-col overflow-x-hidden">
+    <div className={cn('mx-auto flex h-[calc(100dvh-var(--k-header)-var(--k-tabs)-3rem)] min-h-96 w-full min-w-0 max-w-(--k-prose) flex-col overflow-x-hidden', className)}>
       <ul aria-label={`Conversación con ${BRAND.short}`} className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto pb-4"
         onScroll={(e) => { const el = e.currentTarget; atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48 }}>
         {count === 0 && (
@@ -91,7 +92,7 @@ export function Chat() {
         className="flex flex-col gap-2 border-t border-subtle pt-4"
       >
         <Textarea
-          ref={field}
+          ref={field} autoFocus={autoFocus}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit() } }}

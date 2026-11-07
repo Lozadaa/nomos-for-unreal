@@ -22,9 +22,9 @@ function Video({ a }: { a: Artifact }) {
     className="aspect-video w-full max-w-[1280px] rounded-md border border-subtle bg-black object-contain" />
     : <div className="aspect-video w-full max-w-[1280px] rounded-md bg-card" />
 }
-function Thumb({ a, onOpen }: { a: Artifact; onOpen: (el: HTMLElement) => void }) {
+function Thumb({ a, onOpen, wide = false }: { a: Artifact; onOpen: (el: HTMLElement) => void; wide?: boolean }) {
   const src = useAuthedSrc(file(a)), name = viewerName(a)
-  return <li className="aspect-video w-60 shrink-0 overflow-hidden rounded-md border border-subtle bg-card">
+  return <li className={wide ? 'aspect-video w-full overflow-hidden rounded-lg border border-subtle bg-card ' : 'aspect-video w-60 shrink-0 overflow-hidden rounded-md border border-subtle bg-card'}>
     <ViewerButton name={name} onOpen={onOpen}>{src && <img src={src} alt={name} width={320} height={180} loading="lazy" className="size-full object-cover" />}</ViewerButton>
   </li>
 }
@@ -49,8 +49,10 @@ function Shot({ src, title }: { src: string; title: string }) {
 
 type Mode = 'idle' | 'changes'
 /** Un elemento de «Por aprobar»: qué es, lo visual primero, en qué fijarse y las tres acciones con respuesta en el acto. */
-export function ApprovalCard({ item, open, patch }: {
+export function ApprovalCard({ item, open, patch, compact = false }: {
   item: ApprovalItem; open: (id: string, el: HTMLElement) => void; patch: (change: Partial<ApprovalItem>) => () => void
+  /** Inicio: la imagen grande y los botones grandes; comentar queda en «Por aprobar». */
+  compact?: boolean
 }) {
   const [mode, setMode] = useState<Mode>('idle')
   const [text, setText] = useState('')
@@ -78,6 +80,7 @@ export function ApprovalCard({ item, open, patch }: {
   const failed = approve.error ?? reject.error ?? changes.error ?? comment.error ?? mine.error ?? theirs.error
   const videos = item.evidence.filter((a) => a.kind === 'video'), images = item.evidence.filter((a) => a.kind !== 'video')
   const pending = item.state === 'pending', conflict = item.conflict, shots = item.baseline
+  const size = compact ? 'lg' : 'sm', big = compact ? 'h-11 min-w-32 px-6 text-base' : undefined
   const status = conflict ? (pending ? 'Conflicto: elige con qué versión te quedas' : choiceText[item.choice ?? 'manual']) : shots ? baselineText[item.state] : stateText[item.state]
 
   return (
@@ -100,30 +103,30 @@ export function ApprovalCard({ item, open, patch }: {
       </section>}
       {/* para juzgar un golpe hay que verlo grande: cada vídeo a todo el ancho útil (máx. 1280 px); las imágenes, debajo en tira */}
       {videos.length > 0 && <div className="flex flex-col gap-3">{videos.map((a) => <Video key={a.id} a={a} />)}</div>}
-      {images.length > 0 && <ul aria-label="Imágenes" className="flex gap-3 overflow-x-auto pb-1">
-        {images.map((a) => <Thumb key={a.id} a={a} onOpen={(el) => open(a.id, el)} />)}
+      {images.length > 0 && <ul aria-label="Imágenes" className={compact ? 'grid gap-3 sm:grid-cols-2' : 'flex gap-3 overflow-x-auto pb-1'}>
+        {images.map((a) => <Thumb key={a.id} a={a} wide={compact} onOpen={(el) => open(a.id, el)} />)}
       </ul>}
       {!item.evidence.length && !shots && <p className="text-sm text-muted-foreground">Aún no hay vídeo ni imágenes de este elemento.</p>}
       {item.focus.length > 0 && <section className="flex flex-col gap-2"><h4 className={label}>En qué fijarte</h4>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">{item.focus.map((f) => <li key={f}>{f}</li>)}</ul></section>}
-      <Comments list={item.comments} />
-      <NoteField text={text} setText={setText} imageId={imageId} setImageId={setImageId}
+      {!compact && <Comments list={item.comments} />}
+      {(!compact || mode === 'changes') && <NoteField text={text} setText={setText} imageId={imageId} setImageId={setImageId}
         label={mode === 'changes' ? `Qué cambiar en ${item.title}` : `Comentario sobre ${item.title}`}
         placeholder={mode === 'changes' ? 'Qué debería cambiar (obligatorio)…' : 'Tu opinión; puedes pegar una imagen…'}
-        onSubmit={() => void (mode === 'changes' ? changes.fire() : comment.fire())} />
+        onSubmit={() => void (mode === 'changes' ? changes.fire() : comment.fire())} />}
       <div className="flex flex-wrap items-center gap-2">
         {pending && conflict && <>
           <Button size="sm" disabled={keeping} onClick={() => void mine.fire()}>Quedarme con la mía</Button>
           <Button size="sm" variant="outline" disabled={keeping} onClick={() => void theirs.fire()}>Quedarme con la suya</Button>
         </>}
-        {pending && !conflict && mode === 'idle' && <Button size="sm" disabled={approve.pending} aria-busy={approve.pending} onClick={() => void approve.fire()}>Aprobar</Button>}
-        {pending && !conflict && !shots && mode === 'idle' && <Button size="sm" variant="outline" onClick={() => setMode('changes')}>Pedir cambios</Button>}
-        {pending && shots && mode === 'idle' && <Button size="sm" variant="outline" disabled={reject.pending} onClick={() => void reject.fire()}>Rechazar</Button>}
+        {pending && !conflict && mode === 'idle' && <Button size={size} className={big} disabled={approve.pending} aria-busy={approve.pending} onClick={() => void approve.fire()}>Aprobar</Button>}
+        {pending && !conflict && !shots && mode === 'idle' && <Button size={size} className={big} variant="outline" onClick={() => setMode('changes')}>Pedir cambios</Button>}
+        {pending && shots && mode === 'idle' && <Button size={size} className={big} variant="outline" disabled={reject.pending} onClick={() => void reject.fire()}>Rechazar</Button>}
         {pending && mode === 'changes' && <>
           <Button size="sm" disabled={!text.trim() || changes.pending} onClick={() => void changes.fire()}>Enviar los cambios</Button>
           <Button size="sm" variant="ghost" onClick={() => setMode('idle')}>Cancelar</Button>
         </>}
-        {mode === 'idle' && <Button size="sm" variant="ghost" disabled={!text.trim() || comment.pending} onClick={() => void comment.fire()}>Comentar</Button>}
+        {mode === 'idle' && !compact && <Button size="sm" variant="ghost" disabled={!text.trim() || comment.pending} onClick={() => void comment.fire()}>Comentar</Button>}
         {failed && <span role="alert" className="text-xs text-error">No se registró. {humanError(failed)}</span>}
       </div>
     </article>

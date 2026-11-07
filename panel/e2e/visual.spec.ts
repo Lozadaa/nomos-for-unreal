@@ -9,7 +9,7 @@ async function skipTour(page: Page) {
 }
 
 async function load(page: Page) {
-  await page.goto(url())
+  await page.goto(url().replace('/#', '/produccion#'))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
 }
 
@@ -27,14 +27,14 @@ test('la primera visita muestra la guía, Esc la cierra y no vuelve tras recarga
   await page.keyboard.press('Escape')
   await expect(tour).toBeHidden()
   await page.reload()
-  await expect(page.getByRole('link', { name: /^Catálogo/ }).first()).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('heading', { name: /^Catálogo/ }).first()).toBeVisible()
   await expect(tour).toBeHidden()
 })
 
 test('Ver guía desde la paleta permite recorrer los tres pasos y terminar', async ({ page }) => {
   await skipTour(page)
   await page.goto(url().replace('/#', '/catalogo#'))
-  await expect(page.getByRole('link', { name: /^Catálogo/ }).first()).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('heading', { name: /^Catálogo/ }).first()).toBeVisible()
   await page.keyboard.press('Control+k')
   await page.getByRole('option', { name: 'Ver guía', exact: true }).click()
 
@@ -49,11 +49,11 @@ test('Ver guía desde la paleta permite recorrer los tres pasos y terminar', asy
   await expect(tour).toHaveAttribute('data-tour-target', 'map')
   await expect(tour.getByText('Así avanza el trabajo', { exact: true })).toBeVisible()
   // La guía atrapa el foco: el mapa sigue visible, pero el fondo queda oculto al lector.
-  await expect(page.locator('[data-tour-anchor="map"] .k-map')).toBeVisible()
+  await expect(page.locator('[data-tour-anchor="map"]')).toBeVisible()
   await tour.getByRole('button', { name: 'Terminar', exact: true }).click()
   await expect(tour).toBeHidden()
   await page.reload()
-  await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Habla con Nomos' })).toBeVisible()
   await expect(tour).toBeHidden()
 })
 
@@ -141,7 +141,7 @@ test('con movimiento reducido el mapa refleja una actualización real sin despla
   // más de doce tareas en el servicio compartido. El refresco lo dispara SSE real.
   await page.route('**/tasks', (route) => route.request().method() === 'GET'
     ? route.fulfill({ json: [task] }) : route.continue())
-  await page.goto(url())
+  await page.goto(url().replace('/#', '/produccion#'))
   const map = page.getByRole('group', { name: 'Flujo de producción' })
   const point = map.locator('[data-point]')
   await expect(point).toHaveAttribute('cx', '50')

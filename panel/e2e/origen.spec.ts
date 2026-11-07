@@ -27,7 +27,7 @@ test.afterAll(() => { service.stop(); removeDir(root) })
 test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorage.setItem('nomos.tour.v1', '1')) })
 
 test('sin build-info.json: «Origen desconocido» discreto', async ({ page }) => {
-  await page.goto(service.url(token))
+  await page.goto(service.url(token).replace('/#', '/produccion#'))
   await expect(page.getByText(/^Última build: /)).toBeVisible()
   await expect(page.getByText('Origen desconocido')).toBeVisible()
   await expect(page.getByText(stale)).toHaveCount(0)
@@ -35,7 +35,7 @@ test('sin build-info.json: «Origen desconocido» discreto', async ({ page }) =>
 
 test('build de un commit anterior a main: aviso con el color de aviso, Jugar sigue activo; nada de commits ni rutas', async ({ page }) => {
   writeFileSync(join(build(), 'build-info.json'), JSON.stringify({ commit: old, branch: 'nomos/j1-10', builtAt: new Date().toISOString(), task: null, run: null }))
-  await page.goto(service.url(token))
+  await page.goto(service.url(token).replace('/#', '/produccion#'))
   const note = page.getByText(stale)
   await expect(note).toBeVisible()
   expect(await note.evaluate((el) => getComputedStyle(el).color)).toBe(
@@ -53,7 +53,7 @@ test('build de un commit anterior a main: aviso con el color de aviso, Jugar sig
 
 test('nomos build stamp con HEAD de main: al día, sin aviso', async ({ page }) => {
   execFileSync(process.execPath, [cli, 'build', 'stamp', build()], { cwd: root, stdio: 'ignore' })
-  await page.goto(service.url(token))
+  await page.goto(service.url(token).replace('/#', '/produccion#'))
   await expect(page.getByText(/^Última build: /)).toBeVisible()
   await expect(page.getByText(stale)).toHaveCount(0)
   await expect(page.getByText('Origen desconocido')).toHaveCount(0)

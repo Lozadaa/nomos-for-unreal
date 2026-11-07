@@ -21,7 +21,7 @@ async function spyViewTransitions(page: Page) {
 const vtCalls = (page: Page) => page.evaluate(() => (window as unknown as { __vt: number }).__vt)
 
 async function load(page: Page) {
-  await page.goto(url())
+  await page.goto(url().replace('/#', '/produccion#'))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
 }
 
@@ -108,7 +108,8 @@ test('Firefox y demás navegadores sin View Transitions: la navegación entre vi
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toBeHidden()
-  await page.getByRole('link', { name: 'Actividad' }).click()
+  await page.getByRole('button', { name: 'Más', exact: true }).click()
+  await page.getByRole('link', { name: /^Actividad/ }).click()
   await expect(page).toHaveURL(/actividad/)
 })
 

@@ -8,7 +8,7 @@ import { useCatalogIndexedToast } from '@/hooks/assetCommands'
 import { startLive, useStore } from '@/store'
 import { CommandMenu, type TaskRef } from './CommandMenu'
 import { Header } from './Header'
-import { Tabs } from './Tabs'
+import { BackHome } from './BackHome'
 import { useStatus } from './useStatus'
 import { usePlay } from './usePlay'
 import { LegendSheet } from '@/visual/LegendSheet'
@@ -49,8 +49,8 @@ export function Layout({ project }: { project?: string }) {
     <TooltipProvider>
       <a href="#contenido" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:border focus-visible:border-strong focus-visible:bg-background focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm">Saltar al contenido</a>
       <Header project={project ?? status?.project?.name ?? 'Proyecto Unreal'} status={status} onCommand={(from) => { commandOpener.current = from; setOpen(true) }} onTogglePause={() => void togglePause.fire()} pausePending={togglePause.pending} play={play} />
-      <Tabs />
-      <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-(--k-content) px-4 py-6 outline-none sm:px-6">
+      <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-(--k-content) px-4 py-5 outline-none sm:px-6">
+        <BackHome />
         <Outlet />
       </main>
       <CommandMenu tasks={tasks} open={open} opener={commandOpener.current} onOpenChange={(next) => { if (!next) commandOpener.current = null; setOpen(next) }} paused={status ? paused : undefined} onTogglePause={() => void togglePause.fire()}

@@ -24,7 +24,7 @@ async function tabUntil(page: Page, match: (label: string) => boolean, max = 60)
 }
 
 test('Producción y detalle: Tab llega a una fila con foco visible, Enter abre, las flechas cambian de pestaña, Esc vuelve', async ({ page }) => {
-  await page.goto(url())
+  await page.goto(url().replace('/#', '/produccion#'))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
   await tabUntil(page, (label) => label.startsWith('Definir salto'))
   expect(await focusVisible(page)).toBe(true)
@@ -42,7 +42,7 @@ test('Producción y detalle: Tab llega a una fila con foco visible, Enter abre, 
 
 test('Catálogo: filtros y búsqueda con teclado y foco visible', async ({ page }) => {
   await page.goto(url().replace('/#', '/catalogo#'))
-  await expect(page.getByRole('link', { name: /^Catálogo/ }).first()).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('heading', { name: /^Catálogo/ }).first()).toBeVisible()
   // con la batería entera cargando el equipo, el buscador puede pintarse después del primer Tab
   await expect(page.getByLabel('Buscar asset')).toBeVisible()
   await tabUntil(page, (label) => label === 'Buscar asset')
@@ -68,7 +68,7 @@ test('Decisiones: j/k recorren la bandeja y una opción se elige con Tab y foco 
 })
 
 test('? y Ctrl+K no abren nada mientras se escribe en el título o la descripción; fuera sí, y Esc devuelve el foco', async ({ page }) => {
-  await page.goto(url())
+  await page.goto(url().replace('/#', '/produccion#'))
   await expect(page.getByRole('button', { name: /Definir salto/ })).toBeVisible()
   const title = page.getByLabel('Título de la petición')
   await title.click()
