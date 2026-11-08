@@ -145,7 +145,7 @@ export async function directorCli(argv: string[]): Promise<boolean> {
         result=await call('/tasks/'+id+'/spec',{...parsed,area:current.task.area});
       } else {
         const title=required(values.title,'--title'),area=required(values.area,'--area');
-        if (!(areas as readonly string[]).includes(area)) throw new Error('Uso: área inválida');
+        if (!(areas as readonly string[]).includes(area)) throw new Error(`Uso: área inválida «${area}»; válidas: ${areas.join(', ')}`);
         const list=(value?:string)=>value===undefined ? undefined : value.split(',').map(s=>s.trim()).filter(Boolean);
         for(const dep of list(values.depends) ?? []) await call('/tasks/'+encodeURIComponent(dep));
         const task=await call('/tasks',{title,area,...(parsed ?? {spec:'',acceptance:[]}),leases:list(values.leases),
