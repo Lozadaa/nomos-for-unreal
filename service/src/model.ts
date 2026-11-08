@@ -25,7 +25,7 @@ export type RunMetadata = {
   /** Hito 19: relevo antes del límite de Orca (cuándo se pidió el commit, de qué run viene, a cuál pasó). */
   relayRequestedAt?: string; relayOf?: string; relayedTo?: string;
   /** Hito 22: run cuyo terminal murió en un reinicio y a la que esta continúa en el mismo árbol. */ recoveredFrom?: string;
-  lastOutputAt?: string; correctionCount?: number; pollGeneration?: number;
+  lastOutputAt?: string; correctionCount?: number; pollGeneration?: number; hookRetries?: number;
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
   uncertain?: boolean; /** hito 16: Orca no responde desde entonces; la run sigue en marcha durante `orca.graceMinutes` */ orcaUnreachableSince?: string; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;
   startCommandId?: string;
