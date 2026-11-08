@@ -83,8 +83,11 @@ export function requestTurn(db: DatabaseSync, dataDir: string, taskId: string, p
   const priority = (id: string) => getTask(db, id)?.priority ?? 0, mine = queue.get(taskId)!;
   const ahead = [...queue].find(([id, entry]) => id !== taskId
     && (priority(id) > priority(taskId) || priority(id) === priority(taskId) && entry.first < mine.first))?.[0];
+  // su propio editor caliente sigue abierto: lo reutiliza, no abre otro Unreal; ni RAM libre ni «Unreal ajeno» aplican
+  // (canario PiedraPapel 2026-11-08: con 4,7 GB libres la tarea esperó 10 min a que se cerrara su propio caliente)
+  const ownWarm = [...warm.get(db)?.values() ?? []].includes(taskId);
   const reason = held ? `Espera a que ${label(db, held.taskId)} suelte Unreal` : ahead ? `Turno: antes va ${label(db, ahead)}`
-    : machineReason(db, readConfig(dataDir), probe, taskId);
+    : ownWarm ? null : machineReason(db, readConfig(dataDir), probe, taskId);
   if (reason) return {granted: false, reason};
   const lease = acquire(db, run.id, taskId, [path]);
   if (!lease.ok) return {granted: false, reason: `Espera a que ${label(db, lease.conflicts[0].taskId)} suelte Unreal`};
