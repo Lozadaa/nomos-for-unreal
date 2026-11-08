@@ -62,22 +62,27 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
       db.prepare('update tasks set review_approved=? where id=?').run(marker.approved ? 1 : 0,run.taskId);
       attribute(db,run.taskId,'reviso',run);
     }
-    if(marker.approved) {
-      // hito 22: lo que se ve y se juega lo aprueba el usuario («Por aprobar»); mientras, la tarea queda retenida
-      if(!qa) finishReviewApproval(db,requireTask(db,run.taskId),readConfig(ctx.dataDir),marker.focus);
-      if(task.acceptance.some(s=>s.startsWith('check:'))) {
-        moveTask(db,run.taskId,'probando');
-        // hito 5: la puerta probando → integrando la abren las comprobaciones del diff
-        enqueue(db,'checks.run',{taskId:run.taskId,runId:implementer!.id},`checks:review:${run.id}`);
-      } else if(!pendingApproval(db,run.taskId)) {
-        // sin comprobaciones ni aprobación del usuario nada más la mueve: se integra ya (antes esperaba al atasco, 35 min;
-        // experimento de las metras 2026-11-08)
-        requestIntegration(db,run.taskId);
-      }
-    } else {
+    if(marker.approved) afterApproval(ctx,run.taskId,implementer!.id,`checks:review:${run.id}`,marker.focus);
+    else {
       const text='Correcciones de revisión:\n'+marker.findings.map(f=>`${f.file}:${f.line} [${f.severity}] ${f.note}`).join('\n');
       enqueue(db,'worker.send',{runId:implementer!.id,text},`review.correction:${run.id}`);
       moveTask(db,run.taskId,'implementando');
     }
   });
+}
+
+/** Revisión de código aprobada (o aceptada con hallazgos): aprobación del usuario si toca, comprobaciones o integración. */
+export function afterApproval(ctx:WorkerContext,taskId:string,implementerId:string,checksKey:string,focus?:string[]):void {
+  const {db}=ctx,task=requireTask(db,taskId);
+  // hito 22: lo que se ve y se juega lo aprueba el usuario («Por aprobar»); mientras, la tarea queda retenida
+  finishReviewApproval(db,task,readConfig(ctx.dataDir),focus);
+  if(task.acceptance.some(s=>s.startsWith('check:'))) {
+    moveTask(db,taskId,'probando');
+    // hito 5: la puerta probando → integrando la abren las comprobaciones del diff
+    enqueue(db,'checks.run',{taskId,runId:implementerId},checksKey);
+  } else if(!pendingApproval(db,taskId)) {
+    // sin comprobaciones ni aprobación del usuario nada más la mueve: se integra ya (antes esperaba al atasco, 35 min;
+    // experimento de las metras 2026-11-08)
+    requestIntegration(db,taskId);
+  }
 }

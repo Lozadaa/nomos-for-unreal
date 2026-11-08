@@ -11,7 +11,9 @@ const models=['sonnet','opus','haiku'];
 export type Quota = Record<WorkerProvider,number> & {revisor: number};
 export type SchedulerConfig = {concurrency?: Partial<Quota>; defaultProvider?: WorkerProvider;
   /** Tiempo muerto: minutos tras los que una Decisión con respuesta obvia se resuelve sola (5; 0 la apaga). */
-  decisiones?: {autoMinutos?: number};
+  decisiones?: {autoMinutos?: number;
+    /** Sin persona delante: también se resuelven solas las Decisiones «para una persona» (QA de UI atascado, máximo de correcciones). */
+    autonomo?: boolean};
   /** Hito 7: fracción de píxeles distintos que tolera la regresión visual (2 % por defecto). */
   visualTolerance?: number; limits?: Partial<Limits>;
   /** Modelo Claude de implementación cuando `models` no lo fija (compatibilidad). */
@@ -38,7 +40,10 @@ export function concurrency(config: SchedulerConfig): Quota {
   return config.concurrency===undefined ? {codex:0,claude:2,opencode:0,revisor}
     : {codex:config.concurrency.codex ?? 0,claude:config.concurrency.claude ?? 0,opencode:config.concurrency.opencode ?? 0,revisor};
 }
-export const autoDecisionMinutes = (config: SchedulerConfig) => config.decisiones?.autoMinutos ?? 5;
+/** En `director.mode: "evento"` nadie mira el panel: 1 min en vez de 5, salvo `decisiones.autoMinutos` explícito. */
+export const autoDecisionMinutes = (config: SchedulerConfig) => config.decisiones?.autoMinutos ?? (directorConfig(config).mode === 'evento' ? 1 : 5);
+/** Sin persona que conteste: director por eventos o `decisiones.autonomo: true`. */
+export const autonomous = (config: SchedulerConfig) => config.decisiones?.autonomo ?? directorConfig(config).mode === 'evento';
 export const visualTolerance = (config: SchedulerConfig) => config.visualTolerance ?? 0.02;
 export type ModelRole = 'implementacion' | 'revisor' | 'qa' | 'integrador' | 'animacion' | 'director';
 const modelRoles=['implementacion','revisor','qa','integrador','animacion','director'];
@@ -79,7 +84,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
       || Array.isArray(config.concurrency) || Object.entries(config.concurrency).some(([k,v])=>
         !['codex','claude','opencode','revisor'].includes(k) || !count(v)))) throw new Error();
     if(config.decisiones!==undefined && (!config.decisiones || typeof config.decisiones!=='object' || Array.isArray(config.decisiones)
-      || Object.entries(config.decisiones).some(([k,v])=>k!=='autoMinutos' || typeof v!=='number' || !(v>=0 && v<=24*60)))) throw new Error();
+      || Object.entries(config.decisiones).some(([k,v])=>k==='autonomo' ? typeof v!=='boolean' : k!=='autoMinutos' || typeof v!=='number' || !(v>=0 && v<=24*60)))) throw new Error();
     if(config.defaultProvider!==undefined && !['codex','claude','opencode'].includes(config.defaultProvider)) throw new Error();
     if(config.visualTolerance!==undefined && (typeof config.visualTolerance!=='number' || !(config.visualTolerance>=0 && config.visualTolerance<=1))) throw new Error();
     if(config.workerModel!==undefined && !models.includes(config.workerModel)) throw new Error();

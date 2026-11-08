@@ -47,3 +47,21 @@ test('una Decisión para una persona sigue abierta por mucho que pase', () => {
   assert.equal(sweepAutoDecisions(db, {}, Date.parse(d.createdAt) + 600 * min), 0);
   assert.equal(listDecisions(db, 'open').length, 1);
 });
+
+test('las «para una persona» solo se resuelven sin persona (evento o decisiones.autonomo), y en evento todo a 1 min', () => {
+  const accept = [{id: 'review', label: '', description: ''}, {id: 'aceptar', label: '', description: ''}, {id: 'cancel', label: '', description: ''}];
+  assert.equal(autoOption({reason: 'Máximo de tres correcciones alcanzado', options: accept}), null, 'con persona, la pregunta es suya');
+  assert.equal(autoOption({reason: 'Máximo de 5 correcciones alcanzado', options: accept}, 0, true), 'aceptar');
+  assert.equal(autoOption({reason: 'Máximo de tres correcciones alcanzado', options: accept.filter(o => o.id !== 'aceptar')}, 0, true), null,
+    'tras un fallo de comprobación no hay «aceptar»: sigue para el director');
+  assert.equal(autoOption({reason: 'QA de UI sin mejora medible', options: [{id: 'return', label: '', description: ''}, {id: 'aceptar', label: '', description: ''}]}, 0, true), 'aceptar');
+  const db = openDb(':memory:');
+  const task = createTask(db, {title: 'M1', area: 'gameplay'});
+  const person = openDecision(db, {taskId: task.id, reason: 'Máximo de tres correcciones alcanzado', options: accept, evidence: [{kind: 'gate:corrections', ref: 'a'}]});
+  const at = Date.parse(person.createdAt) + min;
+  assert.equal(sweepAutoDecisions(db, {decisiones: {autoMinutos: 1}}, at), 0, 'modo sesión sin autonomo');
+  assert.equal(sweepAutoDecisions(db, {decisiones: {autoMinutos: 1, autonomo: true}}, at), 1);
+  const other = createTask(db, {title: 'M2', area: 'builds'});
+  const obvious = openDecision(db, {taskId: other.id, reason: 'Comprobación no disponible: build', options: checkOptions, evidence: [{kind: 'gate:checks', ref: '["x"]'}]});
+  assert.equal(sweepAutoDecisions(db, {director: {mode: 'evento'}}, Date.parse(obvious.createdAt) + min), 1, 'las obvias, a 1 min en evento');
+});

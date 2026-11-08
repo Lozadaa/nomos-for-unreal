@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { reviewFixture } from './review-fixture.ts';
 import { createTask, requireTask } from '../../service/src/repo/tasks.ts';
@@ -64,11 +64,55 @@ test('hito 5b: si el director sube limits.corrections, el bloqueo del límite ya
   await f.invoke('worker.send',JSON.parse(row.payload as string));
   const decision=requireTask(f.db,f.task.id).decisionId!;
   const {resolveDecision}=await import('../../service/src/repo/decisions.ts');
-  resolveDecision(f.db,decision,'review','director');
+  resolveDecision(f.db,decision,'cancel','director');
   await f.invoke('worker.send',JSON.parse(row.payload as string));
-  assert.equal(requireTask(f.db,f.task.id).blockedReason,'Máximo de tres correcciones alcanzado','con el límite en 3 sigue bloqueada');
+  assert.equal(requireTask(f.db,f.task.id).blockedReason,'Máximo de tres correcciones alcanzado','cancelada y con el límite en 3 sigue bloqueada');
   writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({concurrency:{codex:2,claude:0},limits:{corrections:5}}));
   await f.invoke('worker.send',JSON.parse(row.payload as string));
   assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
   assert.equal(f.current().state,'running');assert.equal(f.current().metadata.correctionCount,4);
+});
+
+// experimento metras 2026-11-08: «Revisar» tras el máximo dejaba la tarea colgada hasta subir limits.corrections
+test('«Revisar» en el máximo de correcciones permite una más a esa tarea y reenvía sola la corrección parada',async t=>{
+  const f=await reviewFixture(t);updateRun(f.db,f.implementer.id,{correctionCount:3});await f.startReview();
+  f.output('NOMOS_REVIEW {"approved":false,"findings":[{"file":"x","line":1,"severity":"error","note":"Corregir"}]}');
+  await f.poll();const row=f.db.prepare("select id,payload from commands where type='worker.send'").get()!;
+  f.db.prepare("update commands set state='done' where id=?").run(row.id);
+  const blocked=await f.invoke('worker.send',JSON.parse(row.payload as string),'parada') as any;
+  const decision=requireTask(f.db,f.task.id).decisionId!;
+  assert.deepEqual(blocked,{policyBlocked:true,decisionId:decision});
+  const {resolveDecision}=await import('../../service/src/repo/decisions.ts');
+  const {sweepStalls}=await import('../../service/src/stall.ts');
+  resolveDecision(f.db,decision,'review','director');
+  await sweepStalls(f.ctx);
+  assert.equal(f.db.prepare("select state from commands where idempotency_key='parada'").get()!.state,'pending','la corrección parada vuelve a la cola');
+  await f.invoke('worker.send',JSON.parse(row.payload as string));
+  assert.equal(requireTask(f.db,f.task.id).blockedReason,null);
+  assert.equal(f.current().state,'running');assert.equal(f.current().metadata.correctionCount,4);
+  assert.equal(JSON.parse(readFileSync(join(f.dataDir,'config.json'),'utf8')).limits,undefined,'la config global no cambia');
+});
+test('sin persona (director por eventos), el máximo tras una revisión se acepta solo al minuto y la tarea se integra con los hallazgos anotados',async t=>{
+  const f=await reviewFixture(t);updateRun(f.db,f.implementer.id,{correctionCount:3});
+  writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({concurrency:{codex:2,claude:0},director:{mode:'evento'}}));
+  await f.startReview();
+  f.output('NOMOS_REVIEW {"approved":false,"findings":[{"file":"x","line":1,"severity":"menor","note":"Nombre poco claro"}]}');
+  await f.poll();const row=f.db.prepare("select id,payload from commands where type='worker.send'").get()!;
+  f.db.prepare("update commands set state='done' where id=?").run(row.id);
+  await f.invoke('worker.send',JSON.parse(row.payload as string),'parada');
+  const {listDecisions}=await import('../../service/src/repo/decisions.ts');
+  const {sweepAutoDecisions}=await import('../../service/src/decisiones-auto.ts');
+  const {sweepStalls}=await import('../../service/src/stall.ts');
+  const {readConfig}=await import('../../service/src/config.ts');
+  const [decision]=listDecisions(f.db,'open');
+  assert.deepEqual(decision.options.map(o=>o.id),['review','aceptar','cancel']);
+  assert.equal(sweepAutoDecisions(f.db,readConfig(f.dataDir),Date.parse(decision.createdAt)+60_000),1);
+  assert.equal(listDecisions(f.db,'resolved')[0].chosenOptionId,'aceptar');
+  await sweepStalls(f.ctx);
+  const task=requireTask(f.db,f.task.id);
+  assert.equal(task.reviewApproved,1);assert.equal(task.state,'integrando');
+  assert.ok(f.db.prepare("select 1 from commands where type='integrate.run'").get(),'integración pedida');
+  const note=f.db.prepare("select payload from events where type='review.accepted_with_findings'").get()!;
+  assert.match(JSON.parse(note.payload as string).findings,/Nombre poco claro/);
+  assert.equal(f.db.prepare("select state from commands where idempotency_key='parada'").get()!.state,'done','la corrección no se envía');
 });

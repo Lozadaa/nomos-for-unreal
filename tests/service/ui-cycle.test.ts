@@ -193,7 +193,7 @@ test('tope: tras 3 fallos umg seguidos sin mejora no hay otra vuelta; Decisión 
     assert.deepEqual(decision.evidence[0], {kind: 'command', ref: 't3'});
     assert.deepEqual(decision.evidence.slice(1).map(e => e.kind), ['intento 1', 'intento 2', 'intento 3']);
     assert.match(decision.evidence[3].ref, /UI visible · 1280×720 · widgets ninguno: 0,00 %/);
-    assert.deepEqual(decision.options.map(o => o.id), ['return', 'retry']);
+    assert.deepEqual(decision.options.map(o => o.id), ['return', 'retry', 'aceptar']);
     assert.equal(requireTask(f.db, f.task.id).decisionId, decision.id);
     assert.equal((await cycle('t3')).deferred, true, 'mientras nadie decide, la orden espera');
     resolveDecision(f.db, decision.id, 'return', 'director');
@@ -203,6 +203,37 @@ test('tope: tras 3 fallos umg seguidos sin mejora no hay otra vuelta; Decisión 
     writeFileSync(join(f.projectDir, 'Source/Juego/JuegoVidaWidget.cpp'), '// intento 4');
     assert.equal((await cycle('t4')).passed, false);
     assert.match(payloadOf(sends().at(-1)!).text, /Diagnóstico umg \(intento 4\):/, 'la decisión reinicia el contador');
+  } finally { f.close(); }
+});
+
+test('tope sin persona: «Aceptar y seguir» da el QA por bueno con los hallazgos anotados y la tarea avanza sin otra vuelta', async () => {
+  const {listDecisions} = await import('../../service/src/repo/decisions.ts');
+  const {sweepAutoDecisions} = await import('../../service/src/decisiones-auto.ts');
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
+  try {
+    process.env.NOMOS_FAKE = 'noui';
+    const cycle = (id: string) => f.handlers['ui.cycle']({id, type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: id} as any, f.ctx) as Promise<any>;
+    for (const [i, id] of ['t1', 't2', 't3'].entries()) {
+      writeFileSync(join(f.projectDir, 'Source/Juego/JuegoVidaWidget.cpp'), `// intento ${i}`);
+      await cycle(id);
+    }
+    const [decision] = listDecisions(f.db, 'open');
+    const opened = Date.parse(decision.createdAt);
+    assert.equal(sweepAutoDecisions(f.db, {}, opened + 600 * 60_000), 0, 'con persona (modo sesión) sigue abierta');
+    assert.equal(sweepAutoDecisions(f.db, {director: {mode: 'evento'}}, opened + 59_000), 0, 'en evento, antes de 1 min no');
+    assert.equal(sweepAutoDecisions(f.db, {director: {mode: 'evento'}}, opened + 60_000), 1);
+    assert.equal(listDecisions(f.db, 'resolved')[0].chosenOptionId, 'aceptar');
+    const sends = filtered<Command>(f.db, 'commands', {type: 'worker.send'}).length;
+    // como tras el NOMOS_DONE que llevó al tercer intento
+    f.db.prepare("update tasks set state='revisando' where id=?").run(f.task.id);
+    assert.deepEqual(await cycle('t3'), {accepted: true});
+    const umg = filtered<TestRun>(f.db, 'test_runs', {taskId: f.task.id, checkId: 'umg'}).at(-1)!;
+    assert.equal(umg.result, 'passed');
+    const passed = f.db.prepare("select payload from events where type='test.passed' order by seq desc limit 1").get()!;
+    assert.match(JSON.parse(passed.payload as string).summary, /hallazgos anotados:[\s\S]*Diagnóstico umg/);
+    assert.equal(filtered<Command>(f.db, 'commands', {type: 'worker.send'}).length, sends, 'no vuelve al worker');
+    assert.deepEqual(filtered<Command>(f.db, 'commands', {type: 'review.start'}).map(c => payloadOf(c).taskId), [f.task.id],
+      'sigue con la revisión de código, como tras un QA aprobado');
   } finally { f.close(); }
 });
 
