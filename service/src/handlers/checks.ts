@@ -92,7 +92,8 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     const files = Array.isArray(payload.files) ? payload.files.filter((f): f is string => typeof f === 'string')
       // Herbalist H2.2: contra la rama objetivo (merge-base), no contra el fork: lo fusionado desde main no es de la tarea
       : tree ? await ctx.git.changedFiles!(tree.path, await targetBranch(ctx).catch(() => tree.baseCommit)) : [];
-    const worktree = dir ?? tree?.path ?? project.dir, selected = selectChecks(files, task.scope);
+    // recomprobar al integrar no vuelve a empaquetar: build ya pasó en la rama y cuesta minutos y RAM (metras 2026-11-08: 12 min)
+    const worktree = dir ?? tree?.path ?? project.dir, selected = selectChecks(files, task.scope).filter(id => !(payload.recheck === true && id === 'build'));
     // los archivos borrados cuentan para elegir comprobaciones, no para validar ni compilar assets que ya no existen
     const present = files.filter(file => existsSync(join(worktree, file)));
     // Esquina J1.2: montajes sin personaje montado ni malla en el diff; animation no tiene qué reproducir, no aplica

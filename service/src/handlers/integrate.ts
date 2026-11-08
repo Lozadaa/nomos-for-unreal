@@ -215,7 +215,7 @@ export const integrateRun: Handler = async (command, ctx) => {
   // (no si lo único nuevo es el .gitattributes de LFS)
   const moved = state.base !== tree.baseCommit && !await onlyAttributes(ctx, ws.dir, tree.baseCommit, state.base);
   if (moved && !state.checked) {
-    const checks = enqueue(ctx.db, 'checks.run', {taskId: task.id, runId: implementerOf(ctx, task).id, files: state.files, dir: ws.dir},
+    const checks = enqueue(ctx.db, 'checks.run', {taskId: task.id, runId: implementerOf(ctx, task).id, files: state.files, dir: ws.dir, recheck: true},
       `integrate.checks:${run.id}:${state.commit}`);
     const current = read<Command>(ctx.db, 'commands', checks.id)!;
     if (current.state === 'pending' || current.state === 'running') return {deferred: true, reason: 'Recomprobando sobre la rama objetivo'};
