@@ -104,6 +104,15 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) {review=marker;break;}continue;}
       waiting(marker.question);
     }
+    // experimento metras 2026-11-08: un hook (p. ej. Second Brain «Memoria ocupada») rechazó el mensaje y el worker se
+    // queda parado sin pregunta: se le reenvía el mismo mensaje, hasta 3 veces por run
+    const original=lines.findIndex(l=>/^Original prompt: /.test(l));
+    if(original>=0 && lines.some(l=>/operation blocked by hook/.test(l)) && (run.metadata.hookRetries ?? 0)<3) {
+      const n=(run.metadata.hookRetries ?? 0)+1;
+      run=updateRun(db,run.id,{hookRetries:n});
+      enqueue(db,'worker.send',{runId:run.id,text:lines.slice(original).join(String.fromCharCode(10)).replace(/^Original prompt: /,'')},`hook-bloqueado:${run.id}:${n}`);
+      appendEvent(db,'worker.hook_retry',null,{runId:run.id,taskId:run.taskId,provider:run.provider,attempt:n});
+    }
     const permission=permissionPrompt(run.provider,lines);
     if(permission) waiting(permission);
     if (idle) waiting(`${run.provider} espera instrucciones`);

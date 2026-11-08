@@ -62,3 +62,16 @@ test('respuesta y stop Claude conservan sesión y atribuyen mensajes y cierre',a
   await f.invoke('worker.stop',{runId:original.id});assert.equal(f.run().state,'cancelled');
   assert.match(f.run().summary!,/claude/i);assert.equal(f.state().creates,1);
 });
+
+// experimento metras 2026-11-08: el hook de Second Brain rechazó el primer mensaje («Memoria ocupada») y el revisor quedó
+// 29 min parado sin pregunta; el servicio reenvía el mismo mensaje, hasta tres veces por run
+test('un mensaje bloqueado por un hook se reenvía solo, como mucho tres veces',async t=>{
+  const f=fixture(t,{FAKE_ORCA_MODE:'claude'});await start(f);
+  const bloqueo=()=>f.output('UserPromptSubmit operation blocked by hook:','SecondBrain no disponible: Memoria ocupada; consulta no completada.','',
+    'Original prompt: Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.');
+  for(let i=0;i<4;i++) {bloqueo();await poll(f);}
+  const sends=f.db.prepare("select payload from commands where type='worker.send'").all().map(r=>JSON.parse(r.payload as string));
+  assert.equal(sends.length,3);
+  assert.deepEqual(sends[0],{runId:f.run().id,text:'Lee el archivo .nomos-brief.md de esta carpeta y ejecuta lo que dice.'});
+  assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.hook_retry').length,3);
+});
