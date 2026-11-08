@@ -33,7 +33,9 @@ export type SchedulerConfig = {concurrency?: Partial<Quota>; defaultProvider?: W
   /** Hito 27: `evento` lanza una sesión corta de director por evento (agrupados `debounceSeconds`); `sesion`, el director de siempre. */
   director?: {mode?: 'sesion' | 'evento'; debounceSeconds?: number};
   /** Hito 22: el PC aguanta un Unreal pesado a la vez y pide RAM libre para abrirlo. */
-  scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean}};
+  scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean};
+  /** Modo rápido (`nomos rapido on`): velocidad antes que pulido; cambia los valores por defecto de abajo, lo explícito manda. */
+  rapido?: boolean};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
 export function concurrency(config: SchedulerConfig): Quota {
   const revisor=config.concurrency?.revisor ?? 1;
@@ -57,14 +59,20 @@ export const isOpencodeModel = (v: unknown) => typeof v==='string' && /^opencode
 export const opencodeModel = (config: SchedulerConfig): string => config.opencodeModel ?? 'opencode/beam-free';
 export const orcaGraceMinutes = (config: SchedulerConfig) => config.orca?.graceMinutes ?? 10;
 export const maxWorkerMinutes = (config: SchedulerConfig) => config.orca?.maxWorkerMinutes ?? 240;
-export const heavyMax = (config: SchedulerConfig) => config.scheduler?.heavy?.maxConcurrent ?? 1;
-export const minFreeRamGb = (config: SchedulerConfig) => config.scheduler?.minFreeRamGb ?? 6;
-export const heavyRequiresNoEditor = (config: SchedulerConfig) => config.scheduler?.heavyRequiresNoEditor ?? true;
+/** Rápido (metras 2026-11-08): los 17-27 min «compilando» por pista eran esperas de turno, RAM y «Unreal ajeno»; compilar eran 50-80 s.
+ *  Dos plazas de Unreal, 1,5 GB libres, sin esperar a editores ajenos, una corrección y revisión que solo para lo grave. */
+export const rapido = (config: SchedulerConfig) => config.rapido === true;
+export const heavyMax = (config: SchedulerConfig) => config.scheduler?.heavy?.maxConcurrent ?? (rapido(config) ? 2 : 1);
+export const minFreeRamGb = (config: SchedulerConfig) => config.scheduler?.minFreeRamGb ?? (rapido(config) ? 1.5 : 6);
+export const heavyRequiresNoEditor = (config: SchedulerConfig) => config.scheduler?.heavyRequiresNoEditor ?? !rapido(config);
 export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.createTimeoutMs ?? 180_000;
 /** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
 export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
 export const directorConfig = (config: SchedulerConfig) => ({mode: config.director?.mode ?? 'sesion', debounceSeconds: config.director?.debounceSeconds ?? 60});
-export const limits = (config: SchedulerConfig): Limits => ({corrections: config.limits?.corrections ?? 3, umgRetries: config.limits?.umgRetries ?? 3});
+export const limits = (config: SchedulerConfig): Limits => {
+  const n = rapido(config) ? 1 : 3;
+  return {corrections: config.limits?.corrections ?? n, umgRetries: config.limits?.umgRetries ?? n};
+};
 /** Hito 30: brain.py de Second Brain en `SECOND_BRAIN_ROOT` o en `~/Documents/SecondBrain`; sin él, null y la memoria queda apagada. */
 export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): string[] | null {
   const home = env.USERPROFILE || env.HOME || homedir();
@@ -110,6 +118,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
       : ['name','frente','branch'].includes(k) ? typeof v!=='string' || !v.trim() : k!=='pullSeconds' || typeof v!=='number' || !(v>=10 && v<=3600)))) throw new Error();
     if(config.director!==undefined && (!object(config.director) || Object.entries(config.director).some(([k,v])=>k==='mode' ? !['sesion','evento'].includes(v as string)
       : k!=='debounceSeconds' || typeof v!=='number' || !(v>=0 && v<=3600)))) throw new Error();
+    if(config.rapido!==undefined && typeof config.rapido!=='boolean') throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;

@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { nomosSkills } from './skills-install.ts';
 /** `turn` (hito 22): la orden con la que el worker pide Unreal al planificador antes de abrirlo. */
-export type BriefRules = {projectContext?: string; continuation?: string; turn?: string};
+export type BriefRules = {projectContext?: string; continuation?: string; turn?: string; rapido?: boolean};
+/** Modo rápido: sin TDD estricto ni pulido; en las metras los tests de física frágiles se comieron media hora de una pista. */
+const rapidoRules = `\n## Modo rápido\n\n- Velocidad antes que pulido: haz lo que piden los criterios y nada más.\n`
+  +`- Sin TDD estricto: un test de automatización por criterio medible. Si un test se vuelve frágil más de 10 min, bórralo y comprueba ese criterio jugando la demo.\n`
+  +`- No toques nada fuera del alcance, ni para arreglar: anótalo en el summary.\n`
+  +`- Compila y prueba una vez al final de cada paso, no tras cada línea.\n`;
 export function workerSkillsBrief(run:Pick<Run,'provider'|'skills'>):string {
   return `Carga las skills enumeradas antes de empezar: ${run.skills.join(', ') || '(ninguna solicitada)'}.\n`
     +'Responde en tu primera línea NOMOS_SKILLS […] con la lista JSON de skills realmente cargadas.\n'
@@ -15,7 +20,7 @@ export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): strin
     acceptance:task.acceptance.map((item,index)=>`${index+1}. ${item}`).join('\n'),
     scope:task.scope.map(path=>`- ${path}`).join('\n') || '(vacío: no autoriza archivos)',
     provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run),
-    context:rules.projectContext ?? 'Sin contexto adicional.',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
+    context:rules.projectContext ?? 'Sin contexto adicional.',rapido:rules.rapido ? rapidoRules : '',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
     // x10: el Python del editor y los tests van al editor caliente (0,1 s por script frente a 12-15 s en frío) y piden
     // y sueltan el turno solos en cada orden, para que las comprobaciones de Nomos no esperen detrás de un turno retenido
     turn:rules.turn ? `- El Python del editor va por \`${rules.turn.replace(/worker turn (\S+)/, 'ue py --tarea $1')} <script.py> [--env K=V]\` `

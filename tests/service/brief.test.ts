@@ -28,3 +28,16 @@ test('hito 22: el brief da la orden de turno de Unreal (--wait y --release) solo
     assert.doesNotMatch(renderBrief(task,run),/worker turn/);
   } finally {db.close();}
 });
+test('modo rápido: el brief lo explica, los valores por defecto cambian y lo explícito manda',async()=>{
+  const {heavyMax,minFreeRamGb,heavyRequiresNoEditor,limits}=await import('../../service/src/config.ts');
+  const db=openDb(':memory:');
+  try {
+    const task=createTask(db,{title:'T',area:'qa',spec:'x',acceptance:['A'],scope:['Docs']});
+    const run=startRun(db,{taskId:task.id,role:'implementacion',provider:'claude'});
+    assert.match(renderBrief(task,run,{rapido:true}),/Modo rápido/);
+    assert.doesNotMatch(renderBrief(task,run),/Modo rápido/);
+  } finally {db.close();}
+  assert.deepEqual([heavyMax({rapido:true}),minFreeRamGb({rapido:true}),heavyRequiresNoEditor({rapido:true}),limits({rapido:true}).corrections],[2,1.5,false,1]);
+  assert.deepEqual([heavyMax({}),minFreeRamGb({}),heavyRequiresNoEditor({}),limits({}).corrections],[1,6,true,3]);
+  assert.equal(heavyMax({rapido:true,scheduler:{heavy:{maxConcurrent:3}}}),3);
+});
