@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { directorConfig, readConfig, roleModel } from './config.ts';
+import { autonomous, directorConfig, readConfig, roleModel } from './config.ts';
+import { autoOption } from './decisiones-auto.ts';
+import { read } from './repo/rows.ts';
+import type { Decision } from './model.ts';
 import type { Handler, WorkerContext } from './runner.ts';
 import { enqueue } from './commands.ts';
 import { writeAtomic } from './atomic.ts';
@@ -25,11 +28,32 @@ const more = (rows: string[], max: number, empty: string, tail = (n: number) => 
   !rows.length ? [empty] : rows.length > max ? [...rows.slice(0, max), tail(rows.length - max)] : rows;
 
 /** Eventos que despiertan, posteriores al cursor propio `director.wake_seq`; lo que provoca el propio director no cuenta. */
-export function pendingWake(db: DatabaseSync): EventRow[] {
+export function pendingWake(db: DatabaseSync, dataDir: string): EventRow[] {
   const since = Number(db.prepare('select wake_seq from director where id=1').get()!.wake_seq);
   return db.prepare(`select seq,id,type,message_id messageId,payload,created_at createdAt from events where seq>? and type in (${wakeTypes.map(() => '?').join(',')}) order by seq`)
     .all(since, ...wakeTypes).map(r => ({...r, payload: JSON.parse(r.payload as string)}) as EventRow)
-    .filter(e => e.payload.taskId !== 'director' && !String(e.payload.type ?? '').startsWith('director.'));
+    .filter(e => e.payload.taskId !== 'director' && !String(e.payload.type ?? '').startsWith('director.') && !serviceHandles(db, dataDir, e));
+}
+
+/** Experimento metras 2026-11-08 (40 despertares, casi todos rutinarios): lo que el servicio ya mueve solo no despierta.
+ *  Quedan mensajes, esperas, fallos, Decisiones que no se resuelven solas y hallazgos que nadie reenvió. */
+function serviceHandles(db: DatabaseSync, dataDir: string, e: EventRow): boolean {
+  const p = e.payload as Record<string, any>;
+  // el servicio reenvió los hallazgos al responsable (corrección en cola tras el evento)
+  const forwarded = () => !!db.prepare(`select 1 from commands where type='worker.send' and created_at>=?
+    and json_extract(payload,'$.runId') in (select id from runs where task_id=?)`).get(e.createdAt, p.taskId ?? '');
+  switch (e.type) {
+    // la revisión tras NOMOS_DONE, la integración tras aprobar y el cierre tras integrar los pide el servicio
+    case 'task.moved': case 'integration.completed': return true;
+    case 'run.finished': return p.state === 'done';
+    case 'review.finished': return !p.stale && (p.approved || forwarded());
+    case 'test.failed': return forwarded();
+    case 'decision.opened': case 'decision.updated': {
+      const d = read<Decision>(db, 'decisions', p.decisionId);
+      return !!d && autoOption(d, 0, autonomous(readConfig(dataDir))) !== null;
+    }
+    default: return false;
+  }
 }
 
 /** `nomos brief director`: ≤ 60 líneas para decidir sin historial (plantilla en references/brief-director.md). */
@@ -51,7 +75,7 @@ export function renderDirectorBrief(db: DatabaseSync, dataDir: string, now = new
   const approvals = db.prepare("select task_id t from approvals where state='pending' order by created_at").all();
   const messages = db.prepare(`select m.id,m.text,e.seq from messages m join events e on e.message_id=m.id and e.type='message.received'
     where m.replied_at is null order by e.seq`).all();
-  const events = pendingWake(db), waiting = db.prepare("select id,task_id t from runs where state='running' and json_extract(metadata,'$.waiting')").all();
+  const events = pendingWake(db, dataDir), waiting = db.prepare("select id,task_id t from runs where state='running' and json_extract(metadata,'$.waiting')").all();
   const actions = [
     ...messages.map(m => `\`nomos ack ${m.seq} --session director\` y \`nomos reply ${m.id} -- '<respuesta>'\``),
     ...waiting.map(r => `\`nomos worker send ${r.id} --text '<respuesta>'\` (espera en ${title(r.t)})`),
@@ -86,7 +110,7 @@ export function directorTick(ctx: Pick<WorkerContext, 'db' | 'dataDir'>, now = D
   const active = activeRun(ctx.db);
   // si su sondeo se perdió (Orca sin responder), un sondeo pasado el plazo la cierra
   if (active) { if (now > Date.parse(JSON.parse(active.metadata as string).deadlineAt)) poll(ctx.db, active.id as string, 'plazo'); return; }
-  const first = pendingWake(ctx.db)[0];
+  const first = pendingWake(ctx.db, ctx.dataDir)[0];
   if (first && now - Date.parse(first.createdAt) >= debounceSeconds * 1000) enqueue(ctx.db, 'director.wake', {}, `director.wake:${first.seq}`);
 }
 
@@ -94,7 +118,7 @@ export function directorTick(ctx: Pick<WorkerContext, 'db' | 'dataDir'>, now = D
 export const directorWake: Handler = async (_cmd, ctx) => {
   const {db, orca, dataDir, projectDir} = ctx;
   if (activeRun(db)) return {skipped: 'director en marcha'};
-  const events = pendingWake(db);
+  const events = pendingWake(db, dataDir);
   if (!events.length) return {skipped: 'sin eventos'};
   const brief = renderDirectorBrief(db, dataDir), file = join(dataDir, 'director-brief.md');
   // el cursor avanza antes de lanzar: si el lanzamiento falla, el siguiente evento vuelve a lanzar

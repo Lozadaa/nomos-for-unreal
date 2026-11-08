@@ -26,7 +26,7 @@ test('hito 27: brief del director con equipo, jam, tareas, pendientes, mensajes,
     decisions: [], build: {commit: 'abc1234def', at: new Date().toISOString()}, requests: []}]);
   createTask(db, {title: 'Cierre J2', area: 'qa', state: 'implementando'});
   for (let i = 0; i < 20; i++) createTask(db, {title: `Tarea ${i}`, area: 'gameplay', state: i % 2 ? 'revisando' : 'pendiente'});
-  for (let i = 0; i < 30; i++) appendEvent(db, 'task.moved', null, {taskId: 'x', state: 'revisando'});
+  for (let i = 0; i < 30; i++) appendEvent(db, 'worker.waiting', null, {taskId: 'x', question: '¿Sigo?'});
   const {messageId} = createMessage(db, '¿Cómo va el HUD?', 'web');
   const brief = renderDirectorBrief(db, data), lines = brief.split('\n');
   assert.ok(lines.length <= 60, `${lines.length} líneas`);
