@@ -88,6 +88,18 @@ test('nomos ue test: los tests de automatización en el editor caliente, con res
   } finally { await stopWarm(uproject); }
 });
 
+// canario PiedraPapel 2026-11-08: el caliente se cayó al arrancar (aserción del motor) y `ue test` esperó 10 min su latido
+test('nomos ue test: si el editor caliente muere al arrancar, lo dice en segundos y corre los tests en frío', () => {
+  const {dir} = game();
+  const cli = join(import.meta.dirname, '..', '..', 'service', 'src', 'cli.ts'), t0 = Date.now();
+  const r = spawnSync(process.execPath, [cli, 'ue', 'test', 'System.Core.Math'],
+    {cwd: dir, env: {...process.env, NOMOS_UE_FAKE: fake, NOMOS_FAKE_MUERE_AL_ARRANCAR: '1'}, encoding: 'utf8'});
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(JSON.parse(r.stdout).modo, 'frio');
+  assert.match(r.stderr, /se cerró al arrancar \(código 3/);
+  assert.ok(Date.now() - t0 < 15_000, `tardó ${Date.now() - t0} ms`);
+});
+
 // x10 (acelera A): con --tarea, `ue py` pide el turno al empezar y lo suelta al acabar, sin cerrar el editor caliente
 test('x10: ue py --tarea pide el turno, cierra los calientes de otros que le dice el servicio y lo suelta al acabar', async () => {
   const {createServer} = await import('node:http');

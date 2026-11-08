@@ -48,7 +48,7 @@ function stale(uproject: string, since: number): boolean {
   return files.some(f => { try { return statSync(f).mtimeMs / 1000 > since; } catch { return false; } });
 }
 
-function launch(uproject: string, opts: WarmOpts): void {
+function launch(uproject: string, opts: WarmOpts): {salio: number | null} {
   const dir = warmDir(uproject), bin = opts.bin ?? defaultUnrealCmd;
   if (!existsSync(bin)) throw new Error('unreal_missing');
   rmSync(dir, {recursive: true, force: true});
@@ -59,8 +59,12 @@ function launch(uproject: string, opts: WarmOpts): void {
     `-ExecCmds="py import os;exec(open(os.environ['NOMOS_CALIENTE_PY']).read())"`, '-unattended', '-nopause', '-nosplash'];
   const child = spawn(bin, args, {detached: true, stdio: 'ignore', windowsHide: true, windowsVerbatimArguments: true, argv0: quote(bin),
     env: {...process.env, PYTHONUTF8: '1', NOMOS_CALIENTE: dir, NOMOS_CALIENTE_PY: script, NOMOS_CALIENTE_INACTIVO: String(opts.idleSeconds ?? 600)}});
-  child.on('error', () => {});
+  // el editor que muere al arrancar (crash del motor, binario roto) no late nunca: se ve aquí, no a los 10 min
+  const estado = {salio: null as number | null};
+  child.on('error', () => { estado.salio = -1; });
+  child.on('exit', code => { estado.salio = code ?? -1; });
   child.unref();
+  return estado;
 }
 
 /** Deja el editor caliente listo; devuelve los segundos de arranque o null si ya estaba. */
@@ -69,9 +73,12 @@ export async function ensureWarm(uproject: string, opts: WarmOpts = {}): Promise
   if (beat && !stale(uproject, beat.desde)) return null;
   if (beat) await stopWarm(uproject);
   const t0 = Date.now();
-  launch(uproject, opts);
-  for (const end = t0 + (opts.startTimeoutMs ?? 10 * 60_000); Date.now() < end; await sleep(250))
+  const proceso = launch(uproject, opts);
+  for (const end = t0 + (opts.startTimeoutMs ?? 10 * 60_000); Date.now() < end; await sleep(250)) {
     if (warmBeat(uproject)) return (Date.now() - t0) / 1000;
+    if (proceso.salio !== null)
+      throw new Error(`El editor caliente se cerró al arrancar (código ${proceso.salio}, ${Math.round((Date.now() - t0) / 1000)} s); nomos ue crash da el motivo`);
+  }
   throw new Error('El editor caliente no arrancó a tiempo');
 }
 
