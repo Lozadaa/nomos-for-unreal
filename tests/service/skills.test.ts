@@ -11,24 +11,27 @@ const ui=['game-ui-art-director','ue-ui-umg-slate','game-ui-design','game-ui-ux'
 test('tabla §4: UI, rol especialista precede área y resultado independiente',()=>{
   assert.deepEqual(skillsForRole('ui','ui'),ui);
   assert.deepEqual(skillsForRole('programmer','ui'),ui);
-  assert.deepEqual(skillsForRole('audio','ui'),['ue-audio-system']);
+  assert.deepEqual(skillsForRole('audio','ui'),['ue-audio-system','audio-design']);
   assert.deepEqual(skillsForRole('revisor','ui'),['code-review','superpowers:requesting-code-review']);
   assert.deepEqual(skillsForRole('reviewer','arquitectura'),['code-review','superpowers:requesting-code-review','architect-review']);
   const result=skillsForRole('ui','ui');result.push('mutada');assert.deepEqual(skillsForRole('ui','ui'),ui);
 });
 test('tabla §4: implementación, habilidades, assets, animación, mundo, QA y alcance',()=>{
   assert.deepEqual(skillsForRole('implementacion','gameplay'),[
-    'ue-project-context','ue-cpp-foundations','ue-gameplay-framework','ue-module-build-system','ue-oficio']);
+    'ue-project-context','ue-cpp-foundations','ue-gameplay-framework','ue-actor-component-architecture','ue-module-build-system',
+    'ue-input-system','ue-physics-collision','physics-tuning','camera-systems','game-feel','ue-testing-debugging','ue-oficio']);
   assert.deepEqual(skillsForRole('habilidad','ui'),[
-    'ue-gameplay-abilities','ue-niagara-effects','ue-animation-system','ue-audio-system','ue-oficio','ue-ui-umg-slate']);
+    'ue-gameplay-abilities','ue-niagara-effects','ue-animation-system','ue-audio-system','game-feel','ue-oficio','ue-ui-umg-slate']);
   assert.equal(skillsForRole('habilidad','gameplay').includes('ue-ui-umg-slate'),false);
   assert.deepEqual(skillsForRole('arte','ui'),[
     'blender-director','asset-optimization','collision-proxy','lod-pipeline','unreal-export','qa-review','ue-asset-intake','ue-oficio']);
   assert.deepEqual(skillsForRole('personaje','assets'),['rigging','ue-animation-system','ue-oficio']);
   assert.deepEqual(skillsForRole('implementation','escenarios'),[
-    'environment-artist','set-dressing','ue-procedural-generation','ue-world-level-streaming','lighting','ue-oficio']);
-  assert.deepEqual(skillsForRole('qa','audio'),['ue-testing-debugging','ue-visual-qa','ue-test-package','unreal-packaging','ue-oficio']);
-  assert.deepEqual(skillsForRole('alcance','qa'),['ue-jam-director','game-jam']);
+    'environment-artist','set-dressing','level-design','ue-procedural-generation','ue-world-level-streaming','lighting','ue-oficio']);
+  assert.deepEqual(skillsForRole('qa','audio'),['ue-testing-debugging','ue-visual-qa','unreal-packaging','performance-optimization','ue-oficio']);
+  assert.deepEqual(skillsForRole('alcance','qa'),['game-jam','prototype-fast','unreal-best-practices']);
+  assert.deepEqual(skillsForRole('implementacion','cámara'),['camera-systems','camera-cinematography','ue-sequencer-cinematics','ue-oficio']);
+  assert.deepEqual(skillsForRole('ia','gameplay'),['ue-ai-navigation','ue-state-trees','unreal-behavior-trees','game-ai','ue-oficio']);
   assert.deepEqual(skillsForRole('desconocido','desconocida'),[]);
 });
 test('installedSkills enumera solo SKILL.md locales por fuente y nombre deterministas',t=>{

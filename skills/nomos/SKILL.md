@@ -168,6 +168,9 @@ Con dos tareas sobre el mismo asset, solo una arranca; la otra queda `preparada`
 `waitReason` «Esperando reserva…» hasta que la primera termine: no la fuerces ni
 subas `attempt`. Cupos en `concurrency`; un Unreal pesado a la vez y RAM libre: [máquina](references/maquina.md). OpenCode es el
 proveedor barato para tareas sencillas sin Unreal: reglas en [OpenCode](references/opencode.md).
+Las skills de cada worker salen del rol y el área (`service/src/skills.ts`): gameplay carga física, input, cámara y
+*game feel*; `vfx`/`materiales` luz y Niagara; `escenarios` diseño de niveles; `camara`, `ia` y `sonido` tienen su propio
+grupo. Elige el área que mejor nombra la pista: es lo que decide qué sabe el worker.
 El revisor es otro run (otro proveedor si hay dos) con brief de revisión y skills de
 `revisor`. Aprobado no es `done`. Detalle en [brief del revisor](references/brief-revisor.md).
 
