@@ -54,6 +54,10 @@ export function machineReason(db: DatabaseSync, config: SchedulerConfig, probe: 
 }
 
 const editorPath = (dataDir: string) => `editor/${projectInfo(dataDir)?.name ?? 'Unreal'}`;
+/** Turnos de Unreal: `scheduler.heavy.maxConcurrent` plazas por proyecto (cada worker tiene su worktree; la RAM es el límite
+ *  real y machineReason la comprueba). La primera es `editor/<proyecto>`, la de las comprobaciones; las demás `editor/<proyecto>#n`. */
+export const editorSlots = (base: string, config: SchedulerConfig) =>
+  Array.from({length: heavyMax(config)}, (_, i) => i ? `${base}#${i + 1}` : base);
 const queues = new WeakMap<DatabaseSync, Map<string, {first: number; seen: number}>>();
 /** Un `turn --wait` que deja de preguntar 30 s se da por ido. */
 const forgetMs = 30_000;
@@ -71,11 +75,12 @@ function workerRun(db: DatabaseSync, taskId: string): Run {
  */
 export function requestTurn(db: DatabaseSync, dataDir: string, taskId: string, probe: MachineProbe = probeMachine,
   now = Date.now()): {granted: boolean; reason?: string; held?: true} {
-  const run = workerRun(db, taskId), path = editorPath(dataDir);
+  const run = workerRun(db, taskId), config = readConfig(dataDir), slots = editorSlots(editorPath(dataDir), config);
   // `held`: ya era suyo (turno pedido a mano); `ue py --tarea` no lo suelta al acabar
-  if (holders(db, path)[0]?.runId === run.id) return {granted: true, held: true};
-  reclaimIdle(db, path, probe, now);
-  const held = holders(db, path)[0];
+  if (slots.some(p => holders(db, p)[0]?.runId === run.id)) return {granted: true, held: true};
+  for (const p of slots) reclaimIdle(db, p, probe, now);
+  const path = slots.find(p => !holders(db, p).length);
+  const held = path ? undefined : holders(db, slots[0])[0];
   let queue = queues.get(db);
   if (!queue) queues.set(db, queue = new Map());
   for (const [id, entry] of queue) if (entry.seen < now - forgetMs) queue.delete(id);
@@ -87,19 +92,19 @@ export function requestTurn(db: DatabaseSync, dataDir: string, taskId: string, p
   // (canario PiedraPapel 2026-11-08: con 4,7 GB libres la tarea esperó 10 min a que se cerrara su propio caliente)
   const ownWarm = [...warm.get(db)?.values() ?? []].includes(taskId);
   const reason = held ? `Espera a que ${label(db, held.taskId)} suelte Unreal` : ahead ? `Turno: antes va ${label(db, ahead)}`
-    : ownWarm ? null : machineReason(db, readConfig(dataDir), probe, taskId);
+    : ownWarm ? null : machineReason(db, config, probe, taskId);
   if (reason) return {granted: false, reason};
-  const lease = acquire(db, run.id, taskId, [path]);
+  const lease = acquire(db, run.id, taskId, [path!]);
   if (!lease.ok) return {granted: false, reason: `Espera a que ${label(db, lease.conflicts[0].taskId)} suelte Unreal`};
   queue.delete(taskId);
-  appendEvent(db, 'editor.granted', null, {taskId, runId: run.id, project: path.slice(7)});
+  appendEvent(db, 'editor.granted', null, {taskId, runId: run.id, project: path!.slice(7)});
   return {granted: true};
 }
 
 /** `nomos worker turn --release`: devuelve Unreal; terminar la run también lo devuelve (suelta sus reservas). */
 export function releaseTurn(db: DatabaseSync, dataDir: string, taskId: string): {released: boolean} {
   requireTask(db, taskId);
-  const released = releasePath(db, taskId, editorPath(dataDir));
+  const released = editorSlots(editorPath(dataDir), readConfig(dataDir)).filter(p => releasePath(db, taskId, p)).length > 0;
   queues.get(db)?.delete(taskId);
   if (released) appendEvent(db, 'editor.released', null, {taskId, project: editorPath(dataDir).slice(7)});
   return {released};
