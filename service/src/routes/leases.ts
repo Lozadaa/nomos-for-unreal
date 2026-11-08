@@ -8,6 +8,7 @@ import { id, type Context } from './context.ts';
 import { projectInfo } from '../project-root.ts';
 import { agentLabel } from '../editor/queue.ts';
 import { noteWarm, releaseTurn, requestTurn, warmToClose } from '../unreal-turn.ts';
+import { heavyMax, readConfig } from '../config.ts';
 
 /** Editor por proyecto: el juego del servicio más cualquier proyecto con reserva `editor/<nombre>`. */
 function editors(db: Context['db'], dataDir: string | undefined) {
@@ -37,7 +38,8 @@ export async function leases({db,req,res,url,dataDir}: Context): Promise<boolean
       if(released.released && typeof data.caliente==='string') noteWarm(db,data.caliente,taskId);
       json(res,200,released);return true;
     }
-    const answer=requestTurn(db,dataDir,taskId),cerrar=answer.granted ? warmToClose(db,typeof data.uproject==='string' ? data.uproject : undefined) : [];
+    // con varias plazas los calientes de otros siguen trabajando: solo se cierran con una plaza (la RAM la vigila machineReason)
+    const answer=requestTurn(db,dataDir,taskId),cerrar=answer.granted && heavyMax(readConfig(dataDir))===1 ? warmToClose(db,typeof data.uproject==='string' ? data.uproject : undefined) : [];
     json(res,200,cerrar.length ? {...answer,cerrar} : answer);return true;
   }
   const match=/^\/tasks\/([^/]+)\/leases$/.exec(url.pathname);

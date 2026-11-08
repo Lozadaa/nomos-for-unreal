@@ -5,7 +5,7 @@ import { acquire, holders, release } from '../leases.ts';
 import { read } from '../repo/rows.ts';
 import { setTaskWait } from '../repo/tasks.ts';
 import { appendEvent } from '../store.ts';
-import { machineReason, reclaimIdle, warmToClose } from '../unreal-turn.ts';
+import { editorSlots, machineReason, reclaimIdle, warmToClose } from '../unreal-turn.ts';
 import { stopWarm, warmBeat } from './caliente.ts';
 import { probeMachine } from '../machine.ts';
 import { readConfig } from '../config.ts';
@@ -19,15 +19,17 @@ export async function withEditor<T>(ctx: Pick<WorkerContext, 'db'> & Partial<Pic
   fn: () => Promise<T>): Promise<T | Deferred> {
   const {db} = ctx, probe = ctx.probe ?? probeMachine;
   // x10: un worker que retiene el turno a mano sin Unreal abierto no bloquea la comprobación más de turnIdleMs
-  reclaimIdle(db, editorLease(project), probe);
-  // x10: el turno es por script; entre scripts el editor caliente queda abierto sin turno. Con la reserva libre, antes de
+  const config = ctx.dataDir ? readConfig(ctx.dataDir) : {}, slots = editorSlots(editorLease(project), config);
+  for (const p of slots) reclaimIdle(db, p, probe);
+  const free = slots.find(p => !holders(db, p).length) ?? slots[0];
+  // x10: el turno es por script; entre scripts el editor caliente queda abierto sin turno. Con una sola plaza libre, antes de
   // abrir otro Unreal se cierra (un editor a la vez): el de este proyecto o worktree y los que soltaron turno con él abierto
-  if (!holders(db, editorLease(project)).length)
+  if (slots.length === 1 && !holders(db, free).length)
     for (const uproject of new Set([...warmToClose(db), ...warmBeat(project.uproject) ? [project.uproject] : []])) await stopWarm(uproject);
   // hito 22: abrir Unreal pide RAM libre y ningún editor ajeno, aunque la reserva esté libre
-  const machine = ctx.dataDir ? machineReason(db, readConfig(ctx.dataDir), probe, run.taskId) : null;
+  const machine = ctx.dataDir ? machineReason(db, config, probe, run.taskId) : null;
   if (machine) { setTaskWait(db, run.taskId, machine); return {deferred: true, reason: machine}; }
-  const lease = acquire(db, run.id, run.taskId, [editorLease(project)]);
+  const lease = acquire(db, run.id, run.taskId, [free]);
   if (!lease.ok) {
     const holder = read<Run>(db, 'runs', lease.conflicts[0].runId);
     const reason = `Editor de ${project.name}: ocupado por ${agentLabel(holder)}`;

@@ -133,6 +133,15 @@ que uso). Cada tarea lleva su spec, `scope` (rutas que puede tocar) y `leases`:
 assets compartidos de Unreal (uasset y umap bajo Content, widgets, esqueletos)
 que nadie más debe editar a la vez. Crea primero la base y pasa su ID en `--depends`;
 las banderas se aplican antes de preparar, así el planificador nunca la ve a medias.
+**Pistas en paralelo (lo que hace a Nomos más rápido que un solo agente).** Un plan de hitos no es una fila de
+tareas: una base corta (≤ 15 min: módulo, clases vacías, GameMode, mapa con cámara y luz) y, colgando de ella, pistas
+que avanzan a la vez, cada una con varios hitos y archivos propios (p. ej. física y tiro · aspecto de la pieza ·
+reglas y CPU · HUD). Nada de una tarea por hito con `--depends` en cadena. Para que dos pistas no se esperen:
+- lo que una pista añade al nivel lo crea su C++ en `BeginPlay` (o un `Spawner` propio), no editando el `.umap`;
+  el mapa solo lo reserva la base;
+- cada pista tiene su clase/archivo; el punto de unión (GameMode, Build.cs) lo deja preparado la base;
+- `concurrency.claude` ≥ número de pistas y `scheduler.heavy.maxConcurrent` 2-3 (cada worker abre su Unreal; la RAM
+  libre manda).
 Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config le da cupo.
 Modelo Claude por rol (`sonnet`, `opus` o `haiku`; el run lo guarda en `metadata.model`):
 

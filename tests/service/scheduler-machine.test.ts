@@ -156,3 +156,20 @@ test('x10: con su propio editor caliente abierto, el turno no exige RAM libre ni
   const otra = f.working('J9.2', 'escenarios');
   assert.equal(requestTurn(f.db, f.dataDir, otra.taskId, f.probe).granted, false, 'el caliente de otra tarea no le sirve');
 });
+
+test('turnos paralelos: con heavy.maxConcurrent 2 dos workers abren Unreal a la vez y el tercero espera', async t => {
+  const f = setup(t); const { mkdirSync } = await import('node:fs'); mkdirSync(f.dataDir, {recursive: true});
+  writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({scheduler: {heavy: {maxConcurrent: 2}}}));
+  const a = f.working('J1.1 Uno', 'gameplay'), b = f.working('J1.2 Dos', 'gameplay'), c = f.working('J1.3 Tres', 'gameplay');
+  assert.deepEqual(requestTurn(f.db, f.dataDir, a.taskId, f.probe), {granted: true});
+  assert.deepEqual(requestTurn(f.db, f.dataDir, b.taskId, f.probe), {granted: true});
+  assert.deepEqual(requestTurn(f.db, f.dataDir, b.taskId, f.probe), {granted: true, held: true});
+  assert.deepEqual(requestTurn(f.db, f.dataDir, c.taskId, f.probe), {granted: false, reason: 'Espera a que J1.1 suelte Unreal'});
+  assert.deepEqual(releaseTurn(f.db, f.dataDir, b.taskId), {released: true});
+  assert.deepEqual(requestTurn(f.db, f.dataDir, c.taskId, f.probe), {granted: true});
+  // la comprobación toma la plaza que queda libre al soltar
+  releaseTurn(f.db, f.dataDir, a.taskId);
+  const check = startRun(f.db, {taskId: a.taskId, role: 'qa', provider: 'unreal'});
+  const result = await withEditor({db: f.db, dataDir: f.dataDir, probe: f.probe} as any, {dir: f.dir, uproject: 'Juego.uproject', name: 'Juego'}, check, async () => 'sí');
+  assert.equal(result, 'sí');
+});
