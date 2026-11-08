@@ -45,6 +45,8 @@ test('merge limpio: integra con --no-ff en el workspace del proyecto, avanza mas
     assert.deepEqual([integrator.provider, integrator.role, integrator.state], ['nomos', 'integrador', 'done']);
     assert.deepEqual(listLeases(f.db), []);
     assert.equal(commands(f, 'checks.run').length, 0, 'base igual: no recomprueba');
+    // experimento metras 2026-11-08: el cierre lo encola el servicio, sin despertar al director para `nomos task finalize`
+    assert.deepEqual(commands(f, 'finalize.run').map(c => [c.payload.taskId, c.state]), [[a.task.id, 'pending']]);
   } finally { f.close(); }
 });
 

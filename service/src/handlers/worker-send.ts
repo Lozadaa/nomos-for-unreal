@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import type { Handler } from '../runner.ts';
 import { requireRun, runTree, updateRun, queuePoll, invalidateImplementation } from '../repo/worker.ts';
 import { requireTask, moveTask,setTaskWait } from '../repo/tasks.ts';
-import { transaction } from '../repo/rows.ts';
+import type { DatabaseSync } from 'node:sqlite';
+import type { Decision } from '../model.ts';
+import { filtered, transaction } from '../repo/rows.ts';
 import { workerPolicy, decisionGate } from './worker-policy.ts';
 import { appendEvent } from '../store.ts';
 import { finishRun } from '../repo/runs.ts';
@@ -15,6 +17,10 @@ import { limits, readConfig } from '../config.ts';
 import { deliver } from './worker-deliver.ts';
 import { reconcileTask } from './reconcile.ts';
 
+export const acceptOption={id:'aceptar',label:'Aceptar y seguir',description:'Dar por buena la implementación con los hallazgos anotados y seguir hacia la integración'};
+/** Cada «Revisar» elegido en una Decisión del máximo permite una corrección más a esa tarea (no toca `limits.corrections`). */
+export const correctionsGranted=(db:DatabaseSync,taskId:string)=>new Set(filtered<Decision>(db,'decisions',{taskId,state:'resolved'})
+  .filter(d=>d.chosenOptionId==='review').flatMap(d=>d.evidence.filter(e=>e.kind==='gate:corrections').map(e=>e.ref))).size;
 export const workerSend: Handler=async (cmd,ctx)=>{
   const payload=cmd.payload as any,{db,orca}=ctx;
   let run=requireRun(db,payload.runId);const task=requireTask(db,run.taskId),tree=runTree(db,run);
@@ -23,11 +29,16 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   if (!['running','done'].includes(run.state) || reviewer&&run.state==='done') throw new Error('invalid_worker_state');
   if (typeof payload.text!=='string'||!payload.text.trim()) throw new Error('invalid_worker_text');
   if (run.metadata.deadlineAt && Date.now()>=Date.parse(run.metadata.deadlineAt)) throw new Error('orca: tiempo máximo de 4 horas agotado');
-  const correction=run.state==='done',count=run.metadata.correctionCount ?? 0,max=limits(readConfig(ctx.dataDir)).corrections;
+  const limit=limits(readConfig(ctx.dataDir)).corrections,count=run.metadata.correctionCount ?? 0;
+  const correction=run.state==='done',max=limit+correctionsGranted(db,task.id);
   if (correction && count>=max) {
-    decisionGate(ctx,task,'corrections',max===3 ? 'Máximo de tres correcciones alcanzado' : `Máximo de ${max} correcciones alcanzado`,
-      {runId:run.id,correctionCount:count},[{id:'review',label:'Revisar',description:'El director decide cómo continuar'},
-        {id:'cancel',label:'Cancelar',description:'No enviar más correcciones'}],false);return;
+    // experimento metras 2026-11-08: tras hallazgos de la revisión de código se puede aceptar lo hecho (con ellos anotados) y seguir
+    const findings=/^Correcciones de revisión:/.test(payload.text ?? '');
+    decisionGate(ctx,task,'corrections',limit===3 ? 'Máximo de tres correcciones alcanzado' : `Máximo de ${limit} correcciones alcanzado`,
+      {runId:run.id,correctionCount:count},[{id:'review',label:'Revisar',description:'Permitir una corrección más y enviarla'},
+        ...(findings ? [acceptOption] : []),{id:'cancel',label:'Cancelar',description:'No enviar más correcciones'}],false);
+    const decisionId=requireTask(db,task.id).decisionId;
+    return decisionId ? {policyBlocked:true,decisionId} : undefined;
   }
   // hito 5b: el bloqueo del límite solo existe por count>=max; si `limits.corrections` ya permite otra, sobra
   if (correction && /^Máximo de (tres|\d+) correcciones alcanzado$/.test(task.blockedReason ?? ''))

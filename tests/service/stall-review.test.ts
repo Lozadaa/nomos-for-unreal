@@ -84,3 +84,27 @@ test('implementando sin NOMOS_DONE y nada en marcha: «leer su terminal», y la 
   assert.equal(read_.length, 1);
   assert.ok(read_[0].lines.includes('listo, falta el commit'), JSON.stringify(read_[0]));
 });
+
+// experimento metras 2026-11-08: cada NOMOS_DONE despertaba al director solo para pedir `nomos task review`
+test('NOMOS_DONE con commit nuevo: el servicio pide la revisión al momento; sin commit, con Decisión o en UI, no', async t => {
+  const f = fixture(t);
+  await f.start(); const run = f.run(), tree = f.tree();
+  const git = (...args: string[]) => execFileSync('git', ['-C', tree.path, ...args], {encoding: 'utf8', windowsHide: true}).trim();
+  writeFileSync(join(tree.path, 'README.md'), 'Juego\n'); git('add', 'README.md'); git('commit', '-m', 'README');
+  f.output('NOMOS_DONE {"summary":"Terminado","commits":["README"],"tests":"passed"}');
+  await f.invoke('worker.poll', {runId: run.id});
+  const reviews = f.db.prepare("select payload from commands where type='review.start'").all().map(r => JSON.parse(r.payload as string));
+  assert.deepEqual(reviews.map(p => [p.taskId, p.implementerRunId]), [[f.task.id, run.id]]);
+  const [event] = f.db.prepare("select payload from events where type='review.auto_requested'").all().map(r => JSON.parse(r.payload as string));
+  assert.deepEqual([event.commit, event.reason], [git('rev-parse', 'HEAD'), 'NOMOS_DONE']);
+  // sin commit nuevo (el fixture de los otros casos) o con la UI, que la pide su QA visual: nada
+  const plain = await done(t);
+  assert.deepEqual(plain.reviews(), []);
+  const ui = fixture(t); ui.db.prepare("update tasks set area='ui' where id=?").run(ui.task.id);
+  await ui.start(); const uiTree = ui.tree();
+  execFileSync('git', ['-C', uiTree.path, 'commit', '--allow-empty', '-m', 'hud'], {windowsHide: true});
+  ui.output('NOMOS_DONE {"summary":"HUD","commits":["hud"],"tests":"passed"}');
+  await ui.invoke('worker.poll', {runId: ui.run().id});
+  assert.equal(ui.db.prepare("select count(*) n from commands where type='review.start'").get()!.n, 0);
+  assert.equal(ui.db.prepare("select count(*) n from commands where type='ui.cycle'").get()!.n, 1);
+});

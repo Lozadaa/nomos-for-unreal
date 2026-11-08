@@ -13,13 +13,13 @@ import { workerSkillsBrief } from '../brief.ts';
 import { withEditor } from '../editor/queue.ts';
 import { runCheck, type CheckDeps } from '../checks/run.ts';
 import { umgAttempt, umgCacheable, umgCapture, umgInputHash, type UmgAttempt, type UmgOptions } from '../checks/umg.ts';
-import { recordTestRun } from '../repo/artifacts.ts';
+import { recordTestRun, updateTestRun } from '../repo/artifacts.ts';
 import { updateRun } from '../repo/worker.ts';
 import { listDecisions, openDecision, refreshPendingDecision } from '../repo/decisions.ts';
 import { appendEvent } from '../store.ts';
 import { limits, readConfig } from '../config.ts';
 import { selectChecks } from '../checks/select.ts';
-import { checkRun, implementerOf, sendCorrection, treeOf } from './checks.ts';
+import { advance, checkRun, implementerOf, sendCorrection, treeOf } from './checks.ts';
 
 export const uiCycleKey = (run: Run) => `ui.cycle:${run.id}:${run.metadata.pollGeneration ?? 0}`;
 export const umgStuckReason = 'QA de UI sin mejora medible';
@@ -34,7 +34,8 @@ export function umgStuck(ctx: WorkerContext, task: Task, attempt: UmgAttempt, co
     evidence: [{kind: 'command', ref: commandId()}, ...attempts.map(a => ({kind: `intento ${a.attempt}`,
       ref: a.findings.slice(0, 3).map(f => `${f.rule} · ${f.where}: ${f.measured}`).join(' · ') + (a.findings.length > 3 ? ` (+${a.findings.length - 3})` : '')}))],
     options: [{id: 'return', label: 'Devolver al responsable', description: 'Enviarle el diagnóstico para otro intento; el contador vuelve a empezar'},
-      {id: 'retry', label: 'Reintentar el QA', description: 'Volver a capturar y pasar el QA visual sin cambios (p. ej. tras arreglarlo a mano)'}]});
+      {id: 'retry', label: 'Reintentar el QA', description: 'Volver a capturar y pasar el QA visual sin cambios (p. ej. tras arreglarlo a mano)'},
+      {id: 'aceptar', label: 'Aceptar y seguir', description: 'Dar el QA visual por bueno con los hallazgos anotados y seguir con la revisión de código'}]});
   return true;
 }
 
@@ -50,9 +51,19 @@ export function createUiCycle(deps: CheckDeps = {}): Handler {
     if (decision && decision.state !== 'resolved') return {deferred: true, reason: `Esperando decisión: ${decision.reason}`};
     if (decision && !ctx.db.prepare(`select 1 from events where type='umg.reset' and json_extract(payload,'$.decisionId')=?`).get(decision.id)) {
       appendEvent(ctx.db, 'umg.reset', null, {taskId: task.id, decisionId: decision.id, optionId: decision.chosenOptionId});
+      const last = ctx.db.prepare(`select payload from events where type='umg.attempt' and json_extract(payload,'$.taskId')=? order by seq desc limit 1`).get(task.id);
+      const attempt = JSON.parse(last!.payload as string) as UmgAttempt;
+      if (decision.chosenOptionId === 'aceptar') {
+        // como un QA aprobado (las comprobaciones del mismo commit lo dan por bueno), con los hallazgos anotados en su test.passed
+        updateTestRun(ctx.db, attempt.testRunId, {result: 'passed'});
+        appendEvent(ctx.db, 'test.passed', null, {testRunId: attempt.testRunId, taskId: task.id, check: 'umg', decisionId: decision.id,
+          summary: `QA visual aceptado sin mejora medible; hallazgos anotados:\n${[attempt.head, ...attempt.diagnosis].join('\n')}`});
+        const current = requireTask(ctx.db, task.id);
+        if (!advance(ctx, task.id) && current.state === 'revisando' && !current.reviewApproved)
+          enqueue(ctx.db, 'review.start', {taskId: task.id, implementerRunId: implementer.id}, `review.umg-aceptada:${decision.id}`);
+        return {accepted: true};
+      }
       if (decision.chosenOptionId === 'return') {
-        const last = ctx.db.prepare(`select payload from events where type='umg.attempt' and json_extract(payload,'$.taskId')=? order by seq desc limit 1`).get(task.id);
-        const attempt = JSON.parse(last!.payload as string) as UmgAttempt;
         sendCorrection(ctx, task, implementer, filtered<TestRun>(ctx.db, 'test_runs', {id: attempt.testRunId})[0] ?? {checkId: 'umg', reportPath: null} as TestRun,
           [attempt.head, ...attempt.diagnosis, ...attempt.comparison], decision.id);
         return {returned: true};

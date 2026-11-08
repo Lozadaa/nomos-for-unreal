@@ -40,6 +40,11 @@ export function requestIntegration(db: Db, taskId: string): {commandId: string; 
   const task = integratePayload(db, taskId), run = implementerOf({db} as WorkerContext, task);
   return queue(db, 'integrate.run', task, {taskId: task.id, runId: run.id}, `integrate:${task.id}:${run.id}`);
 }
+/** `nomos task finalize` y, tras integration.completed, el integrador solo (experimento metras: el director no hace falta). */
+export function requestFinalize(db: Db, taskId: string): {commandId: string; state: string} {
+  const task = finalizePayload(db, taskId);
+  return queue(db, 'finalize.run', task, {taskId: task.id}, `finalize:${task.id}`);
+}
 export function finalizePayload(db: Db, taskId: unknown): Task {
   if (typeof taskId !== 'string' || !taskId.trim()) throw new Error('invalid_command_payload');
   const task = requireTask(db, taskId);
@@ -72,8 +77,7 @@ export async function taskClosing({db, req, res, url, dataDir}: Context): Promis
     return true;
   }
   if (match[2] === 'finalize') {
-    const task = finalizePayload(db, taskId);
-    json(res, 202, queue(db, 'finalize.run', task, {taskId: task.id}, `finalize:${task.id}`));
+    json(res, 202, requestFinalize(db, taskId));
     return true;
   }
   json(res, 202, requestIntegration(db, taskId));

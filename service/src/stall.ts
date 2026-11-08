@@ -2,14 +2,16 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { Decision, Run } from './model.ts';
 import type { WorkerContext } from './runner.ts';
 import { openDecision } from './repo/decisions.ts';
-import { decode, filtered } from './repo/rows.ts';
+import { decode, filtered, transaction } from './repo/rows.ts';
 import { requireRun } from './repo/worker.ts';
 import { reviewTarget } from './review.ts';
 import { requestReview } from './review-request.ts';
 import { terminalBusy } from './sweep.ts';
 import { appendEvent } from './store.ts';
 import { activeHold } from './hold.ts';
-import { requireTask } from './repo/tasks.ts';
+import { moveTask, requireTask } from './repo/tasks.ts';
+import { resumePolicyCommand } from './commands.ts';
+import { afterApproval } from './handlers/review-finish.ts';
 import { requestIntegration } from './routes/task-closing.ts';
 
 /** Estados en los que el servicio (o el director) siempre tiene un paso siguiente encolado o en marcha. */
@@ -76,15 +78,36 @@ async function nextStep(ctx: WorkerContext, s: Stall): Promise<Step> {
   return {reason: `Tarea parada en «${s.state}» sin ningún paso en marcha: falta nomos ${resume[s.state]}`};
 }
 
+/** Máximo de correcciones: «Revisar» reenvía la corrección parada (ya cabe una más); «Aceptar» da por buena la implementación
+ *  con los hallazgos anotados en `review.accepted_with_findings` y sigue como tras una revisión aprobada. */
+function correctionsStep(ctx: WorkerContext, d: Decision): void {
+  const {db} = ctx;
+  const row = db.prepare(`select json_extract(payload,'$.commandId') id from events where type='command.done'
+    and json_extract(payload,'$.result.decisionId')=? order by seq desc limit 1`).get(d.id);
+  const command = row ? db.prepare("select id,payload from commands where id=? and type='worker.send'").get(row.id as string) : undefined;
+  if (!command) throw new Error('sin la corrección parada');
+  if (d.chosenOptionId === 'review') return resumePolicyCommand(db, command.id as string, d.id);
+  const {runId, text} = JSON.parse(command.payload as string) as {runId: string; text: string};
+  transaction(db, () => {
+    db.prepare('update tasks set review_approved=1,updated_at=? where id=?').run(new Date().toISOString(), d.taskId);
+    if (requireTask(db, d.taskId).state === 'implementando') moveTask(db, d.taskId, 'revisando', 'Aceptada con hallazgos anotados');
+    appendEvent(db, 'review.accepted_with_findings', null, {taskId: d.taskId, runId, decisionId: d.id, findings: text});
+    afterApproval(ctx, d.taskId, runId, `checks:aceptada:${d.id}`);
+  });
+}
+
 /** El paso de la opción recomendada, una vez por Decisión resuelta con ella. */
 async function runChosenSteps(ctx: WorkerContext): Promise<void> {
   const {db} = ctx;
-  const chosen = db.prepare(`select * from decisions d where state='resolved' and chosen_option_id in ('pedir_revision','leer_terminal','integrar')
-    and not exists (select 1 from events where type='stall.step_done' and json_extract(payload,'$.decisionId')=d.id)`).all().map(r => decode<Decision>(r));
+  const chosen = db.prepare(`select * from decisions d where state='resolved' and chosen_option_id in ('pedir_revision','leer_terminal','integrar','review','aceptar')
+    and not exists (select 1 from events where type='stall.step_done' and json_extract(payload,'$.decisionId')=d.id)`).all().map(r => decode<Decision>(r))
+    // «Revisar» y «Aceptar» solo son pasos en la Decisión del máximo de correcciones
+    .filter(d => !['review', 'aceptar'].includes(d.chosenOptionId!) || d.evidence[0]?.kind === 'gate:corrections');
   for (const d of chosen) {
     const ref = d.evidence.find(e => e.kind === 'paso')?.ref ?? '';
     try {
-      if (d.chosenOptionId === 'integrar') requestIntegration(db, d.taskId);
+      if (d.chosenOptionId === 'review' || d.chosenOptionId === 'aceptar') correctionsStep(ctx, d);
+      else if (d.chosenOptionId === 'integrar') requestIntegration(db, d.taskId);
       else if (d.chosenOptionId === 'pedir_revision') {
         const commandId = await requestReview(db, ctx.dataDir, ctx.git, d.taskId);
         const commit = await ctx.git.head(reviewTarget(db, d.taskId).tree.path).catch(() => ref);

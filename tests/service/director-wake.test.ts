@@ -119,3 +119,28 @@ test('hito 27: GET /runs/:id de un director (sin tarea) responde para que Produc
   const body = await res.json();
   assert.deepEqual([body.run.role, body.worktree, body.latestStatus.state], ['director', null, 'running']);
 });
+
+// experimento metras 2026-11-08: 40 despertares, casi todos para pasos que el servicio ya da solo
+test('en evento, lo que el servicio ya mueve solo no despierta; lo que pide juicio, sí', async t => {
+  const f = setup(t, {mode: 'evento', debounceSeconds: 0});
+  const {createTask} = await import('../../service/src/repo/tasks.ts');
+  const {openDecision} = await import('../../service/src/repo/decisions.ts');
+  const task = createTask(f.db, {title: 'Metras', area: 'gameplay'});
+  appendEvent(f.db, 'run.finished', null, {taskId: task.id, runId: 'r1', state: 'done'});
+  appendEvent(f.db, 'task.moved', null, {taskId: task.id, from: 'implementando', state: 'revisando'});
+  appendEvent(f.db, 'review.finished', null, {taskId: task.id, approved: true, findings: [], stale: false});
+  appendEvent(f.db, 'integration.completed', null, {taskId: task.id, commit: 'abc'});
+  openDecision(f.db, {taskId: task.id, reason: 'Máximo de tres correcciones alcanzado', evidence: [{kind: 'gate:corrections', ref: 'x'}],
+    options: [{id: 'review', label: '', description: ''}, {id: 'aceptar', label: '', description: ''}]});
+  directorTick(f.ctx);
+  assert.equal(f.pending('director.wake'), 0, 'pasos rutinarios y una Decisión que se resuelve sola en 1 min');
+  appendEvent(f.db, 'review.finished', null, {taskId: task.id, approved: false, findings: [], stale: false});
+  directorTick(f.ctx);
+  assert.equal(f.pending('director.wake'), 1, 'un rechazo cuyos hallazgos nadie reenvió sí despierta');
+  await f.drain('director.wake');
+  const other = createTask(f.db, {title: 'Otra', area: 'gameplay'});
+  appendEvent(f.db, 'run.finished', null, {taskId: other.id, runId: 'r2', state: 'failed'});
+  openDecision(f.db, {taskId: other.id, reason: '¿Puede ampliar su alcance?', evidence: [], options: [{id: 'si', label: '', description: ''}]});
+  const {pendingWake} = await import('../../service/src/director.ts');
+  assert.deepEqual(pendingWake(f.db, f.dataDir).map(e => e.type), ['run.finished', 'decision.opened'], 'fallos y preguntas de verdad');
+});

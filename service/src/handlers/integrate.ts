@@ -17,6 +17,7 @@ import { integrationWorkspace } from '../integration/workspace.ts';
 import { isLfsDecision, lfsGate, onlyAttributes } from '../integration/lfs.ts';
 import { commandRun } from './asset-run.ts';
 import { implementerOf } from './checks.ts';
+import { requestFinalize } from '../routes/task-closing.ts';
 import { queueGraph } from '../graph.ts';
 import { fetchMain, identity, isAncestor, leaf, overlaps, peerLeaseWait, teamConfig, teamGit, type TeamConfig } from '../team.ts';
 import { getApproval, keepVersion, requestConflict, type ConflictSide } from '../approvals.ts';
@@ -275,7 +276,10 @@ export const integrateRun: Handler = async (command, ctx) => {
     moveTask(ctx.db, task.id, 'implementando', reason);
     enqueue(ctx.db, 'worker.send', {runId: implementerOf(ctx, task).id, text: `${reason}.\nTrae ${ws.branch}, rehaz sobre ella el cambio de `
       + `${lost.join(', ')} sin pisar lo que ya hay, commitea y termina con NOMOS_DONE.`}, `integrate.lost:${run.id}`);
-  } else moveTask(ctx.db, task.id, 'cerrando', `Integrado en ${ws.branch}@${short(state.commit)}`);
+  } else {
+    moveTask(ctx.db, task.id, 'cerrando', `Integrado en ${ws.branch}@${short(state.commit)}`);
+    requestFinalize(ctx.db, task.id);
+  }
   finishRun(ctx.db, run.id, 'done', `Integrado en ${ws.branch}@${short(state.commit)}`);
   return {integrated: true, commit: state.commit};
 };
