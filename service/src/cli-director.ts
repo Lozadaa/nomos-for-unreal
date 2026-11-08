@@ -77,6 +77,16 @@ export async function directorCli(argv: string[]): Promise<boolean> {
       director:{...current.director,mode:'evento'}},null,2)+'\n');
     console.log(file);return true;
   }
+  if (group==='rapido') {
+    // modo rápido: lo lee el servicio en cada decisión (sin reiniciar); el director por evento, sin nadie que esperar
+    const {values,positionals}=parseArgs({args:argv,allowPositionals:true,options:{data:{type:'string'}}});
+    if (positionals.length!==2 || !['on','off'].includes(positionals[1])) throw new Error('Uso: nomos rapido on|off');
+    const dataDir=resolve(values.data ?? '.nomos'),config=join(dataDir,'config.json'),on=positionals[1]==='on';
+    const current=existsSync(config) ? JSON.parse(readFileSync(config,'utf8')) : {};
+    mkdirSync(dataDir,{recursive:true});
+    writeFileSync(config,JSON.stringify({...current,rapido:on,...(on ? {director:{...current.director,mode:'evento'}} : {})},null,2)+'\n');
+    console.log(JSON.stringify({rapido:on}));return true;
+  }
   if (!groups.includes(group)) return false;
   const action=argv[index+1];
   if (group==='approval') {

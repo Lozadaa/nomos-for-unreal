@@ -116,6 +116,16 @@ tareas del día en curso y la de cierre; ninguna tarea nueva fuera de `docs/plan
 que la acepte. Detalle en [modo jam](references/jam.md).
 Un juego sin `.cpp`/`.h` bajo `Source/` no tiene grafo: graphify solo indexa código (doctor: «sin código C++, apagado»).
 
+## Modo rápido
+
+Con `rapido: true` (`nomos rapido on --data .nomos`) manda la velocidad; algún bug menor se acepta. Reparte así:
+1. **Dos pistas como máximo**, con archivos disjuntos (cada `.cpp/.h` en una sola). Nada de tarea «Base» aparte: la pista A
+   crea el módulo y el contrato mínimo en su primer commit; la B no depende de A si puede crear sus propias clases.
+2. Pista A: gameplay en C++ (física, reglas, CPU). Pista B: lo visual (material por fastvfx/receta, HUD, demo y vídeo).
+3. Criterios ≤ 5 por tarea, todos observables; el vídeo y `docs/hecho.md` van en la última que se integre.
+4. No crees tareas de QA, ni de revisión ni de cierre aparte: la revisión ya es automática y solo para lo grave.
+El servicio pone dos plazas de Unreal, 1,5 GB libres, sin esperar a Unreal ajenos, una corrección y sin recomprobar al integrar.
+
 ## Modo evento
 
 Con `director.mode: "evento"` en `config.json` no hay director permanente: el servicio te lanza (`/nomos evento`) cuando

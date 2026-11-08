@@ -19,6 +19,7 @@ import { commandRun } from './asset-run.ts';
 import { implementerOf } from './checks.ts';
 import { requestFinalize } from '../routes/task-closing.ts';
 import { queueGraph } from '../graph.ts';
+import { rapido, readConfig } from '../config.ts';
 import { fetchMain, identity, isAncestor, leaf, overlaps, peerLeaseWait, teamConfig, teamGit, type TeamConfig } from '../team.ts';
 import { getApproval, keepVersion, requestConflict, type ConflictSide } from '../approvals.ts';
 
@@ -214,7 +215,8 @@ export const integrateRun: Handler = async (command, ctx) => {
   // la rama objetivo cambió desde que nació el worktree: recomprobar el resultado integrado antes de publicarlo
   // (no si lo único nuevo es el .gitattributes de LFS)
   const moved = state.base !== tree.baseCommit && !await onlyAttributes(ctx, ws.dir, tree.baseCommit, state.base);
-  if (moved && !state.checked) {
+  // rápido: sin recomprobar sobre main (el worker ya compiló y probó); lo que rompa la mezcla lo ve la tarea siguiente
+  if (moved && !state.checked && !rapido(readConfig(ctx.dataDir))) {
     const checks = enqueue(ctx.db, 'checks.run', {taskId: task.id, runId: implementerOf(ctx, task).id, files: state.files, dir: ws.dir, recheck: true},
       `integrate.checks:${run.id}:${state.commit}`);
     const current = read<Command>(ctx.db, 'commands', checks.id)!;

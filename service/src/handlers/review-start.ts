@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { Handler } from '../runner.ts';
 import type { Run } from '../model.ts';
 import { filtered } from '../repo/rows.ts';
-import { readConfig, type WorkerProvider } from '../config.ts';
+import { rapido, readConfig, type WorkerProvider } from '../config.ts';
 import { chooseProvider } from '../scheduler-provider.ts';
 import { reviewTarget, reviewSnapshot, reviewCurrent } from '../review.ts';
 import { startWorker } from './worker-start.ts';
@@ -54,6 +54,9 @@ export const reviewStart:Handler=async(cmd,ctx)=>{
         +`Implementación: ${snapshot.commit}. Generación: ${snapshot.generation}.\n`
         +`Termina fuera de bloques de código con una línea: NOMOS_REVIEW {"approved":true,"findings":[]}\n`
         +`Para rechazar usa approved:false y findings con file, line (entero positivo), severity y note.\n`
-        +`Si necesitas aclaración: NOMOS_ASK {"question":"Pregunta"}. No uses NOMOS_DONE.\n`;
+        +`Si necesitas aclaración: NOMOS_ASK {"question":"Pregunta"}. No uses NOMOS_DONE.\n`
+        // rápido: un rechazo cuesta una vuelta entera (Física, metras: 3 correcciones por un archivo de otra pista)
+        +(rapido(readConfig(ctx.dataDir)) ? `\nModo rápido: rechaza solo si un criterio no se cumple, no compila, se cae o rompe otra parte del juego. `
+          +`Estilo, tests que faltan o archivos fuera del alcance sin daño: aprueba y anótalo en findings con severity "nota".\n` : '');
     }});
 };
