@@ -10,7 +10,8 @@ Solo inspección: no modifiques el juego, no hagas commits ni merge. Usa la skil
 {{acceptance}}
 
 ## Capturas (en `.nomos-review/`)
-Cada una con su captura de control sin widgets, en el mismo fotograma pausado:
+Cada una con su estado de la UI (`arranque` = al empezar la partida; el resto, los de `## Estados` de la spec), su resolución
+y su captura de control sin widgets, en el mismo fotograma pausado:
 
 {{captures}}
 
@@ -32,6 +33,8 @@ personaje no se mueve.
 ## Veredicto
 Termina fuera de bloques de código con una línea:
 NOMOS_REVIEW {"approved":true,"findings":[]}
+Revisa cada estado por separado: un hallazgo nombra el estado que falla en su note y su captura en file
+(ejemplo: «cargando fuerza: la barra tapa el contador de turnos»).
 Para rechazar usa approved:false y findings con file (widget, clase o ruta de la captura),
 line (entero ≥ 1; 1 para una imagen), severity (bloqueante, mayor o menor) y note de ≤ 140
 caracteres con qué se ve y qué debería verse (ejemplo: «La vida se corta a 1280×720; debe verse

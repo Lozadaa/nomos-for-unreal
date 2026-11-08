@@ -185,7 +185,9 @@ las lanza al aprobar la revisión y `nomos task check <id>` las relanza. Ninguna
 de `probando` a `integrando` sin todas en `passed`; una no disponible abre Decisión.
 Toda pantalla UMG: primero `game-ui-art-director` (docs/ui-direction.md, tarea de la que
 dependen las demás de UI), después el worker `ui` y `ui.cycle` captura a 1280×720 y
-1920×1080 y pide QA visual a Claude. No reenvíes fallos: el servicio ya avisó al
+1920×1080 y pide QA visual a Claude. Si la UI cambia durante la partida (apuntando, cargando, turno
+rival, fin), escribe en la spec `## Estados` con `- nombre: orden1; orden2` (CVars o comandos de consola
+que lo provocan, sin comas ni comillas): cada estado se captura y el QA lo juzga por separado. No reenvíes fallos: el servicio ya avisó al
 responsable; informa con las rutas de las capturas. Detalle en [ciclo UMG](references/ui-ciclo.md)
 y [evidencia](references/evidencia.md).
 
