@@ -123,7 +123,7 @@ test('dos integraciones casi a la vez: la segunda espera la reserva y al entrar 
     const first = await integrate(f, a.task.id);
     assert.deepEqual(first, {deferred: true, reason: 'Recomprobando sobre la rama objetivo'});
     const [checks] = commands(f, 'checks.run');
-    assert.deepEqual([checks.payload.files, checks.payload.dir], [['Source/A.cpp'], join(f.dataDir, 'integration', 'Juego')]);
+    assert.deepEqual([checks.payload.files, checks.payload.dir, checks.payload.recheck], [['Source/A.cpp'], join(f.dataDir, 'integration', 'Juego'), true]);
     const second = await integrate(f, b.task.id);
     assert.equal(second.deferred, true);
     assert.match(second.reason, /^Esperando reserva: Juego/);
