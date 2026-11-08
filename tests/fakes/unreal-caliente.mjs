@@ -18,6 +18,8 @@ if (frio) {
   if (!filtro.includes('Nada')) writeFileSync(join(salida, 'index.json'), '﻿' + JSON.stringify(informe(filtro)));
   process.exit(0);
 }
+// NOMOS_FAKE_MUERE_AL_ARRANCAR: el editor caliente se cae antes del primer latido (crash del motor al arrancar)
+if (process.env.NOMOS_FAKE_MUERE_AL_ARRANCAR) process.exit(3);
 const dir = process.env.NOMOS_CALIENTE, idle = Number(process.env.NOMOS_CALIENTE_INACTIVO ?? 600) * 1000;
 const entrada = join(dir, 'entrada'), salida = join(dir, 'salida');
 mkdirSync(entrada, {recursive: true}); mkdirSync(salida, {recursive: true});
