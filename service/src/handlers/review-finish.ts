@@ -13,7 +13,8 @@ import { advance } from './checks.ts';
 import { appendEvent } from '../store.ts';
 import { enqueue } from '../commands.ts';
 import { attribute } from '../attribution.ts';
-import { finishReviewApproval } from '../approvals.ts';
+import { finishReviewApproval, pendingApproval } from '../approvals.ts';
+import { requestIntegration } from '../routes/task-closing.ts';
 import { readConfig } from '../config.ts';
 import { umgAttempt } from '../checks/umg.ts';
 import { umgStuck } from './ui-cycle.ts';
@@ -68,6 +69,10 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
         moveTask(db,run.taskId,'probando');
         // hito 5: la puerta probando → integrando la abren las comprobaciones del diff
         enqueue(db,'checks.run',{taskId:run.taskId,runId:implementer!.id},`checks:review:${run.id}`);
+      } else if(!pendingApproval(db,run.taskId)) {
+        // sin comprobaciones ni aprobación del usuario nada más la mueve: se integra ya (antes esperaba al atasco, 35 min;
+        // experimento de las metras 2026-11-08)
+        requestIntegration(db,run.taskId);
       }
     } else {
       const text='Correcciones de revisión:\n'+marker.findings.map(f=>`${f.file}:${f.line} [${f.severity}] ${f.note}`).join('\n');
