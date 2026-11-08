@@ -11,7 +11,8 @@ import { requireTask } from '../../service/src/repo/tasks.ts';
 import type { Command } from '../../service/src/model.ts';
 
 for(const change of ['diff','HEAD']) test(`nuevo contenido ${change} permite revisar tras cierre conservando clave HTTP`,async t=>{
-  const f=await reviewFixture(t),server=createServer(f.db,'secret','service/web',f.dataDir);
+  // con check: la tarea sigue en probando tras aprobar (sin él ya se integraría sola) y admite otra revisión
+  const f=await reviewFixture(t,true),server=createServer(f.db,'secret','service/web',f.dataDir);
   await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(()=>new Promise<void>(resolve=>server.close(()=>resolve())));
   const request=async()=>{

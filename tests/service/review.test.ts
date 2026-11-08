@@ -18,7 +18,9 @@ for(const checks of [false,true]) test(`Review Focus 3: aprobación ${checks ? '
   f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(f.reviewer().state,'done');assert.equal(f.current().state,'done');
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,1);
-  assert.equal(requireTask(f.db,f.task.id).state,checks ? 'probando' : 'revisando');
+  // sin check: ni aprobación del usuario, se pide la integración al aprobar (antes esperaba 35 min al atasco)
+  assert.equal(requireTask(f.db,f.task.id).state,checks ? 'probando' : 'integrando');
+  assert.equal(f.db.prepare("select count(*) n from commands where type='integrate.run'").get()!.n,checks ? 0 : 1);
   const queued=f.db.prepare("select payload from commands where type='checks.run'").all().map(r=>JSON.parse(r.payload as string));
   assert.deepEqual(queued,checks ? [{taskId:f.task.id,runId:f.implementer.id}] : [],'al aprobar con check: se lanzan las comprobaciones');
   const artifact=listArtifacts(f.db,{runId:f.reviewer().id,kind:'report'})[0];assert.ok(artifact);
