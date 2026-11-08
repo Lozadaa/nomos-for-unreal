@@ -1,4 +1,6 @@
-import type { Handler } from '../runner.ts';
+import type { Handler, WorkerContext } from '../runner.ts';
+import type { Run } from '../model.ts';
+import { requestReview } from '../review-request.ts';
 import { requireRun, runTree, updateRun, queuePoll } from '../repo/worker.ts';
 import { transaction } from '../repo/rows.ts';
 import { finishRun } from '../repo/runs.ts';
@@ -58,7 +60,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   // hito 18: el HEAD de la marca; si después aparecen commits sin otra marca, el barrido de atascos pide la revisión
   const doneCommit=run.role!=='revisor' && fresh.some(m=>m.kind==='DONE')
     ? await (async()=>ctx.git.head(runTree(db,run).path))().catch(()=>undefined) : undefined;
-  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined;
+  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined,finished=false;
   transaction(db,()=>{
     const previous=run.metadata,lastLines=snapshot ? screenLines.slice(-20) : [...(previous.lastLines ?? []),...lines].slice(-20);
     const cursor=stream.source==='screen' ? previous.cursor ?? '0' : stream.cursor;
@@ -99,6 +101,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
         moveTask(db,run.taskId,'revisando');attribute(db,run.taskId,'implemento',run);refreshPendingDecision(db,run.taskId);
         // hito 5: toda pantalla UMG pasa por capturas y QA visual antes de cerrarse
         if(task.area==='ui') enqueue(db,'ui.cycle',{taskId:run.taskId,runId:run.id},uiCycleKey(run));
+        finished=task.area!=='ui';
         return;
       }
       if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) {review=marker;break;}continue;}
@@ -122,4 +125,15 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   });
   inbox.consume();
   if(review) await finishReview(ctx,run,review);
+  if(finished && doneCommit) await autoReview(ctx,run,doneCommit);
 };
+/** Experimento metras 2026-11-08: NOMOS_DONE con commit nuevo y nada pendiente pide la revisión al momento, sin esperar al
+ *  director (la UI la pide su QA visual). Si no procede ahora, el barrido de atascos la retoma. */
+async function autoReview(ctx:WorkerContext,run:Run,commit:string):Promise<void> {
+  const task=requireTask(ctx.db,run.taskId);
+  if(task.decisionId || task.blockedReason || commit===runTree(ctx.db,run).baseCommit) return;
+  try {
+    const commandId=await requestReview(ctx.db,ctx.dataDir,ctx.git,run.taskId,run.id);
+    appendEvent(ctx.db,'review.auto_requested',null,{taskId:run.taskId,commit,reason:'NOMOS_DONE',commandId});
+  } catch { /* p. ej. otra corrección en cola o una revisión en marcha */ }
+}
