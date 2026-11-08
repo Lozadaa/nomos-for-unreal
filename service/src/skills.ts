@@ -3,17 +3,21 @@ import { join, resolve, relative, isAbsolute } from 'node:path';
 
 const groups:Record<string,string[]>={
   // ue-oficio (skill propia): trampas de Python 5.8, importar, cámara, luz, PCG y crashes; la carga todo rol que toca el editor
-  implementation:['ue-project-context','ue-cpp-foundations','ue-gameplay-framework','ue-module-build-system','ue-oficio'],
-  ability:['ue-gameplay-abilities','ue-niagara-effects','ue-animation-system','ue-audio-system','ue-oficio'],
-  vfx:['ue-niagara-effects','ue-materials-rendering','vfx-fx','ue-oficio'],
+  // set ampliado 2026-11-08: ue-* (quodsoler), unreal-*/disciplinas (awesome-gamedev-agent-skills, Apache-2.0), unreal-best-practices (maystudios, MIT)
+  implementation:['ue-project-context','ue-cpp-foundations','ue-gameplay-framework','ue-actor-component-architecture','ue-module-build-system',
+    'ue-input-system','ue-physics-collision','physics-tuning','camera-systems','game-feel','ue-testing-debugging','ue-oficio'],
+  ability:['ue-gameplay-abilities','ue-niagara-effects','ue-animation-system','ue-audio-system','game-feel','ue-oficio'],
+  vfx:['ue-niagara-effects','unreal-niagara','ue-materials-rendering','vfx-fx','lighting','ue-oficio'],
   ui:['game-ui-art-director','ue-ui-umg-slate','game-ui-design','game-ui-ux','ue-umg-ui','ux-writing','ue-visual-qa','ue-oficio'],
   assets:['blender-director','asset-optimization','collision-proxy','lod-pipeline','unreal-export','qa-review','ue-asset-intake','ue-oficio'],
   animation:['rigging','ue-animation-system','ue-oficio'],
-  world:['environment-artist','set-dressing','ue-procedural-generation','ue-world-level-streaming','lighting','ue-oficio'],
-  audio:['ue-audio-system'],
-  qa:['ue-testing-debugging','ue-visual-qa','ue-test-package','unreal-packaging','ue-oficio'],
+  world:['environment-artist','set-dressing','level-design','ue-procedural-generation','ue-world-level-streaming','lighting','ue-oficio'],
+  camera:['camera-systems','camera-cinematography','ue-sequencer-cinematics','ue-oficio'],
+  ai:['ue-ai-navigation','ue-state-trees','unreal-behavior-trees','game-ai','ue-oficio'],
+  audio:['ue-audio-system','audio-design'],
+  qa:['ue-testing-debugging','ue-visual-qa','unreal-packaging','performance-optimization','ue-oficio'],
   review:['code-review','superpowers:requesting-code-review'],
-  scope:['ue-jam-director','game-jam']
+  scope:['game-jam','prototype-fast','unreal-best-practices']
 };
 const aliases:Record<string,string>={
   implementacion:'implementation',implementation:'implementation',programmer:'implementation',cpp:'implementation',blueprint:'implementation',
@@ -23,7 +27,9 @@ const aliases:Record<string,string>={
   personaje:'animation',animacion:'animation',animation:'animation',character:'animation',
   escenarios:'world',nivel:'world',mundo:'world',environment:'world',world:'world',
   vfx:'vfx',efectos:'vfx',materiales:'vfx',material:'vfx',niagara:'vfx',
-  audio:'audio',qa:'qa',builds:'qa',testing:'qa',
+  camara:'camera',camera:'camera',cinematica:'camera',
+  ia:'ai',ai:'ai',enemigos:'ai',npc:'ai',
+  audio:'audio',sonido:'audio',qa:'qa',builds:'qa',testing:'qa',
   revisor:'review',reviewer:'review',review:'review',
   alcance:'scope',jam:'scope','game-jam':'scope'
 };
