@@ -184,12 +184,22 @@ const comments = (db: DatabaseSync): ApprovalComment[] => db.prepare(`select typ
 /** «Una frase de qué es»: la primera línea de «## Qué» de la spec. */
 const summaryOf = (spec: string) => (/^##\s*Qué\s*$\n+([^\n#][^\n]*)/m.exec(spec)?.[1] ?? spec.split('\n').find(l => l.trim() && !l.startsWith('#')) ?? '').trim().slice(0, 200);
 
+/** De lo que dejan las comprobaciones, solo la última pasada de cada una (con todos sus estados y resoluciones);
+ *  las de intentos anteriores ya no son lo que se aprueba. Lo que no viene de una comprobación se queda. */
+export function latestCheck(artifacts: Artifact[]): Artifact[] {
+  const of = (x: Artifact) => { const p = (x.provenance ?? {}) as Record<string, unknown>;
+    return typeof p.check === 'string' && typeof p.testRunId === 'string' ? {check: p.check, run: p.testRunId} : null; };
+  const latest = new Map<string, Artifact>();
+  for (const x of artifacts) { const k = of(x); if (k && !((latest.get(k.check)?.createdAt ?? '') > x.createdAt)) latest.set(k.check, x); }
+  return artifacts.filter(x => { const k = of(x); return !k || of(latest.get(k.check)!)!.run === k.run; });
+}
+
 /** `GET /approvals`: lo pendiente primero; cada elemento con su evidencia visual (vídeos e imágenes) y sus comentarios. */
 export function listApprovals(db: DatabaseSync) {
   const all = db.prepare('select * from approvals order by created_at desc').all().map(decode), notes = comments(db);
   const items = all.toSorted((a, b) => Number(b.state === 'pending') - Number(a.state === 'pending')).map(a => {
     const task = requireTask(db, a.taskId), visual = (x: Artifact) => x.kind === 'video' || x.kind === 'screenshot';
-    const evidence = listArtifacts(db, {taskId: a.taskId}).filter(visual)
+    const evidence = latestCheck(listArtifacts(db, {taskId: a.taskId}).filter(visual))
       .toSorted((x, y) => Number(y.kind === 'video') - Number(x.kind === 'video') || y.createdAt.localeCompare(x.createdAt));
     // hito 28: la línea base trae sus imágenes (propuesta, actual, diff) por `/approvals/:id/baseline/…`
     if (a.baseline) return {...a, type: 'baseline', title: `Línea base: ${a.baseline.name.split('-').join(' ')}`, area: task.area,

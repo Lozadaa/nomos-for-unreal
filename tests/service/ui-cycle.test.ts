@@ -73,12 +73,18 @@ async function qaReview(t: any, verdict: string, before?: (f: any) => void) {
   writeFileSync(join(dir, 'ui-1280x720.png.json'), '{"camara":{}}');
   addArtifact(f.db, {taskId: f.task.id, runId: f.implementer.id, kind: 'screenshot', path: join(dir, 'ui-1280x720.png'),
     provenance: {testRunId: test.id, resolution: '1280x720', map: '/Game/Maps/Nivel1', control: join(dir, 'ui-1280x720-control.png')}});
+  writeFileSync(join(dir, 'ui-1280x720-estado1-cargando.png'), 'png'); writeFileSync(join(dir, 'ui-1280x720-estado1-cargando-control.png'), 'png');
+  addArtifact(f.db, {taskId: f.task.id, runId: f.implementer.id, kind: 'screenshot', path: join(dir, 'ui-1280x720-estado1-cargando.png'),
+    provenance: {testRunId: test.id, resolution: '1280x720', estado: 'cargando', map: '/Game/Maps/Nivel1', control: join(dir, 'ui-1280x720-estado1-cargando-control.png')}});
   const state = f.state(); state.treePath = join(f.dir, 'qa-tree'); state.terminalHandle = 'term_qa'; state.tail = [];
   writeFileSync(f.file, JSON.stringify(state));
   await f.invoke('review.start', {taskId: f.task.id, implementerRunId: f.implementer.id, provider: 'claude', qa: {testRunId: test.id}});
   const brief = readFileSync(join(f.reviewTree().path, '.nomos-brief.md'), 'utf8');
   assert.match(brief, /QA visual/);
-  assert.match(brief, /\.nomos-review\/ui-1280x720\.png` · 1280x720 · mapa \/Game\/Maps\/Nivel1/);
+  assert.match(brief, /\.nomos-review\/ui-1280x720\.png` · estado \*\*arranque\*\* · 1280x720 · mapa \/Game\/Maps\/Nivel1/);
+  // cada estado de `## Estados` llega etiquetado y con su control
+  assert.match(brief, /\.nomos-review\/ui-1280x720-estado1-cargando\.png` · estado \*\*cargando\*\* · 1280x720 · .*control `\.nomos-review\/ui-1280x720-estado1-cargando-control\.png`/);
+  assert.match(brief, /nombra el estado/);
   assert.ok(existsSync(join(f.reviewTree().path, '.nomos-review', 'ui-1280x720-control.png')));
   // la escena de la captura viaja con ella y el brief la nombra
   assert.ok(existsSync(join(f.reviewTree().path, '.nomos-review', 'ui-1280x720.png.json')));
@@ -248,4 +254,50 @@ test('caché: con los mismos archivos que un intento fallido no se relanza Unrea
     await cycle('k4'); await cycle('k5');
     assert.equal(launches(), 4, 'un juego que no dejó capturas no se cachea: puede ser pasajero');
   } finally { f.close(); }
+});
+
+const specEstados = (estados: string) => `## Qué\nHUD de la partida.\n## Por qué\nSe juega.\n## Criterios de aceptación\n1. Se ve\n## Alcance\n- Source\n## No tocar\n- nada\n## Estados\n${estados}`;
+
+test('## Estados: una sesión por resolución captura cada estado (todos a 1280×720, el primero a 1920×1080) con captureCvars + los del estado', async () => {
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
+  try {
+    process.env.NOMOS_FAKE = 'ok';
+    writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({checks: {captureCvars: ['Juego.CamaraFija 1']}}));
+    f.db.prepare('update tasks set spec=? where id=?').run(specEstados('- apuntando: Metras.Estado 0\n- cargando fuerza: Metras.Estado 1; Metras.Fuerza 0.6\n- fin de partida: Metras.Fin 1\n'), f.task.id);
+    await f.handlers['ui.cycle']({id: 'c9', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c9'} as any, f.ctx);
+    const shots = listArtifacts(f.db, {taskId: f.task.id, kind: 'screenshot'}).map(s => s.provenance as any);
+    assert.deepEqual(shots.map(p => [p.check, p.resolution, p.estado ?? null]), [['umg', '1280x720', null], ['umg', '1280x720', 'apuntando'],
+      ['umg', '1280x720', 'cargando fuerza'], ['umg', '1280x720', 'fin de partida'], ['umg', '1920x1080', null], ['umg', '1920x1080', 'apuntando']]);
+    assert.deepEqual(shots[2].comandos, ['Juego.CamaraFija 1', 'Metras.Estado 1', 'Metras.Fuerza 0.6']);
+    assert.ok(shots.every(p => existsSync(p.control) && p.diffRatio >= 0.005));
+    const [row] = filtered<TestRun>(f.db, 'test_runs', {taskId: f.task.id});
+    assert.deepEqual([row.result, row.config], ['running', '1280x720, 1920x1080 · estados: apuntando, cargando fuerza, fin de partida']);
+    assert.equal(filtered<Command>(f.db, 'commands', {type: 'review.start'}).length, 1);
+    assert.deepEqual(f.events('approval.requested').map(e => e.baseline), ['umg-ui-1280x720', 'umg-ui-1920x1080'], 'los estados no proponen líneas base');
+  } finally { f.close(); }
+});
+
+test('## Estados: un estado sin UI falla nombrándolo, los demás siguen medidos y el diagnóstico lo sitúa', async () => {
+  const f = checksFixture({files: ['Source/Juego/JuegoVidaWidget.cpp']});
+  try {
+    process.env.NOMOS_FAKE = 'ok'; process.env.NOMOS_FAKE_ESTADO_SIN_UI = 'turno cpu';
+    f.db.prepare('update tasks set spec=? where id=?').run(specEstados('- turno cpu: Metras.Turno 1\n- fin: Metras.Fin 1\n'), f.task.id);
+    const result = await f.handlers['ui.cycle']({id: 'c10', type: 'ui.cycle', payload: {taskId: f.task.id}, idempotencyKey: 'c10'} as any, f.ctx) as any;
+    assert.equal(result.passed, false);
+    const summary = f.events('test.failed')[0].summary;
+    assert.match(summary, /^1280×720 · turno cpu: la captura no contiene la UI/m);
+    assert.match(summary, /1920×1080 · turno cpu: la captura no contiene la UI/);
+    assert.match(summary, /1280×720 · fin: UI visible/);
+    const {umgFindings} = await import('../../service/src/checks/umg.ts');
+    assert.deepEqual(umgFindings(summary).map(x => [x.rule, x.where]), [['UI visible', '1280×720 · turno cpu'], ['UI visible', '1920×1080 · turno cpu']]);
+  } finally { delete process.env.NOMOS_FAKE_ESTADO_SIN_UI; f.close(); }
+});
+
+test('## Estados: la spec valida nombre y órdenes como captureCvars (sin comas ni comillas)', async () => {
+  const {parseTaskSpec, taskEstados} = await import('../../service/src/task-spec.ts');
+  assert.deepEqual(taskEstados(specEstados('- apuntando: `Metras.Estado 0`; Metras.Zoom 1\n')), [{nombre: 'apuntando', comandos: ['Metras.Estado 0', 'Metras.Zoom 1']}]);
+  assert.deepEqual(taskEstados(specEstados('').replace('## Estados\n', '')), []);
+  assert.throws(() => parseTaskSpec(specEstados('- fin: Metras.Fin 1,2\n')), /estado inválido/);
+  assert.throws(() => parseTaskSpec(specEstados('- fin: say "hola"\n')), /estado inválido/);
+  assert.throws(() => parseTaskSpec(specEstados('- fin: A 1\n- fin: B 1\n')), /estado repetido/);
 });

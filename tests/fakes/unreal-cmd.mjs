@@ -126,8 +126,12 @@ if (mode === 'hang') {
     // hito 10: las vistas del rig; «views_slow» imita un editor que pasa de 90 s y solo deja la primera
     const requested = JSON.parse(process.env.NOMOS_VIEWS || '[]'), done = mode === 'views_slow' ? requested.slice(0, 1) : requested;
     for (const v of done) png(v.path, width, height, false, v.view.length);
+    // estados de la UI en la misma sesión; NOMOS_FAKE_ESTADO_SIN_UI=nombre deja ese sin UI
+    const estados = JSON.parse(process.env.NOMOS_ESTADOS || '[]');
+    for (const e of estados) { png(e.shot, width, height, process.env.NOMOS_FAKE_ESTADO_SIN_UI !== e.nombre, 3); png(e.control, width, height, false); }
     write({ok: true, engine, map, widgets: mode === 'noui' ? [] : ['WBP_Vida_C'], screenshot: process.env.NOMOS_SHOT,
       control: process.env.NOMOS_CONTROL || null, errors: [],
+      estados: Object.fromEntries(estados.map(e => [e.nombre, {widgets: ['WBP_Vida_C'], screenshot: e.shot, control: e.control, comandos: e.comandos}])),
       jugador: mode === 'cayendo' ? {pawn: {clase: 'BP_Jugador_C', pos: [0, 0, -800], base_z: -890, suelo_z: null, cayendo: true}, player_start: [[0, 0, 100]]}
         : {pawn: {clase: 'BP_Jugador_C', pos: [0, 0, 92], base_z: 2, suelo_z: 0, cayendo: false}, player_start: [[0, 0, 100]]}, views: Object.fromEntries(done.map(v => [v.view, v.path])),
       ...(mode === 'views_slow' ? {views_note: `Vistas extra cortadas a los 90 s: ${done.length} de ${requested.length}`} : {})});

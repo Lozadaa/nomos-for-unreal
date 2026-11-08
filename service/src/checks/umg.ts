@@ -6,24 +6,37 @@ import { capture } from './map.ts';
 import { decodePng, pixelDiffRatio } from './png.ts';
 import { unrealOf, type Executor, type Outcome } from './run.ts';
 import { appendEvent } from '../store.ts';
+import { captureCvars, readConfig } from '../config.ts';
+import { taskEstados } from '../task-spec.ts';
 
 export type UmgOptions = {resolutions?: [number, number][]; map?: string; widgets?: string[]};
 export const defaultResolutions: [number, number][] = [[1280, 720], [1920, 1080]];
 /** Review Focus 2: con UI y sin UI deben diferir al menos en el 0,5 % de los píxeles. */
 export const minUiDiff = 0.005;
 
-type Pie = {ok: boolean; map?: string; widgets: string[]; errors: string[]; engine?: string};
+type Pie = {ok: boolean; map?: string; widgets: string[]; errors: string[]; engine?: string;
+  estados?: Record<string, {widgets: string[]; screenshot?: string; control?: string}>};
+const slug = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const percent = (ratio: number, digits: number) => (ratio * 100).toFixed(digits).replace('.', ',');
 
-/** Ciclo UMG, fase de captura: por resolución, juego con UI y captura de control; deja la prueba en `running` para el QA visual. */
+/** Ciclo UMG, fase de captura: por resolución, juego con UI y captura de control; deja la prueba en `running` para el QA visual.
+ *  Con `## Estados` en la spec, la misma sesión de juego captura además cada estado (órdenes de `checks.captureCvars` y las del
+ *  estado, una pausa y otra vez con y sin UI): todos en la primera resolución y solo el primero en las demás (cada uno cuesta segundos, no un arranque). */
 export function umgCapture(opts: UmgOptions = {}): Executor {
-  return async (ctx, {project, dir}, deps) => {
-    const unreal = unrealOf(ctx, deps), logs: string[] = [], summary: string[] = [];
+  return async (ctx, {project, dir, task}, deps) => {
+    const unreal = unrealOf(ctx, deps), logs: string[] = [], summary: string[] = [], failures: string[] = [];
     const artifacts: NonNullable<Outcome['artifacts']> = [];
+    const estados = taskEstados(task.spec ?? ''), cvars = estados.length ? captureCvars(readConfig(ctx.dataDir)) : [];
     let map: string | null = opts.map ?? null, engine: string | null = null;
-    for (const [width, height] of opts.resolutions ?? defaultResolutions) {
+    for (const [index, [width, height]] of (opts.resolutions ?? defaultResolutions).entries()) {
       const name = `ui-${width}x${height}`, shot = join(dir, `${name}.png`), control = join(dir, `${name}-control.png`);
+      const own = (index ? estados.slice(0, 1) : estados).map((e, k) => {
+        const file = `${name}-estado${k + 1}${slug(e.nombre) ? `-${slug(e.nombre)}` : ''}`;
+        return {nombre: e.nombre, comandos: [...cvars, ...e.comandos], shot: join(dir, `${file}.png`), control: join(dir, `${file}-control.png`)};
+      });
       const run = await capture(unreal, project.uproject, opts.map, [width, height], shot, deps,
-        {NOMOS_CONTROL: control, ...(opts.widgets?.length ? {NOMOS_WIDGETS: JSON.stringify(opts.widgets)} : {})});
+        {NOMOS_CONTROL: control, ...(opts.widgets?.length ? {NOMOS_WIDGETS: JSON.stringify(opts.widgets)} : {}),
+          ...(own.length ? {NOMOS_ESTADOS: JSON.stringify(own)} : {})});
       logs.push(run.log);
       const pie = run.reportJson as Pie | undefined;
       if (!pie?.ok) return {result: 'failed', log: logs.join('\n'), map, summary: [`${width}×${height}: ${pie?.errors.join('; ') || 'el juego no produjo las capturas'}`]};
@@ -35,8 +48,20 @@ export function umgCapture(opts: UmgOptions = {}): Executor {
       summary.push(`${width}×${height}: UI visible (${(ratio * 100).toFixed(1).replace('.', ',')} % de píxeles), widgets ${pie.widgets.join(', ') || 'sin nombre'}`);
       artifacts.push({kind: 'screenshot', path: shot, provenance: {resolution: `${width}x${height}`, map, widget: pie.widgets[0] ?? null,
         widgets: pie.widgets, control, diffRatio: Number(ratio.toFixed(4))}});
+      // un estado que falla no tapa a los demás: se anotan todos y la prueba falla al final con la lista
+      for (const e of own) {
+        const got = pie.estados?.[e.nombre], where = `${width}×${height} · ${e.nombre}`;
+        if (!got?.screenshot || !got.control || !existsSync(e.shot) || !existsSync(e.control)) { failures.push(`${where}: el juego no dejó la captura del estado`); continue; }
+        const r = pixelDiffRatio(decodePng(readFileSync(e.shot)), decodePng(readFileSync(e.control)));
+        if (r < minUiDiff) { failures.push(`${where}: la captura no contiene la UI (difiere un ${percent(r, 2)} % de la captura sin widgets); widgets ${got.widgets.join(', ') || 'ninguno'}`); continue; }
+        summary.push(`${where}: UI visible (${percent(r, 1)} % de píxeles), widgets ${got.widgets.join(', ') || 'sin nombre'}`);
+        artifacts.push({kind: 'screenshot', path: e.shot, provenance: {resolution: `${width}x${height}`, estado: e.nombre, comandos: e.comandos, map,
+          widget: got.widgets[0] ?? null, widgets: got.widgets, control: e.control, diffRatio: Number(r.toFixed(4))}});
+      }
     }
-    return {result: 'running', log: logs.join('\n'), map, engine, config: (opts.resolutions ?? defaultResolutions).map(r => r.join('x')).join(', '),
+    if (failures.length) return {result: 'failed', log: logs.join('\n'), map, engine, summary: [...failures, ...summary]};
+    return {result: 'running', log: logs.join('\n'), map, engine, config: (opts.resolutions ?? defaultResolutions).map(r => r.join('x')).join(', ')
+      + (estados.length ? ` · estados: ${estados.map(e => e.nombre).join(', ')}` : ''),
       summary: [...summary, 'Capturas listas: esperando el QA visual'], artifacts};
   };
 }
@@ -54,14 +79,14 @@ export function umgFindings(summary: string): UmgFinding[] {
   const widgets = lines.find(l => l.startsWith('Widgets en el viewport:'))?.slice('Widgets en el viewport:'.length).trim();
   for (const line of lines) {
     let m: RegExpExecArray | null;
-    if ((m = /^(\d+×\d+): la captura no contiene la UI \(difiere un ([\d,.]+) %/.exec(line)))
+    if ((m = /^(\d+×\d+(?: · [^:]+)?): la captura no contiene la UI \(difiere un ([\d,.]+) %/.exec(line)))
       out.push({rule: 'UI visible', where: `${m[1]}${widgets ? ` · widgets ${widgets}` : ''}`, measured: `${m[2]} %`, expected: `≥ ${pct(minUiDiff * 100)}`,
         value: num(m[2]), target: minUiDiff * 100, up: true, weight: 3});
     else if ((m = /^(\S+): la captura difiere un ([\d,.]+) % de la línea base \(tolerancia ([\d,.]+) %\)/.exec(line)))
       out.push({rule: 'línea base', where: m[1], measured: `${m[2]} %`, expected: `≤ ${m[3]} %`, value: num(m[2]), target: num(m[3]), weight: 2});
     else if ((m = /^(.+?:\d+) \[(bloqueante|mayor|menor)\] (.+)$/.exec(line)))
       out.push({rule: `QA ${m[2]}`, where: m[1].replace(/^\.nomos-review\//, ''), measured: m[3].slice(0, 200), expected: 'sin hallazgo', weight: severity[m[2]]});
-    else if ((m = /^(\d+×\d+): (?!UI visible)(.+)$/.exec(line)))
+    else if ((m = /^(\d+×\d+(?: · [^:]+)?): (?!UI visible)(.+)$/.exec(line)))
       out.push({rule: 'captura', where: m[1], measured: m[2].slice(0, 200), expected: 'el juego deja las capturas', weight: 3});
   }
   // un fallo sin forma conocida (tiempo agotado, error del script) sigue contando como uno

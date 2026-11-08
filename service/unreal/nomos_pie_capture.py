@@ -12,6 +12,9 @@ Variables de entorno:
   NOMOS_WIDGETS lista JSON de clases de widget esperadas; sin ella vale cualquier UserWidget en el viewport
   NOMOS_VIEWS   (hito 10) lista JSON de vistas extra {view, path}: cámara libre que orbita al pawn, HighResShot sin UI
   NOMOS_VIEWS_BUDGET  segundos para las vistas extra (90); pasado el plazo se entregan las que haya y se anota
+  NOMOS_ESTADOS lista JSON de estados de la UI [{nombre, comandos, shot, control}] (`## Estados` de la spec): tras las capturas
+                de arranque, en la misma sesión, despausa, ejecuta sus órdenes de consola, espera NOMOS_ESTADO_WAIT s (3),
+                pausa y captura con UI y sin ella. Quedan en report["estados"][nombre]
 
 Junto a cada PNG queda `<png>.json` (escena.py): cámara, pawn y los actores que se ven, con su posición en el mundo y en la
 imagen. Idea tomada de per-simmons/unreal-agent-harness (capturas anotadas): el revisor razona posiciones sin otra sonda.
@@ -75,11 +78,12 @@ def shoot(target, phase):
     console("Shot showui")  # captura el viewport con Slate/UMG; HighResShot solo renderiza la escena
 
 
-def landed(key):
+def landed(key=None):
     new = sorted(pngs() - state["before"], key=os.path.getmtime)
     if new and os.path.getsize(new[-1]) > 0 and time.time() - os.path.getmtime(new[-1]) > 0.5:
         shutil.copyfile(new[-1], state["target"])
-        report[key] = state["target"]
+        if key:
+            report[key] = state["target"]
         return True
     if time.time() - state["t"] > FILE_WAIT:
         report["errors"].append("La captura no se escribió en 20 s")
@@ -140,6 +144,61 @@ def view_tick():
             state.update(view=state["view"] + 1, phase="view-aim")
 
 
+# --- Estados de la UI (`## Estados` de la spec): varias capturas en la misma sesión ---------------------------------
+ESTADOS = json.loads(os.environ.get("NOMOS_ESTADOS") or "[]")
+ESTADO_WAIT = float(os.environ.get("NOMOS_ESTADO_WAIT", "3"))
+report["estados"] = {}
+
+
+def hide(widgets):
+    """Oculta los widgets recordando su visibilidad para devolverla en el siguiente estado."""
+    state["hidden"] = [(w, w.get_visibility()) for w in widgets]
+    for w in widgets:
+        w.set_visibility(unreal.SlateVisibility.COLLAPSED)
+
+
+def viewport_widgets():
+    return [w for w in unreal.WidgetLibrary.get_all_widgets_of_class(state["world"], unreal.UserWidget, True) or [] if w.is_in_viewport()]
+
+
+def estado_tick():
+    item = ESTADOS[state["estado"]]
+    elapsed = time.time() - state["t"]
+    if state["phase"] == "estado-go":
+        for w, vis in state.get("hidden", []):
+            w.set_visibility(vis)
+        state["hidden"] = []
+        console("pause")  # el juego quedó en pausa tras la captura anterior: el estado necesita que avance
+        for command in item["comandos"]:
+            console(command)
+        state.update(phase="estado-wait", t=time.time())
+    elif state["phase"] == "estado-wait" and elapsed > ESTADO_WAIT:
+        console("pause")
+        state["found"] = viewport_widgets()
+        report["estados"][item["nombre"]] = {"widgets": [w.get_class().get_name() for w in state["found"]],
+                                             "escena": escena(state["world"], item["shot"])}
+        shoot(item["shot"], "estado-ui")
+    elif state["phase"] == "estado-ui" and landed():
+        report["estados"][item["nombre"]]["screenshot"] = item["shot"]
+        hide(state["found"])
+        state.update(phase="estado-hide", t=time.time())
+    elif state["phase"] == "estado-hide" and elapsed > 0.5:
+        shoot(item["control"], "estado-control")
+    elif state["phase"] == "estado-control" and landed():
+        report["estados"][item["nombre"]]["control"] = item["control"]
+        if state["estado"] + 1 < len(ESTADOS):
+            state.update(estado=state["estado"] + 1, phase="estado-go", t=time.time())
+        else:
+            start_views()
+
+
+def start_estados():
+    """Tras las capturas de arranque: los estados pedidos y después las vistas extra."""
+    if not ESTADOS:
+        return start_views()
+    state.update(phase="estado-go", estado=0, t=time.time())
+
+
 def start_views():
     """Tras las capturas del jugador: si hay vistas pedidas, el rig; si no, terminar."""
     if not VIEWS:
@@ -173,14 +232,15 @@ def tick(dt):
                 shoot(SHOT, "ui")
         elif state["phase"] == "ui" and landed("screenshot"):
             if not CONTROL:
-                return start_views()
-            for widget in state["found"]:
-                widget.set_visibility(unreal.SlateVisibility.COLLAPSED)
+                return start_estados()
+            hide(state["found"])
             state.update(phase="hide", t=time.time())
         elif state["phase"] == "hide" and elapsed > 0.5:
             shoot(CONTROL, "control")
         elif state["phase"] == "control" and landed("control"):
-            start_views()
+            start_estados()
+        elif state["phase"].startswith("estado"):
+            estado_tick()
         elif state["phase"].startswith("view"):
             try:
                 view_tick()

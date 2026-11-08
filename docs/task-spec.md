@@ -43,6 +43,8 @@ cualquier encabezado termina la sección anterior. No se infieren criterios del 
 Las rutas son relativas al juego, literales, sin absolutos, `..`, glob ni segmentos
 ambiguos. Los directorios se normalizan como prefijos por segmentos. No tocar se
 mantiene en el encargo y en el brief; no constituye una columna independiente.
+`## Estados` es opcional (tareas de UI): `- nombre: orden1; orden2`, órdenes de consola sin comas ni
+comillas que ponen ese estado; la comprobación umg captura cada uno (skills/nomos/references/ui-ciclo.md).
 
 `worker start ID` usa claude, implementacion y skills vacías por defecto. Sin `--attempt`
 (hito 21) repite el intento vivo o, si el último ya terminó, arranca el siguiente.

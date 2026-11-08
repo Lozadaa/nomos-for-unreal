@@ -94,8 +94,10 @@ function visualCheck(ctx: WorkerContext, id: CheckId, dir: string, outcome: Outc
   const intended = newBaseAllowed(ctx.db, input);
   const tolerance = visualTolerance(readConfig(ctx.dataDir)), lines: string[] = [], extra: NonNullable<Outcome['artifacts']> = [];
   let failed = false;
-  // hito 10: solo la vista del jugador tiene línea base; las del rig y la hoja de contactos no se comparan
-  const judged = (a: NonNullable<Outcome['artifacts']>[number]) => a.kind === 'screenshot' && !a.provenance?.sheet && (!a.provenance?.view || a.provenance.view === 'player');
+  // hito 10: solo la vista del jugador tiene línea base; las del rig y la hoja de contactos no se comparan.
+  // Los estados de la UI (`## Estados`) tampoco: los juzga el QA visual y no llenan «Por aprobar» de propuestas
+  const judged = (a: NonNullable<Outcome['artifacts']>[number]) => a.kind === 'screenshot' && !a.provenance?.sheet && !a.provenance?.estado
+    && (!a.provenance?.view || a.provenance.view === 'player');
   for (const shot of (outcome.artifacts ?? []).filter(judged)) {
     const base = basename(shot.path, extname(shot.path)).replace(/^HighresScreenshot\d+$/i, '1280x720');
     // hito 5b: la línea base es de un mapa; un build o un PIE de otro mapa se compara con la suya (o la crea)
