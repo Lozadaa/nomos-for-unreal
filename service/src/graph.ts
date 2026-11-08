@@ -1,6 +1,7 @@
-import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
-import { delimiter, dirname, join } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { enqueue } from './commands.ts';
@@ -33,12 +34,21 @@ export function hasCode(projectDir: string): boolean {
   try { return readdirSync(join(projectDir, 'Source'), {recursive: true}).some(f => /\.(cpp|h)$/i.test(String(f))); } catch { return false; }
 }
 
+const gitExclude = (dir: string): string | null => {
+  try {
+    const common = execFileSync('git', ['-C', dir, 'rev-parse', '--git-common-dir'], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}).trim();
+    const file = join(resolve(dir, common), 'info', 'exclude');
+    mkdirSync(dirname(file), {recursive: true});
+    return file;
+  } catch { return null; }
+};
 /** Encola `graph.update` (crea o actualiza el grafo) salvo `graphify.enabled:false`, sin graphify, fuera de un juego, sin C++ o con uno ya en cola. */
 export function queueGraph(db: DatabaseSync, dataDir: string, projectDir = dirname(dataDir)): boolean {
   if ((readConfig(dataDir) as {graphify?: {enabled?: boolean}}).graphify?.enabled === false || !findGraphify()) return false;
   if (!readdirSync(projectDir).some(f => f.endsWith('.uproject')) || !hasCode(projectDir)) return false;
   if (db.prepare("select 1 from commands where type='graph.update' and state in ('pending','running')").get()) return false;
-  const ignore = join(projectDir, '.gitignore'), ignored = existsSync(ignore) ? readFileSync(ignore, 'utf8') : '';
+  // en .git/info/exclude (no versionado): tocar .gitignore dejaba el juego con cambios sin registrar (metras 2026-11-08)
+  const ignore = gitExclude(projectDir) ?? join(projectDir, '.gitignore'), ignored = existsSync(ignore) ? readFileSync(ignore, 'utf8') : '';
   const missing = ['graphify-out/', '.graphifyignore'].filter(line => !ignored.split(/\r?\n/).includes(line));
   if (missing.length) appendFileSync(ignore, (ignored && !ignored.endsWith('\n') ? '\n' : '') + missing.join('\n') + '\n');
   if (!existsSync(join(projectDir, '.graphifyignore'))) writeFileSync(join(projectDir, '.graphifyignore'), allow);
