@@ -55,6 +55,17 @@ test('start: sin graphify-out/ lanza graphify en segundo plano y lo ignora en Gi
   assert.match(readFileSync(join(root, '.graphifyignore'), 'utf8'), /^!Source\/$/m);
 });
 
+test('queueGraph: en un repo Git ignora graphify en .git/info/exclude y no toca .gitignore', async t => {
+  const {root, dataDir} = game(t);
+  const { execFileSync } = await import('node:child_process'); execFileSync('git', ['-C', root, 'init', '-q']);
+  mkdirSync(join(root, 'bin')); process.env.NOMOS_GRAPHIFY = fakeGraphify(join(root, 'bin'));
+  const db = openDb(join(dataDir, 'nomos.db'));
+  try { assert.equal(queueGraph(db, dataDir), true); } finally { db.close(); }
+  assert.equal(readFileSync(join(root, '.gitignore'), 'utf8'), '.nomos/\n');
+  assert.match(readFileSync(join(root, '.git', 'info', 'exclude'), 'utf8'), /^graphify-out\/$/m);
+  assert.match(readFileSync(join(root, '.git', 'info', 'exclude'), 'utf8'), /^\.graphifyignore$/m);
+});
+
 test('queueGraph: respeta enabled:false y no duplica el proceso si hay uno en cola o en marcha', t => {
   const off = game(t, {graphify: {enabled: false}}), on = game(t);
   mkdirSync(join(on.root, 'bin')); process.env.NOMOS_GRAPHIFY = fakeGraphify(join(on.root, 'bin'));
