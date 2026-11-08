@@ -144,3 +144,15 @@ test('x10: un turno retenido a mano sin ningún Unreal abierto se libera a los t
   assert.deepEqual(warmToClose(f.db), ['c:/b/b.uproject']);
   assert.deepEqual(warmToClose(f.db), []);
 });
+
+// canario PiedraPapel 2026-11-08: la tarea que soltó el turno con su editor caliente abierto lo recupera aunque falte RAM
+test('x10: con su propio editor caliente abierto, el turno no exige RAM libre ni cierra «el Unreal ajeno»', (t) => {
+  const f = setup(t), run = f.working('J9.1', 'escenarios');
+  f.machine.freeGb = 2; f.machine.editors = 1;
+  assert.equal(requestTurn(f.db, f.dataDir, run.taskId, f.probe).granted, false, 'sin caliente suyo, falta RAM');
+  noteWarm(f.db, 'C:/wt/Juego.uproject', run.taskId);
+  assert.deepEqual(requestTurn(f.db, f.dataDir, run.taskId, f.probe), {granted: true});
+  releaseTurn(f.db, f.dataDir, run.taskId);
+  const otra = f.working('J9.2', 'escenarios');
+  assert.equal(requestTurn(f.db, f.dataDir, otra.taskId, f.probe).granted, false, 'el caliente de otra tarea no le sirve');
+});
