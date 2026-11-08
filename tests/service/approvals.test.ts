@@ -5,6 +5,7 @@ import { createTask, requireTask } from '../../service/src/repo/tasks.ts';
 import { startRun, finishRun } from '../../service/src/repo/runs.ts';
 import { listEvents } from '../../service/src/store.ts';
 import { needsApproval, requestApproval } from '../../service/src/approvals.ts';
+import { addArtifact } from '../../service/src/repo/artifacts.ts';
 
 // Hito 22, Tarea 4: «una sección por aprobar con imágenes y video por elemento para aprobar y yo viéndolo doy mi opinión o mi cierre».
 async function setup(t: any, area = 'gameplay', extra: object = {}) {
@@ -148,4 +149,16 @@ test('hito 26: la Decisión de 24 h cuenta desde jam.start o la última aprobaci
   f.db.prepare("update events set created_at=? where type='approval.approved'").run(new Date(Date.now() - 25 * 3_600_000).toISOString());
   jamSweep(f.db, {jam: {enabled: true, start: twoDaysAgo}} as any);
   assert.deepEqual(listDecisions(f.db, 'open').map(d => [d.taskId, d.reason]), [[j2.id, 'Hoy no hay build jugable aprobada']]);
+});
+
+test('la aprobación lleva las capturas de la última comprobación (todos sus estados), no las de intentos anteriores', async t => {
+  const f = await setup(t, 'ui');
+  const shot = (testRunId: string, name: string, estado?: string) => addArtifact(f.db, {taskId: f.task.id, kind: 'screenshot', path: `tests/${testRunId}/${name}.png`,
+    provenance: {check: 'umg', testRunId, resolution: '1280x720', ...(estado ? {estado} : {})}});
+  shot('viejo', 'ui-1280x720');
+  shot('nuevo', 'ui-1280x720'); shot('nuevo', 'ui-1280x720-cargando', 'cargando');
+  addArtifact(f.db, {taskId: f.task.id, kind: 'video', path: 'partida.mp4'});
+  requestApproval(f.db, requireTask(f.db, f.task.id));
+  const [item] = (await (await f.request('/approvals')).json()).items;
+  assert.deepEqual(item.evidence.map((a: any) => a.path).toSorted(), ['partida.mp4', 'tests/nuevo/ui-1280x720-cargando.png', 'tests/nuevo/ui-1280x720.png']);
 });
