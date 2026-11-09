@@ -41,3 +41,16 @@ test('modo rápido: el brief lo explica, los valores por defecto cambian y lo ex
   assert.deepEqual([heavyMax({}),minFreeRamGb({}),heavyRequiresNoEditor({}),limits({}).corrections],[1,6,true,3]);
   assert.equal(heavyMax({rapido:true,scheduler:{heavy:{maxConcurrent:3}}}),3);
 });
+test('ue59: con el motor 5.9 el brief manda leer el mapa de features y pide NOMOS_UE59; con 5.8 o sin versión, no',()=>{
+  const db=openDb(':memory:');
+  try {
+    const task=createTask(db,{title:'Vidrio',area:'assets',spec:'x',acceptance:['A'],scope:['Content']});
+    const run=startRun(db,{taskId:task.id,role:'implementacion',provider:'claude',skills:['ue-oficio']});
+    const brief=renderBrief(task,run,{engine:'5.9.0',projectContext:'Juego de metras'});
+    assert.match(brief,/Unreal 5\.9/);
+    assert.match(brief,/ue-oficio\/references\/ue59-juego\.md/);
+    assert.match(brief,/NOMOS_UE59/);
+    assert.match(brief,/Juego de metras/,'el contexto del proyecto se mantiene');
+    for (const engine of ['5.8.3',undefined]) assert.doesNotMatch(renderBrief(task,run,{engine}),/NOMOS_UE59/);
+  } finally {db.close();}
+});

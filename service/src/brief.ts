@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { nomosSkills } from './skills-install.ts';
 /** `turn` (hito 22): la orden con la que el worker pide Unreal al planificador antes de abrirlo. */
-export type BriefRules = {projectContext?: string; continuation?: string; turn?: string; rapido?: boolean};
+export type BriefRules = {projectContext?: string; continuation?: string; turn?: string; rapido?: boolean; engine?: string};
+/** 5.9 MegaJam Preview: el worker usa lo nuevo con plan B de 5.8 y deja constancia de qué sirvió (NOMOS_UE59). */
+const ue59Rules = `## Unreal 5.9 Preview\n\nEste proyecto corre en el 5.9 MegaJam Preview (inestable). Antes de planear, lee `
+  +`\`ue-oficio/references/ue59-juego.md\`: usa lo nuevo del 5.9 que encaje con tu tarea (vidrio con AVBOIT, StateTree o Blueprints `
+  +`por Python, notifies con sonido y Niagara…). Pruébalo 10 min como mucho; si falla o no se nota en la captura, vuelve al camino de 5.8 y sigue.\n`
+  +`En el summary, una línea por feature probada: \`NOMOS_UE59 <feature>: usada | descartada — <motivo>\`.`;
 /** Modo rápido: sin TDD estricto ni pulido; en las metras los tests de física frágiles se comieron media hora de una pista. */
 const rapidoRules = `\n## Modo rápido\n\n- Velocidad antes que pulido: haz lo que piden los criterios y nada más.\n`
   +`- Sin TDD estricto: solo tests de humo y de reglas (nada de física ni de visual: eso se comprueba jugando la demo). Si un test se vuelve frágil más de 10 min, bórralo y comprueba ese criterio jugando la demo.\n`
@@ -23,7 +28,7 @@ export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): strin
     acceptance:task.acceptance.map((item,index)=>`${index+1}. ${item}`).join('\n'),
     scope:task.scope.map(path=>`- ${path}`).join('\n') || '(vacío: no autoriza archivos)',
     provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run),
-    context:rules.projectContext ?? 'Sin contexto adicional.',rapido:rules.rapido ? rapidoRules : '',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
+    context:[rules.engine?.startsWith('5.9') ? ue59Rules : '',rules.projectContext ?? ''].filter(Boolean).join('\n\n') || 'Sin contexto adicional.',rapido:rules.rapido ? rapidoRules : '',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
     // x10: el Python del editor y los tests van al editor caliente (0,1 s por script frente a 12-15 s en frío) y piden
     // y sueltan el turno solos en cada orden, para que las comprobaciones de Nomos no esperen detrás de un turno retenido
     turn:rules.turn ? `- El Python del editor va por \`${rules.turn.replace(/worker turn (\S+)/, 'ue py --tarea $1')} <script.py> [--env K=V]\` `

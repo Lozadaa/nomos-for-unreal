@@ -20,6 +20,8 @@ ninguna fuente oficial, se supone igual que en 5.8 hasta que Epic lo diga.
 
 ## Usarlo con Nomos
 
+- Qué aprovechar del 5.9 dentro del juego y cómo activarlo: [ue59-juego](ue59-juego.md).
+
 - La ruta por defecto de Nomos sigue siendo `UE_5.8` (`defaultUnrealCmd`); no se cambia a un preview. Para probar 5.9
   en una copia del juego: `.nomos/config.json` →
   `"unrealPath": "C:\\Program Files\\Epic Games\\UE_5.9\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe"` y en el

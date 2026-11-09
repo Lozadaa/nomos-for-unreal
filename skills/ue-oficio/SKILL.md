@@ -18,7 +18,8 @@ Nomos lo dice expresamente.
 
 Si el proyecto usa el **5.9 MegaJam Preview** (`EngineAssociation` 5.9, inestable según Epic, solo en copia del juego), lee
 antes [ue59-preview](references/ue59-preview.md): lo probado aquí es de 5.8.3 y lo que 5.9 cambia o deja sin confirmar
-está allí con su fuente.
+está allí con su fuente. Qué aprovechar del 5.9 en el juego (vidrio AVBOIT, StateTree por Python, notifies con sonido y
+Niagara, volúmenes de luz ambiente…) y cómo activarlo: [ue59-juego](references/ue59-juego.md).
 
 ## Las diez que más tiempo ahorran
 

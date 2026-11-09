@@ -9,6 +9,8 @@ import type { ReviewSnapshot } from '../review.ts';
 import { startRun } from '../repo/runs.ts';
 import { updateRun, queuePoll } from '../repo/worker.ts';
 import { renderBrief } from '../brief.ts';
+import { createUnrealCmd } from '../adapters/unreal-cmd.ts';
+import { assetConfig } from '../catalog/paths.ts';
 import { workerPolicy, decisionGate } from './worker-policy.ts';
 import { OrcaError } from '../adapters/orca.ts';
 import { dispatchGuard, dispatchBlocked, pauseForDecision } from './worker-decisions.ts';
@@ -126,7 +128,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     task.area==='ui' && existsSync(uiFile) ? `## Dirección de arte de la UI (docs/ui-direction.md)\n\n${readFileSync(uiFile,'utf8')}` : ''].filter(Boolean).join('\n\n');
   writeFileSync(join(created.path,'.nomos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
     {projectContext:context || undefined,continuation:continuationBrief(db,task,ctx.dataDir),
-      rapido:rapido(config),turn:`node "${join(import.meta.dirname,'..','cli.ts')}" worker turn ${task.id} --data "${ctx.dataDir}"`}));
+      rapido:rapido(config),engine:createUnrealCmd({bin:assetConfig(ctx.dataDir).unrealPath}).engineVersion() ?? undefined,turn:`node "${join(import.meta.dirname,'..','cli.ts')}" worker turn ${task.id} --data "${ctx.dataDir}"`}));
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);
