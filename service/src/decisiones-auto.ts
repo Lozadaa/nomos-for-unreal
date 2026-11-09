@@ -11,7 +11,7 @@ export const autoBy = 'nomos-auto';
  * y dos de ellas pararon una tarea 14 h y 12,4 h. Estas se resuelven solas pasado el plazo; la Decisión queda como aviso.
  * `again` es la opción cuando el mismo problema vuelve tras una resolución automática (reintentar una vez, luego eximir).
  */
-export const autoRules: {match: RegExp; option: string; again?: string; persona?: true}[] = [
+export const autoRules: {match: RegExp; option: string | string[]; again?: string; persona?: true}[] = [
   {match: /^Reconciliar worker existente/, option: 'leave'},
   {match: /^Cambios sin registrar/, option: 'commit'},
   {match: /^Comprobación no disponible/, option: 'retry', again: 'continue'},
@@ -20,15 +20,16 @@ export const autoRules: {match: RegExp; option: string; again?: string; persona?
   // experimento metras 2026-11-08: ~90 min parados en estas dos sin nadie delante. Solo sin persona (`autonomous`): se acepta
   // lo hecho con los hallazgos anotados y se sigue; tras un fallo de comprobación no hay «aceptar» y la pregunta sigue abierta
   {match: /^QA de UI sin mejora medible$/, option: 'aceptar', persona: true},
-  {match: /^Máximo de (tres|\d+) correcciones alcanzado$/, option: 'aceptar', persona: true},
+  // sin hallazgos de revisión no hay «aceptar» (metras 4.ª vuelta: quedó abierta para siempre): una corrección más y, si vuelve, cancelar
+  {match: /^Máximo de (tres|\d+) correcciones alcanzado$/, option: ['aceptar', 'review'], again: 'cancel', persona: true},
 ];
 
 /** La opción que se elegiría sola, o null si la pregunta es de verdad para una persona. */
 export function autoOption(d: Pick<Decision, 'reason' | 'options'>, priorAuto = 0, sinPersona = false): string | null {
   const rule = autoRules.find(r => r.match.test(d.reason));
   if (!rule || rule.persona && !sinPersona) return null;
-  const option = priorAuto > 0 && rule.again ? rule.again : rule.option;
-  return d.options.some(o => o.id === option) ? option : null;
+  const wanted = priorAuto > 0 && rule.again ? [rule.again] : [rule.option].flat();
+  return wanted.find(option => d.options.some(o => o.id === option)) ?? null;
 }
 
 /** Una pasada (cada 5 s, con el planificador): resuelve las Decisiones obvias abiertas desde hace más del plazo. */

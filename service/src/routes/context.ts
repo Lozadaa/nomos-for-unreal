@@ -8,7 +8,8 @@ export type Context = {
   url: URL;
   dataDir?: string;
 };
-export const areas = ['gameplay', 'ui', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'] as const;
+// metras 4.ª vuelta: `vfx`, `camara` e `ia` tienen grupo de skills (skills.ts) y no se podían crear
+export const areas = ['gameplay', 'ui', 'vfx', 'camara', 'ia', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'] as const;
 export const states = [
   'pendiente', 'preparada', 'implementando', 'revisando', 'probando', 'integrando', 'cerrando', 'done'
 ] as const;
