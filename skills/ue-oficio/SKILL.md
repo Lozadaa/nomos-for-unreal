@@ -1,6 +1,6 @@
 ---
 name: ue-oficio
-description: 'Oficio de Unreal Engine 5.8 para un worker sin GUI: trampas de la API de Python, escala e importación de mallas, cámara y pawn, luz y exposición, PCG, diagnóstico de crashes y cómo leer el JSON de escena que acompaña cada captura. Triggers: "nomos ue py", "importar malla", "cámara", "pawn", "exposición", "niebla", "PCG", "crash de Unreal", cualquier tarea de Nomos que toque Content/ o el editor. No usar para UI (ue-umg-ui) ni para aprobar capturas de UI (ue-visual-qa).'
+description: 'Oficio de Unreal Engine 5.8 (con las diferencias del 5.9 MegaJam Preview) para un worker sin GUI: trampas de la API de Python, escala e importación de mallas, cámara y pawn, luz y exposición, PCG, diagnóstico de crashes y cómo leer el JSON de escena que acompaña cada captura. Triggers: "nomos ue py", "importar malla", "cámara", "pawn", "exposición", "niebla", "PCG", "crash de Unreal", cualquier tarea de Nomos que toque Content/ o el editor. No usar para UI (ue-umg-ui) ni para aprobar capturas de UI (ue-visual-qa).'
 license: MIT
 metadata:
   version: 0.1.0
@@ -15,6 +15,10 @@ leído del código del motor o de la documentación; **[plan]** receta publicada
 Origen: lecciones publicadas en `per-simmons/unreal-agent-harness` (jun 2026, macOS, MCP de Epic), reescritas y
 filtradas para Windows y para cómo trabaja Nomos (editor caliente por archivos, `-game` para capturas). Lo probado en
 Nomos lo dice expresamente.
+
+Si el proyecto usa el **5.9 MegaJam Preview** (`EngineAssociation` 5.9, inestable según Epic, solo en copia del juego), lee
+antes [ue59-preview](references/ue59-preview.md): lo probado aquí es de 5.8.3 y lo que 5.9 cambia o deja sin confirmar
+está allí con su fuente.
 
 ## Las diez que más tiempo ahorran
 
@@ -56,3 +60,4 @@ cm), `base_z` (altura de la base), `dist` a la cámara y `px` (píxel en la imag
 - [iluminacion](references/iluminacion.md): exposición, sol, cielo, niebla, postproceso para capturas.
 - [pcg](references/pcg.md): grafos PCG desde un agente, gramática de edificios, trampas.
 - [diagnostico](references/diagnostico.md): crashes, procesos huérfanos, flags de arranque, PIE.
+- [ue59-preview](references/ue59-preview.md): qué cambia en el 5.9 MegaJam Preview (Python, MCP, PCG), qué queda sin confirmar, fuentes.

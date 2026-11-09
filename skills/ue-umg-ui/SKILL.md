@@ -26,7 +26,7 @@ la revisa. Termina con `NOMOS_DONE` cuando el código compila y el widget aparec
 | C++: `UUserWidget` que construye su árbol en código | Worker sin GUI, proyecto con `Source/` o que puede tenerlo | Sí (aceptación del hito 5): compila con `Build.bat`, se ve con `-game` a 1280×720 y 1920×1080 y pasó el QA visual |
 | C++ base con `meta=(BindWidget)` + `WBP_` hijo | Un humano diseña el WBP en el editor | Compila; el diseño lo hace el humano |
 | Python del editor | Crear o compilar un `WBP_` vacío | Crea y compila, **no** puede añadir widgets: `WidgetBlueprint.widget_tree` no está expuesto |
-| MCP del editor (AllToolsets) | Solo si Nomos lo activa (`editorMcp.enabled`) | Experimental; apagado por defecto |
+| MCP del editor (AllToolsets) | Solo si Nomos lo activa (`editorMcp.enabled`) | Experimental; apagado por defecto. En 5.9 Preview el servidor arranca solo pero los toolsets vienen apagados (UE-412135): [ue59-preview](../ue-oficio/references/ue59-preview.md#unreal-mcp-y-unreal-assistant-experimentales) |
 
 Plantilla de la vía C++ (widget, controlador, `Build.cs`): [references/hud-cpp.md](references/hud-cpp.md).
 

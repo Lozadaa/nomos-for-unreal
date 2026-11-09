@@ -13,6 +13,7 @@ Estado: MVP cerrado en el hito 7 (ver [docs/estado-entregas.md](docs/estado-entr
 - **Claude Code** con `claude` en el PATH (los workers se lanzan con `claude --model sonnet --dangerously-skip-permissions`).
 - **Orca** abierto (probado con 1.4.207) y su CLI `orca` en el PATH: Nomos crea un worktree y un terminal por worker.
 - **Unreal Engine 5.8** (probado con 5.8.3 en `C:\Program Files\Epic Games\UE_5.8`); los plugins `ModelContextProtocol` y `AllToolsets` son opcionales.
+  El **5.9 MegaJam Preview** (2026-11-09, `UE_5.9`) es inestable según Epic y se prueba solo en una copia del juego con `unrealPath` en `.nomos/config.json`: qué cambia y qué queda sin confirmar, en [skills/ue-oficio/references/ue59-preview.md](skills/ue-oficio/references/ue59-preview.md).
 - Opcionales: Epic Games Launcher y plugin Fab (catálogo), Blender, `MESHY_API_KEY` (solo piezas hard surface).
 
 ## Instalación

@@ -42,6 +42,8 @@ regla se ha probado aún en Nomos.
 - Color por instancia: `instanceDataPackerType=PCGInstanceDataPackerByAttribute` con el atributo y
   `PerInstanceCustomData[0]` en el material. [probado]
 - 5.8 no trae nodo Voronoi: `Cluster` (KMeans/EM) o el plugin PCGEx (MIT, dice soportar 5.8; sin probar). [fuente]
+- 5.9 Preview anuncia nodo Concave Hull y funciones para añadir y validar aristas del grafo desde script; Voronoi sigue
+  sin anunciarse. Nada de esto probado en Nomos: [ue59-preview](ue59-preview.md#pcg). [fuente]
 - Los overrides de parámetros por instancia quedaron inertes vía MCP; el apaño fue duplicar el grafo por variante.
   Desde Python, prueba primero los setters de parámetros del grafo. [MCP]
 

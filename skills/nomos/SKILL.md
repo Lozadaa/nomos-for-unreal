@@ -276,6 +276,7 @@ ese archivo ni el token al chat. El servicio solo escucha en `127.0.0.1` y sus r
   y [del QA visual](references/brief-qa-visual.md).
 - [Ciclo UMG](references/ui-ciclo.md), [evidencia](references/evidencia.md), [cierre](references/cierre.md) y [modo jam](references/jam.md).
 - Oficio de Unreal 5.8 para los workers (Python, importar, cámara, luz, PCG, crashes): skill `ue-oficio`, que cargan todos los roles que tocan el editor.
+  Si el juego está en el 5.9 MegaJam Preview (inestable, solo en copia): [ue59-preview](../ue-oficio/references/ue59-preview.md).
 - Casos: [arranque](evals/01-arranque.md), [ida y vuelta](evals/02-ida-vuelta.md),
   [recuperación](evals/03-recuperacion.md), [petición](evals/04-peticion-a-tarea.md),
   [corrección](evals/05-correccion.md), [dos tareas, un widget](evals/06-dos-tareas-un-widget.md),

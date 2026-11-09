@@ -81,4 +81,6 @@ puede escribir en el worktree equivocado. La cola por archivos del editor calien
 ## Documentación
 
 La referencia web de la API de Python responde 403 sin `?application_version=5.5`; con ese parámetro carga, y para
-estas clases 5.5 y 5.8 coinciden según el harness de origen (no comprobado clase a clase).
+estas clases 5.5 y 5.8 coinciden según el harness de origen (no comprobado clase a clase). Con `?application_version=5.9`
+da 404 (2026-11-09). Lo que 5.9 Preview cambia en Python (rutas de búsqueda, edición de Blueprints y StateTrees, plugin
+Python Foundation Packages retirado): [ue59-preview](ue59-preview.md#python-del-editor).
