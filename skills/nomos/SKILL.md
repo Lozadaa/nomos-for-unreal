@@ -205,6 +205,7 @@ un clip nuevo pasa por Decisión. Detalle en [personajes](references/personajes.
 El diff decide las comprobaciones (cpp, blueprint, asset, animation, map, umg, build); el servicio
 las lanza al aprobar la revisión y `nomos task check <id>` las relanza. Ninguna tarea pasa
 de `probando` a `integrando` sin todas en `passed`; una no disponible abre Decisión.
+Qué cubrir con tests y qué con QA de la IA (física y aspecto, jugando la demo): [pruebas](references/pruebas.md).
 Toda pantalla UMG: primero `game-ui-art-director` (docs/ui-direction.md, tarea de la que
 dependen las demás de UI), después el worker `ui` y `ui.cycle` captura a 1280×720 y
 1920×1080 y pide QA visual a Claude. Si la UI cambia durante la partida (apuntando, cargando, turno

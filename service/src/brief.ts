@@ -6,7 +6,7 @@ import { nomosSkills } from './skills-install.ts';
 export type BriefRules = {projectContext?: string; continuation?: string; turn?: string; rapido?: boolean};
 /** Modo rápido: sin TDD estricto ni pulido; en las metras los tests de física frágiles se comieron media hora de una pista. */
 const rapidoRules = `\n## Modo rápido\n\n- Velocidad antes que pulido: haz lo que piden los criterios y nada más.\n`
-  +`- Sin TDD estricto: un test de automatización por criterio medible. Si un test se vuelve frágil más de 10 min, bórralo y comprueba ese criterio jugando la demo.\n`
+  +`- Sin TDD estricto: solo tests de humo y de reglas (nada de física ni de visual: eso se comprueba jugando la demo). Si un test se vuelve frágil más de 10 min, bórralo y comprueba ese criterio jugando la demo.\n`
   +`- No toques nada fuera del alcance, ni para arreglar: anótalo en el summary.\n`
   +`- Compila y prueba una vez al final de cada paso, no tras cada línea.\n`;
 export function workerSkillsBrief(run:Pick<Run,'provider'|'skills'>):string {

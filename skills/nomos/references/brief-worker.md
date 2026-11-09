@@ -22,7 +22,7 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 
 - Explora con el grafo: `graphify query "<pregunta con nombres del código>"` antes de leer archivos; si aún no hay `graphify-out/`, sigue sin él.
 - Ponytail full está activo: el diff más corto que funciona.
-- Aplica TDD: observa la prueba fallar antes de implementar cada comportamiento.
+- Aplica TDD en la lógica (reglas, estados, datos): observa la prueba fallar antes de implementarla. Física y aspecto se comprueban jugando la demo, no con tests.
 - Haz un commit por paso. No hagas push ni merge.
 - Si la tarea es un cierre de hito (título «Cierre…»), el informe (`docs/produccion/J<n>.md`) termina con `## Lecciones`: de 1 a 5 líneas que sirvan en otro juego (qué falló, qué funcionó, qué regla sale). Sin esa sección el cierre se bloquea.
 - No incluyas .nomos-brief.md ni .nomos-inbox en commits.
