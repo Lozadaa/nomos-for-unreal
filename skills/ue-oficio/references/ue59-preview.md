@@ -13,7 +13,10 @@ ninguna fuente oficial, se supone igual que en 5.8 hasta que Epic lo diga.
 - Es, según Epic, «the first Unreal Engine release built primarily with agentic workflows». [fuente: anuncio]
 - Descarga: Epic Games Launcher, GitHub (tag `5.9.0-preview-1`, solo con cuenta de Epic enlazada; sin ella da 404) o
   Linux. [fuente: anuncio] En este equipo el Launcher instala en `C:\Program Files\Epic Games\UE_5.9` (carpeta creada
-  el 2026-11-09 a las 12:28; descarga en curso: solo `.egstore`, aún sin `Engine/Build/Build.version`). [observado]
+  el 2026-11-09). `Engine/Build/Build.version`: 5.9.0, Changelist 60351404, `IsPromotedBuild` 1, rama
+  `++UE5+Release-5.9`. Trae `UnrealEditor.exe` y `UnrealEditor-Cmd.exe` en `Engine/Binaries/Win64`. [observado]
+- `UnrealEditor-Cmd.exe -version` no imprime la versión: lanza UnrealBuildTool (`-Mode=ValidatePlatforms`) y se queda
+  corriendo. La versión se lee de `Build.version`, como ya hace `nomos doctor`. [observado]
 
 ## Usarlo con Nomos
 
@@ -24,8 +27,14 @@ ninguna fuente oficial, se supone igual que en 5.8 hasta que Epic lo diga.
   `Engine/Build/Build.version`) y los `TestRun` saldrán con `engineVersion` 5.9.0: las evidencias de 5.8.3 no valen
   para afirmar nada de 5.9.
 - La capacidad `unreal_mcp` busca `Engine/Plugins/Experimental/ModelContextProtocol/…` y
-  `Experimental/Toolsets/AllToolsets/…`; si 5.9 mueve esas carpetas saldrá «ausente» aunque estén. [sin confirmar en 5.9:
-  comprobar cuando termine la descarga]
+  `Experimental/Toolsets/AllToolsets/…`. En 5.9 las dos rutas siguen igual, así que la capacidad se detecta sin
+  cambios. `AllToolsets` sigue con `EnabledByDefault: false`. [observado]
+- Toolsets en `Engine/Plugins/Experimental/Toolsets` frente a 5.8.3. Desaparecen `UMGToolSet` y
+  `SemanticSearchToolset`. Aparecen, entre otros, `BlueprintToolsets`, `ConsoleToolset`, `CommonUIToolset`,
+  `WidgetAnimationToolset`, `WidgetStaticAnalysisToolset`, `KnowledgeBaseToolset`, `SceneCaptureToolset`,
+  `NavMeshToolset`, `InputToolset`, `PerfToolset`, `MetaSoundToolset`, `TextureGraphToolset`,
+  `MovieRenderPipelineToolset` y varios de MetaHuman. Las notas no dicen si `UMGToolSet` se renombró o se repartió
+  en los de Widget y CommonUI. [observado; renombre sin confirmar]
 - `editor.mcp_start` arranca `UnrealEditor.exe … -ExecCmds="ModelContextProtocol.StartServer"`. En 5.9 «Unreal MCP
   launches automatically with the editor» [fuente: anuncio]; si el comando sigue existiendo, [sin confirmar en 5.9].
 - Las flags que usa Nomos (`-ExecutePythonScript`, `-NullRHI`, `-game -windowed -ResX -ResY -ForceRes`, `-stdout
@@ -98,13 +107,14 @@ De las notas de la versión [fuente].
 | Visual Studio y toolchain | La tabla oficial no tiene fila 5.9. Fila 5.8: VS 2022 17.14 o posterior, VS 2026 18.0 o posterior; MSVC 14.38 mín. / 14.50 rec.; Windows SDK 10.0.22621.0 mín. / 10.0.26100 rec.; .NET 10 con VS 2026. Suponer lo de 5.8. [fuente: página de VS] |
 | UBT, UAT, UnrealEditor-Cmd | Ningún cambio de flags publicado. |
 | Formato de `.uproject` | Sin cambios anunciados; el anuncio solo pide ediciones puntuales (`AllToolsets`, quitar `Wasm` de `PlatformDenyList`). |
-| Plugins renombrados o retirados | Retirado: Python Foundation Packages. Renombrados: ninguno anunciado. |
+| Plugins renombrados o retirados | Anunciado como retirado: Python Foundation Packages. Sin embargo, la carpeta `Experimental/PythonFoundationPackages` sigue en la instalación del 5.9 Preview (observado 2026-11-09). Fuera de los toolsets: `UMGToolSet` y `SemanticSearchToolset` ya no están (observado). |
 | Verse, UEFN, Scene Graph | Nada en las fuentes oficiales; lo que circula en redes sobre Verse + Scene Graph no está confirmado. |
 | Ruta de crashes | `%LOCALAPPDATA%\UnrealEngine\5.9\Saved\Crashes` es la pauta de 5.8 con el número cambiado. |
 
 ## Pendiente
 
-1. Al terminar la descarga: anotar aquí `Engine/Build/Build.version` real y la carpeta de los plugins MCP/Toolsets.
+1. ~~Al terminar la descarga: anotar aquí `Engine/Build/Build.version` real y la carpeta de los plugins MCP/Toolsets.~~
+   Hecho el 2026-11-09 (ver arriba).
 2. `nomos doctor` con `unrealPath` de 5.9 en una copia del juego de ejemplo; después, repetir las recetas del harness
    ([recetas](../../nomos/references/recetas.md)) y las limitaciones de Python marcadas arriba.
 3. Cuando salga la 5.9 final: quitar los «sin confirmar» con las notas definitivas y decidir si `defaultUnrealCmd`
