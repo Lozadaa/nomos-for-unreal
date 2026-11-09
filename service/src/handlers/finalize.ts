@@ -107,7 +107,7 @@ export function createFinalize(deps: FinalizeDeps = {}): Handler {
       if (decision.chosenOptionId === 'commit') {
         const implementer = workers(filtered<Run>(ctx.db, 'runs', {taskId: task.id})).filter(r => r.role !== 'revisor').at(-1)!;
         enqueue(ctx.db, 'worker.send', {runId: implementer.id, text: `Antes de cerrar quedaron cambios sin registrar en tu worktree. `
-          + `Commitéalos con un mensaje claro y termina con NOMOS_DONE.`}, `finalize.commit:${decision.id}`);
+          + `Commitéalos con un mensaje claro (o añade a .gitignore los generados) y termina con NOMOS_DONE.`, cierre: true}, `finalize.commit:${decision.id}`);
       } else setTaskWait(ctx.db, task.id, 'Cierre en espera: cambios sin registrar');
       finishRun(ctx.db, run.id, 'cancelled', decision.chosenOptionId === 'commit' ? 'Cambios devueltos al responsable' : 'Cierre en espera');
       return {closed: false};

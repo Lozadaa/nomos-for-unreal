@@ -51,3 +51,15 @@ test('cuarta corrección abre Decisión resoluble antes de escribir/enviar',asyn
   const task=getTask(f.db,f.task.id)!;assert.ok(task.decisionId);
   assert.match(task.blockedReason!,/correcciones/);
 });
+// metras 4.ª vuelta: con limits.corrections=1 el aviso de cierre «commitea lo que quedó» gastaba la corrección y paraba la tarea
+test('el envío de cierre (cierre:true) llega aunque se agotaron las correcciones y no cuenta como una',async t=>{
+  const f=fixture(t);await f.start();const run=f.run();
+  for(let i=0;i<3;i++) {
+    if(i) work(f,i);f.output(done(i));await f.invoke('worker.poll',{runId:run.id,generation:i});
+    await f.invoke('worker.send',{runId:run.id,text:'Corregir '+i});
+  }
+  work(f,3);f.output(done(3));await f.invoke('worker.poll',{runId:run.id,generation:3});const before=f.state().tail.length;
+  await f.invoke('worker.send',{runId:run.id,text:'Commitea lo que quedó',cierre:true});
+  assert.equal(f.state().tail.length,before+1);assert.equal(f.run().metadata.correctionCount,3);
+  assert.equal(getTask(f.db,f.task.id)!.decisionId,null);
+});

@@ -7,10 +7,10 @@ export const stageLabel: Record<Stage, string> = {
   probando: 'Probando', integrando: 'Integrando', cerrando: 'Cerrando', done: 'Hecha',
 }
 
-export const areas = ['gameplay', 'ui', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'] as const
+export const areas = ['gameplay', 'ui', 'vfx', 'camara', 'ia', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'] as const
 export type Area = (typeof areas)[number]
 export const areaLabel: Record<Area, string> = {
-  gameplay: 'Gameplay', ui: 'Interfaz', escenarios: 'Escenarios', assets: 'Assets',
+  gameplay: 'Gameplay', ui: 'Interfaz', vfx: 'Efectos y materiales', camara: 'Cámara', ia: 'IA', escenarios: 'Escenarios', assets: 'Assets',
   animacion: 'Animación', audio: 'Audio', qa: 'Calidad', builds: 'Compilaciones',
 }
 

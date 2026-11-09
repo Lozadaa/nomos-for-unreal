@@ -23,7 +23,7 @@ su marcador de readiness antes de entregarle el brief. Sus permisos «Do you wan
 «Allow» o «(y/n)» generan `worker.waiting` con la línea original: el director evalúa
 la pregunta y el alcance antes de responder. El servicio no responde automáticamente.
 El brief de workers y revisores enumera skills explícitas y requeridas por rol y pide
-`NOMOS_SKILLS […]` con las realmente cargadas. `metadata.confirmedSkills` conserva la
+`NOMOS_SKILLS […]` con las que existen (se cargan al usarlas). `metadata.confirmedSkills` conserva la
 declaración; `worker.skills_missing` informa diferencias sin bloquear DONE/REVIEW.
 Sin marcador la confirmación es desconocida; `[]` declara ninguna. Inventario del juego
 y concurrencia: `GET /capabilities?details=1` autenticado; la ruta sin query sigue siendo un array.

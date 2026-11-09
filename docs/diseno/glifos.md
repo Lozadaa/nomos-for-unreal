@@ -10,6 +10,9 @@ La columna «Dónde aparece» conserva la referencia de la galería; la tabla de
 |---|---|---|---|
 | `area/gameplay` | `Gamepad2` | Gameplay | /estilo · Glifos y Arte |
 | `area/ui` | `LayoutPanelTop` | Interfaz | /estilo · Glifos y Arte |
+| `area/vfx` | `Sparkles` | Efectos y materiales | /estilo · Glifos y Arte |
+| `area/camara` | `Video` | Cámara | /estilo · Glifos y Arte |
+| `area/ia` | `BrainCircuit` | IA | /estilo · Glifos y Arte |
 | `area/escenarios` | `Mountain` | Escenarios | /estilo · Glifos y Arte |
 | `area/assets` | `Box` | Assets | /estilo · Glifos y Arte |
 | `area/animacion` | `PersonStanding` | Animación | /estilo · Glifos y Arte |

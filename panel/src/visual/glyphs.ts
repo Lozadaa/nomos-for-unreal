@@ -1,10 +1,10 @@
 import type { ComponentType } from 'react'
 import {
-  Activity, AudioWaveform, Ban, Bot, Box, Camera, CheckCircle2, Circle, CircleDashed,
+  Activity, AudioWaveform, Ban, Bot, Box, BrainCircuit, Camera, CheckCircle2, Circle, CircleDashed,
   CircleDot, Diff, DoorClosed, Eye, FileText, Film,
   FlaskConical, Gamepad2, GitMerge, Hammer, HelpCircle, Hourglass, Image, LayoutPanelTop,
   ListChecks, Lock, Mountain, Package, PackageCheck, PersonStanding,
-  PlugZap, Radio, Shapes, TestTube2, WifiOff,
+  PlugZap, Radio, Shapes, Sparkles, Video, TestTube2, WifiOff,
 } from 'lucide-react'
 import { BRAND, legacyProvider } from '@/lib/brand'
 
@@ -23,7 +23,8 @@ const provider = (label: string, tone: GlyphSpec['tone'] = 'neutral'): GlyphSpec
 
 export const glyphs = {
   area: {
-    gameplay: spec(Gamepad2, 'Gameplay'), ui: spec(LayoutPanelTop, 'Interfaz'), escenarios: spec(Mountain, 'Escenarios'),
+    gameplay: spec(Gamepad2, 'Gameplay'), ui: spec(LayoutPanelTop, 'Interfaz'),
+    vfx: spec(Sparkles, 'Efectos y materiales'), camara: spec(Video, 'Cámara'), ia: spec(BrainCircuit, 'IA'), escenarios: spec(Mountain, 'Escenarios'),
     assets: spec(Box, 'Assets'), animacion: spec(PersonStanding, 'Animación'), audio: spec(AudioWaveform, 'Audio'),
     qa: spec(FlaskConical, 'Calidad'), builds: spec(Package, 'Compilaciones'),
   },

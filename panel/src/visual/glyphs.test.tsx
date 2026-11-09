@@ -5,7 +5,7 @@ import { Glyph, GlyphLegend } from './Glyph'
 import { glyphFor, glyphs, type GlyphKind } from './glyphs'
 
 const expected = {
-  area: ['gameplay', 'ui', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'],
+  area: ['gameplay', 'ui', 'vfx', 'camara', 'ia', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'],
   taskState: ['pendiente', 'preparada', 'implementando', 'revisando', 'probando', 'integrando', 'cerrando', 'done', 'bloqueada', 'decision'],
   directorState: ['esperando', 'escuchando', 'atendiendo', 'vigilanteCaido', 'desconectado'],
   provider: ['codex', 'claude', 'opencode', 'meshy', 'blender', 'unreal', 'nomos', 'launcher'],
@@ -54,9 +54,9 @@ describe('registro de glifos', () => {
     expect(container.firstChild).toHaveStyle({ color: 'var(--vbg-color-primary)' })
   })
 
-  it('la leyenda agrupa las 38 entradas sin omitir ninguna', () => {
+  it('la leyenda agrupa las 41 entradas sin omitir ninguna', () => {
     render(<GlyphLegend />)
-    expect(screen.getAllByRole('listitem')).toHaveLength(38)
+    expect(screen.getAllByRole('listitem')).toHaveLength(41)
     for (const [kind, values] of Object.entries(expected)) {
       const group = screen.getByTestId(`legend-${kind}`)
       expect(within(group).getAllByRole('img')).toHaveLength(values.length)

@@ -10,9 +10,12 @@ const rapidoRules = `\n## Modo rápido\n\n- Velocidad antes que pulido: haz lo q
   +`- No toques nada fuera del alcance, ni para arreglar: anótalo en el summary.\n`
   +`- Compila y prueba una vez al final de cada paso, no tras cada línea.\n`;
 export function workerSkillsBrief(run:Pick<Run,'provider'|'skills'>):string {
-  return `Carga las skills enumeradas antes de empezar: ${run.skills.join(', ') || '(ninguna solicitada)'}.\n`
-    +'Responde en tu primera línea NOMOS_SKILLS […] con la lista JSON de skills realmente cargadas.\n'
-    +'Si alguna no está disponible, omítela de la confirmación y continúa; no afirmes haberla cargado.\n\n';
+  // metras 4.ª vuelta: cargar 12 skills al empezar costó contexto y tiempo (56 min frente a 37); ahora se cargan al usarlas
+  return `Carga las skills de esta tarea cuando las uses: ${run.skills.join(', ') || '(ninguna solicitada)'}.\n`
+    +'Al empezar, solo `ue-oficio` (si está en la lista) y las que necesite tu primer paso; cada una de las demás, '
+    +'cuando un paso toque su tema (física, cámara, input, luz…). No las cargues todas de golpe.\n'
+    +'Responde en tu primera línea NOMOS_SKILLS […] con la lista JSON de las de la lista que existen en este entorno.\n'
+    +'Si alguna no está disponible, omítela de la confirmación y continúa; no afirmes que existe.\n\n';
 }
 export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): string {
   const template=readFileSync(join(nomosSkills,'nomos','references','brief-worker.md'),'utf8');

@@ -52,8 +52,9 @@ test('las «para una persona» solo se resuelven sin persona (evento o decisione
   const accept = [{id: 'review', label: '', description: ''}, {id: 'aceptar', label: '', description: ''}, {id: 'cancel', label: '', description: ''}];
   assert.equal(autoOption({reason: 'Máximo de tres correcciones alcanzado', options: accept}), null, 'con persona, la pregunta es suya');
   assert.equal(autoOption({reason: 'Máximo de 5 correcciones alcanzado', options: accept}, 0, true), 'aceptar');
-  assert.equal(autoOption({reason: 'Máximo de tres correcciones alcanzado', options: accept.filter(o => o.id !== 'aceptar')}, 0, true), null,
-    'tras un fallo de comprobación no hay «aceptar»: sigue para el director');
+  // metras 4.ª vuelta: el director despertó 3 veces y no la resolvió; sin «aceptar», una corrección más y la siguiente vez cancelar
+  assert.equal(autoOption({reason: 'Máximo de 1 correcciones alcanzado', options: accept.filter(o => o.id !== 'aceptar')}, 0, true), 'review');
+  assert.equal(autoOption({reason: 'Máximo de 1 correcciones alcanzado', options: accept.filter(o => o.id !== 'aceptar')}, 1, true), 'cancel');
   assert.equal(autoOption({reason: 'QA de UI sin mejora medible', options: [{id: 'return', label: '', description: ''}, {id: 'aceptar', label: '', description: ''}]}, 0, true), 'aceptar');
   const db = openDb(':memory:');
   const task = createTask(db, {title: 'M1', area: 'gameplay'});

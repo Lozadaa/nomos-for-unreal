@@ -56,5 +56,5 @@ test('vigila encadenado: cada evento llega por la tubería al lector en cuanto o
 test('CLI task create con un área inválida lista las válidas sin llamar al servicio',async ()=>{
   const {directorCli}=await import('../service/src/cli-director.ts');
   await assert.rejects(directorCli(['task','create','--title','HUD','--area','interfaz']),
-    {message:'Uso: área inválida «interfaz»; válidas: gameplay, ui, escenarios, assets, animacion, audio, qa, builds'});
+    {message:'Uso: área inválida «interfaz»; válidas: gameplay, ui, vfx, camara, ia, escenarios, assets, animacion, audio, qa, builds'});
 });

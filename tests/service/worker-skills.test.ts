@@ -25,7 +25,7 @@ test('brief solicita confirmación veraz a todos los proveedores reconocidos',()
   for(const provider of ['codex','claude','opencode'] as const) {
     const brief=workerSkillsBrief({provider,skills:['ue-ui-umg-slate']});
     assert.match(brief,/Carga las skills/);assert.match(brief,/ue-ui-umg-slate/);
-    assert.match(brief,/primera línea.*NOMOS_SKILLS/);assert.match(brief,/realmente cargadas/);
+    assert.match(brief,/primera línea.*NOMOS_SKILLS/);assert.match(brief,/cuando las uses/);
   }
 });
 for(const provider of ['codex','claude']) test(`T22 UMG ${provider}: unión persistida, confirmación parcial, missing y DONE`,async t=>{

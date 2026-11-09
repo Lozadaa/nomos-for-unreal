@@ -53,14 +53,14 @@ it('Esc descarta la guía desde el primer paso y recuerda la visita', async () =
   expect(localStorage.getItem(key)).toBe('1')
 })
 
-it('? abre las 38 entradas de la leyenda y Esc restaura el foco', async () => {
+it('? abre las 41 entradas de la leyenda y Esc restaura el foco', async () => {
   localStorage.setItem(key, '1')
   mount()
   const before = screen.getByRole('button', { name: 'Volver aquí' })
   before.focus()
   fireEvent.keyDown(before, { key: '?' })
   const legend = await screen.findByRole('dialog', { name: 'Leyenda' })
-  expect(legend.querySelectorAll('li')).toHaveLength(38)
+  expect(legend.querySelectorAll('li')).toHaveLength(41)
   fireEvent.keyDown(legend, { key: 'Escape' })
   await waitFor(() => expect(before).toHaveFocus())
 })
