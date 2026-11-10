@@ -86,6 +86,8 @@ El juego no enseña el tablero hasta que sus texturas estén cargadas:
 
 ## 7. Comprobación que bloquea el FIN
 
+Con Nomos, el servicio pasa `revisar_acabado.py` solo en cada tarea que toca algo visible, también en modo rápido. Un fallo te
+devuelve la tarea con la lista: mejor pasarlo tú antes de entregar. La captura del `.exe` sigue siendo cosa tuya.
 Antes de marcar el FIN o entregar con `NOMOS_DONE`:
 1. `python <ue-oficio>/scripts/revisar_acabado.py <proyecto>` da 0 fallos.
 2. Compila y empaqueta (Shipping) desde **PowerShell**: desde bash, la ruta con espacios hacia `Build.bat` falla.

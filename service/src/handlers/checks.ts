@@ -23,9 +23,13 @@ import { blueprintCheck } from '../checks/blueprint.ts';
 import { assetCheck } from '../checks/asset.ts';
 import { mapCheck } from '../checks/map.ts';
 import { buildCheck } from '../checks/build.ts';
+import { acabadoCheck, touchesVisible } from '../checks/acabado.ts';
 import { animationCheck, characterOf } from '../checks/animation.ts';
+import { readConfig } from '../config.ts';
 
-const executors: Partial<Record<CheckId, Executor>> = {cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
+const executors: Partial<Record<CheckId, Executor>> = {acabado: acabadoCheck, cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
+/** `"acabado": false` en .nomos/config.json la apaga (prototipos de usar y tirar); por defecto, encendida. */
+const acabadoOn = (ctx: WorkerContext) => readConfig(ctx.dataDir).acabado !== false;
 const returnOption = {id: 'return', label: 'Devolver al responsable', description: 'Enviar la lista al implementador para que lo corrija'};
 
 /** El run implementador cuyo diff se prueba: el indicado o el último terminado que no es revisión ni prueba. */
@@ -97,8 +101,10 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     // los archivos borrados cuentan para elegir comprobaciones, no para validar ni compilar assets que ya no existen
     const present = files.filter(file => existsSync(join(worktree, file)));
     // Esquina J1.2: montajes sin personaje montado ni malla en el diff; animation no tiene qué reproducir, no aplica
-    const ids = selected.filter(id => id !== 'animation' || characterOf(worktree, present));
-    const note = ids.length < selected.length ? 'animation no aplica: no hay personaje montado ni malla con clips en el diff' : null;
+    // acabado (2026-11-10): lo primero, sin Unreal y en segundos; también en modo rápido, que solo se salta recomprobar al integrar
+    const ids: CheckId[] = [...(touchesVisible(present) && deps.acabado !== false && acabadoOn(ctx) ? ['acabado' as const] : []),
+      ...selected.filter(id => id !== 'animation' || characterOf(worktree, present))];
+    const note = ids.filter(id => id !== 'acabado').length < selected.length ? 'animation no aplica: no hay personaje montado ni malla con clips en el diff' : null;
     let commit: string | null;
     try { commit = await ctx.git.head(worktree); } catch { commit = null; }
     const run = updateRun(ctx.db, checkRun(ctx, command, task, implementer).id, {checks: ids, checksCommit: commit});

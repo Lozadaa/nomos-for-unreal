@@ -1,6 +1,6 @@
 import type { Artifact } from './tasks'
 
-export const checkNames: Record<string, string> = { cpp: 'Compilación C++', blueprint: 'Blueprints', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', animation: 'Animación' }
+export const checkNames: Record<string, string> = { acabado: 'Acabado', cpp: 'Compilación C++', blueprint: 'Blueprints', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', animation: 'Animación' }
 const kindNames: Record<string, string> = { model: 'Modelo', texture: 'Textura', screenshot: 'Captura', video: 'Vídeo', build: 'Compilación', report: 'Informe', diff: 'Cambios' }
 const prov = (a: Artifact) => (a.provenance ?? {}) as Record<string, unknown>
 const str = (v: unknown) => typeof v === 'string' && v.trim() ? v : undefined

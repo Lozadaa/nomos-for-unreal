@@ -1,5 +1,6 @@
 import { legacySpecFile } from '../legacy.ts';
-export type CheckId = 'cpp' | 'blueprint' | 'asset' | 'animation' | 'map' | 'umg' | 'build';
+/** `acabado` no la elige selectChecks: el lote de comprobaciones la antepone cuando el diff toca algo visible (checks/acabado.ts). */
+export type CheckId = 'acabado' | 'cpp' | 'blueprint' | 'asset' | 'animation' | 'map' | 'umg' | 'build';
 /** Orden de ejecución: compilar antes de abrir el editor; empaquetar, al final y solo si se pide. */
 export const checkOrder: CheckId[] = ['cpp', 'blueprint', 'asset', 'animation', 'map', 'umg', 'build'];
 /** Hito 5b: mallas con esqueleto, clips, Animation Blueprints, IK Rigs y retargeters, carpetas de personajes y la ficha del personaje. */

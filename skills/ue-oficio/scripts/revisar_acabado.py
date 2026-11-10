@@ -1,4 +1,8 @@
-"""Revisa el acabado de un juego Unreal antes de darlo por terminado. Uso: python revisar_acabado.py <carpeta del proyecto>
+"""Revisa el acabado de un juego Unreal antes de darlo por terminado.
+Uso: python revisar_acabado.py <carpeta del proyecto> [--archivos-de lista.txt] [--parcial]
+- `--archivos-de`: solo revisa esos archivos de Source/ (una ruta relativa por línea; Nomos le pasa el diff de la tarea).
+- `--parcial`: sin las reglas de juego entero (pantalla de carga, MapsToCook, fuente propia); Nomos las exige solo
+  en la tarea que empaqueta. Sin opciones, revisa el juego entero, como al dar el FIN.
 
 Falla (exit 1) si encuentra lo que dejó feo o roto un juego en las metras (2026-11-10):
 - fuentes del motor (GEngine->GetLargeFont…): pixeladas y sin tildes en el HUD;
@@ -24,9 +28,12 @@ RUTA_GAME = re.compile(r"[\"'](/Game/[^\"'.]+)")
 CARGA = re.compile(r"\b(StreamAllResources|IsFullyStreamedIn|RequestAsyncLoad|LoadPackageAsync|MoviePlayer|PantallaCarga|LoadingScreen)\b")
 
 
-def revisar(proyecto: Path) -> tuple[list[str], list[str]]:
+def revisar(proyecto: Path, solo: list[str] | None = None, final: bool = True) -> tuple[list[str], list[str]]:
     fallos, avisos = [], []
     fuentes = [p for p in (proyecto / "Source").rglob("*") if p.suffix in (".cpp", ".h") and "Test" not in p.name]
+    if solo is not None:
+        elegidos = {Path(r.replace("\\", "/")).as_posix() for r in solo}
+        fuentes = [p for p in fuentes if p.relative_to(proyecto).as_posix() in elegidos]
     rutas, hay_carga = {}, False
     for f in fuentes:
         for n, linea in enumerate(f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
@@ -46,6 +53,8 @@ def revisar(proyecto: Path) -> tuple[list[str], list[str]]:
         if not any(carpeta == c or carpeta.startswith(c.rstrip("/") + "/") for c in cocinadas):
             fallos.append(f"{donde}: {carpeta} se carga por ruta y no está en DirectoriesToAlwaysCook de DefaultGame.ini:"
                           " en el empaquetado saldrá sin material (acabado.md, Empaquetado)")
+    if not final:
+        return fallos, avisos
     if "MapsToCook" not in texto:
         avisos.append("DefaultGame.ini sin +MapsToCook: añade el mapa del juego (acabado.md, Empaquetado)")
     if fuentes and not hay_carga:
@@ -77,6 +86,11 @@ def probar() -> None:
             '[/Script/UnrealEd.ProjectPackagingSettings]\n+DirectoriesToAlwaysCook=(Path="/Game/Metras")\n'
             '+MapsToCook=(FilePath="/Game/Metras/L_Patio")\n', encoding="utf-8")
         assert revisar(p)[0] == [], revisar(p)
+        # parcial y solo el diff: otra pista sin pantalla de carga ni con la fuente del motor no bloquea a esta
+        (p / "Source" / "J" / "Otra.cpp").write_text("UFont* F = GEngine->GetLargeFont();\n", encoding="utf-8")
+        (p / "Source" / "J" / "Hud.cpp").write_text("int x = 0;\n", encoding="utf-8")
+        assert revisar(p, ["Source/J/Hud.cpp"], final=False) == ([], []), revisar(p, ["Source/J/Hud.cpp"], final=False)
+        assert len(revisar(p, ["Source\\J\\Otra.cpp"], final=False)[0]) == 1
     print("probar: ok")
 
 
@@ -84,9 +98,17 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["--probar"]:
         probar()
         sys.exit(0)
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    parcial = "--parcial" in args
+    args = [a for a in args if a != "--parcial"]
+    solo = None
+    if "--archivos-de" in args:
+        i = args.index("--archivos-de")
+        solo = [l.strip() for l in Path(args[i + 1]).read_text(encoding="utf-8").splitlines() if l.strip()]
+        del args[i:i + 2]
+    if len(args) != 1:
         sys.exit(__doc__)
-    fallos, avisos = revisar(Path(sys.argv[1]))
+    fallos, avisos = revisar(Path(args[0]), solo, final=not parcial)
     for a in avisos:
         print("AVISO", a)
     for f in fallos:
