@@ -7,6 +7,10 @@ import { readConfig } from './config.ts';
 import { appendEvent, createMessage } from './store.ts';
 import { latestBuild } from './play.ts';
 import { getTask, moveTask } from './repo/tasks.ts';
+import { createGit, type Git } from './adapters/git.ts';
+import { targetBranch } from './integration/workspace.ts';
+import { advanceLocal } from './handlers/integrate.ts';
+import type { WorkerContext } from './runner.ts';
 
 /**
  * Hito 29: varios Nomos sobre el mismo juego. El estado compartido vive en la rama `nomos/equipo` del remoto `origin`:
@@ -200,7 +204,10 @@ const unavailable = (db: DatabaseSync, s: TeamTick, reason: string) => {
 export async function teamTick(db: DatabaseSync, dataDir: string, projectDir: string, s: TeamTick, now = Date.now(), force = false): Promise<void> {
   const team = teamConfig(dataDir);
   if (!team) return;
-  const card = myCard(db, dataDir, new Date(now)), hash = content(card);
+  const git = createGit(), branch = await targetBranch({dataDir, projectDir, git} as unknown as WorkerContext).catch(() => '');
+  const main = branch ? await teamGit(projectDir, ['log', '-1', '--format=%H %cI', `refs/heads/${branch}`])
+    .then(out => { const [commit, at] = out.trim().split(' '); return {commit, at}; }, () => null) : null;
+  const card = myCard(db, dataDir, new Date(now), main), hash = content(card);
   if (force || hash !== s.hash || now - s.pushedAt >= HEARTBEAT_MS) {
     const ok = await publishCard(projectDir, dataDir, card.id, card, team.branch);
     if (ok === null) return unavailable(db, s, 'Sin remoto origin o sin red');
@@ -212,6 +219,24 @@ export async function teamTick(db: DatabaseSync, dataDir: string, projectDir: st
   if (cards === null) return unavailable(db, s, 'Sin remoto origin o sin red');
   s.warned = false; s.fetchedAt = now;
   recordPeers(db, dataDir, cards);
+  if (branch) await followMain(db, git, dataDir, projectDir, branch);
+}
+/** Jam: trae `origin/<rama>`; si trae algo que no tengo, avisa una vez (`team.main_moved`, no despierta al director) y avanza mi checkout si se puede. */
+async function followMain(db: DatabaseSync, git: Git, dataDir: string, projectDir: string, branch: string): Promise<void> {
+  const ref = await fetchMain(db, projectDir, branch);
+  if (!ref) return;
+  const commit = (await teamGit(projectDir, ['rev-parse', ref])).trim(), local = await git.tip!(projectDir, branch).catch(() => '');
+  if (local && await isAncestor(projectDir, commit, local)) return;
+  const last = db.prepare("select json_extract(payload,'$.commit') c from events where type='team.main_moved' order by seq desc limit 1").get()?.c;
+  if (last !== commit) {
+    const [author, subject, ...body] = (await teamGit(projectDir, ['log', '-1', '--format=%an%n%s%n%b', commit])).split('\n');
+    // la firma de la integración: `Nomos-Equipo: <id> <nombre> (<frente>) tarea <id>`
+    const sign = body.join('\n').match(/^Nomos-Equipo: (\S+) (.+) \(.*\) tarea \S+$/m);
+    if (sign?.[1] !== identity(dataDir).id) appendEvent(db, 'team.main_moved', null, {commit, by: sign?.[2] ?? author,
+      title: subject.match(/^Integrar (.+) \([^)]*\)$/)?.[1] ?? subject,
+      files: local ? (await teamGit(projectDir, ['diff', '--name-only', local, commit])).split('\n').filter(Boolean) : []});
+  }
+  await advanceLocal(git, projectDir, branch, commit);
 }
 const ticks = new Map<string, TeamTick>();
 /** El pase del servicio para esta carpeta de datos (estado compartido entre el bucle y quien fuerza un pase). */
