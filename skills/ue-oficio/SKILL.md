@@ -1,6 +1,6 @@
 ---
 name: ue-oficio
-description: 'Oficio de Unreal Engine 5.8 (con las diferencias del 5.9 MegaJam Preview) para un worker sin GUI: trampas de la API de Python, escala e importación de mallas, cámara y pawn, luz y exposición, PCG, diagnóstico de crashes y cómo leer el JSON de escena que acompaña cada captura. Triggers: "nomos ue py", "importar malla", "cámara", "pawn", "exposición", "niebla", "PCG", "crash de Unreal", cualquier tarea de Nomos que toque Content/ o el editor. No usar para UI (ue-umg-ui) ni para aprobar capturas de UI (ue-visual-qa).'
+description: 'Úsala SIEMPRE al crear o tocar un juego de Unreal Engine (5.8 o 5.9), con o sin Nomos, desde cero o en marcha, antes de escribir código o contenido visible. Trae el acabado obligatorio (nada por defecto del motor: indicadores con cariño, HUD en UMG con fuentes propias, pantalla de carga, texturas cocinadas) y la comprobación que bloquea el FIN (revisar_acabado.py y captura del .exe empaquetado), más el oficio que cuesta horas redescubrir: trampas de la API de Python, importar mallas, cámara y pawn, luz, PCG, crashes y lo nuevo del 5.9. Triggers: "juego en Unreal", "proyecto Unreal nuevo", "haz un juego", "HUD", "empaquetar", "Shipping", "nomos ue py", "importar malla", "cámara", "PCG", "crash de Unreal". Para construir widgets, además ue-umg-ui; para aprobar capturas de UI, ue-visual-qa.'
 license: MIT
 metadata:
   version: 0.1.0
