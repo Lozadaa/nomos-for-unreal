@@ -95,3 +95,31 @@ Límites: una pasada por rama, dos jueces que solo ven siete capturas, sonido si
 - `Escritorio/Trompo-demo/`: `Trompo-A.mp4`, `Trompo-B.mp4`, `Trompo-lado-a-lado.mp4` (A a la izquierda), las catorce capturas
   y esta comparativa.
 - `Escritorio/Trompo (con Nomos).lnk` → `Unreal Projects/Trompo/Empaquetado/Windows/Trompo.exe`.
+
+## 30 min más con Nomos (B v2)
+
+Encargo del usuario tras ver las dos ramas: «te doy 30min mas de desarrollo con nomos para que lo completes y mejores
+que sea el loop completo mejorado», con la lista de mejoras del coordinador por `POST /messages`. Sin jueces esta vez: el
+juicio es mío, mirando las siete capturas nuevas (`Escritorio/Trompo-demo/Trompo-B-v2-*.png`).
+
+| | B v2 |
+|---|---|
+| Tiempo | `inicio-2` 17:49:23 → `FIN-2` 18:11:13: **21 min 50 s**. Cerrado e integrado 18:27 (15 min de aprobación automática) |
+| Tareas del director | 1 («Trompo: bucle completo redondo», 8 criterios con las frases del mensaje) |
+| Intervenciones | 0 |
+| Fallos de acabado | 0 |
+| Fallos de imagen (7 capturas del `.exe`) | 1: el segundo 0 sale **negro** (antes enseñaba la pantalla de carga) |
+
+Qué mejoró, mirando las capturas: la cámara está baja y de lado, junto al ruedo, y tu trompo se ve grande, torneado, a
+franjas y con punta de metal. Hay tres lanzamientos en la partida demo (3 → 2 → 0) y gana en el último, con chispas, hacia
+los 45 s. Los rivales que salen quedan tumbados fuera del borde de piedras. El panel de «¡Ganaste!» va arriba y no tapa el
+ruedo. Los surcos son marcados y la mira enseña dónde cae con un arco de vuelo.
+
+Qué no: el arranque vuelve a ser negro en el segundo 0, y el menú no aparece en ninguna captura (la demo lo salta enseguida).
+El fondo detrás del ruedo es una franja gris plana. La fuerza no se ve en ninguna captura, el brillo de barniz apenas se
+nota y el «cuello» de los trompos no se distingue. Tampoco se ve el momento de celebración antes del panel: a los 45 s aún
+no hay panel y a los 58 s ya está. No lo ha jugado nadie con ratón ni se ha oído.
+
+Archivos: `Trompo-B-v2.mp4`, `Trompo-B-v2-{0,3,10,20,30,45,58}.png`, `Trompo-antes-despues.mp4` (B de antes a la
+izquierda, B v2 a la derecha). El acceso directo `Escritorio/Trompo (con Nomos).lnk` sigue apuntando a
+`Unreal Projects/Trompo/Empaquetado/Windows/Trompo.exe`, que ahora es el v2.
