@@ -17,7 +17,7 @@ type FileSystem = {
 };
 const sameDir = (a: string, b: string) => win32.resolve(a).toLowerCase() === win32.resolve(b).toLowerCase();
 /** Servidores MCP cuyo nombre contiene «unreal» declarados para el juego: `.mcp.json`, `.claude/settings.json` y `~/.claude.json`. */
-function unrealServers(fs: FileSystem, gameDir: string, home: string | undefined): string[] {
+export function unrealServers(fs: FileSystem, gameDir: string, home: string | undefined): string[] {
     const json = (path: string) => { try {
         return JSON.parse(fs.readFileSync(path, 'utf8'));
     }

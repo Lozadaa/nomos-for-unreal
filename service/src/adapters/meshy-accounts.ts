@@ -13,7 +13,8 @@ export const accountsFile = (env: NodeJS.ProcessEnv) =>
 export function dpapi(cipher: string): string {
   const r = spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command',
     '$s = ConvertTo-SecureString ([Console]::In.ReadToEnd().Trim()); [Console]::Out.Write([Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)))'],
-    {input: cipher, encoding: 'utf8', windowsHide: true, timeout: 30_000});
+    // sin PSModulePath: heredado de pwsh 7, Windows PowerShell 5.1 no carga Microsoft.PowerShell.Security (ConvertTo-SecureString)
+    {input: cipher, encoding: 'utf8', windowsHide: true, timeout: 30_000, env: {...process.env, PSModulePath: undefined}});
   if (r.status !== 0 || !r.stdout) throw new Error('meshy_key_unreadable');
   return r.stdout;
 }

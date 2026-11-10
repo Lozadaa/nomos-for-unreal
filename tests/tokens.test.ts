@@ -14,7 +14,7 @@ test("tokens.json v2 tiene todas las claves, 10 estados de tarea y 5 del directo
   const expected = {
     color: ["primary", "primaryHover", "primaryText", "bgLayout", "bgContainer", "bgSubtle", "text", "textSecondary",
       "textTertiary", "border", "borderDefault", "borderStrong", "focus", "success", "warning", "error", "info", "neutral", "purple"],
-    font: ["sans", "mono"],
+    font: ["sans", "serif", "mono"],
     size: ["xs", "sm", "md", "lg", "xl", "xxl"],
     radius: ["sm", "md", "lg"],
     layout: ["header", "drawer", "control", "tabs", "content"],
@@ -22,11 +22,13 @@ test("tokens.json v2 tiene todas las claves, 10 estados de tarea y 5 del directo
   for (const [group, keys] of Object.entries(expected)) {
     for (const key of keys) assert.ok(key in tokens[group], `falta ${group}.${key}`);
   }
-  assert.deepEqual(tokens.shadow, {}, "Vercel no usa sombras");
-  assert.equal(tokens.font.sans, "Geist Variable");
+  assert.deepEqual(tokens.shadow, {}, "papel: sin sombras");
+  assert.deepEqual(Object.keys(tokens.colorDark), Object.keys(color), "el oscuro tiene las mismas claves");
+  assert.equal(tokens.font.sans, "Instrument Sans Variable");
+  assert.equal(tokens.font.serif, "Newsreader Variable");
   assert.equal(tokens.font.mono, "Geist Mono Variable");
-  assert.equal(tokens.radius.sm, 6);
-  assert.equal(tokens.radius.md, 8);
+  assert.equal(tokens.radius.sm, 8);
+  assert.equal(tokens.radius.md, 12);
   assert.deepEqual(tokens.space, [4, 8, 12, 16, 20, 24, 32, 40, 48, 64]);
   assert.equal(Object.keys(tokens.taskState).length, 10);
   assert.equal(Object.keys(tokens.directorState).length, 5);
@@ -37,27 +39,20 @@ test("tokens.json v2 tiene todas las claves, 10 estados de tarea y 5 del directo
   }
 });
 
-test("tokens.css generado coincide con el JSON y lleva los valores oklch de Vercel", () => {
+test("tokens.css generado coincide con el JSON y lleva los colores exactos del logo", () => {
   const css = readFileSync(join(root, "design/tokens.css"), "utf8");
   assert.equal(css, buildCss(tokens), "design/tokens.css está desfasado: ejecuta `node design/build-tokens.ts`");
   execFileSync(process.execPath, [join(root, "design/build-tokens.ts")]);
   assert.equal(readFileSync(join(root, "design/tokens.css"), "utf8"), css);
   for (const line of [
-    "--k-color-bg-layout: oklch(0 0 0);",
-    "--k-color-bg-subtle: oklch(0.027 0 0);",
-    "--k-color-text: oklch(0.946 0 0);",
-    "--k-color-text-secondary: oklch(0.706 0 0);",
-    "--k-color-border: oklch(1 0 0 / 0.13);",
-    "--k-color-border-strong: oklch(1 0 0 / 0.54);",
-    "--k-color-focus: oklch(71.7% 0.1648 250.794);",
-    "--k-color-info: oklch(57.61% 0.2321 258.23);",
-    "--k-color-success: oklch(73.1% 0.2158 148.29);",
-    "--k-color-warning: oklch(77.21% 0.1991 64.28);",
-    "--k-color-error: oklch(62.56% 0.2234 23.03);",
-    "--k-font-sans: Geist Variable;",
+    "--k-color-bg-layout: #F5F0E8;",
+    "--k-color-text: #1F1E1D;",
+    "--k-color-primary-hover: #C96442;",
+    "--k-color-primary: #A9502F;",
+    "--k-font-sans: Instrument Sans Variable;",
     "--k-size-md: 14px;",
-    "--k-radius-sm: 6px;",
-    "--k-radius-md: 8px;",
+    "--k-radius-sm: 8px;",
+    "--k-radius-md: 12px;",
     "--k-space-9: 64px;",
     "--k-layout-header: 56px;",
     ".k-state-pendiente { --k-state: var(--k-color-neutral);",
@@ -67,19 +62,22 @@ test("tokens.css generado coincide con el JSON y lleva los valores oklch de Verc
   assert.ok(!css.includes("--k-shadow"), "no hay sombras");
 });
 
-test("contraste AA en oscuro", () => {
-  assert.ok(contrast(color.text, color.bgLayout) >= 4.5, "text sobre surface-primary");
-  assert.ok(contrast(color.textSecondary, color.bgLayout) >= 4.5, "textSecondary sobre surface-primary");
-  assert.ok(contrast(color.text, color.bgSubtle) >= 4.5, "text sobre surface-secondary");
-  assert.ok(contrast(color.textSecondary, color.bgSubtle) >= 4.5, "textSecondary sobre surface-secondary");
-  assert.ok(contrast(color.textTertiary, color.bgSubtle) >= 4.5, "textTertiary sobre surface-secondary");
-  assert.ok(contrast(color.primaryText, color.primary) >= 4.5, "texto de la acción primaria");
-  assert.ok(contrast(color.focus, color.bgLayout) >= 4.5, "foco y enlaces");
-  for (const k of ["success", "warning", "error", "info", "neutral"]) {
-    assert.ok(contrast(color[k], color.bgLayout) >= 3, `${k} < 3:1 sobre surface-primary`);
+test("contraste AA en claro (principal) y en oscuro", () => {
+  for (const c of [color, tokens.colorDark]) {
+    assert.ok(contrast(c.text, c.bgLayout) >= 4.5, "text sobre surface-primary");
+    assert.ok(contrast(c.textSecondary, c.bgLayout) >= 4.5, "textSecondary sobre surface-primary");
+    assert.ok(contrast(c.text, c.bgSubtle) >= 4.5, "text sobre surface-secondary");
+    assert.ok(contrast(c.textSecondary, c.bgSubtle) >= 4.5, "textSecondary sobre surface-secondary");
+    assert.ok(contrast(c.textTertiary, c.bgSubtle) >= 4.5, "textTertiary sobre surface-secondary");
+    assert.ok(contrast(c.primaryText, c.primary) >= 4.5, "texto de la acción primaria");
+    assert.ok(contrast(c.focus, c.bgLayout) >= 3, "foco (indicador no textual, 3:1)");
+    // la arcilla exacta del logo (#C96442, primaryHover en claro) solo pinta marcas y cifras grandes: 3:1
+    assert.ok(contrast(c.primaryHover, c.bgLayout) >= 3, "acento de marca sobre el papel");
+    for (const k of ["success", "warning", "error", "info", "neutral"]) {
+      assert.ok(contrast(c[k], c.bgLayout) >= 4.5, `${k} < 4.5:1 sobre surface-primary`);
+    }
   }
 });
-
 test("contrast acepta hex y oklch", () => {
   assert.ok(Math.abs(contrast("#000000", "#FFFFFF") - 21) < 0.01);
   assert.ok(Math.abs(contrast("oklch(0 0 0)", "oklch(1 0 0)") - 21) < 0.05);

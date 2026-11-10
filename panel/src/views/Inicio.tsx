@@ -16,6 +16,7 @@ import { AreaPictogram } from '@/visual/art/AreaPictogram'
 import { ApprovalCard } from './ApprovalCard'
 import { Chat } from './Chat'
 import { DecisionCard } from './DecisionCard'
+import { EstadoCard } from './EstadoCard'
 import { viewerItems } from './PorAprobar'
 import { useLatestCaptures } from './Produccion'
 import { TaskSheet } from './TaskSheet'
@@ -129,6 +130,7 @@ export function Inicio() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10">
+      <div className="lg:col-span-2"><EstadoCard /></div>
       <div className="flex min-w-0 flex-col gap-10">
         <header className="flex flex-col gap-1 pt-1">
           <h2 role="status" className="text-2xl font-semibold tracking-tight sm:text-3xl">{headline}</h2>

@@ -1,16 +1,43 @@
-# Dirección visual del panel de Nomos (vigente desde el hito 8)
+# Dirección visual del panel de Nomos: papel y arcilla (vigente desde el 2026-11-10)
 
-Esta dirección **sustituye** a la «A · Sala de control densa» del hito 1a (tema claro, Ant Design, tablero de ocho columnas, sombras). El usuario la cambió el 2026-10-23: panel **oscuro con la apariencia de Vercel**, sin Next.js, sin tablero tipo Jira, y «cada acción tiene que tener una respuesta en la misma pantalla y si es una redirección se tiene que sentir». La fuente de verdad de la implementación es `panel/src/styles/theme.css` y `design/tokens.json`; el plan es `docs/superpowers/plans/2026-10-23-hito8-interfaz-viva.md`.
+Esta dirección **sustituye** a la oscura «tipo Vercel» del hito 8. El usuario la pidió el 2026-11-10: «ese mismo estilo que le
+diste al logo, ahora que el sitio se vea así». El logo (`nomos-media/logo/`, NOTAS.md) es cálido, humano, artesanal y sereno;
+el panel habla igual. Inspiración de sensibilidad, no imitación: ni símbolo de destello, ni marca ni nombre de terceros.
+Implementación: `panel/src/styles/theme.css` (fuente de verdad) y `design/tokens.json` (`color` claro, `colorDark` oscuro).
 
 ## Principios
 
-1. **Oscura y plana.** Superficies `surface-primary` (negro) y `surface-secondary`; separación con bordes de alfa blanco (`border-subtle|default|strong`). **Sin sombras**: la elevación es borde más fondo. Radio de 8 px (6 px en controles pequeños).
-2. **Geist.** Geist Sans para todo; Geist Mono para ids, rutas, comandos y cifras. Autoalojadas (`@fontsource-variable`).
-3. **El estado se dice con forma y color.** `success`, `warning`, `error`, `info`, `neutral`. El glifo tiene nombre accesible y tooltip; el detalle conserva el texto. Nunca solo color. Azul para foco, enlaces, acción primaria y datos de actividad.
-4. **Producción es una lista viva**, no un tablero: filas de 48 px agrupadas por etapa; el detalle abre en un panel lateral de 720 px con un stepper horizontal de la etapa. Sin arrastrar y soltar.
-5. **Sin modales para pedir cosas.** El compositor de peticiones se expande en el sitio.
-6. **Copy en español**, de `docs/diseno/estados.md`, con errores que dicen qué pasó y qué hacer (`panel/src/lib/errors.ts` traduce los códigos del servicio).
+1. **Papel claro por defecto, tinta cálida como alternativa.** Sigue a `prefers-color-scheme`; el botón luna/sol de la
+   cabecera fija la elección (`localStorage nomos.tema`, `panel/src/lib/theme.ts`) y pone o quita `.dark` en `<html>`.
+2. **Colores exactos del logo.** Papel `#F5F0E8`, tinta `#1F1E1D`, terracota `#C96442`, arcilla clara `#E49A7B` (oscuro).
+   La terracota exacta pinta marcas (símbolo, barras, la cifra de «Por configurar»); con texto encima se usa una arcilla
+   más honda, `#A9502F` (texto blanco 5,3:1). En oscuro el acento es `#E49A7B` con tinta encima (7,3:1).
+3. **Un solo acento por pantalla**, para lo importante (en Inicio: lo que falta por configurar; en móvil, «Habla con Nomos»).
+   El resto es tinta con alfa: bordes `border-subtle|default|strong` (11 / 14 / 48 % de tinta), barras al 70 %.
+4. **Estados desaturados de la misma familia cálida** (salvia, ocre, ladrillo, pizarra) y **siempre con forma**: icono,
+   texto o patrón además del color. AA medido (≥ 4,5:1 sobre papel y sobre tinta; la prueba es `tests/tokens.test.ts`).
+5. **Superficies de papel.** Fondo crema; tarjetas en papel más claro (`--card`); bordes finos de tinta con alfa; radios de
+   12 px (8 px en controles). Sin sombras ni degradados; la única excepción sigue siendo el brillo de «Jugar» (hito 14).
+6. **Tipografía con carácter.** Newsreader (serif humanista, ejes de tamaño óptico) en `h1`/`h2`, el nombre de la marca y las
+   cifras grandes; Instrument Sans para todo lo demás; Geist Mono solo para comandos, rutas e ids. Las tres autoalojadas con
+   `@fontsource-variable` (OFL-1.1). Cifras tabulares en todo el panel (`font-variant-numeric: tabular-nums` en `body`).
+7. **Lo que el navegador pinta también lleva la paleta**: selección, caret y barras de desplazamiento salen de los tokens.
+8. **Copy en español**, de `docs/diseno/estados.md`, con errores que dicen qué pasó y qué hacer.
 
+| Par (claro) | Contraste | Par (oscuro) | Contraste |
+|---|---|---|---|
+| tinta / papel | 14,7:1 | papel / tinta | 14,7:1 |
+| texto secundario / papel | 5,8:1 | texto secundario / tinta | 7,5:1 |
+| blanco / `#A9502F` | 5,3:1 | tinta / `#E49A7B` | 7,3:1 |
+| `#C96442` (marcas) / papel | 3,4:1 | estados / tinta | ≥ 6,1:1 |
+| estados / papel | ≥ 5,1:1 | | |
+
+## Tarjeta de estado (Inicio)
+
+Una franja arriba de Inicio (≈ 100 px en escritorio, dos columnas en móvil) responde «¿qué tengo, cuánto me queda y qué
+falta?»; al pulsarla se abre en el sitio. Datos de `GET /resumen` (`service/src/resumen.ts`), solo los que existen: una fuente
+sin configurar no da cifra, sale en «Falta por configurar» con su comando y botón de copiar. Cifra grande en serif, barra fina
+de 4 px en tinta (ámbar o ladrillo solo si hay que mirar), icono lucide de 14 px. Ninguna clave sale del servicio.
 ## Regla de sensación (la verifica `panel/src/feel/` y sus pruebas)
 
 - Todo control que dispara una acción pasa por `useAction`: estado **pendiente visible antes de 100 ms y mantenido al menos 300 ms** aunque el servidor responda antes.
@@ -41,7 +68,7 @@ Curva única `cubic-bezier(.2,.8,.2,1)` (`--k-ease`); duraciones `micro 120 · e
 
 ## Estructura de la interfaz
 
-- **Cabecera de 56 px**: marca, nombre del proyecto (del `.uproject`, vía `GET /status`), punto vivo del director (verde latiendo 2 s si escucha; ámbar «vigilante caído»; rojo «desconectado»; gris «esperando») y ⌘K.
+- **Cabecera de 56 px**: símbolo de la N en arcilla y «Nomos» en serif (la firma completa solo se lee desde 320 px), conmutador claro/oscuro, nombre del proyecto (del `.uproject`, vía `GET /status`), punto vivo del director (verde latiendo 2 s si escucha; ámbar «vigilante caído»; rojo «desconectado»; gris «esperando») y ⌘K.
 - **Pestañas de 40 px** con indicador deslizante (transform): Producción · Actividad · Entregas · Catálogo · Chat · Decisiones (con el número de pendientes) · Presupuesto · Capacidades · Estilo. Sin barra lateral.
 - **Contenido** a 1400 px como máximo. 1366×768 y 1920×1080; mínimo 1280. Toda pantalla con formulario cabe a 1366×768 sin desplazar.
 - Los filtros viven en la URL (`?etapa=`, `?modo=`, `?origen=`, `?tarea=`), igual que el detalle abierto (`?tarea=`) y el compositor (`?nueva=1`).
@@ -70,4 +97,4 @@ Evidencia actual a 1366×768 y 1920×1080 en `docs/capturas-9/`. La prueba human
 
 ## Qué queda descartado
 
-Tema claro, Ant Design, tablero de columnas y arrastrar, sombras, chips rellenos, barra lateral, los tokens del hito 1a y las tres maquetas `design/maquetas/{a,b,c}` (siguen en el repositorio como historia; su comparación ya no manda).
+La dirección oscura «tipo Vercel» del hito 8 (negro puro, Geist Sans, acento azul, radios de 8 px), el tema claro del hito 1a, Ant Design, tablero de columnas y arrastrar, sombras, chips rellenos y barra lateral. Las maquetas `design/maquetas/{a,b,c}` siguen en el repositorio como historia. El prefijo `--vbg-*` de los tokens se conserva por compatibilidad; sus valores ya son los de papel y arcilla.
