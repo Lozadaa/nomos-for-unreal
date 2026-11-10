@@ -54,3 +54,18 @@ test('ue59: con el motor 5.9 el brief manda leer el mapa de features y pide NOMO
     for (const engine of ['5.8.3',undefined]) assert.doesNotMatch(renderBrief(task,run,{engine}),/NOMOS_UE59/);
   } finally {db.close();}
 });
+
+test('jam: lo aprendido en el juego (docs/aprendido.md del worktree) entra en el contexto del brief, solo las 30 últimas líneas',async()=>{
+  const {mkdirSync,mkdtempSync,writeFileSync}=await import('node:fs'),{tmpdir}=await import('node:os'),{join}=await import('node:path');
+  const {briefContext}=await import('../../service/src/handlers/worker-start.ts'),{removeDir}=await import('../remove-dir.ts');
+  const project=mkdtempSync(join(tmpdir(),'nomos-aprendido-')),tree=join(project,'arbol');
+  try {
+    mkdirSync(join(tree,'docs'),{recursive:true});
+    assert.doesNotMatch(briefContext(project,tree,'gameplay'),/Aprendido/,'sin archivo no hay encabezado');
+    writeFileSync(join(tree,'docs','aprendido.md'),Array.from({length:50},(_,i)=>`- línea ${i+1}`).join('\n')+'\n');
+    const context=briefContext(project,tree,'gameplay');
+    assert.match(context,/## Aprendido en este juego/);
+    for (let i=21;i<=50;i++) assert.match(context,new RegExp(`- línea ${i}\n`));
+    for (let i=1;i<=20;i++) assert.doesNotMatch(context,new RegExp(`- línea ${i}\n`));
+  } finally {removeDir(project);}
+});

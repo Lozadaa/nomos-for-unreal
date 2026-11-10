@@ -29,6 +29,15 @@ import { orcaDeferral, orcaDown } from './orca-down.ts';
 import { askReconcile } from './reconcile.ts';
 import { fromMain } from '../main-base.ts';
 
+/** Contexto del brief: el del proyecto, la dirección de arte (solo UI) y las 30 últimas líneas de lo aprendido en el juego. */
+export function briefContext(projectDir:string,worktree:string,area:string):string {
+  const contextFile=join(projectDir,'.agents','ue-project-context.md'),uiFile=join(projectDir,'docs','ui-direction.md'),learned=join(worktree,'docs','aprendido.md');
+  return [existsSync(contextFile) ? readFileSync(contextFile,'utf8') : '',
+    // la dirección de arte de la UI (game-ui-art-director) acompaña a todo worker de UI
+    area==='ui' && existsSync(uiFile) ? `## Dirección de arte de la UI (docs/ui-direction.md)\n\n${readFileSync(uiFile,'utf8')}` : '',
+    // jam: lo que el equipo aprendió viaja con el juego (merge=union); lo último es lo más útil
+    existsSync(learned) ? `## Aprendido en este juego (docs/aprendido.md)\n\n${readFileSync(learned,'utf8').trimEnd().split(/\r?\n/).slice(-30).join('\n')}\n` : ''].filter(Boolean).join('\n\n');
+}
 export const workerStart: Handler=(cmd,ctx)=>startWorker(cmd,ctx);
 export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   snapshot:ReviewSnapshot;valid:()=>Promise<boolean>;brief:(path:string,run:Run)=>string;
@@ -122,10 +131,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   await git.renameBranch(created.path,await git.branchExists(projectDir,name) ? name+'-'+run.id.slice(0,8) : name);
   const branch=await git.currentBranch(created.path);
   db.prepare('update worktrees set branch=?,updated_at=? where id=?').run(branch,new Date().toISOString(),created.worktreeId);
-  const contextFile=join(projectDir,'.agents','ue-project-context.md'),uiFile=join(projectDir,'docs','ui-direction.md');
-  // la dirección de arte de la UI (game-ui-art-director) acompaña a todo worker de UI
-  const context=[existsSync(contextFile) ? readFileSync(contextFile,'utf8') : '',
-    task.area==='ui' && existsSync(uiFile) ? `## Dirección de arte de la UI (docs/ui-direction.md)\n\n${readFileSync(uiFile,'utf8')}` : ''].filter(Boolean).join('\n\n');
+  const context=briefContext(projectDir,created.path,task.area);
   writeFileSync(join(created.path,'.nomos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
     {projectContext:context || undefined,continuation:continuationBrief(db,task,ctx.dataDir),
       rapido:rapido(config),engine:createUnrealCmd({bin:assetConfig(ctx.dataDir).unrealPath}).engineVersion() ?? undefined,turn:`node "${join(import.meta.dirname,'..','cli.ts')}" worker turn ${task.id} --data "${ctx.dataDir}"`}));
