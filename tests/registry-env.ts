@@ -17,3 +17,5 @@ if (!process.env.NOMOS_MACHINE_FAKE) {
 process.env.NOMOS_LEAN ??= 'off';
 // jam 2026-11-10: el modo rápido es el valor por defecto; la suite mide los de antes (rapido-defecto.test.ts, el nuevo)
 process.env.NOMOS_RAPIDO_DEFAULT ??= 'off';
+// jam-meshy: ninguna prueba lee ni descifra las cuentas reales de Meshy (%USERPROFILE%\.nomos\meshy-claves.json)
+process.env.NOMOS_MESHY_CLAVES ??= join(tmpdir(), 'nomos-sin-claves-meshy.json');

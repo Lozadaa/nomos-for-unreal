@@ -1,6 +1,7 @@
 import { gameEngine } from '../engine-path.ts';
 import * as nodeFs from 'node:fs';
 import { win32 } from 'node:path';
+import { meshyAccounts } from '../adapters/meshy-accounts.ts';
 export type Capability = {
     id: string;
     label: string;
@@ -55,6 +56,7 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
     const plugin = (relative: string) => exists(win32.join(engine, 'Plugins', relative));
     const launcher = [env.ProgramFiles ?? 'C:\\Program Files', env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)']
         .some(root => ['Win64', 'Win32'].some(arch => exists(win32.join(root, 'Epic Games/Launcher/Portal/Binaries', arch, 'EpicGamesLauncher.exe'))));
+    const meshy = meshyAccounts(env).length;
     const values: [
         string,
         string,
@@ -66,7 +68,7 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         ['unreal', 'Unreal Engine', exists(unreal), 'Editor de Unreal'],
         ['unreal_mcp', 'Unreal MCP', plugin('Experimental/ModelContextProtocol/ModelContextProtocol.uplugin') && plugin('Experimental/Toolsets/AllToolsets/AllToolsets.uplugin'), 'Plugins MCP y herramientas'],
         ['fab_plugin', 'Fab', plugin('Fab/Fab.uplugin'), 'Plugin Fab'], ['launcher', 'Epic Games Launcher', launcher, 'Launcher de Epic Games'],
-        ['meshy', 'Meshy', Boolean(env.MESHY_API_KEY), 'Configuración de API'],
+        ['meshy', 'Meshy', meshy > 0, meshy ? `${meshy} ${meshy === 1 ? 'cuenta' : 'cuentas'} de API` : 'Cuentas de API'],
         ['blender', 'Blender', typeof config.blenderPath === 'string' ? exists(config.blenderPath) : onPath('blender.exe') || onPath('blender'), 'Ejecutable de Blender'],
         ['git', 'Git', onPath('git.exe') || onPath('git'), 'Ejecutable de Git'],
         // hito 5b: MetaHuman (plugin + IK Rig del cuerpo; los presets los cuenta capabilityList), retarget y vídeo de las animaciones

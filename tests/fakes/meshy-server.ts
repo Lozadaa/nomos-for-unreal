@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 
 /** Imita la REST de Meshy (rutas de docs.meshy.ai): crea jobs, los completa en el segundo GET y sirve los archivos. */
-export async function meshyServer(opts: {expired?: boolean; dropCreate?: boolean} = {}) {
+export async function meshyServer(opts: {expired?: boolean; dropCreate?: boolean; balance?: number; noCredits?: boolean} = {}) {
   const tasks = new Map<string, Record<string, unknown>>(), polls = new Map<string, number>();
   const created: {path: string; body: Record<string, unknown>}[] = [];
   let next = 0, server!: Server;
@@ -15,10 +15,11 @@ export async function meshyServer(opts: {expired?: boolean; dropCreate?: boolean
       if (opts.expired) return send(404, {message: 'expired'});
       res.writeHead(200); res.end(`contenido de ${files[1]}`); return;
     }
-    if (url.pathname === '/openapi/v1/balance') return send(200, {balance: 900});
+    if (url.pathname === '/openapi/v1/balance') return send(200, {balance: opts.balance ?? 900});
     const route = /^\/openapi\/v[12]\/(text-to-3d|image-to-3d|remesh)(?:\/([^/]+))?$/.exec(url.pathname);
     if (!route) return send(404, {message: 'no route'});
     if (req.method === 'POST') {
+      if (opts.noCredits) return send(402, {message: 'Insufficient credits'});
       let raw = '';
       req.on('data', c => raw += c);
       req.on('end', () => {

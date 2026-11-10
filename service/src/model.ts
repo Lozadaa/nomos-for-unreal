@@ -47,6 +47,7 @@ export type RunMetadata = {
   // trabajo de assets (hito 4): orden que lo creó y, en Meshy, el job remoto
   commandId?: string; remoteId?: string; kind?: string; stage?: string; idempotencyKey?: string;
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;
+  /** jam-meshy: nombre de la cuenta de Meshy que creó el job (nunca la clave); el poll y la descarga la reutilizan */ account?: string;
   // pruebas (hito 5): run implementador cuyo diff se prueba
   implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
   /** docs/x10/umg-bucles.md: clave de entrada del ciclo UMG de esta run (caché de intentos fallidos). */ umgInput?: string;
