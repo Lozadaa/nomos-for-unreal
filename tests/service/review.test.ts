@@ -45,7 +45,8 @@ test('rechazo libera revisor y envía findings al mismo implementador con reserv
 test('REVIEW mal formado espera con línea; DONE y ejemplos no aprueban',async t=>{
   const f=await reviewFixture(t);await f.startReview();
   const malformed='NOMOS_REVIEW {"approved":"yes","findings":[]}';
-  f.output('```json','NOMOS_REVIEW {"approved":true,"findings":[]}','```',
+  // jam 2026-11-10: en un bloque solo el ejemplo literal del brief del revisor deja de contar
+  f.output('```json','NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"El README no dice cómo arrancar el juego; se esperaba el paso a paso"}]}','```',
     'NOMOS_DONE {"summary":"No revisar","commits":[],"tests":"passed"}',malformed);await f.poll();
   assert.equal(f.reviewer().state,'running');assert.equal(f.reviewer().metadata.waiting,true);
   assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.waiting').at(-1)?.payload.question,malformed);

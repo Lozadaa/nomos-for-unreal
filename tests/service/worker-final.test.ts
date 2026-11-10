@@ -34,7 +34,8 @@ test('fence de stream atraviesa polls, envío y reinicio sin terminar por ejempl
   const poll=()=>f.invoke('worker.poll',{runId:f.run().id,generation:f.run().metadata.pollGeneration ?? 0});
   f.output('````text');await poll();
   await f.invoke('worker.send',{runId:f.run().id,text:'Sigue'});
-  f.output('```','~~~~','````con sufijo','NOMOS_DONE {"summary":"Ejemplo","commits":[],"tests":"none"}');
+  // jam 2026-11-10: dentro de un bloque solo el ejemplo literal del brief deja de contar
+  f.output('```','~~~~','````con sufijo','NOMOS_DONE {"summary":"Resumen","commits":[],"tests":"passed"}');
   await poll();
   assert.equal(f.run().state,'running');assert.equal(listEvents(f.db,0).filter(e=>e.type==='run.finished').length,0);
   // A fresh runner reloads the persisted stream state before the next page.
@@ -68,7 +69,7 @@ test('envío invalida fragmento DONE anterior y exige marcador completo nuevo',a
 test('send no convierte ejemplo cercado en DONE visto si lastLines perdió apertura',async t=>{
   const f=fixture(t);await f.start();
   const marker='NOMOS_DONE {"summary":"Luego real","commits":[],"tests":"passed"}';
-  f.output('```text',...Array.from({length:25},()=>'- texto'),marker,'```');
+  f.output('```text',...Array.from({length:25},()=>'- texto'),'NOMOS_DONE {"summary":"Resumen","commits":[],"tests":"passed"}','```');
   await f.invoke('worker.poll',{runId:f.run().id,generation:0});
   assert.equal(f.run().state,'running');
   await f.invoke('worker.send',{runId:f.run().id,text:'Continúa'});
