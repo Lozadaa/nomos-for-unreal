@@ -75,6 +75,12 @@ Hacedla juntos, cada uno en su PC, con el repo del juego ya en GitHub.
 
 Si algún paso falla, apuntad qué salió en `nomos equipo` y en el panel antes de tocar nada.
 
+## 7. Pedir y mirar
+
+- Un juego o un cambio que cabe en una hora es **una sola tarea** para un solo worker: pídelo entero, en un mensaje.
+- Para ver cómo se lee: `pwsh -File Scripts/capturar.ps1 -Demo` deja `docs/capturas/inicio.png`, `mitad.png` y `final.png`
+  y pasa `revisar_imagen.py`. Ábrelas tú también.
+
 ## Lo que no está probado
 
 - **Dos máquinas de verdad con GitHub y Git LFS.** La prueba se hizo con dos clones en el mismo PC y un remoto local
