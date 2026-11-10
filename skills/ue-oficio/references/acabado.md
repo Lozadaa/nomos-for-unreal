@@ -108,3 +108,9 @@ Antes de marcar el FIN o entregar con `NOMOS_DONE`:
      decorativos finos, como palotes o rayas de cuaderno, no cuentan);
    - un panel que podría ser de cualquier juego.
 4. Anota en `docs/hecho.md` una línea `ACABADO: revisar_acabado 0 fallos, captura docs/empaquetado.png`.
+5. Tres capturas del modo demo, del editor en `-game` (el Shipping no escribe el JSON de escena): `Scripts/capturar.ps1 -Demo`
+   deja `docs/capturas/inicio.png`, `mitad.png` y `final.png` con su `.json`, y
+   `python <ue-oficio>/scripts/revisar_imagen.py docs/capturas` da 0 `FALLO` (negro puro, nada brilla, protagonista diminuto,
+   fuera de cuadro o sin contraste, escena cortada, nada cambia). **Ábrelas** y escribe una línea `VISTO:` por captura en
+   `docs/hecho.md`: protagonista y dónde está, qué le amenaza, qué cambiarías si fuera el juego de otro. Con Nomos, la
+   comprobación `imagen` lo repite en la tarea que empaqueta.

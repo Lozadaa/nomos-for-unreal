@@ -35,6 +35,14 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 - Antes de `NOMOS_DONE`: `git status --short` vacío y `revisar_acabado.py` sin fallos.
 - Si una trampa de Unreal te costó más de 5 min, añade una línea a `docs/aprendido.md` (la regla, no la historia; ≤ 160 caracteres). Ese archivo siempre está en tu alcance.
 {{turn}}{{rapido}}
+## Mira lo que hiciste
+
+- Cada vez que algo visible cambie, saca una captura del juego en marcha y **ábrela** con la herramienta de leer imágenes.
+- Antes de entregar: `Scripts/capturar.ps1 -Demo` deja `docs/capturas/inicio.png`, `mitad.png` y `final.png` con su `.json`.
+  Ábrelas las tres y escribe en `docs/hecho.md` una línea `VISTO:` por captura: qué es el protagonista y dónde está, qué le
+  amenaza y qué cambiarías si fuera el juego de otro. Si lo último no es «nada», cámbialo y repite (dos veces como mucho).
+- Ningún panel de UI es un rectángulo liso semitransparente: dale la forma del motivo de `docs/direccion.md`.
+
 Formato de cierre: `NOMOS_DONE {"summary":"Resumen","commits":[],"tests":"passed"}`.
 Formato de pregunta: `NOMOS_ASK {"question":"Tu pregunta"}`.
 

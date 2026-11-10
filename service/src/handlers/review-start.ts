@@ -9,7 +9,7 @@ import { reviewTarget, reviewSnapshot, reviewCurrent } from '../review.ts';
 import { startWorker } from './worker-start.ts';
 import { appendEvent } from '../store.ts';
 import { updateRun } from '../repo/worker.ts';
-import { workerSkillsBrief } from '../brief.ts';
+import { capturasBrief, workerSkillsBrief } from '../brief.ts';
 import { skillsForRole } from '../skills.ts';
 import { qaBrief } from './ui-cycle.ts';
 import { askMerge } from '../main-base.ts';
@@ -57,6 +57,7 @@ export const reviewStart:Handler=async(cmd,ctx)=>{
         +`Si necesitas aclaración: NOMOS_ASK {"question":"Pregunta"}. No uses NOMOS_DONE.\n`
         // rápido: un rechazo cuesta una vuelta entera (Física, metras: 3 correcciones por un archivo de otra pista)
         +(rapido(readConfig(ctx.dataDir)) ? `\nModo rápido: rechaza solo si un criterio no se cumple, no compila, se cae o rompe otra parte del juego. `
-          +`Estilo, tests que faltan o archivos fuera del alcance sin daño: aprueba y anótalo en findings con severity "nota".\n` : '');
+          +`Estilo, tests que faltan o archivos fuera del alcance sin daño: aprueba y anótalo en findings con severity "nota".\n` : '')
+        +capturasBrief(path);
     }});
 };
