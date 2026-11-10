@@ -1,7 +1,7 @@
 """Nomos · lo que hay en una captura, en JSON, para que el revisor razone posiciones sin abrir otra sonda.
 
-`escena(world, png)` escribe `<png>.json` con la cámara del jugador, el pawn y hasta MAX actores que caen dentro de
-la imagen (nombre, clase, posición en el mundo en cm, tamaño, altura de la base, distancia a la cámara y píxel en la captura). Se llama con el juego
+`escena(world, png)` escribe `<png>.json` con la cámara del jugador, el pawn y hasta MAX actores delante de
+la cámara, dentro o fuera de la imagen (nombre, clase, posición en el mundo en cm, tamaño, altura de la base, distancia a la cámara y píxel en la captura). Se llama con el juego
 pausado, justo antes de capturar, así que la pose es la de la imagen. Idea de per-simmons/unreal-agent-harness (capturas
 anotadas con XYZ); el código es propio.
 """
@@ -41,6 +41,18 @@ def _hidden(actor):
     return False
 
 
+def _pawn(controller, pawn, cam):
+    """Protagonista con píxel, tamaño y distancia: revisar_imagen.py mide con ellos si se ve y se distingue."""
+    pos = pawn.get_actor_location()
+    data = {"clase": pawn.get_class().get_name(), "pos": _v(pos), "dist": round((pos - cam).length()), "px": _screen(controller, pos)}
+    try:
+        _, extent = pawn.get_actor_bounds(True)
+        data["tam"] = [round(2 * extent.x), round(2 * extent.y), round(2 * extent.z)]
+    except Exception:  # noqa: BLE001
+        pass
+    return data
+
+
 def escena(world, png):
     try:
         controller = unreal.GameplayStatics.get_player_controller(world, 0)
@@ -53,7 +65,7 @@ def escena(world, png):
                                                                           manager.get_camera_rotation().roll)],
                            "fov": round(manager.get_fov_angle(), 1)},
                 "imagen": [width, height],
-                "pawn": {"clase": pawn.get_class().get_name(), "pos": _v(pawn.get_actor_location())} if pawn else None,
+                "pawn": _pawn(controller, pawn, cam) if pawn else None,
                 "actores": []}
         seen = []
         for actor in unreal.GameplayStatics.get_all_actors_of_class(world, unreal.Actor):
@@ -64,8 +76,8 @@ def escena(world, png):
                 continue
             pos = actor.get_actor_location()
             pixel = _screen(controller, pos)
-            if pixel is None or (width and not (0 <= pixel[0] <= width and 0 <= pixel[1] <= height)):
-                continue
+            if pixel is None:
+                continue  # detrás de la cámara; los de delante fuera del cuadro se quedan: revisar_imagen mide si la escena cabe
             item = {"nombre": actor.get_name(), "clase": cls, "pos": _v(pos), "dist": round((pos - cam).length()), "px": pixel}
             # tamaño y altura de la base (cm): con ellos el revisor ve escalas ×100 y objetos flotando sin abrir el editor
             try:
