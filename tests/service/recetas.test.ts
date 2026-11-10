@@ -40,7 +40,7 @@ test('harness: importar_malla, camara_tercera_persona, post_exterior y poblar_pc
   ok({plantilla: 'poblar_pcg', mapa: '/Game/J/L', etiqueta: 'g', pos: [0, 0, 0], extension: [1, 1, 1], grafo: '/PCG/X/PCG_Grafo'});
   const errores = (r: object) => (validarReceta({receta: 1, ...r}) as {errores: string[]}).errores;
   assert.deepEqual(errores({plantilla: 'importar_malla', fuente: 'roca.exe', destino: 'C:/'}),
-    ['fuente: ruta absoluta a un .fbx, .glb, .gltf u .obj', 'destino: carpeta /Game/...']);
+    ['fuente: ruta absoluta a un .fbx, .glb, .gltf, .obj o .wav', 'destino: carpeta /Game/...']);
   assert.deepEqual(errores({plantilla: 'camara_tercera_persona', bp: '/Game/J/BP', fov: 400, sigue_raton: 'si'}),
     ['fov: número entre 30 y 140', 'sigue_raton: true o false']);
   assert.deepEqual(errores({plantilla: 'post_exterior', mapa: '/Game/J/L', sol: {pitch: -200, luna: 1}}),

@@ -20,7 +20,7 @@ export const plantillasRecetas = {
     + 'y, con mapa, sus actores. Campos: carpetas?, clases?, componentes?, mapa?, limite?',
   bp_datos: 'Crea o actualiza un Blueprint hijo (componentes y valores por defecto) y, opcional, un DataAsset con sus propiedades. '
     + 'Campos: ruta, padre, componentes?: [{nombre, clase, malla?, material?, pos?, rot?, escala?}], propiedades?, datos?: {ruta, clase, propiedades}',
-  importar_malla: 'Importa FBX/GLB/OBJ y mide lo importado: rechaza ×100 y ×0,01, alto fuera de rango y, en módulos, pivote fuera de la base; '
+  importar_malla: 'Importa FBX/GLB/OBJ (o un .wav, que queda como SoundWave) y mide lo importado: rechaza ×100 y ×0,01, alto fuera de rango y, en módulos, pivote fuera de la base; '
     + 'apaga sRGB en texturas de datos (altura, máscara, rugosidad, ORM, AO). Campos: fuente (ruta en disco), destino, nombre?, modulo?, alto_cm?: [min, max]',
   camara_tercera_persona: 'Brazo y cámara de un pawn (los añade si faltan): largo, desplazamiento, FOV, seguir el ratón, retardo y colisión; '
     + 'deja una sola cámara activa y falla si la lente queda dentro de la malla. Campos: bp, brazo?, offset?, fov?, sigue_raton?, lag?, colision?',
@@ -111,7 +111,7 @@ export function validarReceta(r: unknown): {ok: true; receta: Record<string, unk
     if (r.carpetas === undefined && r.mapa === undefined) e.push('sondeo: carpetas, mapa o los dos');
   } else if (p === 'importar_malla') {
     claves(r, ['receta', 'plantilla', 'fuente', 'destino', 'nombre', 'modulo', 'alto_cm'], p, e);
-    if (typeof r.fuente !== 'string' || !/^([A-Za-z]:[\\/]|\/)[^\0\r\n]+\.(fbx|glb|gltf|obj)$/i.test(r.fuente)) e.push('fuente: ruta absoluta a un .fbx, .glb, .gltf u .obj');
+    if (typeof r.fuente !== 'string' || !/^([A-Za-z]:[\\/]|\/)[^\0\r\n]+\.(fbx|glb|gltf|obj|wav)$/i.test(r.fuente)) e.push('fuente: ruta absoluta a un .fbx, .glb, .gltf, .obj o .wav');
     if (!ruta(r.destino, 'Game')) e.push('destino: carpeta /Game/...');
     if (r.nombre !== undefined && !(typeof r.nombre === 'string' && /^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(r.nombre))) e.push('nombre: letras, números y _');
     if (r.modulo !== undefined && typeof r.modulo !== 'boolean') e.push('modulo: true o false');
