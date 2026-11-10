@@ -34,3 +34,25 @@ Ninguna por ahora.
 - Causas que se arreglan en Nomos antes de B2 (máximo tres, plan 5.4): (1) el director recibe el mensaje entero; (2) una
   `NOMOS_REVIEW` con JSON roto hace que Nomos pida al revisor repetirla, en vez de esperar; (3) la tabla `tasks` acepta
   `vfx`, `camara` e `ia`.
+
+## Pasada B2 (Nomos con las tres causas arregladas, main 887fe6d)
+
+- Proyecto: `Unreal Projects/Candela2`, con `nomos nuevo Candela --destino …\Candela2` (el juego se llama Candela).
+- Servicio en 8780; `/status.modo` `{"rapido":true,"director":"evento"}`; doctor: Unreal 5.9.
+- Inicio: 2026-11-10T07:31:56Z. Mismo encargo, misma ruta (`POST /messages`, 1600 caracteres).
+
+- 07:43 · 2 tareas: «mecánica de la brasa y reglas» (gameplay, implementando desde 07:33) y «feel, UI, patio y empaquetado» (vfx: ya se acepta) que **depende** de la primera: el director las encadenó, no van en paralelo. Specs fieles al encargo (8 faroles, ratón, sombras, calor, CANDELA_AUTO).
+- 07:46-07:52 · la pista de mecánica entrega, el revisor aprueba (esta vez con JSON válido) y la tarea pide «Aprobar» al
+  usuario (`approval.areas` por defecto: gameplay, arte, ui, animacion). El director despierta y dice «espera tu Aprobar».
+- **Intervención 1 · 07:53:25** · `nomos approval approve 468c19d5…`. Causa (fallo de Nomos): en modo rápido y sin persona
+  delante, la aprobación del usuario para gameplay/ui para la tarea sin plazo. Parada: 7 min.
+- 07:54 · mecánica integrada en main@5b808ad y cerrada (`done`) sola tras la aprobación. Arranca la pista visual (feel, UI, patio y empaquetado).
+- 08:10 · la pista visual entrega; revisión aprobada a las 08:12:43 (área vfx: sin «Aprobar» del usuario) e integrada en
+  main@c186caf a las 08:12:48. **FIN: 08:11:17** (línea escrita por el worker) → **39 min 21 s** de inicio a FIN.
+- 08:13 · el cierre falla al borrar el worktree del revisor («Permission denied», un archivo aún abierto). El director lo
+  reintenta solo. No afecta al juego.
+- **Hallazgo:** no queda `.exe`. El worker empaquetó en su worktree (`Empaquetado/` va en `.gitignore`) y el cierre borró ese
+  worktree. La captura `docs/empaquetado.png` sí se commiteó.
+- 08:15:17 · `nomos stop`. Tokens de entrada (con caché): 9,27 M (director 0,86 M, implementación 7,65 M, revisión 0,76 M).
+- **Intervención 2 · 08:16** · reempaqueto `main` tal cual con `Scripts/empaquetar.ps1` (plan 5.3: «empaquétala tú… cuenta
+  como intervención»).
