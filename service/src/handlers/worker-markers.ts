@@ -40,9 +40,9 @@ function fenceLine(line:string,fence:string): string | undefined {
 const briefExamples=new Set(['{"summary":"Resumen","commits":[],"tests":"passed"}','{"question":"Tu pregunta"}','{"question":"Pregunta concreta"}',
   '{"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"El README no dice cómo arrancar el juego; se esperaba el paso a paso"}]}']);
 /** Jam 2026-11-10 (metras, 5.ª vuelta: un REVIEW en un bloque no se leyó en 31 min): dentro de un bloque cuenta la marca
- *  que empieza la línea, en una sola línea, con JSON válido y que no es un ejemplo del brief. */
+ *  DONE, ASK o REVIEW (SKILLS en un bloque es la plantilla) que empieza la línea, en una sola línea, con JSON válido y que no es un ejemplo del brief. */
 function fencedMarker(line:string): Marker | undefined {
-  const match=/^(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW|SKILLS) ([\[{].*?)\s*$/.exec(line);
+  const match=/^(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW) ([\[{].*?)\s*$/.exec(line);
   return match && !briefExamples.has(match[2]) ? decode(match[1],match[2]) : undefined;
 }
 /** Hito 13: una marca partida se reensambla hasta 40 líneas u 8 KB; más allá se abandona. */
