@@ -39,6 +39,26 @@ Changelist 60351404) el 2026-11-09; **[plan]** sin probar todavía en un juego d
 - **Python ampliado** para audio, MetaSounds, Niagara, materiales, física, PCG, red y UI. Las limitaciones que anota
   [fastvfx](../../nomos/references/fastvfx.md) son de 5.8: vuelve a probarlas antes de rodearlas. [fuente; detalle sin
   publicar]
+- **Animación generada por IA: AnimGenOffline + Kimodo.**
+  - **Qué hace:** genera animaciones de cuerpo entero en Sequencer guiadas a alto nivel: texto («un borracho
+    caminando hacia delante»), un camino dibujado con spline, poses clave en ciertos fotogramas (posadas con Control Rig)
+    y posiciones de manos y pies. El retargeting es automático y el resultado se guarda como Animation Sequence.
+    Sirve para tener animaciones propias sin mocap ni packs, como un tiro de metra, una celebración o un andar con
+    carácter.
+  - **Cómo se activa:** plugins `AnimGenOffline` (framework, dentro de Sequencer) y `Kimodo` (el generador de NVIDIA). Los
+    dos son experimentales, vienen apagados y están en `Engine/Plugins/Experimental/Animation/`. Dependen de Control Rig,
+    UAF y `PythonMLPackages`. [observado]
+  - **Pesos:** se descargan de Hugging Face (`nvidia/Kimodo-SOMA-RP-v1.1`); hace falta una cuenta y un token de solo
+    lectura, que pone el usuario, nunca el agente. [observado]
+  - **Licencia:** el código es Apache-2.0. Los pesos SOMA y G1 llevan la NVIDIA Open Model License; `Kimodo-SMPLX-RP-v1`
+    lleva una licencia de I+D (investigación). En un juego comercial no se usa la variante SMPL-X. [observado: README del
+    plugin]
+  - **Requisitos:** unos 17 GB de VRAM, sobre todo por el codificador de texto (LLM2Vec sobre Mistral 7B), con pruebas en
+    RTX 3090, 4090 y A100. Trae `kimodo_nf4.py`, que cuantiza a 4 bits el codificador de texto para gastar menos VRAM.
+    El PC de referencia (RTX 5060, 8 GB) no llega sin NF4. [observado; sin generar todavía en ese PC]
+  - **Plan B de 5.8:** animaciones de packs o de la plantilla y retargeting con IK Retargeter.
+  - **Estado:** experimental (el autor dice que el nombre puede cambiar). No tiene CLI documentada para un worker sin
+    GUI: el uso publicado es desde Sequencer en el editor. [fuente: anuncio del autor en el foro del 5.9]
 
 ## Gameplay e IA
 
