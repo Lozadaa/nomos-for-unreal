@@ -24,13 +24,20 @@ import { assetCheck } from '../checks/asset.ts';
 import { mapCheck } from '../checks/map.ts';
 import { buildCheck } from '../checks/build.ts';
 import { acabadoCheck, touchesVisible } from '../checks/acabado.ts';
+import { imagenCheck } from '../checks/imagen.ts';
 import { animationCheck, characterOf } from '../checks/animation.ts';
 import { readConfig } from '../config.ts';
 import { integrateIfFree } from '../routes/task-closing.ts';
 
-const executors: Partial<Record<CheckId, Executor>> = {acabado: acabadoCheck, cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
+const executors: Partial<Record<CheckId, Executor>> = {acabado: acabadoCheck, imagen: imagenCheck, cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
 /** `"acabado": false` en .nomos/config.json la apaga (prototipos de usar y tirar); por defecto, encendida. */
 const acabadoOn = (ctx: WorkerContext) => readConfig(ctx.dataDir).acabado !== false;
+/** Orden del lote: acabado primero (sin Unreal); imagen, solo en la tarea que empaqueta y tras compilar (necesita el editor
+ *  del juego al día para lanzarlo en -game con su modo demo). */
+export function loteIds(selected: CheckId[], on: {acabado: boolean; imagen: boolean}): CheckId[] {
+  const imagen = on.imagen && selected.includes('build') ? ['imagen' as const] : [], at = selected.includes('cpp') ? 1 : 0;
+  return [...(on.acabado ? ['acabado' as const] : []), ...selected.slice(0, at), ...imagen, ...selected.slice(at)];
+}
 const returnOption = {id: 'return', label: 'Devolver al responsable', description: 'Enviar la lista al implementador para que lo corrija'};
 
 /** El run implementador cuyo diff se prueba: el indicado o el último terminado que no es revisión ni prueba. */
@@ -105,9 +112,9 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     const present = files.filter(file => existsSync(join(worktree, file)));
     // Esquina J1.2: montajes sin personaje montado ni malla en el diff; animation no tiene qué reproducir, no aplica
     // acabado (2026-11-10): lo primero, sin Unreal y en segundos; también en modo rápido, que solo se salta recomprobar al integrar
-    const ids: CheckId[] = [...(touchesVisible(present) && deps.acabado !== false && acabadoOn(ctx) ? ['acabado' as const] : []),
-      ...selected.filter(id => id !== 'animation' || characterOf(worktree, present))];
-    const note = ids.filter(id => id !== 'acabado').length < selected.length ? 'animation no aplica: no hay personaje montado ni malla con clips en el diff' : null;
+    const ids = loteIds(selected.filter(id => id !== 'animation' || characterOf(worktree, present)),
+      {acabado: touchesVisible(present) && deps.acabado !== false && acabadoOn(ctx), imagen: deps.imagen !== false && acabadoOn(ctx)});
+    const note = ids.filter(id => id !== 'acabado' && id !== 'imagen').length < selected.length ? 'animation no aplica: no hay personaje montado ni malla con clips en el diff' : null;
     let commit: string | null;
     try { commit = await ctx.git.head(worktree); } catch { commit = null; }
     const run = updateRun(ctx.db, checkRun(ctx, command, task, implementer).id, {checks: ids, checksCommit: commit});

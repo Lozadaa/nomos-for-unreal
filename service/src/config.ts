@@ -71,6 +71,11 @@ export const minFreeRamGb = (config: SchedulerConfig) => config.scheduler?.minFr
 export const heavyRequiresNoEditor = (config: SchedulerConfig) => config.scheduler?.heavyRequiresNoEditor ?? !rapido(config);
 export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.createTimeoutMs ?? 180_000;
 /** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
+/** Modo demo para la comprobación imagen: `checks.demo {env?, segundos?}`; por defecto `<NOMBRE>_AUTO` y 3, 20 y 45 s. */
+export const demoConfig = (config: SchedulerConfig, name: string): {env: string; segundos: number[]} => {
+  const demo = (config as {checks?: {demo?: {env?: string; segundos?: number[]}}}).checks?.demo ?? {};
+  return {env: demo.env ?? `${name.toUpperCase()}_AUTO`, segundos: demo.segundos ?? [3, 20, 45]};
+};
 export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
 export const directorConfig = (config: SchedulerConfig) => ({mode: config.director?.mode ?? (rapido(config) ? 'evento' : 'sesion'), debounceSeconds: config.director?.debounceSeconds ?? 60});
 export const limits = (config: SchedulerConfig): Limits => {
@@ -131,6 +136,9 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(config.acabado!==undefined && typeof config.acabado!=='boolean') throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
+    const demo=config.checks?.demo;
+    if(demo!==undefined && (!object(demo) || demo.env!==undefined && (typeof demo.env!=='string' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(demo.env))
+      || demo.segundos!==undefined && (!Array.isArray(demo.segundos) || demo.segundos.length!==3 || demo.segundos.some((s:unknown)=>typeof s!=='number' || !(s>=0 && s<=240))))) throw new Error();
     return config;
   } catch {throw new Error('invalid_worker_config');}
 }

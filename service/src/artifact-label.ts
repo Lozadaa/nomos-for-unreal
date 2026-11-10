@@ -1,7 +1,7 @@
 import { basename } from 'node:path';
 
 /** Nombres que Entregas muestra en vez de `log.txt` o `review-<uuid>.json` (corrección del usuario, 2026-10-23). */
-const checkNames: Record<string, string> = {acabado: 'Acabado', cpp: 'Compilación C++', blueprint: 'Blueprints', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', animation: 'Animación'};
+const checkNames: Record<string, string> = {acabado: 'Acabado', imagen: 'Imagen del modo demo', cpp: 'Compilación C++', blueprint: 'Blueprints', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', animation: 'Animación'};
 export const checkReportLabel = (check: string) => `${checkNames[check] ?? check} · registro`;
 
 export function checkArtifactLabel(check: string, kind: string, path: string, provenance: Record<string, unknown> = {}): string {
