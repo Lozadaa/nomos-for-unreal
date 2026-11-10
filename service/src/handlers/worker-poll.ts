@@ -16,7 +16,17 @@ import { discardOpencode } from './worker-opencode.ts';
 import { enqueue } from '../commands.ts';
 import { uiCycleKey } from './ui-cycle.ts';
 import { attribute } from '../attribution.ts';
-import { relayStep } from './worker-relay.ts';
+import { relayStep, replaceWorker } from './worker-relay.ts';
+import { workerFailure } from './worker-failure.ts';
+import { processPrefix } from '../adapters/process-terminal.ts';
+import { readConfig, silentMinutes } from '../config.ts';
+import { probeMachine } from '../machine.ts';
+import { transcriptDir } from '../transcript.ts';
+import { existsSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+export const nudgeText='Tu turno terminó sin la marca. Si acabaste, commitea y escribe `.nomos-inbox/done.json`. Si no, continúa donde ibas.';
+const endedLimit=3;
 export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
@@ -30,6 +40,8 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   // hito 19: 15 min antes del límite de Orca, relevo por un worker nuevo en el mismo árbol
   if(await relayStep(ctx,run)) return;
   run=requireRun(db,run.id);
+  // jam 2026-11-10: `claude -p` que ya salió (antes de leer, para no perder sus últimas líneas)
+  const exited=run.sessionRef?.startsWith(processPrefix) ? await orca.terminalIsIdle(run.sessionRef) : false;
   const stream=await orca.terminalRead(run.sessionRef!,run.metadata.cursor ?? '0');
   const blockedNow=()=>{const current=requireTask(db,run.taskId);return !!current.decisionId || !!current.blockedReason;};
   let page=stream;
@@ -60,7 +72,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   // hito 18: el HEAD de la marca; si después aparecen commits sin otra marca, el barrido de atascos pide la revisión
   const doneCommit=run.role!=='revisor' && fresh.some(m=>m.kind==='DONE')
     ? await (async()=>ctx.git.head(runTree(db,run).path))().catch(()=>undefined) : undefined;
-  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined,finished=false;
+  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined,finished=false,restart=false;
   transaction(db,()=>{
     const previous=run.metadata,lastLines=snapshot ? screenLines.slice(-20) : [...(previous.lastLines ?? []),...lines].slice(-20);
     const cursor=stream.source==='screen' ? previous.cursor ?? '0' : stream.cursor;
@@ -119,12 +131,22 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
     const permission=permissionPrompt(run.provider,lines);
     if(permission) waiting(permission);
     if (idle) waiting(`${run.provider} espera instrucciones`);
+    // jam 2026-11-10: el turno de `claude -p` acabó sin DONE, ASK ni REVIEW: se le reenvía al momento; al tercero, worker nuevo
+    if(exited && !review && !permission && !run.metadata.waiting && !blockedNow() && Number(cursor)>0 && cursor!==previous.nudgedCursor) {
+      const nudges=(previous.nudges ?? 0)+1;
+      run=updateRun(db,run.id,{nudges,nudgedCursor:cursor});
+      appendEvent(db,'worker.ended_without_marker',null,{runId:run.id,taskId:run.taskId,nudges});
+      if(nudges<endedLimit) enqueue(db,'worker.send',{runId:run.id,text:nudgeText},`nudge:${run.id}:${nudges}`);
+      else restart=true;
+    }
     queuePoll(db,run);
     const current=requireTask(db,run.taskId);
     if(current.decisionId || current.blockedReason) pauseForDecision(db,run.taskId,run.id);
   });
   inbox.consume();
+  if(restart) return endedThreeTimes(ctx,run);
   if(review) await finishReview(ctx,run,review);
+  if(!finished) await silenceStep(ctx,requireRun(db,run.id));
   if(finished && doneCommit) await autoReview(ctx,run,doneCommit);
 };
 /** Experimento metras 2026-11-08: NOMOS_DONE con commit nuevo y nada pendiente pide la revisión al momento, sin esperar al
@@ -136,4 +158,52 @@ async function autoReview(ctx:WorkerContext,run:Run,commit:string):Promise<void>
     const commandId=await requestReview(ctx.db,ctx.dataDir,ctx.git,run.taskId,run.id);
     appendEvent(ctx.db,'review.auto_requested',null,{taskId:run.taskId,commit,reason:'NOMOS_DONE',commandId});
   } catch { /* p. ej. otra corrección en cola o una revisión en marcha */ }
+}
+
+/** Tres turnos sin marca: un worker nuevo en el mismo árbol, una sola vez; si el relevo tampoco entrega, la tarea se bloquea. */
+async function endedThreeTimes(ctx:WorkerContext,run:Run):Promise<void> {
+  const cause=`El worker terminó ${endedLimit} turnos sin entregar`;
+  if(run.metadata.restartOf) return workerFailure(ctx.db,{runId:run.id},cause);
+  await replaceWorker(ctx,run,{state:'failed',note:cause,title:'## Continuación tras un reinicio',mark:{restartOf:run.id},
+    why:`Otro worker empezó esta tarea en este mismo árbol y terminó ${endedLimit} turnos sin entregar.`});
+}
+
+const skipped=new Set(['.git','Intermediate','Binaries','Saved','DerivedDataCache','node_modules','Empaquetado','.vs','.nomos']);
+/** El archivo modificado más reciente (ms); sin las carpetas que genera Unreal. */
+function newest(dir:string,depth=0):number {
+  let max=0;
+  let entries;
+  try { entries=readdirSync(dir,{withFileTypes:true}); } catch { return 0; }
+  for(const e of entries) {
+    if(skipped.has(e.name)) continue;
+    const path=join(dir,e.name);
+    try { max=Math.max(max,e.isDirectory() ? depth<8 ? newest(path,depth+1) : 0 : statSync(path).mtimeMs); } catch { /* borrado entre medias */ }
+  }
+  return max;
+}
+/** Señal de vida: lo más reciente entre la salida, la transcripción de la sesión y los archivos del árbol. */
+function lifeAt(ctx:WorkerContext,run:Run,warnMs:number,now:number):number {
+  const quick=Math.max(Date.parse(run.metadata.lastOutputAt ?? run.startedAt) || 0,Date.parse(run.startedAt) || 0);
+  if(now-quick<warnMs) return quick;
+  const tree=runTree(ctx.db,run).path,transcripts=transcriptDir(tree);
+  return Math.max(quick,existsSync(transcripts) ? newest(transcripts) : 0,newest(tree));
+}
+/** Jam 2026-11-10: vivo y mudo. A los `warn` min, `worker.silent` una vez; a los `act`, sin Unreal ni compilación en el PC
+ *  (empaquetar calla minutos), se mata el turno y se reenvía. Como mucho una vez por minuto. */
+export async function silenceStep(ctx:WorkerContext,run:Run,now=Date.now()):Promise<void> {
+  if(run.state!=='running' || run.metadata.waiting || now-(run.metadata.silenceCheckedAt ?? 0)<60_000) return;
+  const {warn,act}=silentMinutes(readConfig(ctx.dataDir)),last=lifeAt(ctx,run,warn*60_000,now);
+  const minutes=Math.floor((now-last)/60_000);
+  run=updateRun(ctx.db,run.id,{silenceCheckedAt:now,silentMinutes:minutes>=warn ? minutes : 0});
+  if(minutes<warn) return;
+  if(run.metadata.silentWarnedAt!==last) {
+    updateRun(ctx.db,run.id,{silentWarnedAt:last});
+    appendEvent(ctx.db,'worker.silent',null,{runId:run.id,taskId:run.taskId,minutes});
+  }
+  if(minutes<act || run.metadata.silentKilledAt===last || !ctx.orca.terminalKill || !run.sessionRef?.startsWith(processPrefix)) return;
+  const m=(ctx.probe ?? probeMachine)();
+  if(m.editors+(m.tools ?? 0)>0) return;
+  await ctx.orca.terminalKill(run.sessionRef);
+  updateRun(ctx.db,run.id,{silentKilledAt:last,nudgedCursor:run.metadata.cursor});
+  enqueue(ctx.db,'worker.send',{runId:run.id,text:nudgeText},`silent:${run.id}:${last}`);
 }

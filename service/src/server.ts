@@ -83,7 +83,10 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
       }
-      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), team: listPeers(db).map(p => ({ name: p.name, frente: p.frente, present: p.present, tasks: p.tasks.length, leases: p.leases.map(l => l.path), build: p.build?.commit ?? null })), disk: diskOf(dataDir), tokens: tokensByRole(db) });
+      if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), team: listPeers(db).map(p => ({ name: p.name, frente: p.frente, present: p.present, tasks: p.tasks.length, leases: p.leases.map(l => l.path), build: p.build?.commit ?? null })), disk: diskOf(dataDir), tokens: tokensByRole(db),
+        // jam 2026-11-10: workers vivos sin señal de vida pasado el aviso
+        silent: db.prepare("select id, task_id, json_extract(metadata,'$.silentMinutes') m from runs where state='running' and json_extract(metadata,'$.silentMinutes')>0").all()
+          .map(r => ({runId: r.id, taskId: r.task_id, aviso: `sin actividad ${r.m} min`})) });
       if (method === "GET" && path === "/events") {
         if (stopping) {res.setHeader('Connection','close');return json(res,503,{error:'service_stopping'});}
         const since = Number(url.searchParams.get("since") || 0);

@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 
 export type WorkerProvider = 'codex' | 'claude' | 'opencode';
 /** `umgRetries`: fallos umg seguidos sin mejora medible antes de parar en una Decisión (docs/x10/umg-bucles.md). */
-export type Limits = {corrections: number; umgRetries: number};
+export type Limits = {corrections: number; umgRetries: number; silentWarnMinutes?: number; silentActMinutes?: number};
 export type WorkerModel = 'sonnet' | 'opus' | 'haiku';
 const models=['sonnet','opus','haiku'];
 /** Tiempo muerto: cupo aparte para revisores y QA, que no compiten con los implementadores por `claude`. */
@@ -75,6 +75,9 @@ export const limits = (config: SchedulerConfig): Limits => {
   const n = rapido(config) ? 1 : 3;
   return {corrections: config.limits?.corrections ?? n, umgRetries: config.limits?.umgRetries ?? n};
 };
+/** Jam 2026-11-10: minutos sin señal de vida (salida, transcripción o archivos del árbol) para avisar y para reenviar. */
+export const silentMinutes = (config: SchedulerConfig) =>
+  ({warn: config.limits?.silentWarnMinutes ?? 10, act: config.limits?.silentActMinutes ?? 20});
 /** Hito 30: brain.py de Second Brain en `SECOND_BRAIN_ROOT` o en `~/Documents/SecondBrain`; sin él, null y la memoria queda apagada. */
 export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): string[] | null {
   const home = env.USERPROFILE || env.HOME || homedir();

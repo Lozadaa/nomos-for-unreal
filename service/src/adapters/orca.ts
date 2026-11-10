@@ -33,6 +33,8 @@ export type Orca = {
   worktreeRemove(worktreeId: string, force?: boolean): Promise<void>;
   /** Cierra el terminal y el árbol de procesos de su shell (hito 6). */
   terminalClose(handle: string): Promise<void>;
+  /** Jam 2026-11-10: mata el turno en curso sin cerrar el terminal (solo los workers por proceso). */
+  terminalKill?(handle: string): Promise<void>;
   /** Vivo si Orca aún puede leerlo; un terminal desconocido o cerrado está muerto. */
   terminalAlive(handle: string): Promise<boolean>;
   /** Hito 7: `orca status` de solo lectura (5 s como máximo); cualquier fallo cuenta como cerrado. */
