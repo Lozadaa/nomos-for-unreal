@@ -6,6 +6,7 @@
 param([Parameter(Mandatory)][string]$Exe, [string]$Salida = "captura-empaquetado.png", [string]$Tomas = "15",
       [int]$Ancho = 1920, [int]$Alto = 1080, [string[]]$Extra = @(), [int]$Espera = 60)
 $ErrorActionPreference = "Stop"
+$Exe = (Resolve-Path $Exe).Path  # absoluta: la limpieza del final compara rutas completas
 Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);
 [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
 public struct RECT { public int L, T, R, B; } public struct POINT { public int X, Y; }
