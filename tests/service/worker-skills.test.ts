@@ -79,3 +79,19 @@ test('worker.start copia las skills de UI al árbol del worker y las excluye del
   const {createGit}=await import('../../service/src/adapters/git.ts');
   assert.deepEqual((await createGit().changedFiles!(tree,f.tree().baseCommit)).filter(p=>p.startsWith('.claude')),[]);
 });
+
+test('jam: en modo rápido el worker carga tres skills; confirmar solo esas no avisa, sin ue-oficio sí',async t=>{
+  const f=fixture(t);
+  writeFileSync(join(f.dataDir,'config.json'),JSON.stringify({concurrency:{codex:2,claude:2},rapido:true}));
+  f.db.prepare("update tasks set area='gameplay' where id=?").run(f.task.id);
+  await f.invoke('worker.start',{taskId:f.task.id,provider:'codex',role:'implementacion',skills:[]},'rapido-start');
+  const run=f.run();
+  assert.deepEqual(run.skills,['ue-oficio','ue-cpp-foundations','game-feel']);
+  assert.match(readFileSync(join(f.tree().path,'.nomos-brief.md'),'utf8'),/Solo si las necesitas: .*ue-gameplay-framework/);
+  f.output('NOMOS_SKILLS ["ue-oficio","ue-cpp-foundations","game-feel"]');
+  await f.invoke('worker.poll',{runId:run.id});
+  assert.equal(listEvents(f.db,0).filter(e=>e.type==='worker.skills_missing').length,0);
+  f.output('NOMOS_SKILLS ["ue-cpp-foundations","game-feel"]');
+  await f.invoke('worker.poll',{runId:run.id});
+  assert.deepEqual(listEvents(f.db,0).find(e=>e.type==='worker.skills_missing')?.payload.missing,['ue-oficio']);
+});

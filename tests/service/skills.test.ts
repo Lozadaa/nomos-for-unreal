@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { skillsForRole, installedSkills } from '../../service/src/skills.ts';
+import { skillsForRole, skillSplit, installedSkills } from '../../service/src/skills.ts';
 import { removeDir } from '../remove-dir.ts';
 
 // ue-oficio (skill propia, oficio de UE 5.8) la carga todo rol que toca el editor; revisor, audio y alcance no
@@ -48,4 +48,14 @@ test('installedSkills enumera solo SKILL.md locales por fuente y nombre determin
   symlinkSync(outside,join(dir,'.agents','skills','enlace'),process.platform==='win32'?'junction':'dir');
   assert.deepEqual(installedSkills(dir),[{name:'zeta',path:z,source:'claude'},{name:'alfa',path:a,source:'agents'}]);
   assert.deepEqual(installedSkills(join(dir,'no-existe')),[]);
+});
+
+test('jam: skillSplit separa tres obligatorias del resto, sin perder ninguna', () => {
+  const {core, extra} = skillSplit('implementacion', 'gameplay');
+  assert.deepEqual(core, ['ue-oficio', 'ue-cpp-foundations', 'game-feel']);
+  assert.equal(extra.length, 9);
+  assert.deepEqual([...core, ...extra].sort(), skillsForRole('implementacion', 'gameplay').sort());
+  assert.deepEqual(extra, skillsForRole('implementacion', 'gameplay').filter(s => !core.includes(s)), 'extra en el orden de hoy');
+  assert.deepEqual(skillSplit('implementacion', 'ui').core, ['ue-oficio', 'ue-umg-ui', 'game-ui-art-director']);
+  assert.deepEqual(skillSplit('revisor', 'gameplay'), {core: skillsForRole('revisor', 'gameplay'), extra: []}, 'review: todo el grupo');
 });
