@@ -4,6 +4,8 @@ import { autoDecisionMinutes, autonomous, type SchedulerConfig } from './config.
 import { decisionKey, listDecisions, resolveDecision } from './repo/decisions.ts';
 import { filtered } from './repo/rows.ts';
 import { appendEvent } from './store.ts';
+import { approve } from './approvals.ts';
+import { requestIntegration } from './routes/task-closing.ts';
 
 export const autoBy = 'nomos-auto';
 /**
@@ -53,4 +55,20 @@ export function sweepAutoDecisions(db: DatabaseSync, config: SchedulerConfig, no
     resolved++;
   }
   return resolved;
+}
+
+/** Candela B2 2026-11-10: sin persona delante (director por evento o `decisiones.autonomo`), un «Por aprobar» paraba la tarea
+ *  sin plazo. A los `approval.autoMinutos` (15) se aprueba solo y sigue a integración; queda el evento para revisarlo después.
+ *  Las líneas base y los conflictos de binarios siguen siendo de una persona. */
+export function sweepAutoApprovals(db: DatabaseSync, config: SchedulerConfig, now = Date.now()): number {
+  if (!autonomous(config)) return 0;
+  const minutes = (config as {approval?: {autoMinutos?: number}}).approval?.autoMinutos ?? 15;
+  const old = db.prepare(`select id, task_id, created_at from approvals where state='pending' and baseline is null and conflict is null`).all()
+    .filter(r => now - Date.parse(r.created_at as string) >= minutes * 60_000);
+  for (const r of old) {
+    approve(db, r.id as string);
+    appendEvent(db, 'approval.auto_approved', null, {approvalId: r.id, taskId: r.task_id, afterMinutes: Math.round((now - Date.parse(r.created_at as string)) / 60_000)});
+    try { requestIntegration(db, r.task_id as string); } catch { /* aún le faltan comprobaciones o revisión: sigue su camino */ }
+  }
+  return old.length;
 }

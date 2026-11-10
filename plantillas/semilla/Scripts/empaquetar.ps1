@@ -2,5 +2,5 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'motor.ps1')
 & (Join-Path $motor 'Engine\Build\BatchFiles\RunUAT.bat') BuildCookRun "-project=$uproject" -platform=Win64 -clientconfig=Shipping `
-  -build -cook -stage -pak -archive "-archivedirectory=$(Join-Path $raiz 'Empaquetado')" -nop4 -utf8output -unattended
+  -build -cook -stage -pak -archive "-archivedirectory=$empaquetado" -nop4 -utf8output -unattended
 exit $LASTEXITCODE

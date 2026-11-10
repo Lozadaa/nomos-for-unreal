@@ -84,3 +84,19 @@ test('jam: el máximo de correcciones que vuelve tras «Revisar» automático qu
   assert.deepEqual(listEvents(db, 0).filter(e => e.type === 'task.closing_blocked').map(e => (e.payload as any).reason), ['Máximo de correcciones: decide tú']);
   db.close();
 });
+
+test('Candela B2: sin persona delante, un «Por aprobar» de más de 15 min se aprueba solo; con persona, nunca', async () => {
+  const {requestApproval, getApproval} = await import('../../service/src/approvals.ts');
+  const {sweepAutoApprovals} = await import('../../service/src/decisiones-auto.ts');
+  const db = openDb(':memory:');
+  try {
+    const task = createTask(db, {title: 'Brasa', area: 'gameplay', state: 'revisando'});
+    const approval = requestApproval(db, task);
+    const at = Date.parse(approval.createdAt) + 16 * min;
+    assert.equal(sweepAutoApprovals(db, {director: {mode: 'sesion'}}, at), 0, 'con persona (modo sesión) espera');
+    assert.equal(sweepAutoApprovals(db, {director: {mode: 'evento'}}, Date.parse(approval.createdAt) + 5 * min), 0, 'antes del plazo, espera');
+    assert.equal(sweepAutoApprovals(db, {director: {mode: 'evento'}}, at), 1);
+    assert.equal(getApproval(db, approval.id)!.state, 'approved');
+    assert.deepEqual(listEvents(db, 0).filter(e => e.type === 'approval.auto_approved').map(e => (e.payload as any).approvalId), [approval.id]);
+  } finally { db.close(); }
+});

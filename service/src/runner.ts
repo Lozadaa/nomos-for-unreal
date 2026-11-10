@@ -12,7 +12,7 @@ import { closeRuns, recoverCommands } from './recovery.ts';
 import { recoverDeadRuns } from './handlers/worker-recover.ts';
 import { cancelDecisionZombies } from './zombies.ts';
 import { sweepStalls } from './stall.ts';
-import { sweepAutoDecisions } from './decisiones-auto.ts';
+import { sweepAutoDecisions, sweepAutoApprovals } from './decisiones-auto.ts';
 import { tick as schedule } from './scheduler.ts';
 import { readConfig } from './config.ts';
 import { jamSweep } from './approvals.ts';
@@ -104,6 +104,9 @@ export function startRunner(db: DatabaseSync, handlers: Record<string, Handler>,
           appendEvent(db,'stall.error',null,{reason:error instanceof Error ? error.message : String(error)});
         }
         // tiempo muerto: las Decisiones con respuesta obvia no esperan a nadie más de `decisiones.autoMinutos`
+        try {sweepAutoApprovals(db,readConfig(dataDir));} catch(error) {
+          appendEvent(db,'approval.auto_error',null,{reason:error instanceof Error ? error.message : String(error)});
+        }
         try {sweepAutoDecisions(db,readConfig(dataDir));} catch(error) {
           appendEvent(db,'decision.auto_error',null,{reason:error instanceof Error ? error.message : String(error)});
         }

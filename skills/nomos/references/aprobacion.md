@@ -37,3 +37,9 @@ nomos approval comment [<approvalId>] --text "…"
 Aprobar o pedir cambios es del usuario: usa estas órdenes solo cuando él lo diga en el chat con esas palabras.
 `nomos status` cuenta las pendientes en `approvals`. Cada elemento lleva `type`: `task`, `conflict` o `baseline`
 (línea base visual propuesta: no retiene la tarea; aprobarla la convierte en la referencia de la comprobación).
+
+## Sin persona delante
+
+Con el director por evento (o `decisiones.autonomo`), un «Por aprobar» que pasa de `approval.autoMinutos` (15) se aprueba
+solo y sigue a integración (evento `approval.auto_approved`). Las líneas base y los conflictos de binarios siguen siendo
+de una persona. Si quieres revisar antes de que entre en `main`, sube el plazo o pon el director en sesión.
