@@ -3,6 +3,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createUnrealCmd } from '../adapters/unreal-cmd.ts';
+import { assetConfig } from '../catalog/paths.ts';
 import { stopWarm } from '../editor/caliente.ts';
 import { openDb } from '../db.ts';
 import { dbFile } from '../legacy.ts';
@@ -79,7 +80,9 @@ export async function fastvfxCli(argv: string[]): Promise<boolean> {
     }
     const db = abrir();
     try {
-      const lote = await ejecutar(recetas, {db, unreal: createUnrealCmd(), uproject: uprojectDe(values.proyecto), preview: values.preview, caliente: {}});
+      // jam 2026-11-10: el motor del juego (config.json o su .uproject), no el 5.8 por defecto
+      const bin = assetConfig(resolve(values.data ?? '.nomos')).unrealPath ?? undefined;
+      const lote = await ejecutar(recetas, {db, unreal: createUnrealCmd({bin}), uproject: uprojectDe(values.proyecto), preview: values.preview, caliente: {bin}});
       console.log(JSON.stringify(lote, null, 2));
       if (!lote.ok) process.exitCode = 1;
     } finally { db.close(); }

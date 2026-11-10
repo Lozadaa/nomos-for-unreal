@@ -7,6 +7,10 @@ import { readConfig } from './config.ts';
 import { appendEvent, createMessage } from './store.ts';
 import { latestBuild } from './play.ts';
 import { getTask, moveTask } from './repo/tasks.ts';
+import { createGit, type Git } from './adapters/git.ts';
+import { targetBranch } from './integration/workspace.ts';
+import { advanceLocal } from './handlers/integrate.ts';
+import type { WorkerContext } from './runner.ts';
 
 /**
  * Hito 29: varios Nomos sobre el mismo juego. El estado compartido vive en la rama `nomos/equipo` del remoto `origin`:
@@ -19,7 +23,9 @@ export type Card = {id: string; name: string; frente: string; updatedAt: string;
   leases: {path: string; taskId: string; until: string; at: string}[];
   decisions: {id: string; title: string}[];
   build: {commit: string; at: string} | null;
-  requests: {to: string; title: string; text: string; at: string; taskId?: string; reopen?: boolean}[]};
+  requests: {to: string; title: string; text: string; at: string; taskId?: string; reopen?: boolean}[];
+  /** Jam: las 5 últimas tareas hechas (la más reciente primero) y mi cabeza local de la rama compartida. Opcionales al leer. */
+  done?: {id: string; title: string; summary: string; at: string}[]; main?: {commit: string; at: string} | null};
 export type Peer = Card & {present: boolean};
 
 export const HEARTBEAT_MS = 5 * 60_000, ABSENT_MS = 30 * 60_000;
@@ -114,7 +120,7 @@ export async function fetchMain(db: DatabaseSync, projectDir: string, branch: st
 export const isAncestor = (dir: string, a: string, b: string) => teamGit(dir, ['merge-base', '--is-ancestor', a, b]).then(() => true, () => false);
 
 /** Mi tarjeta, sacada de la base: tareas abiertas, reservas vivas, decisiones abiertas, build aprobada y peticiones. */
-export function myCard(db: DatabaseSync, dataDir: string, now = new Date()): Card {
+export function myCard(db: DatabaseSync, dataDir: string, now = new Date(), main: Card['main'] = null): Card {
   const team = teamConfig(dataDir), id = identity(dataDir).id;
   const tasks = db.prepare("select id,title,state,area from tasks where state!='done' order by rowid").all() as Card['tasks'];
   const leases = db.prepare(`select l.path,l.task_id taskId,l.acquired_at at,json_extract(r.metadata,'$.deadlineAt') deadline
@@ -125,7 +131,12 @@ export function myCard(db: DatabaseSync, dataDir: string, now = new Date()): Car
   const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
   const requests = db.prepare("select payload from events where type='team.ask' and created_at>=? order by seq").all(since)
     .map(r => JSON.parse(r.payload as string) as Card['requests'][number]);
-  return {id, name: team?.name ?? 'Yo', frente: team?.frente ?? '', updatedAt: now.toISOString(), tasks, leases, decisions, build: approvedBuild(db, dataDir), requests};
+  // el resumen es el del NOMOS_DONE del implementador (la última run hecha que no es revisión ni prueba)
+  const done = db.prepare(`select t.id,t.title,t.updated_at at,coalesce((select r.summary from runs r where r.task_id=t.id and r.state='done'
+    and r.role not in ('revisor','qa') and r.provider not in ('unreal','nomos') order by r.rowid desc limit 1),'') summary
+    from tasks t where t.state='done' order by t.updated_at desc limit 5`).all() as NonNullable<Card['done']>;
+  return {id, name: team?.name ?? 'Yo', frente: team?.frente ?? '', updatedAt: now.toISOString(), tasks, leases, decisions, build: approvedBuild(db, dataDir), requests,
+    done: done.map(d => ({id: d.id, title: d.title, summary: d.summary, at: d.at})), main};
 }
 /** Hito 29 T2: la última build estampada con un «Aprobar» del usuario posterior. */
 function approvedBuild(db: DatabaseSync, dataDir: string): Card['build'] {
@@ -145,7 +156,7 @@ export function migrateTeam(db: DatabaseSync): void {
 export function listPeers(db: DatabaseSync, now = Date.now()): Peer[] {
   return db.prepare('select card from team_peers order by name').all().map(r => {
     const card = JSON.parse(r.card as string) as Card;
-    return {...card, present: now - Date.parse(card.updatedAt) < ABSENT_MS};
+    return {...card, done: card.done ?? [], main: card.main ?? null, present: now - Date.parse(card.updatedAt) < ABSENT_MS};
   });
 }
 
@@ -189,11 +200,38 @@ const unavailable = (db: DatabaseSync, s: TeamTick, reason: string) => {
   s.warned = true;
 };
 
+/** La rama compartida (la de integrar) y su cabeza en mi clon. */
+async function localMain(dataDir: string, projectDir: string): Promise<{git: Git; branch: string; main: Card['main']}> {
+  const git = createGit(), branch = await targetBranch({dataDir, projectDir, git} as unknown as WorkerContext).catch(() => '');
+  const main = branch ? await teamGit(projectDir, ['log', '-1', '--format=%H %cI', `refs/heads/${branch}`])
+    .then(out => { const [commit, at] = out.trim().split(' '); return {commit, at}; }, () => null) : null;
+  return {git, branch, main};
+}
+/** Cuántos commits le faltan a cada `main` para llegar a `origin/<rama>` (lo último traído); sin dato si no se sabe. */
+export async function behindCounts(dataDir: string, projectDir: string, cards: Pick<Card, 'id' | 'main'>[]): Promise<Record<string, number>> {
+  const {branch} = await localMain(dataDir, projectDir), behind: Record<string, number> = {};
+  if (branch) for (const card of cards) if (card.main?.commit)
+    await teamGit(projectDir, ['rev-list', '--count', `${card.main.commit}..${remoteRef(branch)}`]).then(n => { behind[card.id] = Number(n.trim()); }, () => {});
+  return behind;
+}
+const ago = (iso: string, now: number) => { const min = Math.max(0, Math.round((now - Date.parse(iso)) / 60_000)); return min < 60 ? `${min} min` : `${Math.round(min / 60)} h`; };
+/** `nomos equipo`: una persona por bloque; las líneas `haciendo` y `hecho` solo si hay algo. */
+export function teamText(me: Card, peers: Peer[], behind: Record<string, number>, now: number): string {
+  return [{...me, present: true}, ...peers].flatMap(p => {
+    const n = behind[p.id], last = p.done?.[0];
+    const main = p.main ? ` · main ${p.main.commit.slice(0, 7)}${n === undefined ? '' : n ? `, ${n} commit${n > 1 ? 's' : ''} atrás` : ', al día'}` : '';
+    const doing = [...p.tasks.filter(t => !['pendiente', 'preparada'].includes(t.state)).map(t => `${t.title} [${t.state}]`),
+      ...p.leases.filter(l => Date.parse(l.until) > now).map(l => `reserva ${leaf(l.path)} hasta ${hhmm(l.until)}`)];
+    return [`${p.name} (${p.frente}) · ${p.present ? 'presente' : `ausente ${ago(p.updatedAt, now)}`}${main}`,
+      ...doing.length ? [`  haciendo: ${doing.join(' · ')}`] : [], ...last ? [`  hecho:    ${last.title} (hace ${ago(last.at, now)})`] : []];
+  }).join('\n');
+}
 /** Un pase (cada 10 s): publica si mi tarjeta cambió (agrupa los cambios de esos 10 s) o toca latido; trae cada `pullSeconds`. */
 export async function teamTick(db: DatabaseSync, dataDir: string, projectDir: string, s: TeamTick, now = Date.now(), force = false): Promise<void> {
   const team = teamConfig(dataDir);
   if (!team) return;
-  const card = myCard(db, dataDir, new Date(now)), hash = content(card);
+  const {git, branch, main} = await localMain(dataDir, projectDir);
+  const card = myCard(db, dataDir, new Date(now), main), hash = content(card);
   if (force || hash !== s.hash || now - s.pushedAt >= HEARTBEAT_MS) {
     const ok = await publishCard(projectDir, dataDir, card.id, card, team.branch);
     if (ok === null) return unavailable(db, s, 'Sin remoto origin o sin red');
@@ -205,6 +243,24 @@ export async function teamTick(db: DatabaseSync, dataDir: string, projectDir: st
   if (cards === null) return unavailable(db, s, 'Sin remoto origin o sin red');
   s.warned = false; s.fetchedAt = now;
   recordPeers(db, dataDir, cards);
+  if (branch) await followMain(db, git, dataDir, projectDir, branch);
+}
+/** Jam: trae `origin/<rama>`; si trae algo que no tengo, avisa una vez (`team.main_moved`, no despierta al director) y avanza mi checkout si se puede. */
+async function followMain(db: DatabaseSync, git: Git, dataDir: string, projectDir: string, branch: string): Promise<void> {
+  const ref = await fetchMain(db, projectDir, branch);
+  if (!ref) return;
+  const commit = (await teamGit(projectDir, ['rev-parse', ref])).trim(), local = await git.tip!(projectDir, branch).catch(() => '');
+  if (local && await isAncestor(projectDir, commit, local)) return;
+  const last = db.prepare("select json_extract(payload,'$.commit') c from events where type='team.main_moved' order by seq desc limit 1").get()?.c;
+  if (last !== commit) {
+    const [author, subject, ...body] = (await teamGit(projectDir, ['log', '-1', '--format=%an%n%s%n%b', commit])).split('\n');
+    // la firma de la integración: `Nomos-Equipo: <id> <nombre> (<frente>) tarea <id>`
+    const sign = body.join('\n').match(/^Nomos-Equipo: (\S+) (.+) \(.*\) tarea \S+$/m);
+    if (sign?.[1] !== identity(dataDir).id) appendEvent(db, 'team.main_moved', null, {commit, by: sign?.[2] ?? author,
+      title: subject.match(/^Integrar (.+) \([^)]*\)$/)?.[1] ?? subject,
+      files: local ? (await teamGit(projectDir, ['diff', '--name-only', local, commit])).split('\n').filter(Boolean) : []});
+  }
+  await advanceLocal(git, projectDir, branch, commit);
 }
 const ticks = new Map<string, TeamTick>();
 /** El pase del servicio para esta carpeta de datos (estado compartido entre el bucle y quien fuerza un pase). */
@@ -255,14 +311,16 @@ export function similarPeerTask(db: DatabaseSync, title: string): {name: string;
   return null;
 }
 
-const usage = 'Uso: nomos team init --name N --frente F|status|frente F|leave|ask --to PERSONA TEXTO';
+const usage = 'Uso: nomos team init --name N --frente F|status [--texto]|frente F|leave|ask --to PERSONA TEXTO; nomos equipo';
 /** `nomos team …`: init, status, frente, leave sin servicio; ask lo deja en el servicio (va en mi tarjeta). */
 export async function teamCli(argv: string[], open: (dataDir: string) => DatabaseSync): Promise<boolean> {
   const first = argv.find((a, i) => !a.startsWith('--') && !['--data', '--port', '--session'].includes(argv[i - 1]));
-  if (first !== 'team') return false;
+  if (first !== 'team' && first !== 'equipo') return false;
+  // `nomos equipo` = `nomos team status --texto`
+  const at = argv.indexOf(first), args = first === 'equipo' ? [...argv.slice(0, at), 'team', 'status', ...argv.slice(at + 1), '--texto'] : argv;
   const {parseArgs} = await import('node:util');
-  const {values, positionals} = parseArgs({args: argv, allowPositionals: true,
-    options: {data: {type: 'string', default: '.nomos'}, name: {type: 'string'}, frente: {type: 'string'}, to: {type: 'string'}, title: {type: 'string'}}});
+  const {values, positionals} = parseArgs({args, allowPositionals: true,
+    options: {data: {type: 'string', default: '.nomos'}, name: {type: 'string'}, frente: {type: 'string'}, to: {type: 'string'}, title: {type: 'string'}, texto: {type: 'boolean'}}});
   if (positionals[0] !== 'team') return false;
   const [, action, ...rest] = positionals, dataDir = values.data!, projectDir = dirname(dataDir), file = join(dataDir, 'config.json');
   const config = () => existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
@@ -296,6 +354,14 @@ export async function teamCli(argv: string[], open: (dataDir: string) => Databas
       recordPeers(db, dataDir, cards);
     }
     const others = cards ? cards.filter(c => c.id !== me).map(c => ({...c, present: Date.now() - Date.parse(c.updatedAt) < ABSENT_MS})) : listPeers(db);
+    if (values.texto) {
+      if (!team) { console.log('El equipo está apagado. Para unirte: nomos team init --name <nombre> --frente <frente>'); return true; }
+      const {branch: target, main} = await localMain(dataDir, projectDir);
+      if (target && cards) await fetchMain(db, projectDir, target);
+      const mine = myCard(db, dataDir, new Date(), main), peers = others.map(p => ({...p, done: p.done ?? [], main: p.main ?? null}));
+      console.log(teamText(mine, peers, await behindCounts(dataDir, projectDir, [mine, ...peers]), Date.now()));
+      return true;
+    }
     const shared = (others.length > 0) || !!team;
     const taken = team ? others.filter(p => p.frente.toLowerCase() === team.frente.toLowerCase()).map(p => p.name) : [];
     print({enabled: !!team, remote: cards !== null, shared, me: team ? {id: me, name: team.name, frente: team.frente} : null,

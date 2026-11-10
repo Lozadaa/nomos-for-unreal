@@ -6,8 +6,12 @@
 param([Parameter(Mandatory)][string]$Exe, [string]$Salida = "captura-empaquetado.png", [string]$Tomas = "15",
       [int]$Ancho = 1920, [int]$Alto = 1080, [string[]]$Extra = @(), [int]$Espera = 60)
 $ErrorActionPreference = "Stop"
+$Exe = (Resolve-Path $Exe).Path  # absoluta: la limpieza del final compara rutas completas
 Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);
-[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);'
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+public struct RECT { public int L, T, R, B; } public struct POINT { public int X, Y; }
+[DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h, out RECT r);
+[DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);'
 $antes = @(Get-Process | Select-Object -ExpandProperty Id)
 Start-Process $Exe -ArgumentList (@("-windowed", "-ResX=$Ancho", "-ResY=$Alto", "-ForceRes") + $Extra) | Out-Null
 # La ventana es del proceso nuevo con título (el lanzador Juego.exe abre Juego-Win64-Shipping.exe): se espera a que exista
@@ -29,7 +33,11 @@ $base = [IO.Path]::ChangeExtension($Salida, $null).TrimEnd('.')
 foreach ($t in ($segundos | Sort-Object)) {
   $falta = $t - $reloj.Elapsed.TotalSeconds; if ($falta -gt 0) { Start-Sleep -Milliseconds ([int]($falta * 1000)) }
   $png = if ($segundos.Count -eq 1) { $Salida } else { "$base-$t.png" }
-  ffmpeg -y -loglevel error -f gdigrab -i "title=$($p.MainWindowTitle)" -frames:v 1 $png
+  # la zona de pantalla de la ventana, no `title=`: con DX12, gdigrab por título devuelve un fotograma viejo o negro
+  # (Prueba2 2026-11-10: cuatro tomas idénticas a mitad de un fundido) [probado]
+  $r = New-Object W.U+RECT; $o = New-Object W.U+POINT
+  [W.U]::GetClientRect($p.MainWindowHandle, [ref]$r) | Out-Null; [W.U]::ClientToScreen($p.MainWindowHandle, [ref]$o) | Out-Null
+  ffmpeg -y -loglevel error -f gdigrab -offset_x $o.X -offset_y $o.Y -video_size "$($r.R - $r.R % 2)x$($r.B - $r.B % 2)" -i desktop -frames:v 1 $png
   if (Test-Path $png) { "captura: $((Resolve-Path $png).Path)" } else { Write-Warning "ffmpeg no dejó $png" }
 }
 Get-Process | Where-Object { $antes -notcontains $_.Id -and $_.Path -like "$(Split-Path $Exe)*" } | Stop-Process -Force

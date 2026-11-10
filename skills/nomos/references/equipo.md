@@ -6,6 +6,7 @@ un `equipo/<id>.json` por persona, que solo escribe su dueño. `main` no recibe 
 | Orden | Qué hace |
 |---|---|
 | `nomos team status` | JSON: `enabled`, `shared` (la rama existe), `remote`, yo y los peers |
+| `nomos equipo` | Texto: por persona, presencia, su `main` y cuántos commits va atrás, lo que hace y lo último hecho |
 | `nomos team init --name N --frente F` | Activa el equipo, publica la tarjeta ya; `aviso` si el frente lo tiene otro (se comparte) |
 | `nomos team frente F` | Cambia de frente; los demás reciben `team.joined` con `changed` |
 | `nomos team ask --to Ana "texto"` | Petición a otro frente; llega a su director como mensaje firmado «Richard (combate)» |
@@ -18,7 +19,9 @@ un `equipo/<id>.json` por persona, que solo escribe su dueño. `main` no recibe 
 | Peer ausente | 30 min sin latido; sus reservas caducan por su `until` |
 | Sin remoto o sin red | `team.unavailable` una vez; lo local sigue |
 
-Eventos: `team.joined` (alguien se unió o cambió de frente: dilo en una línea), `team.left`, `team.request`.
+Eventos: `team.joined` (alguien se unió o cambió de frente: dilo en una línea), `team.left`, `team.request`,
+`team.main_moved` (`{commit, by, title, files}`: otro publicó en `main`; no despierta). Al traer, `main` del clon avanza
+solo si está limpio y es avance rápido; con cambios sin commitear solo se avisa.
 
 ## Reglas para el director
 

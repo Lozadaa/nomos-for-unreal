@@ -55,3 +55,9 @@ test('la CSP deja compilar WebAssembly al visor 3D sin abrir eval', () => withPo
   assert.match(csp, /script-src [^;]*'wasm-unsafe-eval'/);
   assert.doesNotMatch(csp, /'unsafe-eval'/);
 }));
+
+test('jam: /status dice el modo (rápido o no) y cómo va el director', () => withPort(async f => {
+  const status = await (await f.request('/status')).json();
+  // la suite fija NOMOS_RAPIDO_DEFAULT=off: el valor de antes
+  assert.deepEqual(status.modo, {rapido: false, director: 'sesion'});
+}));

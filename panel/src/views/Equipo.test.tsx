@@ -12,7 +12,9 @@ import { EquipoStrip } from './Equipo'
 const team = (): Team => ({ me: { id: 'r1', name: 'Richard', frente: 'combate' }, peers: [
   { id: 'a1', name: 'Ana', frente: 'arena', present: true, build: { commit: 'abc1234def', at: '2026-10-29T15:00:00Z' },
     tasks: [{ id: 't1', title: 'Muro de la arena', state: 'implementando', area: 'escenarios' }, { id: 't2', title: 'Luces', state: 'preparada', area: 'escenarios' }],
-    leases: [{ path: 'Content/Mapas/L_Arena.umap', until: '2026-10-29T16:40:00Z' }] },
+    leases: [{ path: 'Content/Mapas/L_Arena.umap', until: '2026-10-29T16:40:00Z' }],
+    done: [{ id: 't0', title: 'Puerta de la arena', summary: 'La puerta se abre', at: '2026-10-29T14:00:00Z' }],
+    main: { commit: '9ab948d1234', at: '2026-10-29T14:00:00Z' }, behind: 2 },
   { id: 'l1', name: 'Luis', frente: 'audio', present: false, build: null, tasks: [], leases: [] }] })
 
 beforeEach(() => {
@@ -21,7 +23,7 @@ beforeEach(() => {
 })
 
 describe('Franja Equipo', () => {
-  it('una línea por persona: nombre, frente, presente o ausente, tareas en curso, reservas y build', async () => {
+  it('una línea por persona: nombre, frente, presente o ausente, tareas en curso, reservas, build, lo último hecho y si va por detrás de main', async () => {
     render(<EquipoStrip />)
     const strip = await screen.findByRole('region', { name: 'Equipo' })
     expect(within(strip).getByText('Equipo · tú: Richard (combate)')).toBeInTheDocument()
@@ -31,6 +33,8 @@ describe('Franja Equipo', () => {
     expect(within(ana).queryByRole('button', { name: 'Luces' })).toBeNull()
     expect(ana).toHaveTextContent(/reserva L_Arena hasta \d\d:\d\d/); expect(ana).toHaveTextContent('build abc1234')
     const luis = within(strip).getByRole('listitem', { name: 'Luis' })
+    expect(ana).toHaveTextContent('hecho: Puerta de la arena'); expect(ana).toHaveTextContent('main 9ab948d · 2 atrás')
+    expect(luis).not.toHaveTextContent('hecho'); expect(luis).not.toHaveTextContent('main')
     expect(luis).toHaveTextContent('ausente'); expect(luis).toHaveTextContent('sin tareas en curso'); expect(luis).toHaveTextContent('sin build aprobada')
   })
 

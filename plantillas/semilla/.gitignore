@@ -1,0 +1,9 @@
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Empaquetado/
+.nomos/
+.vs/
+*.sln
+.vsconfig
