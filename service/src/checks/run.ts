@@ -26,6 +26,8 @@ export type CheckDeps = {
   freeBytes?: (dir: string) => number;
   /** false: el lote no antepone la comprobación de acabado (pruebas de las demás comprobaciones). */
   acabado?: boolean;
+  /** false: sin comprobación imagen; `imagenScript` sustituye a revisar_imagen.py en las pruebas. */
+  imagen?: boolean; imagenScript?: string;
 };
 /** Vida del ejecutable: `killed` = Nomos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
 export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};

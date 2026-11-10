@@ -90,7 +90,7 @@ test('GET /doctor y POST /capabilities/:id/check exigen token; la comprobación 
 test('hito 30: doctor con PATH vacío dice qué falta (Necesario) y qué se pierde (Opcional); con todo presente, nada falta', async () => {
   const root = mkdtempSync(join(tmpdir(), 'nomos-doctor-')), dataDir = join(root, '.nomos'); mkdirSync(dataDir);
   try {
-    const empty = {env: {PATH: '', Path: '', USERPROFILE: root, HOME: root, NOMOS_GRAPHIFY: 'off', CLAUDE_CONFIG_DIR: root}, unrealPath: join(root, 'no.exe'), orca: orca(false), ffmpeg: null};
+    const empty = {env: {PATH: '', Path: '', USERPROFILE: root, HOME: root, NOMOS_GRAPHIFY: 'off', CLAUDE_CONFIG_DIR: root}, unrealPath: join(root, 'no.exe'), orca: orca(false), ffmpeg: null, pillow: false};
     const needed = await necessary(dataDir, empty), extra = await optional(dataDir, empty);
     assert.deepEqual(needed.map(r => [r.name, r.present]), [['Git', false], ['Node ≥ 25', true], ['Claude Code', false], ['Unreal', false]]);
     assert.ok(extra.every(r => !r.present), JSON.stringify(extra));
@@ -101,7 +101,7 @@ test('hito 30: doctor con PATH vacío dice qué falta (Necesario) y qué se pier
     mkdirSync(brain, {recursive: true}); writeFileSync(join(brain, 'brain.py'), ''); writeFileSync(editor, ''); writeFileSync(graphify, '');
     writeFileSync(join(root, 'settings.json'), JSON.stringify({enabledPlugins: {'ponytail@ponytail': true}}));
     const full = {env: {...process.env, SECOND_BRAIN_ROOT: join(root, 'sb'), NOMOS_GRAPHIFY: graphify, CLAUDE_CONFIG_DIR: root},
-      unrealPath: editor, orca: orca(true), ffmpeg: {bin: 'ffmpeg'}};
+      unrealPath: editor, orca: orca(true), ffmpeg: {bin: 'ffmpeg'}, pillow: true};
     assert.deepEqual([...await necessary(dataDir, full), ...await optional(dataDir, full)].filter(r => !r.present).map(r => r.name), []);
     assert.equal(defaultMemoryCommand(full.env)!.at(-1), join(brain, 'brain.py'));
   } finally { removeDir(root); }

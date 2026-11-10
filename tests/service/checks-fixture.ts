@@ -41,7 +41,7 @@ export function checksFixture(opts: {files?: string[]; state?: Task['state']; ar
     // el disco de la máquina no decide si una prueba empaqueta (hito 19)
     freeBytes: () => 2 ** 40, playSeconds: 0,
     // acabado (2026-11-10) tiene su prueba propia (checks-acabado.test.ts); aquí se miden las demás
-    acabado: false, ...opts.deps,
+    acabado: false, imagen: false, ...opts.deps,
   };
   const handlers = createCheckHandlers(deps);
   const task = createTask(db, {title: 'HUD de vida', area: opts.area ?? 'ui', state: opts.state ?? 'probando'});

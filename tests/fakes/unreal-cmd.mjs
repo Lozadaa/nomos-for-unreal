@@ -112,6 +112,13 @@ if (mode === 'hang') {
   write({ok: true, engine, clip: process.env.NOMOS_CLIP, fbx: process.env.NOMOS_FBX, skeleton: '/Game/Characters/Mannequins/Meshes/SK_Mannequin', errors: []});
 } else if (script.endsWith('nomos_import_anim.py')) {
   write({ok: true, engine, clip: `${process.env.NOMOS_DEST}/${process.env.NOMOS_NAME}`, length: 1.2, fixed_bones: ['root', 'pelvis'], errors: []});
+} else if (script.endsWith('nomos_demo.py')) {
+  // jam vista: tres capturas del modo demo; «sin_demo» imita un juego que no escribe la marca del modo demo
+  if (mode !== 'sin_demo') console.log('LogTemp: NOMOS_DEMO activo');
+  const dir = process.env.NOMOS_DEMO_DIR, capturas = ['inicio', 'mitad', 'final'].map(n => join(dir, `${n}.png`));
+  mkdirSync(dir, {recursive: true});
+  capturas.forEach((c, i) => png(c, 32, 18, true, i * 5));
+  write({ok: true, engine, capturas, errors: []});
 } else if (script.endsWith('nomos_pie_capture.py')) {
   // resolución reducida (÷40) para que las pruebas sean rápidas; la diferencia relativa se conserva
   const width = Math.max(8, Math.round(Number(arg('ResX') ?? 1280) / 40)), height = Math.max(8, Math.round(Number(arg('ResY') ?? 720) / 40));

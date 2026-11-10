@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
@@ -8,7 +8,7 @@ import { createMeshy } from './adapters/meshy.ts';
 import { createUnrealCmd, defaultUnrealCmd } from './adapters/unreal-cmd.ts';
 import { detectCapabilities } from './repo/capabilities.ts';
 import { ffmpegVersion, findFfmpeg, type Ffmpeg } from './adapters/ffmpeg.ts';
-import { defaultMemoryCommand, readConfig } from './config.ts';
+import { defaultMemoryCommand, pythonBin, readConfig } from './config.ts';
 import { assetConfig } from './catalog/paths.ts';
 import { gameEngine } from './engine-path.ts';
 import { launcherMode } from './adapters/process-terminal.ts';
@@ -20,7 +20,7 @@ import { findGraphify, hasCode, ponytailEnabled } from './graph.ts';
 
 type Probe = {isRunning?(): Promise<boolean>; open?(): Promise<void>};
 export type CheckDeps = {orca?: Probe; meshy?: {balance(): Promise<number>}; env?: NodeJS.ProcessEnv;
-  unrealPath?: string | null; blenderPath?: string | null; dataDir?: string; ffmpeg?: Ffmpeg | null};
+  unrealPath?: string | null; blenderPath?: string | null; dataDir?: string; ffmpeg?: Ffmpeg | null; pillow?: boolean};
 const run = promisify(execFile);
 const firstLine = async (bin: string, args: string[], env?: NodeJS.ProcessEnv) =>
   (await run(bin, args, {timeout: 10_000, windowsHide: true, env})).stdout.trim().split(/\r?\n/)[0];
@@ -106,12 +106,14 @@ export async function optional(dataDir: string, deps: CheckDeps = {}): Promise<R
   let ffPath: unknown;
   try { ffPath = (readConfig(dataDir) as Record<string, unknown>).ffmpegPath; } catch { /* config ilegible */ }
   const ff = deps.ffmpeg !== undefined ? deps.ffmpeg : findFfmpeg(ffPath), orca = !!await (deps.orca ?? createOrca({env})).isRunning?.();
+  const [py, ...pre] = pythonBin(), pillow = deps.pillow ?? spawnSync(py, [...pre, '-c', 'import PIL'], {timeout: 15_000}).status === 0;
   return [
     {name: 'Orca', present: orca, detail: orca ? 'abierto' : 'cerrado o sin instalar', lost: 'los workers corren como procesos `claude` sin terminal visible'},
     {name: 'graphify', present: !!graphify, detail: graphify ?? 'no encontrado', lost: 'sin grafo del código del juego'},
     {name: 'ponytail', present: ponytailEnabled(env), detail: 'plugin de Claude Code', lost: 'los workers no aplican la escalera de diff mínimo'},
     {name: 'Second Brain', present: !!brain, detail: brain ?? 'brain.py no encontrado', lost: 'memoria apagada: el cierre no guarda lecciones'},
     {name: 'ffmpeg', present: !!ff, detail: ff?.bin ?? 'no encontrado', lost: 'los vídeos de animación salen como zip de fotogramas'},
+    {name: 'Pillow', present: pillow, detail: pillow ? 'Python con Pillow' : 'pip install pillow', lost: 'la comprobación imagen no mide las capturas del modo demo'},
   ];
 }
 export function renderRequirements(title: string, rows: Requirement[]): string {
