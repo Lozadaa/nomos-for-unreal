@@ -1,3 +1,4 @@
+import { gameEngine } from '../engine-path.ts';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -203,6 +204,8 @@ async function conTurno<T>(turno: {info: ServiceInfo; tarea: string} | null, upr
  * `nomos ue parar` lo cierra y `nomos ue estado` dice si está abierto. Sale con 1 si el script o algún test falla.
  * En pruebas `NOMOS_UE_FAKE` es el editor falso (se lanza con node).
  */
+/** El UnrealEditor-Cmd que pide el `.uproject` de `dir`, si está instalado. */
+const engineCmd = (dir: string) => { const e = gameEngine(dir); return e && 'cmd' in e ? e.cmd : undefined; };
 export async function ueCli(argv: string[]): Promise<boolean> {
   // solo si `ue` es la orden (el primer posicional): `nomos reply ID ue …` no es esto
   const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout', '--tarea'].includes(argv[i - 1] ?? ''));
@@ -225,7 +228,8 @@ export async function ueCli(argv: string[]): Promise<boolean> {
   if (action === 'crash') { console.log(JSON.stringify(ultimoCrash(carpetasCrash(dirname(uproject)), dirname(uproject)), null, 2)); return true; }
   const fake = process.env.NOMOS_UE_FAKE;
   const opts: WarmOpts = fake ? {bin: process.execPath, baseArgs: [fake], startTimeoutMs: 20_000}
-    : {bin: assetConfig(resolve(values.data ?? '.nomos')).unrealPath ?? undefined};
+    // el motor de config.json o el del juego; con --proyecto fuera de --data, el que pide ese .uproject (no el 5.8 por defecto)
+    : {bin: assetConfig(resolve(values.data ?? '.nomos')).unrealPath ?? engineCmd(dirname(uproject))};
   if (action === 'estado') { const beat = warmBeat(uproject); console.log(JSON.stringify(beat ? {abierto: true, ...beat} : {abierto: false})); return true; }
   if (action === 'parar') { console.log(JSON.stringify({cerrado: await stopWarm(uproject)})); return true; }
   const timeout = values.timeout ? {timeoutMs: Number(values.timeout) * 1000} : {};
