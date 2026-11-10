@@ -6,6 +6,6 @@ public class Semilla : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
-			"UMG", "Slate", "SlateCore", "Niagara", "PhysicsCore" });
+			"UMG", "Slate", "SlateCore", "Niagara", "PhysicsCore", "MoviePlayer" });
 	}
 }

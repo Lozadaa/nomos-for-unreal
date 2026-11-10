@@ -17,4 +17,5 @@ namespace SemillaEstilo
 	inline const FLinearColor Tinta(0.930f, 0.880f, 0.780f);
 	inline const FLinearColor Acento(1.000f, 0.420f, 0.090f);
 	inline const FLinearColor Suave(0.520f, 0.500f, 0.470f);
+	inline const FLinearColor Borde(0.420f, 0.200f, 0.070f);  // filo de los paneles: distinto del interior
 }
