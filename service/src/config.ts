@@ -35,7 +35,9 @@ export type SchedulerConfig = {concurrency?: Partial<Quota>; defaultProvider?: W
   /** Hito 22: el PC aguanta un Unreal pesado a la vez y pide RAM libre para abrirlo. */
   scheduler?: {heavy?: {maxConcurrent?: number}; minFreeRamGb?: number; heavyRequiresNoEditor?: boolean};
   /** Modo rápido (`nomos rapido on`): velocidad antes que pulido; cambia los valores por defecto de abajo, lo explícito manda. */
-  rapido?: boolean};
+  rapido?: boolean;
+  /** Comprobación de acabado en cada diff visible (checks/acabado.ts); `false` la apaga. Por defecto, encendida. */
+  acabado?: boolean};
 /** Codex apagado por defecto (hito 7, regla del usuario): se habilita con `concurrency.codex` en config.json. */
 export function concurrency(config: SchedulerConfig): Quota {
   const revisor=config.concurrency?.revisor ?? 1;
@@ -79,8 +81,10 @@ export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): stri
   const brain = [env.SECOND_BRAIN_ROOT, join(home, 'Documents', 'SecondBrain')].filter(Boolean)
     .map(root => join(root!, '.system', 'brain.py')).find(file => existsSync(file));
   if (!brain) return null;
-  return [existsSync('C:/Python314/python.exe') ? 'C:/Python314/python.exe' : process.platform === 'win32' ? 'python' : 'python3', '-X', 'utf8', brain];
+  return [...pythonBin(), brain];
 }
+/** Python con UTF-8: el de este equipo si está, si no el del PATH (memoria y comprobación de acabado). */
+export const pythonBin = () => [existsSync('C:/Python314/python.exe') ? 'C:/Python314/python.exe' : process.platform === 'win32' ? 'python' : 'python3', '-X', 'utf8'];
 const count = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
 export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?: unknown} {
   const file=join(dataDir,'config.json');
@@ -119,6 +123,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
     if(config.director!==undefined && (!object(config.director) || Object.entries(config.director).some(([k,v])=>k==='mode' ? !['sesion','evento'].includes(v as string)
       : k!=='debounceSeconds' || typeof v!=='number' || !(v>=0 && v<=3600)))) throw new Error();
     if(config.rapido!==undefined && typeof config.rapido!=='boolean') throw new Error();
+    if(config.acabado!==undefined && typeof config.acabado!=='boolean') throw new Error();
     const cvars=config.checks?.captureCvars;
     if(cvars!==undefined && (!Array.isArray(cvars) || cvars.some((c:unknown)=>typeof c!=='string' || !c.trim() || /[,"\r\n]/.test(c)))) throw new Error();
     return config;

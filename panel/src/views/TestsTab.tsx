@@ -12,7 +12,7 @@ import { glyphFor } from '@/visual/glyphs'
 import { BRAND } from '@/lib/brand'
 
 const checkLabel: Record<string, string> = {
-  cpp: 'C++', blueprint: 'Blueprint', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', none: 'Sin Unreal',
+  acabado: 'Acabado', cpp: 'C++', blueprint: 'Blueprint', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', none: 'Sin Unreal',
 }
 // estados con glifo del registro; omitida y no disponible no tienen icono claro y van con texto corto
 const resultGlyph: Partial<Record<TestRun['result'], [string, string]>> = {

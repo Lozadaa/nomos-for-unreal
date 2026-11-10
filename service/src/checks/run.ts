@@ -24,6 +24,8 @@ export type CheckDeps = {
   ffmpeg?: (ctx: WorkerContext) => Ffmpeg | null;
   /** Hito 19: bytes libres en la unidad del proyecto (en pruebas se fija). */
   freeBytes?: (dir: string) => number;
+  /** false: el lote no antepone la comprobación de acabado (pruebas de las demás comprobaciones). */
+  acabado?: boolean;
 };
 /** Vida del ejecutable: `killed` = Nomos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
 export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};
