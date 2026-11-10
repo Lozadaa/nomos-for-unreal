@@ -6,6 +6,7 @@ import { concurrency, readConfig } from '../config.ts';
 import { assetConfig } from '../catalog/paths.ts';
 import { capabilityList, saveCheck } from '../capability-checks.ts';
 import { checkCapability, doctor } from '../doctor.ts';
+import { resumenCacheado } from '../resumen.ts';
 
 export async function capabilities({db, req, res, url, dataDir}: Context): Promise<boolean> {
   const check = /^\/capabilities\/([a-z_]+)\/check$/.exec(url.pathname);
@@ -15,6 +16,12 @@ export async function capabilities({db, req, res, url, dataDir}: Context): Promi
     const config = assetConfig(dataDir);
     saveCheck(db, check[1], await checkCapability(check[1], {dataDir, unrealPath: config.unrealPath, blenderPath: config.blenderPath}));
     json(res, 200, capabilityList(dataDir, db).find(c => c.id === check[1]) ?? {id: check[1], state: 'ausente'});
+    return true;
+  }
+  if (req.method === 'GET' && url.pathname === '/resumen') {
+    // la tarjeta de estado de Inicio: cifras reales y lo que falta; nunca claves (ver resumen.ts)
+    if (!dataDir) throw new Error('missing_config');
+    json(res, 200, await resumenCacheado(db, dataDir));
     return true;
   }
   if (req.method === 'GET' && url.pathname === '/doctor') {
