@@ -38,7 +38,8 @@ ninguna fuente oficial, se supone igual que en 5.8 hasta que Epic lo diga.
   `MovieRenderPipelineToolset` y varios de MetaHuman. Las notas no dicen si `UMGToolSet` se renombró o se repartió
   en los de Widget y CommonUI. [observado; renombre sin confirmar]
 - `editor.mcp_start` arranca `UnrealEditor.exe … -ExecCmds="ModelContextProtocol.StartServer"`. En 5.9 «Unreal MCP
-  launches automatically with the editor» [fuente: anuncio]; si el comando sigue existiendo, [sin confirmar en 5.9].
+  launches automatically with the editor» [fuente: anuncio]. Confirmado: arranca solo, con ventana y con
+  `-RenderOffscreen`, en `http://127.0.0.1:8000/mcp` (Streamable HTTP). No hace falta `StartServer`. [observado]
 - Las flags que usa Nomos (`-ExecutePythonScript`, `-NullRHI`, `-game -windowed -ResX -ResY -ForceRes`, `-stdout
   -FullStdOutLogOutput`, `Build.bat`) no aparecen en ninguna nota de cambios: [sin confirmar en 5.9].
 
@@ -78,8 +79,17 @@ Todo lo de esta sección sale de las notas y del anuncio [fuente].
   `{ "Name": "AllToolsets", "Enabled": true, "TargetAllowList": [ "Editor" ] }` y reiniciar el editor.
 - Unreal Assistant: panel en el editor para Claude Code, Codex, Cursor u OpenCode, con niveles de acceso Ask, Read,
   Edit, Auto y Full y traspaso a un agente externo por comando.
-- Nomos sigue sin usar el MCP de Epic ([por qué](python-ue58.md#por-qué-nomos-no-usa-el-mcp-de-epic)); los motivos
-  (sandbox sin `unreal`, un cliente por máquina) se observaron en 5.8 y en 5.9 quedan [sin confirmar].
+- Medido en TrompoLab el 2026-11-10 [observado] (detalle y recomendación en `docs/investigacion/mcp-59.md` del repo
+  de Nomos):
+  - Con el apaño de `AllToolsets`, `tools/list` da 4 meta-herramientas y detrás hay unos 100 toolsets.
+  - Funcionan: actores (buscar, crear, mover, borrar), propiedades, PIE, consola, Live Coding y capturas
+    (`CaptureGameViewport` en PIE incluye el HUD de UMG sin ventana).
+  - `execute_python` ejecuta Python completo con el módulo `unreal`, sin sandbox.
+  - Latencia: unos 330 ms por llamada con el editor con ventana y sin foco (va a ~3 fps); de 4 a 26 ms con
+    `-RenderOffscreen`.
+  - Gasto de contexto: `list_toolsets` ocupa 36 KB y `FindActors` unos 1,7 KB por actor.
+- Nomos aún no usa el MCP de Epic. El motivo del sandbox sin `unreal` ya no vale en 5.9. Sigue en pie el de un puerto
+  por editor: con varios worktrees hay que dar a cada uno `-ModelContextProtocolPort` (no probado).
 
 ## PCG
 
@@ -99,7 +109,9 @@ De las notas de la versión [fuente].
 - Editor: subsistema Map Check (log en Blueprint, sustituir actores por asset o clase), Sequencer con «marks and mark
   ranges», Forge (herramientas web de diseño dentro del editor), Modular Test Framework para tests de plugins, GraphDsl
   (lenguaje de texto para grafos).
-- Target WebAssembly/WebGPU experimental: exige build desde fuente y proyecto C++ [fuente: anuncio]; no afecta a Nomos.
+- Target WebAssembly/WebGPU experimental. El anuncio dice «requires a source build» [fuente: anuncio], pero en Windows el
+  motor del Launcher empaqueta para web sin compilar nada del motor: hace falta proyecto C++ y emscripten 6.0.10. Trompo
+  cargó en 3,4 s y corrió a unos 170 fps. [observado] Cómo y qué se rompe: [web](web.md).
 
 ## Sin confirmar en 5.9 (ninguna fuente oficial lo menciona)
 
@@ -108,7 +120,7 @@ De las notas de la versión [fuente].
 | MetaHuman | Nada en el anuncio ni en las notas. [personajes](../../nomos/references/personajes.md) y `nomos_metahuman.py` siguen siendo de 5.8.3. |
 | Visual Studio y toolchain | La tabla oficial no tiene fila 5.9. Fila 5.8: VS 2022 17.14 o posterior, VS 2026 18.0 o posterior; MSVC 14.38 mín. / 14.50 rec.; Windows SDK 10.0.22621.0 mín. / 10.0.26100 rec.; .NET 10 con VS 2026. Suponer lo de 5.8. [fuente: página de VS] |
 | UBT, UAT, UnrealEditor-Cmd | Ningún cambio de flags publicado. |
-| Formato de `.uproject` | Sin cambios anunciados; el anuncio solo pide ediciones puntuales (`AllToolsets`, quitar `Wasm` de `PlatformDenyList`). |
+| Formato de `.uproject` | Sin cambios anunciados; el anuncio solo pide ediciones puntuales (`AllToolsets`, quitar `Wasm` de `PlatformDenyList`). Los `.uproject` de la semilla no llevan `PlatformDenyList`: no hubo que tocar nada para web. [observado] |
 | Plugins renombrados o retirados | Anunciado como retirado: Python Foundation Packages. Sin embargo, la carpeta `Experimental/PythonFoundationPackages` sigue en la instalación del 5.9 Preview (observado 2026-11-09). Fuera de los toolsets: `UMGToolSet` y `SemanticSearchToolset` ya no están (observado). |
 | Verse, UEFN, Scene Graph | Nada en las fuentes oficiales; lo que circula en redes sobre Verse + Scene Graph no está confirmado. |
 | Ruta de crashes | `%LOCALAPPDATA%\UnrealEngine\5.9\Saved\Crashes` es la pauta de 5.8 con el número cambiado. |
