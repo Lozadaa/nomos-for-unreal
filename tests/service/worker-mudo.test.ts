@@ -9,7 +9,8 @@ import { startRun } from '../../service/src/repo/runs.ts';
 import { insert, read } from '../../service/src/repo/rows.ts';
 import { listEvents } from '../../service/src/store.ts';
 import { workerPoll, silenceStep, nudgeText } from '../../service/src/handlers/worker-poll.ts';
-import { silentMinutes } from '../../service/src/config.ts';
+import { readConfig, silentMinutes } from '../../service/src/config.ts';
+import { writeFileSync } from 'node:fs';
 import type { Run } from '../../service/src/model.ts';
 import type { WorkerContext } from '../../service/src/runner.ts';
 import { removeDir } from '../remove-dir.ts';
@@ -154,4 +155,12 @@ test('jam: el contador de finales sin marca vuelve a cero cuando el worker deja 
     f.ends('NOMOS_ASK {"question":"¿Sigo con la cámara?"}'); await f.poll();
     assert.equal(f.current().metadata.nudges, 0);
   } finally { f.close(); }
+});
+
+test('revisión final: limits.silentWarnMinutes y silentActMinutes en config.json no rompen la config', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-cfg-'));
+  try {
+    writeFileSync(join(dir, 'config.json'), JSON.stringify({limits: {silentWarnMinutes: 5, silentActMinutes: 8}}));
+    assert.deepEqual(silentMinutes(readConfig(dir)), {warn: 5, act: 8});
+  } finally { removeDir(dir); }
 });

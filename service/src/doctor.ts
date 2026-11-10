@@ -89,7 +89,9 @@ export async function necessary(dataDir: string, deps: CheckDeps = {}): Promise<
   if (unreal === undefined) try { unreal = assetConfig(dataDir).unrealPath; } catch { /* config ilegible: el valor por defecto */ }
   unreal ||= defaultUnrealCmd;
   // jam 2026-11-10: el .uproject pide un motor que no está: se dice cuál, no se cae al 5.8 en silencio
-  const engine = deps.unrealPath === undefined && !(readConfig(dataDir) as Record<string, unknown>).unrealPath ? gameEngine(dataDir) : null;
+  let own: unknown;
+  try { own = (readConfig(dataDir) as Record<string, unknown>).unrealPath; } catch { /* config ilegible: la fila de configuración lo dice */ }
+  const engine = deps.unrealPath === undefined && !own ? gameEngine(dataDir) : null;
   const wanted = engine && 'missing' in engine ? engine.missing : null;
   const [git, claude] = await Promise.all([tool('git', env), tool('claude', env)]);
   return [

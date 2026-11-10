@@ -1,9 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { embed } from './embed.ts';
+import { nomosSkills } from './skills-install.ts';
 
 const own = resolve(import.meta.dirname, '..', '..');
 const binary = /\.(uasset|umap|ttf|otf|png|jpg|wav)$/i;
@@ -32,6 +33,8 @@ export function nuevo(name: string, opts: {dest?: string; engine?: string; sourc
     }
   };
   mkdirSync(dest, {recursive: true});
+  try { return build(); } catch (error) { rmSync(dest, {recursive: true, force: true}); throw error; }
+  function build(): string[] {
   copy(template, dest);
   const uproject = join(dest, `${name}.uproject`), json = JSON.parse(readFileSync(uproject, 'utf8'));
   writeFileSync(uproject, JSON.stringify({...json, EngineAssociation: opts.engine ?? '5.9'}, null, '\t') + '\n');
@@ -39,10 +42,12 @@ export function nuevo(name: string, opts: {dest?: string; engine?: string; sourc
   git('init', '-q', '-b', 'main');
   // ponytail: sin git-lfs los .uasset van como blobs normales; el doctor ya avisa de que falta
   try { git('lfs', 'install', '--local'); git('lfs', 'track', '*.uasset', '*.umap'); } catch { /* sin git-lfs */ }
-  created.push(...embed(dest, {source, skills: join(source, 'skills')}));
+  // un Nomos embebido no trae `skills/`: las suyas viven en `<juego>/.claude/skills` (nomosSkills)
+  created.push(...embed(dest, {source, skills: opts.source ? join(source, 'skills') : nomosSkills}));
   git('add', '-A');
   git('commit', '-q', '-m', `Proyecto ${name} desde la semilla de Nomos`);
   return created;
+  }
 }
 
 /** `nomos nuevo <Nombre> [--destino CARPETA] [--motor 5.9]`. */
