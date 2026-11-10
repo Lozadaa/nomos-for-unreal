@@ -88,10 +88,16 @@ El juego no enseña el tablero hasta que sus texturas estén cargadas:
 
 Antes de marcar el FIN o entregar con `NOMOS_DONE`:
 1. `python <ue-oficio>/scripts/revisar_acabado.py <proyecto>` da 0 fallos.
-2. Empaqueta (Shipping) y captura **el `.exe`**, no el editor:
+2. Compila y empaqueta (Shipping) desde **PowerShell**: desde bash, la ruta con espacios hacia `Build.bat` falla.
+   [probado en UE 5.9, Canicas-6: ~85 s por empaquetado]
+   ```
+   & "C:\Program Files\Epic Games\UE_5.9\Engine\Build\BatchFiles\Build.bat" <Juego>Editor Win64 Development -Project="<ruta>\<Juego>.uproject" -WaitMutex
+   & "C:\Program Files\Epic Games\UE_5.9\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun -project="<ruta>\<Juego>.uproject" -platform=Win64 -clientconfig=Shipping -build -cook -stage -pak -archive -archivedirectory="<ruta>\Empaquetado" -nop4 -utf8output -unattended
+   ```
+   En 5.8, `UE_5.8`. Añade `Empaquetado/` al `.gitignore`. Después captura **el `.exe`**, no el editor:
    `pwsh -File <ue-oficio>/scripts/captura_empaquetado.ps1 -Exe <Empaquetado>\Windows\<Juego>.exe -Salida docs/empaquetado.png`.
    Es un `.exe` sin consola, así que el script pone la ventana encima de todo y graba su zona con ffmpeg. [probado]
-   `-Tomas 0,3,15` saca varias PNG (segundos desde que aparece la ventana; la 0 intenta pillar la pantalla de carga).
+   `-Tomas "0,3,15"` saca varias PNG (segundos desde que aparece la ventana; la 0 intenta pillar la pantalla de carga).
    Para ver el juego en marcha, pon antes la variable del modo demo (p. ej. `$env:METRAS_AUTO=1`): el `.exe` la hereda.
 3. Mira la captura y recorta el HUD al 100 %. Repite la comprobación si ves cualquiera de estas cosas:
    - material de cuadros o gris plano;
