@@ -1,4 +1,9 @@
-# Checkpoint jam-web (2026-11-10, parado a petición del usuario)
+# Checkpoint jam-web (2026-11-10)
+
+**Retomado y cerrado:** lo pendiente se hizo. MCP con `-RenderOffscreen` probado (4-26 ms por llamada; capturas de
+PIE con HUD). Cook web con `AllToolsets` (`TargetAllowList: ["Editor"]`) probado con `-forcerecook`: pasa.
+Conclusión en [mcp-59.md](mcp-59.md); regla de toolsets en `skills/ue-oficio/references/web.md`. Lo de abajo es el
+estado en el momento de parar.
 
 ## Parte 1 · Build web: HECHA y verificada (commit b821e27 en `jam-web`)
 

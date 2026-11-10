@@ -38,7 +38,8 @@ ninguna fuente oficial, se supone igual que en 5.8 hasta que Epic lo diga.
   `MovieRenderPipelineToolset` y varios de MetaHuman. Las notas no dicen si `UMGToolSet` se renombró o se repartió
   en los de Widget y CommonUI. [observado; renombre sin confirmar]
 - `editor.mcp_start` arranca `UnrealEditor.exe … -ExecCmds="ModelContextProtocol.StartServer"`. En 5.9 «Unreal MCP
-  launches automatically with the editor» [fuente: anuncio]; si el comando sigue existiendo, [sin confirmar en 5.9].
+  launches automatically with the editor» [fuente: anuncio]. Confirmado: arranca solo, con ventana y con
+  `-RenderOffscreen`, en `http://127.0.0.1:8000/mcp` (Streamable HTTP). No hace falta `StartServer`. [observado]
 - Las flags que usa Nomos (`-ExecutePythonScript`, `-NullRHI`, `-game -windowed -ResX -ResY -ForceRes`, `-stdout
   -FullStdOutLogOutput`, `Build.bat`) no aparecen en ninguna nota de cambios: [sin confirmar en 5.9].
 
@@ -78,8 +79,17 @@ Todo lo de esta sección sale de las notas y del anuncio [fuente].
   `{ "Name": "AllToolsets", "Enabled": true, "TargetAllowList": [ "Editor" ] }` y reiniciar el editor.
 - Unreal Assistant: panel en el editor para Claude Code, Codex, Cursor u OpenCode, con niveles de acceso Ask, Read,
   Edit, Auto y Full y traspaso a un agente externo por comando.
-- Nomos sigue sin usar el MCP de Epic ([por qué](python-ue58.md#por-qué-nomos-no-usa-el-mcp-de-epic)); los motivos
-  (sandbox sin `unreal`, un cliente por máquina) se observaron en 5.8 y en 5.9 quedan [sin confirmar].
+- Medido en TrompoLab el 2026-11-10 [observado] (detalle y recomendación en `docs/investigacion/mcp-59.md` del repo
+  de Nomos):
+  - Con el apaño de `AllToolsets`, `tools/list` da 4 meta-herramientas y detrás hay unos 100 toolsets.
+  - Funcionan: actores (buscar, crear, mover, borrar), propiedades, PIE, consola, Live Coding y capturas
+    (`CaptureGameViewport` en PIE incluye el HUD de UMG sin ventana).
+  - `execute_python` ejecuta Python completo con el módulo `unreal`, sin sandbox.
+  - Latencia: unos 330 ms por llamada con el editor con ventana y sin foco (va a ~3 fps); de 4 a 26 ms con
+    `-RenderOffscreen`.
+  - Gasto de contexto: `list_toolsets` ocupa 36 KB y `FindActors` unos 1,7 KB por actor.
+- Nomos aún no usa el MCP de Epic. El motivo del sandbox sin `unreal` ya no vale en 5.9. Sigue en pie el de un puerto
+  por editor: con varios worktrees hay que dar a cada uno `-ModelContextProtocolPort` (no probado).
 
 ## PCG
 

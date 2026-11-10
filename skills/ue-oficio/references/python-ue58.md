@@ -72,6 +72,10 @@ el del editor.
 
 ## Por qué Nomos no usa el MCP de Epic [fuente]
 
+**5.9 [observado]:** lo del sandbox ya no vale. `editor_toolset…PythonScriptingTools.execute_python` ejecuta Python
+completo con `unreal`, en 4-26 ms con el editor `-RenderOffscreen`. Queda el riesgo del puerto compartido entre
+worktrees. Ver [ue59-preview](ue59-preview.md). Lo que sigue es de 5.8:
+
 El sandbox de su `execute_tool_script` no tiene el módulo `unreal` (solo `json`, `math`, `datetime`, `copy`, `re`,
 `time`; sin `exec`, `eval` ni `compile`; `open` solo lee dentro del proyecto) y solo llega a herramientas registradas,
 que leen y escriben propiedades pero no llaman UFUNCTIONs ni consola. Ampliarlo exige C++ y reiniciar el editor. La

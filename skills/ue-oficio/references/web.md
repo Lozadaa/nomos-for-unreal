@@ -21,9 +21,12 @@ RTX 5060. Marcas: **[observado]** lo hicimos aquí; **[fuente]** lo dicen los do
 - **Navegador con WebGPU:** Chrome o Edge de escritorio. El Chrome del usuario puede no tener adaptador WebGPU (GPU
   bloqueada: la página dice «Trompo can't run on this GPU»); el Chromium de Playwright y el navegador integrado de la
   app sí lo dieron con la RTX 5060. [observado]
-- **Nada de toolsets del MCP en el cook web:** `AIAssistant`, `AllToolsets` y `ToolsetRegistry` rompen un cook Wasm.
-  Si el `.uproject` lleva `AllToolsets` (apaño UE-412135), añádele `"PlatformDenyList": ["Wasm"]`. [fuente: skill
-  `web-deploy` del motor]
+- **Toolsets del MCP y cook web:** la skill `web-deploy` del motor avisa de que `AIAssistant`, `AllToolsets` y
+  `ToolsetRegistry` rompen un cook Wasm. [fuente] Lo probamos con el apaño UE-412135 tal cual,
+  `{ "Name": "AllToolsets", "Enabled": true, "TargetAllowList": [ "Editor" ] }`. El cook completo (`-forcerecook`)
+  pasó con los toolsets registrados en el cooker y la página arrancó (READY 6,8 s, modo demo activo). [observado]
+  Regla: deja siempre `TargetAllowList: ["Editor"]` en esa entrada. Sin él, el plugin entraría en el juego. Si algún
+  cook web falla con toolsets, añade `"PlatformDenyList": ["Wasm"]`.
 
 ## Empaquetar y probar
 
