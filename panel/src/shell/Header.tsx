@@ -12,7 +12,9 @@ import { useStore } from '@/store'
 import { BRAND } from '@/lib/brand'
 import { PlayButton, type PlayProps } from './PlayButton'
 import { MoreMenu } from './MoreMenu'
-import { Search } from 'lucide-react'
+import { Moon, Search, Sun } from 'lucide-react'
+import { setMode, useMode } from '@/lib/theme'
+import { Mark } from './Mark'
 
 /** Cabecera mínima: proyecto y si Nomos escucha a la izquierda; Jugar, Buscar y «Más» a la derecha. */
 export function Header({ project, status, onCommand, onTogglePause, play }: { project: string; status: Status | null; onCommand: (from: HTMLButtonElement) => void; onTogglePause?: () => void; pausePending?: boolean; play?: PlayProps }) {
@@ -20,10 +22,11 @@ export function Header({ project, status, onCommand, onTogglePause, play }: { pr
   const typing = useStore((s) => typingActive(s.events))
   const routed = useInRouterContext()
   const state = directorState(status, session, typing)
+  const mode = useMode()
   const confirmation = status?.lastAckAt ? relativeTime(status.lastAckAt) : 'sin confirmaciones todavía'
   return (
     <header className="flex h-(--k-header) items-center gap-3 border-b border-subtle bg-background px-4 sm:gap-4 sm:px-6">
-      <span className="hidden font-semibold tracking-tight sm:inline">{BRAND.short}</span>
+      <span className="flex items-center gap-2"><Mark /><span className="hidden font-serif text-lg font-semibold tracking-tight sm:inline">{BRAND.short}</span></span>
       <span aria-hidden className="hidden text-muted-foreground sm:inline">/</span>
       <h1 className="truncate text-sm font-medium">{project}</h1>
       {routed && <ProjectSwitcher />}
@@ -38,6 +41,8 @@ export function Header({ project, status, onCommand, onTogglePause, play }: { pr
       {status?.paused && <span className="hidden items-center gap-2 text-sm text-warning sm:inline-flex" title="No empieza nada nuevo; lo que está a medias termina"><Glyph kind="directorState" value="esperando" tone="warning" />En pausa</span>}
       <div className="ml-auto flex items-center gap-1">
         {play && <div data-tour-anchor="play" className="mr-1 sm:mr-2"><PlayButton {...play} /></div>}
+        <Button variant="ghost" size="icon-lg" aria-label={mode === 'oscuro' ? 'Tema claro' : 'Tema oscuro'} title={mode === 'oscuro' ? 'Pasar a claro' : 'Pasar a oscuro'}
+          onClick={() => setMode(mode === 'oscuro' ? 'claro' : 'oscuro')}>{mode === 'oscuro' ? <Sun className="size-5" /> : <Moon className="size-5" />}</Button>
         <Button variant="ghost" size="icon-lg" aria-label="Buscar" title="Buscar (Ctrl+K)" onClick={(event) => onCommand(event.currentTarget)}><Search className="size-5" /></Button>
         {routed && <MoreMenu paused={status ? status.paused : undefined} onTogglePause={onTogglePause} />}
       </div>

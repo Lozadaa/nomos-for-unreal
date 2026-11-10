@@ -4,24 +4,34 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Tokens de Vercel (vercel-brand.css, tema oscuro) copiados como valores: ver design/vendor/LICENSE-NOTE.md */
+/* Papel y arcilla (jam-panel, 2026-11-10): colores exactos del logo (nomos-media/logo/NOTAS.md). Claro crema por defecto,
+   oscuro cálido con `.dark` (sigue a prefers-color-scheme salvo que el conmutador de la cabecera elija). El prefijo `vbg`
+   es histórico (hito 8): los nombres se conservan para no tocar cada componente; los valores ya no son de Vercel.
+   Contraste medido (WCAG): docs/diseno-visual.md. */
 :root {
-  color-scheme: dark;
-  --vbg-surface-primary: oklch(0 0 0);
-  --vbg-surface-secondary: oklch(0.027 0 0);
-  --vbg-text-primary: oklch(0.946 0 0);
-  --vbg-text-secondary: oklch(0.706 0 0);
-  --vbg-border-subtle: oklch(1 0 0 / 0.13);
-  --vbg-border-default: oklch(1 0 0 / 0.14);
-  --vbg-border-strong: oklch(1 0 0 / 0.54);
-  --vbg-color-info: oklch(57.61% 0.2321 258.23);
-  --vbg-color-primary: oklch(53.18% 0.2399 256.99);
-  --vbg-color-success: oklch(73.1% 0.2158 148.29);
-  --vbg-color-warning: oklch(77.21% 0.1991 64.28);
-  --vbg-color-error: oklch(62.56% 0.2234 23.03);
-  --vbg-focus: oklch(71.7% 0.1648 250.794);
-  --vbg-gray-100: oklch(0.218 0 0);
-  --vbg-gray-200: oklch(0.239 0 0);
+  color-scheme: light;
+  --k-paper: #F5F0E8;
+  --k-ink: #1F1E1D;
+  --k-clay: #C96442;
+  --k-clay-light: #E49A7B;
+  --vbg-surface-primary: var(--k-paper);
+  --vbg-surface-secondary: oklch(0.985 0.006 85);
+  --vbg-text-primary: var(--k-ink);
+  --vbg-text-secondary: oklch(0.48 0.014 65);
+  --vbg-border-subtle: color-mix(in oklch, var(--k-ink) 11%, transparent);
+  --vbg-border-default: color-mix(in oklch, var(--k-ink) 14%, transparent);
+  --vbg-border-strong: color-mix(in oklch, var(--k-ink) 48%, transparent);
+  /* el acento de marca (marcas, barras, anillos, logo) es la arcilla exacta; con texto encima, una arcilla más honda (AA) */
+  --k-accent: var(--k-clay);
+  --vbg-color-primary: #A9502F;
+  --k-on-primary: #FFFDF9;
+  --vbg-color-info: oklch(0.5 0.065 245);
+  --vbg-color-success: oklch(0.5 0.075 145);
+  --vbg-color-warning: oklch(0.51 0.1 70);
+  --vbg-color-error: oklch(0.5 0.15 25);
+  --vbg-focus: #A9502F;
+  --vbg-gray-100: oklch(0.93 0.015 80);
+  --vbg-gray-200: oklch(0.9 0.017 80);
   --vbg-space-1: 4px;
   --vbg-space-2: 8px;
   --vbg-space-3: 12px;
@@ -32,9 +42,8 @@
   --vbg-space-10: 40px;
   --vbg-space-12: 48px;
   --vbg-space-16: 64px;
-  --vbg-radius-small: 6px;
-  --vbg-radius: 8px;
-
+  --vbg-radius-small: 8px;
+  --vbg-radius: 12px;
   /* shadcn ← vbg */
   --background: var(--vbg-surface-primary);
   --foreground: var(--vbg-text-primary);
@@ -43,7 +52,7 @@
   --popover: var(--vbg-surface-secondary);
   --popover-foreground: var(--vbg-text-primary);
   --primary: var(--vbg-color-primary);
-  --primary-foreground: oklch(1 0 0);
+  --primary-foreground: var(--k-on-primary);
   --secondary: var(--vbg-gray-100);
   --secondary-foreground: var(--vbg-text-primary);
   --muted: var(--vbg-gray-100);
@@ -62,7 +71,8 @@
   --k-error: var(--vbg-color-error);
   --k-info: var(--vbg-color-info);
   --k-neutral: var(--vbg-text-secondary);
-  --k-font-sans: "Geist Variable", system-ui, sans-serif;
+  --k-font-sans: "Instrument Sans Variable", system-ui, sans-serif;
+  --k-font-serif: "Newsreader Variable", Georgia, serif;
   --k-font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --k-header: 56px;
   --k-tabs: 40px;
@@ -75,9 +85,33 @@
   --k-dur-reorder: 260ms;
 }
 
+/* Oscuro cálido: tinta de fondo, papel de texto, arcilla clara de acento (con tinta encima: 7,3:1). */
+.dark {
+  color-scheme: dark;
+  --vbg-surface-primary: var(--k-ink);
+  --vbg-surface-secondary: oklch(0.25 0.007 60);
+  --vbg-text-primary: var(--k-paper);
+  --vbg-text-secondary: oklch(0.75 0.014 75);
+  --vbg-border-subtle: color-mix(in oklch, var(--k-paper) 11%, transparent);
+  --vbg-border-default: color-mix(in oklch, var(--k-paper) 14%, transparent);
+  --vbg-border-strong: color-mix(in oklch, var(--k-paper) 45%, transparent);
+  --k-accent: var(--k-clay-light);
+  --vbg-color-primary: var(--k-clay-light);
+  --k-on-primary: var(--k-ink);
+  --vbg-color-info: oklch(0.75 0.06 240);
+  --vbg-color-success: oklch(0.76 0.085 145);
+  --vbg-color-warning: oklch(0.8 0.1 80);
+  --vbg-color-error: oklch(0.71 0.13 28);
+  --vbg-focus: var(--k-clay-light);
+  --vbg-gray-100: oklch(0.29 0.008 60);
+  --vbg-gray-200: oklch(0.32 0.009 60);
+}
+
 @theme inline {
   --font-sans: var(--k-font-sans);
-  --font-heading: var(--k-font-sans);
+  --font-heading: var(--k-font-serif);
+  --font-serif: var(--k-font-serif);
+  --color-clay: var(--k-accent);
   --font-mono: var(--k-font-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -117,7 +151,11 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground font-sans antialiased; touch-action: manipulation; }
+  body { @apply bg-background text-foreground font-sans antialiased; touch-action: manipulation; font-variant-numeric: tabular-nums; }
+  /* los títulos de vista hablan en serif; el resto del panel en sans */
+  h1, h2 { font-family: var(--k-font-serif); font-optical-sizing: auto; letter-spacing: -0.01em; }
+  ::selection { background: color-mix(in oklch, var(--k-accent) 28%, transparent); color: var(--foreground); }
+  :root { caret-color: var(--k-accent); scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent; }
 }
 
 /* Transiciones de vista: crossfade de 180 ms; con movimiento reducido, fundidos de 80 ms */

@@ -11,7 +11,7 @@ const now = new Date('2026-11-10T15:00:00');
 const req = (name: string, present: boolean) => ({name, present, detail: present ? 'ok' : 'no está', lost: 'se pierde algo'});
 const lentas = (over: Partial<Lentas> = {}): Lentas => ({
   requisitos: [req('Git', true), req('Claude Code', true), req('Pillow', true)], maquina: {freeGb: 20.5, editors: 1}, ramTotalGb: 64,
-  disco: {libreGb: 300, totalGb: 1000}, unreal: '5.9.0', unrealMcp: true, emsdk: true, equipo: null, ...over,
+  disco: {libreGb: 300, totalGb: 1000}, unreal: '5.9.0', unrealMcp: true, emsdk: true, sonido: '2026-11-10T20:00:00.000Z', equipo: null, ...over,
 });
 function db() {
   const d = openDb(':memory:');
@@ -33,17 +33,20 @@ test('resumen todo configurado: tokens hoy y semana, workers, Meshy por cuenta, 
   assert.equal(r.claude.director, true);
   assert.deepEqual(r.ias, [], 'Codex y OpenCode sin cupo no aparecen');
   assert.deepEqual(r.meshy, {cuentas: [{nombre: 'env', creditos: 100}, {nombre: 'Richard', creditos: 1100}], total: 1200});
+  assert.deepEqual(r.sonido, {guardada: '2026-11-10T20:00:00.000Z'});
   assert.equal(r.maquina.unreal, '5.9.0');
   assert.equal(r.maquina.discoBajo, false);
   assert.deepEqual(r.falta, []);
 });
 
 test('resumen sin nada configurado: sin cifras de Meshy y cada falta con su comando', () => {
-  const r = resumen(db(), undefined, lentas({requisitos: [req('Git', false), req('Pillow', false), req('graphify', false)], unrealMcp: false, emsdk: false, unreal: null}), [], now);
+  const r = resumen(db(), undefined, lentas({requisitos: [req('Git', false), req('Pillow', false), req('graphify', false), req('WeLoveIndies', false)], unrealMcp: false, emsdk: false, unreal: null, sonido: null}), [], now);
   assert.equal(r.meshy, null);
+  assert.equal(r.sonido, null);
   const by = Object.fromEntries(r.falta.map(f => [f.que, f]));
   assert.equal(by['Pillow'].comando, 'pip install pillow');
   assert.equal(by['Git'].comando, 'winget install Git.Git');
+  assert.equal(by['WeLoveIndies'].comando, 'nomos sonido login');
   assert.equal(by['graphify'].comando, undefined, 'sin comando conocido no se inventa uno');
   assert.match(by['Meshy sin cuentas'].comando!, /guardar-claves-meshy\.ps1$/);
   assert.equal(by['MCP de Unreal'].comando, 'claude mcp add --transport http unreal-mcp http://127.0.0.1:8000/mcp');

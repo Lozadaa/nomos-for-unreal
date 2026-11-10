@@ -60,7 +60,8 @@ export function Chat({ className, autoFocus = false }: { className?: string; aut
 
   // al final solo si el usuario ya estaba abajo: si subió a leer, no se le mueve (sin animación de scroll)
   const atBottom = useRef(true)
-  useEffect(() => { if (atBottom.current) end.current?.scrollIntoView({ block: 'end' }) }, [count])
+  // se desplaza la lista, no la página: scrollIntoView arrastraba la ventana entera hasta el chat en móvil
+  useEffect(() => { const list = end.current?.parentElement; if (atBottom.current && list) list.scrollTop = list.scrollHeight }, [count])
 
   const submit = () => { if (text.trim()) void send.fire() }
 

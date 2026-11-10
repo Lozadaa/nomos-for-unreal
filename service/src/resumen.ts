@@ -12,6 +12,7 @@ import { necessary, optional, type Requirement } from './doctor.ts';
 import { gameEngine } from './engine-path.ts';
 import { probeMachine, type Machine } from './machine.ts';
 import { unrealServers } from './repo/capabilities.ts';
+import { sesionGuardada, sonidoCfg } from './sonido.ts';
 import { behindCounts, listPeers, teamConfig } from './team.ts';
 
 /**
@@ -23,6 +24,8 @@ export type Resumen = {
   claude: {tokensHoy: number; tokensSemana: number; workers: number; director: boolean};
   ias: {id: 'codex' | 'opencode'; nombre: string; cupo: number; enUso: number}[];
   meshy: {cuentas: {nombre: string; creditos: number | null}[]; total: number} | null;
+  /** WeLoveIndies: fecha de la sesión guardada (de doctor); sin sesión no sale aquí sino en alta. */
+  sonido: {guardada: string} | null;
   maquina: {unreal: string | null; ramLibreGb: number; ramTotalGb: number; discoLibreGb: number | null; discoTotalGb: number | null; discoBajo: boolean; editores: number};
   equipo: {personas: number; conectadas: number; atrasados: {nombre: string; commits: number}[]} | null;
   falta: Falta[];
@@ -32,7 +35,7 @@ export type Resumen = {
 /** Lo que tarda o cuesta (procesos, red, API de pago): se cachea en la ruta. */
 export type Lentas = {
   requisitos: Requirement[]; maquina: Machine; ramTotalGb: number; disco: {libreGb: number; totalGb: number} | null;
-  unreal: string | null; unrealMcp: boolean | null; emsdk: boolean | null;
+  unreal: string | null; unrealMcp: boolean | null; emsdk: boolean | null; sonido: string | null;
   equipo: Resumen['equipo'];
 };
 export type Meshy = {nombre: string; creditos: number | null}[];
@@ -47,6 +50,7 @@ const arreglo: Record<string, string> = {
   'Claude Code': 'npm install -g @anthropic-ai/claude-code',
   'ffmpeg': 'winget install Gyan.FFmpeg',
   'Pillow': 'pip install pillow',
+  'WeLoveIndies': 'nomos sonido login',
 };
 
 export function resumen(db: DatabaseSync, dataDir: string | undefined, lentas: Lentas, meshy: Meshy, now = new Date()): Resumen {
@@ -61,7 +65,7 @@ export function resumen(db: DatabaseSync, dataDir: string | undefined, lentas: L
     .map(id => ({id, nombre: id === 'codex' ? 'Codex' : 'OpenCode', cupo: cupo[id], enUso: vivos.filter(r => r.provider === id && r.role !== 'director').length}));
 
   const falta: Falta[] = lentas.requisitos.filter(r => !r.present)
-    .map(r => ({que: r.name, detalle: `${r.detail} · ${r.lost}`, ...(arreglo[r.name] ? {comando: arreglo[r.name]} : {})}));
+    .map(r => ({que: r.name, detalle: `${r.detail} · ${r.lost}`.replaceAll('`', ''), ...(arreglo[r.name] ? {comando: arreglo[r.name]} : {})}));
   if (!meshy.length) falta.push({que: 'Meshy sin cuentas', comando: `powershell -File ${join(homedir(), '.nomos', 'guardar-claves-meshy.ps1')}`});
   else if (meshy.every(c => c.creditos === 0)) falta.push({que: 'Meshy sin créditos', detalle: 'Todas las cuentas están a 0: recarga una o añade otra'});
   if (lentas.unrealMcp === false) falta.push({que: 'MCP de Unreal', comando: 'claude mcp add --transport http unreal-mcp http://127.0.0.1:8000/mcp'});
@@ -74,6 +78,7 @@ export function resumen(db: DatabaseSync, dataDir: string | undefined, lentas: L
       director: vivos.some(r => r.role === 'director')},
     ias,
     meshy: meshy.length ? {cuentas: meshy, total: meshy.reduce((n, c) => n + (c.creditos ?? 0), 0)} : null,
+    sonido: lentas.sonido ? {guardada: lentas.sonido} : null,
     maquina: {unreal: lentas.unreal, ramLibreGb: lentas.maquina.freeGb, ramTotalGb: lentas.ramTotalGb, discoLibreGb: lentas.disco?.libreGb ?? null,
       discoTotalGb: lentas.disco?.totalGb ?? null, discoBajo, editores: lentas.maquina.editors},
     equipo: lentas.equipo,
@@ -103,6 +108,7 @@ export async function lentasReales(db: DatabaseSync, dataDir: string): Promise<L
     requisitos: [...nec, ...opt], maquina: probeMachine(), ramTotalGb: totalmem() / GB, disco, unreal: version,
     unrealMcp: unrealServers(nodeFs, game, process.env.USERPROFILE ?? process.env.HOME).length > 0,
     emsdk: web ? existsSync(join(homedir(), 'emsdk', 'emsdk.bat')) : null,
+    sonido: sesionGuardada(sonidoCfg()),
     equipo,
   };
 }
