@@ -23,10 +23,18 @@ namespace
 		return T;
 	}
 
-	// Panel de color liso (sin material: nada de cuadros en el empaquetado) con el contenido dentro.
-	UBorder* Caja(UWidgetTree* WT, const FLinearColor& Color, UWidget* Contenido, const FMargin& Relleno)
+	// Panel de ejemplo: esquinas redondas y un filo de otro color (sin material: nada de cuadros en el empaquetado).
+	// Sustitúyelo por la forma del motivo de docs/direccion.md: un rectángulo liso semitransparente es de cualquier juego.
+	UBorder* Caja(UWidgetTree* WT, const FLinearColor& Color, UWidget* Contenido, const FMargin& Relleno, bool bForma = true)
 	{
 		UBorder* B = WT->ConstructWidget<UBorder>();
+		FSlateBrush Forma;
+		if (bForma)
+		{
+			Forma.DrawAs = ESlateBrushDrawType::RoundedBox;
+			Forma.OutlineSettings = FSlateBrushOutlineSettings(FVector4(18.f, 4.f, 18.f, 4.f), FSlateColor(Borde), 3.f);
+		}
+		B->SetBrush(Forma);
 		B->SetBrushColor(Color);
 		B->SetPadding(Relleno);
 		B->SetHorizontalAlignment(HAlign_Center);
@@ -92,7 +100,7 @@ TSharedRef<SWidget> USemillaCarga::RebuildWidget()
 		UCanvasPanel* R = Raiz(WidgetTree);
 		Llenar(R, Caja(WidgetTree, Fondo, Columna(WidgetTree, {
 			Texto(WidgetTree, ERol::Titulo, 120.f, Acento, TEXT("Semilla")),
-			Texto(WidgetTree, ERol::Texto, 30.f, Tinta, TEXT("Preparando el patio…")) }), FMargin(0)));
+			Texto(WidgetTree, ERol::Texto, 30.f, Tinta, TEXT("Cargando…")) }), FMargin(0), false));
 	}
 	return Super::RebuildWidget();
 }
@@ -143,9 +151,10 @@ TSharedRef<SWidget> USemillaHud::RebuildWidget()
 
 		FinTexto = Texto(WidgetTree, ERol::Texto, 30.f, Tinta, TEXT(""));
 		Final = Caja(WidgetTree, Panel, Columna(WidgetTree, {
-			Texto(WidgetTree, ERol::Titulo, 84.f, Acento, TEXT("¡Partida terminada!")), FinTexto.Get(),
-			Texto(WidgetTree, ERol::Texto, 26.f, Suave, TEXT("R para jugar otra")) }), FMargin(72, 40));
-		Colocar(R, Final, FAnchors(0.5f, 0.5f), FVector2D(0.5f, 0.5f), FVector2D(0, 0));
+			Texto(WidgetTree, ERol::Titulo, 64.f, Acento, TEXT("¡Partida terminada!")), FinTexto.Get(),
+			Texto(WidgetTree, ERol::Texto, 24.f, Suave, TEXT("R para jugar otra")) }, 6.f), FMargin(56, 20));
+		// arriba y no en el centro: el final no tapa al protagonista (revisar_imagen.py lo mide en la captura del final)
+		Colocar(R, Final, FAnchors(0.5f, 0.f), FVector2D(0.5f, 0.f), FVector2D(0, 24));
 		Marcador->SetVisibility(ESlateVisibility::Collapsed);
 		Final->SetVisibility(ESlateVisibility::Collapsed);
 	}

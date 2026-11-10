@@ -11,6 +11,8 @@
 | Empaquetar | `RunUAT BuildCookRun` una vez al final, con `DirectoriesToAlwaysCook` ([acabado](acabado.md)) | Empaquetar en cada paso |
 | Importar una malla | Receta `importar_malla`: mide y rechaza escalas ×100 ([importar](importar.md)) | Importar y colocar sin medir |
 | Cámara | Receta `camara_tercera_persona`, o una sola cámara en el pawn desde C++ ([camara-pawn](camara-pawn.md)) | Dos cámaras activas |
+| Encuadrar la escena | `EncuadrarEscena(caja)` del PlayerController de la semilla (etiqueta `Escena`; `Inclinacion` 55 desde arriba, 20-30 de lado): avisa si el protagonista mide < 3 % | Colocar la cámara a ojo y no mirar la captura |
+| Dar aspecto a un actor | `<Juego>Aspecto::Vestir(actor, rol)`: malla, material, luz y efectos por rol en un solo archivo | Mallas y materiales repartidos por las clases de mecánica |
 | Luz de exterior | Receta `post_exterior` ([iluminacion](iluminacion.md)) | Tocar la exposición a ojo, captura tras captura |
 | Repartir objetos | Receta `poblar_pcg` y contar instancias ([pcg](pcg.md)) | PCG a mano sin contar |
 | Datos de juego | Receta `bp_datos`: Blueprint hijo y DataAsset | Valores escritos en el nivel |

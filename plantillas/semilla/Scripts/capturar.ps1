@@ -24,12 +24,12 @@ if (Test-Path $enlace) {
   $destino = (Get-Item $enlace).Target
   if ($destino) { $candidatos += Join-Path (Split-Path (Split-Path ([string]$destino))) 'service\unreal\nomos_demo.py' }
 }
-$demo = $candidatos | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $demo) { throw 'Falta nomos_demo.py (Tools/Nomos/service/unreal): actualiza Nomos con nomos embed --update' }
+$guion = $candidatos | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $guion) { throw 'Falta nomos_demo.py (Tools/Nomos/service/unreal): actualiza Nomos con nomos embed --update' }
 $salida = Join-Path $raiz 'docs\capturas'
 New-Item -ItemType Directory -Force $salida | Out-Null
 Remove-Item (Join-Path $salida '*.png*') -ErrorAction SilentlyContinue
-$env:NOMOS_SCRIPT = $demo -replace '\\', '/'
+$env:NOMOS_SCRIPT = $guion -replace '\\', '/'
 $env:NOMOS_DEMO_DIR = $salida
 $env:NOMOS_DEMO_SEGUNDOS = $Segundos
 $env:NOMOS_REPORT = Join-Path $salida 'demo.json'
