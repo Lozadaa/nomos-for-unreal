@@ -29,3 +29,16 @@ Ninguna por ahora.
   en esta pasada; lo que miró la imagen fue el worker (tres capturas y líneas `VISTO`) y su `revisar_imagen.py`.
 - 15:44 · `nomos metricas --json` → `metricas-trompo-B.json`; `nomos stop`. `.exe` en `Trompo/Empaquetado/Windows/Trompo.exe`
   (empaquetado por el worker a las 14:58Z, en la carpeta del juego).
+
+## 30 min más
+
+- Encargo del usuario: «Me gusto te doy 30min mas de desarrollo con nomos para que lo completes y mejores que sea el loop
+  completo mejorado». `nomos start` (copia de Nomos de `jam-vista`); línea `inicio-2` 17:49:23Z con commit propio; el texto
+  del coordinador por `POST /messages` (seq 1315). Tope: FIN-2 antes de las 18:19:23Z.
+- 17:54 · el director creó **una sola tarea** (`0f0f3393`, «Trompo: bucle completo redondo»), implementando.
+- 17:59 · primer commit del worker: cámara baja junto al ruedo, rivales que chocan y caen, demo de 60 s, celebración antes del panel.
+- 18:09 · segundo commit: la demo guarda la victoria para el último tiro; el final vuelve a la vista del ruedo.
+- 18:11:13 · **FIN-2** (21 min 50 s desde `inicio-2`). Revisión aprobada; a las 18:14 la tarea espera «Aprobar» (gameplay): sin persona se aprueba sola a los 15 min. No intervengo. `.exe` nuevo en `Empaquetado/` (18:09Z).
+- 18:27:42 · aprobación automática a los 15 min → integrado en `main@19ea6fa` → `done`. 0 intervenciones. `nomos metricas
+  --json` → `metricas-trompo-B2.json`; `nomos stop`. El `.exe` (18:09Z) es anterior a la integración, pero posterior al
+  último commit con código (69a27f3, 18:07Z; después solo cambiaron docs y capturas): no lo reempaqueté.

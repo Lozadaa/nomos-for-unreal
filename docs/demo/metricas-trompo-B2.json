@@ -1,0 +1,84 @@
+{
+  "desde": null,
+  "hasta": "2026-11-10T18:27:40.230Z",
+  "tareas": {
+    "cerradas": 2,
+    "horas": {
+      "n": 2,
+      "mediana": 0.9100716666666666,
+      "p90": 1.2130769444444445,
+      "suma": 1.8201433333333332
+    }
+  },
+  "estados": {
+    "preparada": {
+      "n": 2,
+      "mediana": 0.07133333333333333,
+      "p90": 0.07903333333333333,
+      "suma": 0.14266666666666666
+    },
+    "implementando": {
+      "n": 2,
+      "mediana": 24.944566666666667,
+      "p90": 29.76705,
+      "suma": 49.889133333333334
+    },
+    "revisando": {
+      "n": 4,
+      "mediana": 8.035033333333333,
+      "p90": 42.52725,
+      "suma": 58.75075
+    },
+    "integrando": {
+      "n": 2,
+      "mediana": 0.10183333333333333,
+      "p90": 0.14538333333333334,
+      "suma": 0.20366666666666666
+    },
+    "cerrando": {
+      "n": 2,
+      "mediana": 0.11103333333333333,
+      "p90": 0.1123,
+      "suma": 0.22206666666666666
+    }
+  },
+  "huecos": {
+    "entregaAComprobacion": {
+      "n": 2,
+      "mediana": 0.14587499999999998,
+      "p90": 0.14955,
+      "suma": 0.29174999999999995
+    },
+    "decisionAbierta": {
+      "n": 0,
+      "mediana": 0,
+      "p90": 0,
+      "suma": 0
+    },
+    "preguntaARespuesta": {
+      "n": 0,
+      "mediana": 0,
+      "p90": 0,
+      "suma": 0
+    },
+    "rechazoACorreccion": {
+      "n": 0,
+      "mediana": 0,
+      "p90": 0,
+      "suma": 0
+    }
+  },
+  "decisiones": {
+    "abiertas": 0,
+    "resueltas": 0,
+    "automaticas": 0,
+    "porQuien": {}
+  },
+  "diferidas": [],
+  "revisiones": {
+    "total": 2,
+    "rechazadas": 0,
+    "correcciones": 0
+  },
+  "comprobaciones": {}
+}
