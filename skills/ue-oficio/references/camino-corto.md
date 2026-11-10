@@ -3,7 +3,7 @@
 | Poner cosas en el nivel | Que su C++ las cree en `BeginPlay`, o `nomos ue receta` con la plantilla `escena` | Editar el `.umap` a mano; un script de Python por tarea |
 | Un material o un efecto | `nomos fastvfx crear <receta.json> --preview` | Python nodo a nodo; en 5.9, Python sin renderer (no compila materiales) |
 | HUD y menús | UMG construido en C++, con el `UFont` compuesto en C++ ([acabado](acabado.md)) | Canvas, `DrawText`, fuentes del motor, Blueprint de widget a mano |
-| Un sonido | En 5.9, MetaSound Builder por Python; plan B, `SoundWave` sintetizado e importado ([ue59-juego](ue59-juego.md)) | Buscar o descargar audio |
+| Música o un sonido | `nomos sonido buscar "<palabras en inglés>"` y `nomos sonido bajar <id> --juego .` (WeLoveIndies: deja `.wav`, licencia, receta y `CREDITOS.md`; [assets](../../nomos/references/assets.md)); sin sesión, plan B: sintetizado o MetaSound ([ue59-juego](ue59-juego.md)) | Audio de otras webs; un `.wav` sin su `.licencia.json`; descargar de más |
 | Compilar | `Build.bat` desde PowerShell, una vez por paso (50-80 s) | Bash; compilar tras cada línea |
 | Probar reglas | Lógica en una clase C++ sin `UObject` y `nomos ue test` | Tests de física o de aspecto |
 | Probar física y aspecto | Modo demo por variable de entorno y captura | Mirar solo el editor |

@@ -51,6 +51,28 @@ a `--types` del vigilante cuando dirijas trabajo de assets.
 
 Nunca uses cookies del navegador, tokens copiados a mano ni endpoints internos de Fab.
 
+## Sonido y música: WeLoveIndies
+
+Ventaja de la Epic MegaJam: más de 3.200 temas y 250.000 efectos. Licencia **Free & Demo: no comercial y
+ligada al proyecto**. La jam tiene premios en metálico: **el usuario confirma con WeLoveIndies que la
+licencia cubre la entrega** antes de publicar. Términos e investigación: `docs/investigacion/weloveindies.md`.
+
+| Orden | Qué hace | Sesión |
+|---|---|---|
+| `nomos sonido login` | Abre Chrome (perfil propio en `~/.nomos/navegador/weloveindies`, fuera del repo) en la página de entrada; el usuario entra él mismo. Dice «Sesión guardada» | La crea |
+| `nomos sonido buscar "<palabras>" [--tipo musica\|efecto] [--limite 10]` | JSON con id (`e…` efecto, `m…` música), título, duración, tipo, URL de escucha, autor y licencia | No hace falta |
+| `nomos sonido bajar <id…> --juego <carpeta> [--destino Content/Audio]` | Sin ventana, una descarga cada 4 s: `Importar/Audio/<archivo>.wav` (ffmpeg si no era wav), `<archivo>.wav.licencia.json`, `<archivo>.receta.json` y su línea en `CREDITOS.md`. Imprime la orden `nomos ue receta …` que lo importa como `SoundWave` | Necesaria |
+| `nomos sonido importar <carpeta> --juego <carpeta>` | Lo mismo con lo que el usuario bajó del cofre ya licenciado (zip descomprimido); marca `licenciado` | No |
+
+- Busca en inglés y por cómo suena, no por para qué sirve («wood creak», no «puerta del jefe»).
+- Baja solo lo que la tarea pide: la cuenta gratuita da 100 sonidos y 5 temas cada 30 días.
+- Lo de `bajar` sale del botón de descarga por archivo y queda `prueba`: los términos solo lo permiten
+  para pruebas internas. Antes de entregar, el usuario mete esos sonidos en el cofre, elige la licencia
+  Free & Demo, descarga el zip y lo pasa por `nomos sonido importar` (sustituye archivo y línea de créditos).
+- Sin sesión o caducada, `bajar` dice «Ejecuta `nomos sonido login`»: un worker no lo ejecuta, sigue con el
+  plan B (sintetizado o MetaSound) y lo anota para el usuario.
+- Nunca un `.wav` en el juego sin su `.licencia.json`; nunca contraseñas ni cookies en Nomos.
+
 ## Importar al juego
 
 `nomos asset prepare` crea una tarea de arte (`provider: claude`) con el contrato

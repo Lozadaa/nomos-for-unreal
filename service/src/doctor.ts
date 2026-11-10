@@ -17,6 +17,7 @@ import { readServiceInfo, isAlive } from './service-info.ts';
 import type { Lane } from './commands.ts';
 import { stalledTasks } from './stall.ts';
 import { findGraphify, hasCode, ponytailEnabled } from './graph.ts';
+import { sesionGuardada, sonidoCfg } from './sonido.ts';
 
 type Probe = {isRunning?(): Promise<boolean>; open?(): Promise<void>};
 export type CheckDeps = {orca?: Probe; meshy?: {balance(): Promise<number>}; env?: NodeJS.ProcessEnv;
@@ -106,6 +107,7 @@ export async function optional(dataDir: string, deps: CheckDeps = {}): Promise<R
   let ffPath: unknown;
   try { ffPath = (readConfig(dataDir) as Record<string, unknown>).ffmpegPath; } catch { /* config ilegible */ }
   const ff = deps.ffmpeg !== undefined ? deps.ffmpeg : findFfmpeg(ffPath), orca = !!await (deps.orca ?? createOrca({env})).isRunning?.();
+  const wli = sesionGuardada(sonidoCfg(env));
   const [py, ...pre] = pythonBin(), pillow = deps.pillow ?? spawnSync(py, [...pre, '-c', 'import PIL'], {timeout: 15_000}).status === 0;
   return [
     {name: 'Orca', present: orca, detail: orca ? 'abierto' : 'cerrado o sin instalar', lost: 'los workers corren como procesos `claude` sin terminal visible'},
@@ -114,6 +116,7 @@ export async function optional(dataDir: string, deps: CheckDeps = {}): Promise<R
     {name: 'Second Brain', present: !!brain, detail: brain ?? 'brain.py no encontrado', lost: 'memoria apagada: el cierre no guarda lecciones'},
     {name: 'ffmpeg', present: !!ff, detail: ff?.bin ?? 'no encontrado', lost: 'los vídeos de animación salen como zip de fotogramas'},
     {name: 'Pillow', present: pillow, detail: pillow ? 'Python con Pillow' : 'pip install pillow', lost: 'la comprobación imagen no mide las capturas del modo demo'},
+    {name: 'WeLoveIndies', present: !!wli, detail: wli ? `sesión guardada el ${wli.slice(0, 10)}` : 'sin sesión guardada', lost: 'sin `nomos sonido bajar`: ejecuta `nomos sonido login`'},
   ];
 }
 export function renderRequirements(title: string, rows: Requirement[]): string {

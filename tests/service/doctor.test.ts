@@ -100,7 +100,8 @@ test('hito 30: doctor con PATH vacío dice qué falta (Necesario) y qué se pier
     const brain = join(root, 'sb', '.system'), editor = join(root, 'UnrealEditor-Cmd.exe'), graphify = join(root, 'graphify.exe');
     mkdirSync(brain, {recursive: true}); writeFileSync(join(brain, 'brain.py'), ''); writeFileSync(editor, ''); writeFileSync(graphify, '');
     writeFileSync(join(root, 'settings.json'), JSON.stringify({enabledPlugins: {'ponytail@ponytail': true}}));
-    const full = {env: {...process.env, SECOND_BRAIN_ROOT: join(root, 'sb'), NOMOS_GRAPHIFY: graphify, CLAUDE_CONFIG_DIR: root},
+    mkdirSync(join(root, 'wli')); writeFileSync(join(root, 'wli', 'sesion.json'), JSON.stringify({guardada: '2026-11-10T00:00:00Z'}));
+    const full = {env: {...process.env, SECOND_BRAIN_ROOT: join(root, 'sb'), NOMOS_GRAPHIFY: graphify, CLAUDE_CONFIG_DIR: root, NOMOS_WLI_DIR: join(root, 'wli')},
       unrealPath: editor, orca: orca(true), ffmpeg: {bin: 'ffmpeg'}, pillow: true};
     assert.deepEqual([...await necessary(dataDir, full), ...await optional(dataDir, full)].filter(r => !r.present).map(r => r.name), []);
     assert.equal(defaultMemoryCommand(full.env)!.at(-1), join(brain, 'brain.py'));
