@@ -84,3 +84,12 @@ La referencia web de la API de Python responde 403 sin `?application_version=5.5
 estas clases 5.5 y 5.8 coinciden según el harness de origen (no comprobado clase a clase). Con `?application_version=5.9`
 da 404 (2026-11-09). Lo que 5.9 Preview cambia en Python (rutas de búsqueda, edición de Blueprints y StateTrees, plugin
 Python Foundation Packages retirado): [ue59-preview](ue59-preview.md#python-del-editor).
+
+## Visto en 5.9 (Canicas-6, 2026-11-10) [probado]
+
+- `UnrealEditor-Cmd ... -run=pythonscript -script=<ruta>` falla si la ruta tiene espacios («Unreal Projects»): copia el
+  script a una ruta sin espacios.
+- Con `-nullrhi` el Python no compila materiales: lanza con `-AllowCommandletRendering`.
+- `unreal.MaterialExpressionCustom` y sus entradas: `unreal.CustomInput()` no acepta argumentos con nombre; créalo vacío
+  y rellénalo con `set_editor_property('input_name', ...)`.
+- Un material para `UInstancedStaticMeshComponent` necesita `used_with_instanced_static_meshes=True`.

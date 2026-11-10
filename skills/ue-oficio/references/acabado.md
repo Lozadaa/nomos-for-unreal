@@ -44,7 +44,9 @@ Un indicador (apuntado, fuerza, selección, objetivo) es parte del juego, no una
 - **Tener forma con dirección:** punta, flecha o trazos que se estrechan; nunca una barra del mismo grosor de punta a punta.
 - **Entrar y salir:** aparece y se va con 0,1-0,2 s de escala o alfa, no de golpe.
 
-Caminos baratos [plan]: puntos o trazos con `UInstancedStaticMeshComponent` y un material de tiza; un decal alargado con
+Caminos baratos: trazos con `UInstancedStaticMeshComponent` y un material de tiza [probado en Canicas-6: flecha de tiza a
+trazos que se afina, engorda con la fuerza y tiembla al máximo]. El material necesita `used_with_instanced_static_meshes=True`;
+sin esa marca sale el material por defecto en el empaquetado [probado]. Otros caminos [plan]: un decal alargado con
 un material de guiones (`frac(UV.x * N)` como máscara y la carga como parámetro); una cinta de Niagara si el proyecto ya
 usa Niagara.
 
@@ -53,8 +55,10 @@ usa Niagara.
 - UMG, no Canvas: el texto de UMG se rasteriza al tamaño final con la curva DPI. La fuente de Canvas escalada se
   pixela. [probado: captura del empaquetado de Canicas-6, 1920×1080]
 - Tamaños a 1080p: cuerpo ≥ 18 px, cifras de HUD ≥ 28 px. Comprueba a 1280×720 y a 1920×1080.
-- Importar una TTF por Python crea un `FontFace`; el `UFont` que usa UMG se compone apuntando a él (Runtime o
-  Lazy loading). [plan: confírmalo con la captura del empaquetado]
+- Importar una TTF por Python crea solo el `FontFace` (`FF_*`): en 5.9 la importación automática no crea el `UFont` ni
+  con `batch_create_font_asset`, y Python no ve `FCompositeFont`. Lo que funciona es componer el `UFont` en C++, en juego,
+  sobre ese `FontFace` (`NewObject<UFont>`, `FontCacheType = Runtime`, typeface por defecto → el FontFace). Se ve nítido en
+  el Shipping. [probado en Canicas-6, UE 5.9]
 
 ## 5. Pantalla de carga siempre
 
@@ -64,6 +68,8 @@ El juego no enseña el tablero hasta que sus texturas estén cargadas:
   texturas con `IStreamingManager::Get().StreamAllResources(segundos)` o hasta que `IsFullyStreamedIn()` sea cierto, con
   un tope de 5 s. [fuente]
 - Quita la pantalla con una transición corta, y como mínimo a los 0,5 s para que no parpadee.
+- Aunque todos los materiales sean procedurales y no haya texturas que esperar, la pantalla se pone igual: tapa la carga
+  del mapa y la compilación de shaders del primer arranque. [probado: en Canicas-6 dura ~0,6 s]
 
 ## 6. Empaquetado: lo que se ve en el editor no basta
 
@@ -84,10 +90,13 @@ Antes de marcar el FIN o entregar con `NOMOS_DONE`:
 1. `python <ue-oficio>/scripts/revisar_acabado.py <proyecto>` da 0 fallos.
 2. Empaqueta (Shipping) y captura **el `.exe`**, no el editor:
    `pwsh -File <ue-oficio>/scripts/captura_empaquetado.ps1 -Exe <Empaquetado>\Windows\<Juego>.exe -Salida docs/empaquetado.png`.
-   Es un `.exe` sin consola, así que el script graba la ventana con ffmpeg. [probado]
+   Es un `.exe` sin consola, así que el script pone la ventana encima de todo y graba su zona con ffmpeg. [probado]
+   `-Tomas 0,3,15` saca varias PNG (segundos desde que aparece la ventana; la 0 intenta pillar la pantalla de carga).
+   Para ver el juego en marcha, pon antes la variable del modo demo (p. ej. `$env:METRAS_AUTO=1`): el `.exe` la hereda.
 3. Mira la captura y recorta el HUD al 100 %. Repite la comprobación si ves cualquiera de estas cosas:
    - material de cuadros o gris plano;
    - texto pixelado o sin tildes;
-   - una línea o barra del mismo grosor de punta a punta;
+   - un **indicador** (apuntado, fuerza, objetivo) que sea una línea o barra del mismo grosor de punta a punta (los trazos
+     decorativos finos, como palotes o rayas de cuaderno, no cuentan);
    - un panel que podría ser de cualquier juego.
 4. Anota en `docs/hecho.md` una línea `ACABADO: revisar_acabado 0 fallos, captura docs/empaquetado.png`.
