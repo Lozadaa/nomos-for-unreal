@@ -19,7 +19,9 @@ export type Card = {id: string; name: string; frente: string; updatedAt: string;
   leases: {path: string; taskId: string; until: string; at: string}[];
   decisions: {id: string; title: string}[];
   build: {commit: string; at: string} | null;
-  requests: {to: string; title: string; text: string; at: string; taskId?: string; reopen?: boolean}[]};
+  requests: {to: string; title: string; text: string; at: string; taskId?: string; reopen?: boolean}[];
+  /** Jam: las 5 últimas tareas hechas (la más reciente primero) y mi cabeza local de la rama compartida. Opcionales al leer. */
+  done?: {id: string; title: string; summary: string; at: string}[]; main?: {commit: string; at: string} | null};
 export type Peer = Card & {present: boolean};
 
 export const HEARTBEAT_MS = 5 * 60_000, ABSENT_MS = 30 * 60_000;
@@ -114,7 +116,7 @@ export async function fetchMain(db: DatabaseSync, projectDir: string, branch: st
 export const isAncestor = (dir: string, a: string, b: string) => teamGit(dir, ['merge-base', '--is-ancestor', a, b]).then(() => true, () => false);
 
 /** Mi tarjeta, sacada de la base: tareas abiertas, reservas vivas, decisiones abiertas, build aprobada y peticiones. */
-export function myCard(db: DatabaseSync, dataDir: string, now = new Date()): Card {
+export function myCard(db: DatabaseSync, dataDir: string, now = new Date(), main: Card['main'] = null): Card {
   const team = teamConfig(dataDir), id = identity(dataDir).id;
   const tasks = db.prepare("select id,title,state,area from tasks where state!='done' order by rowid").all() as Card['tasks'];
   const leases = db.prepare(`select l.path,l.task_id taskId,l.acquired_at at,json_extract(r.metadata,'$.deadlineAt') deadline
@@ -125,7 +127,12 @@ export function myCard(db: DatabaseSync, dataDir: string, now = new Date()): Car
   const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
   const requests = db.prepare("select payload from events where type='team.ask' and created_at>=? order by seq").all(since)
     .map(r => JSON.parse(r.payload as string) as Card['requests'][number]);
-  return {id, name: team?.name ?? 'Yo', frente: team?.frente ?? '', updatedAt: now.toISOString(), tasks, leases, decisions, build: approvedBuild(db, dataDir), requests};
+  // el resumen es el del NOMOS_DONE del implementador (la última run hecha que no es revisión ni prueba)
+  const done = db.prepare(`select t.id,t.title,t.updated_at at,coalesce((select r.summary from runs r where r.task_id=t.id and r.state='done'
+    and r.role not in ('revisor','qa') and r.provider not in ('unreal','nomos') order by r.rowid desc limit 1),'') summary
+    from tasks t where t.state='done' order by t.updated_at desc limit 5`).all() as NonNullable<Card['done']>;
+  return {id, name: team?.name ?? 'Yo', frente: team?.frente ?? '', updatedAt: now.toISOString(), tasks, leases, decisions, build: approvedBuild(db, dataDir), requests,
+    done: done.map(d => ({id: d.id, title: d.title, summary: d.summary, at: d.at})), main};
 }
 /** Hito 29 T2: la última build estampada con un «Aprobar» del usuario posterior. */
 function approvedBuild(db: DatabaseSync, dataDir: string): Card['build'] {
@@ -145,7 +152,7 @@ export function migrateTeam(db: DatabaseSync): void {
 export function listPeers(db: DatabaseSync, now = Date.now()): Peer[] {
   return db.prepare('select card from team_peers order by name').all().map(r => {
     const card = JSON.parse(r.card as string) as Card;
-    return {...card, present: now - Date.parse(card.updatedAt) < ABSENT_MS};
+    return {...card, done: card.done ?? [], main: card.main ?? null, present: now - Date.parse(card.updatedAt) < ABSENT_MS};
   });
 }
 

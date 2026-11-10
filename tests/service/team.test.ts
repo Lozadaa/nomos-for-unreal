@@ -4,8 +4,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { stampBuild } from '../../service/src/build-info.ts';
 import { appendEvent } from '../../service/src/store.ts';
 import { join } from 'node:path';
-import { identity, listPeers, myCard, publishCard, teamTick, type TeamTick } from '../../service/src/team.ts';
+import { identity, listPeers, myCard, publishCard, recordPeers, teamTick, type Card, type TeamTick } from '../../service/src/team.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
+import { finishRun, startRun } from '../../service/src/repo/runs.ts';
 import { teamFixture } from './team-fixture.ts';
 import { renderResume } from '../../service/src/resume.ts';
 import { listMessages } from '../../service/src/chat.ts';
@@ -88,5 +89,34 @@ test('equipo: team ask viaja en mi tarjeta y llega al director del otro como men
     // hito 27: el panel firma el mensaje con quien lo manda, no «Tú»
     assert.deepEqual([listMessages(b.db)[0].from, listMessages(b.db)[0].text], ['Richard (combate)', 'Falta el sonido del golpe']);
     assert.match(renderResume(b.db, b.dataDir, 'parado'), /## Equipo[\s\S]*\| Richard \| combate \| sí \| 0 \|/);
+  } finally { f.close(); }
+});
+
+test('equipo: la tarjeta lleva las 5 últimas tareas hechas, la más reciente primero, con el resumen del NOMOS_DONE', () => {
+  const f = teamFixture();
+  try {
+    const a = f.clone('Richard', 'combate');
+    for (let i = 1; i <= 7; i++) {
+      const t = createTask(a.db, {title: `Hecha ${i}`, area: 'gameplay', state: 'done'});
+      a.db.prepare('update tasks set updated_at=? where id=?').run(`2026-11-10T10:0${i}:00.000Z`, t.id);
+      finishRun(a.db, startRun(a.db, {taskId: t.id, role: 'implementacion', provider: 'claude'}).id, 'done', `Resumen ${i}`);
+      finishRun(a.db, startRun(a.db, {taskId: t.id, role: 'revisor', provider: 'claude'}).id, 'done', 'Aprobada');
+    }
+    const card = myCard(a.db, a.dataDir);
+    assert.deepEqual(card.done!.map(d => [d.title, d.summary, d.at]), [7, 6, 5, 4, 3].map(i => [`Hecha ${i}`, `Resumen ${i}`, `2026-11-10T10:0${i}:00.000Z`]));
+    assert.deepEqual(card.tasks, [], 'las hechas no cuentan como abiertas');
+  } finally { f.close(); }
+});
+
+test('equipo: una tarjeta de un Nomos viejo, sin done ni main, se lee igual y sale con done vacío', () => {
+  const f = teamFixture();
+  try {
+    const a = f.clone('Richard', 'combate');
+    const old = {id: 'viejo123', name: 'Ana', frente: 'UI', updatedAt: new Date().toISOString(), tasks: [], leases: [], decisions: [], build: null, requests: []};
+    recordPeers(a.db, a.dataDir, [old as unknown as Card]);
+    const [peer] = listPeers(a.db);
+    assert.equal(peer.name, 'Ana');
+    assert.deepEqual(peer.done, []);
+    assert.equal(peer.main, null);
   } finally { f.close(); }
 });
