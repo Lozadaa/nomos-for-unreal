@@ -7,6 +7,8 @@ import { getTask } from '../../service/src/repo/tasks.ts';
 import { recordTestRun } from '../../service/src/repo/artifacts.ts';
 import type { Command } from '../../service/src/model.ts';
 import { teamFixture } from './team-fixture.ts';
+import { listPeers, teamTick, type TeamTick } from '../../service/src/team.ts';
+import { wakeTypes } from '../../service/src/director.ts';
 
 type Clone = ReturnType<ReturnType<typeof teamFixture>['clone']>;
 /** La recomprobación sobre la base nueva terminó bien. */
@@ -88,5 +90,31 @@ test('main compartido sin remoto: integra en local como siempre y avisa una sola
     checksPassed(a, t2.task.id);
     assert.equal((await a.integrate(t2.task.id)).integrated, true);
     assert.equal(a.events('integration.no_remote').length, 1);
+  } finally { f.close(); }
+});
+
+test('main al día: Ana publica y, tras un pase de Richard, sale team.main_moved y su checkout avanza; con cambios sin commitear solo avisa', async () => {
+  const f = teamFixture();
+  try {
+    const a = f.clone('Richard', 'combate'), b = f.clone('Ana', 'UI'), sa: TeamTick = {pushedAt: 0, fetchedAt: 0, warned: false};
+    await teamTick(a.db, a.dataDir, a.dir, sa);
+    assert.deepEqual(a.events('team.main_moved'), [], 'sin cambios en origin no hay aviso');
+    const t1 = b.task('menu', {'Source/Menu.cpp': 'int menu;\n'}, 'Menú principal'), first = (await b.integrate(t1.task.id)).commit;
+    await teamTick(a.db, a.dataDir, a.dir, sa, Date.now() + 61_000);
+    assert.deepEqual(a.events('team.main_moved'), [{commit: first, by: 'Ana', title: 'Menú principal', files: ['Source/Menu.cpp']}]);
+    assert.equal(f.git(a.dir, 'rev-parse', 'HEAD'), first, 'el checkout limpio de Richard avanzó');
+    await teamTick(a.db, a.dataDir, a.dir, sa, Date.now() + 122_000);
+    assert.equal(a.events('team.main_moved').length, 1, 'dos pases sin cambios: un solo aviso');
+    await teamTick(b.db, b.dataDir, b.dir, {pushedAt: 0, fetchedAt: 0, warned: false});
+    assert.equal(listPeers(b.db)[0].main?.commit, first, 'la tarjeta de Richard dice por dónde va su main');
+
+    writeFileSync(join(a.dir, 'notas.txt'), 'cambio sin commitear de la persona\n');
+    const t2 = b.task('opciones', {'Source/Opciones.cpp': 'int opciones;\n'}, 'Opciones'), second = (await b.integrate(t2.task.id)).commit;
+    await teamTick(a.db, a.dataDir, a.dir, sa, Date.now() + 183_000);
+    await teamTick(a.db, a.dataDir, a.dir, sa, Date.now() + 244_000);
+    assert.deepEqual(a.events('team.main_moved').map(e => [e.commit, e.by, e.title]), [[first, 'Ana', 'Menú principal'], [second, 'Ana', 'Opciones']]);
+    assert.equal(f.git(a.dir, 'rev-parse', 'HEAD'), first, 'con cambios sin commitear el checkout no se mueve');
+    assert.equal(f.git(a.dir, 'status', '--porcelain'), 'M notas.txt');
+    assert.ok(!wakeTypes.includes('team.main_moved'), 'no despierta al director');
   } finally { f.close(); }
 });

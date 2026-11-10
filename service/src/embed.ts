@@ -2,13 +2,13 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { nomosSkills } from './skills-install.ts';
+import { gameSkills, nomosSkills } from './skills-install.ts';
 
 /** Hito 30: Nomos viaja dentro del repo del juego (`Tools/Nomos`, `.claude/skills`, envoltorios y sección en CLAUDE.md). */
 const own = resolve(import.meta.dirname, '..', '..');
 // jam 2026-11-10: con la semilla, un Nomos embebido también puede hacer `nomos nuevo`
 const parts = ['service', 'panel/dist', 'plantillas', 'scripts/instalar-arranque.ps1', 'package.json', 'LICENSE'];
-export const embeddedSkills = ['nomos', 'game-ui-art-director', 'ue-umg-ui', 'ue-visual-qa'];
+export const embeddedSkills = ['nomos', ...gameSkills];
 export const claudeSection = `## Nomos
 
 Nomos for Unreal viaja en este repo: servicio y panel en \`Tools/Nomos/\` (versión en \`Tools/Nomos/VERSION\`), skills en \`.claude/skills/\`.

@@ -22,6 +22,14 @@ import { queueGraph } from '../graph.ts';
 import { rapido, readConfig } from '../config.ts';
 import { fetchMain, identity, isAncestor, leaf, overlaps, peerLeaseWait, teamConfig, teamGit, type TeamConfig } from '../team.ts';
 import { getApproval, keepVersion, requestConflict, type ConflictSide } from '../approvals.ts';
+import type { Git } from '../adapters/git.ts';
+
+/** El clon de la persona no se toca: su rama avanza a `to` solo si es avance rápido y, si está activa, el árbol está limpio. */
+export async function advanceLocal(git: Git, projectDir: string, branch: string, to: string): Promise<boolean> {
+  const local = await git.tip!(projectDir, branch).catch(() => null), active = await git.currentBranch(projectDir) === branch;
+  if (!local || local === to || !await isAncestor(projectDir, local, to) || active && !(await git.status(projectDir)).clean) return false;
+  return git.advanceBranch(projectDir, branch, to, local).then(() => true, () => false);
+}
 
 const resolveOption = {id: 'resolve', label: 'Resolver en el worktree', description: 'El responsable integra la rama objetivo en su rama y resuelve el conflicto'};
 const discardOption = {id: 'discard', label: 'Descartar la integración', description: 'La tarea vuelve a probando sin integrar'};
@@ -253,10 +261,7 @@ export const integrateRun: Handler = async (command, ctx) => {
       finishRun(ctx.db, run.id, 'failed', `No se pudo publicar main: ${cause}`);
       return {integrated: false, pushFailed: true};
     }
-    // el clon de la persona no se toca: su rama avanza solo si está limpia (o no activa) y no se aparta de lo publicado
-    const local = await ctx.git.tip!(ctx.projectDir, ws.branch).catch(() => null), active = await ctx.git.currentBranch(ctx.projectDir) === ws.branch;
-    if (local && await isAncestor(ctx.projectDir, local, state.commit) && (!active || (await ctx.git.status(ctx.projectDir)).clean))
-      await ctx.git.advanceBranch(ctx.projectDir, ws.branch, state.commit, local).catch(() => {});
+    await advanceLocal(ctx.git, ctx.projectDir, ws.branch, state.commit);
   } else try { await ctx.git.advanceBranch(ctx.projectDir, ws.branch, state.commit, state.base); }
   catch (error) {
     await ctx.git.checkout(ws.dir, ws.branch);

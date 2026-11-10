@@ -13,7 +13,9 @@ import { stageLabel, type Stage } from '@/lib/tasks'
 /** Hito 29: lo que cada Nomos del equipo publica de sí mismo en la rama `nomos/equipo`. */
 export interface PeerTask { id: string; title: string; state: string; area: string }
 export interface Peer { id: string; name: string; frente: string; present: boolean; tasks: PeerTask[]
-  leases: { path: string; until: string }[]; build: { commit: string; at: string } | null }
+  leases: { path: string; until: string }[]; build: { commit: string; at: string } | null
+  /** Jam: lo último hecho, su `main` y cuántos commits va por detrás de origin (opcionales: un Nomos viejo no los manda). */
+  done?: { id: string; title: string; summary: string; at: string }[]; main?: { commit: string; at: string } | null; behind?: number | null }
 export interface Team { me: { id: string; name: string; frente: string } | null; peers: Peer[] }
 
 const working = (t: PeerTask) => t.state !== 'pendiente' && t.state !== 'preparada'
@@ -37,7 +39,7 @@ function ForeignTask({ peer, task, onClose }: { peer: Peer; task: PeerTask; onCl
   </Dialog>
 }
 
-/** Franja «Equipo» de Producción: una línea por persona (nombre · frente · presente · en curso · reservas · build). */
+/** Franja «Equipo» de Producción: una línea por persona (nombre · frente · presente · en curso · reservas · build · main · hecho). */
 export function EquipoStrip() {
   const { data, reload } = useResource<Team>('/team', /^team\./)
   const [open, setOpen] = useState<{ peer: Peer; task: PeerTask } | null>(null)
@@ -58,6 +60,8 @@ export function EquipoStrip() {
             <Button key={t.id} variant="link" size="sm" className="h-auto p-0 pr-2" onClick={() => setOpen({ peer, task: t })}>{t.title}</Button>)}</span>
           {peer.leases.length > 0 && <span className="text-muted-foreground">reserva {peer.leases.map((l) => `${assetName(l.path)} hasta ${hhmm(l.until)}`).join(', ')}</span>}
           <span className="font-mono text-xs text-muted-foreground">{peer.build ? `build ${peer.build.commit.slice(0, 7)}` : 'sin build aprobada'}</span>
+          {peer.main && <span className="font-mono text-xs text-muted-foreground">main {peer.main.commit.slice(0, 7)}{peer.behind ? ` · ${peer.behind} atrás` : ''}</span>}
+          {peer.done?.[0] && <span className="text-muted-foreground">hecho: {peer.done[0].title}</span>}
         </li>
       })}
     </ul>
