@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -47,5 +47,17 @@ test('hito 27: sin equipo no hay sección Equipo y sin nada pendiente la acción
   const brief = renderDirectorBrief(db, data);
   assert.doesNotMatch(brief, /## Equipo/);
   assert.match(brief, /Sin nada que decidir/);
+  db.close();
+});
+
+test('Candela 2026-11-10: un encargo largo llega entero al director (antes se cortaba a 90 caracteres)', t => {
+  const {db, data} = base(t, {});
+  const encargo = 'Haz un juego llamado «Candela».\n\n' + Array.from({length: 20}, (_, i) => `- Regla ${i + 1}: eres una brasa en un patio de noche.`).join('\n') + '\n- Con los 8 faroles encendidos ganas.';
+  const {messageId} = createMessage(db, encargo, 'web');
+  const brief = renderDirectorBrief(db, data);
+  assert.ok(brief.split('\n').length <= 60);
+  const file = join(data, 'mensajes', `${messageId}.md`);
+  assert.ok(brief.includes(`.nomos/mensajes/${messageId}.md`), 'el brief dice dónde está el mensaje entero');
+  assert.equal(readFileSync(file, 'utf8'), encargo, 'el archivo trae el texto tal cual');
   db.close();
 });

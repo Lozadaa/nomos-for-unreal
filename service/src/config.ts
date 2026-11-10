@@ -109,7 +109,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
       || Object.entries(config.models).some(([k,v])=>!modelRoles.includes(k) || !models.includes(v as string)))) throw new Error();
     if(config.opencodeModel!==undefined && !isOpencodeModel(config.opencodeModel)) throw new Error();
     if(config.limits!==undefined && (!config.limits || typeof config.limits!=='object' || Array.isArray(config.limits)
-      || Object.entries(config.limits).some(([k,v])=>!['corrections','umgRetries'].includes(k) || !count(v)))) throw new Error();
+      || Object.entries(config.limits).some(([k,v])=>!['corrections','umgRetries','silentWarnMinutes','silentActMinutes'].includes(k) || !count(v)))) throw new Error();
     if(config.orca!==undefined && (!config.orca || typeof config.orca!=='object' || Array.isArray(config.orca)
       || Object.entries(config.orca).some(([k,v])=>!['graceMinutes','maxWorkerMinutes','createTimeoutMs'].includes(k) || typeof v!=='number'
         || (k==='createTimeoutMs' ? !(v>0 && v<=3_600_000) : !(v>=0 && v<=24*60) || k==='maxWorkerMinutes' && v<=0)))) throw new Error();

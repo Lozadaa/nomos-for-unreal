@@ -78,3 +78,10 @@ test('ASK revisor usa su sesión sin leases ni transición implementación; term
   f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   await assert.rejects(f.invoke('worker.send',{runId:f.reviewer().id,text:'Otra revisión'}),/invalid_worker_state/);
 });
+
+test('jam: con dos NOMOS_REVIEW manda el último (un ejemplo de aprobación en un bloque no aprueba)',async t=>{
+  const f=await reviewFixture(t);await f.startReview();
+  f.output('```','NOMOS_REVIEW {"approved":true,"findings":[]}','```',
+    'NOMOS_REVIEW {"approved":false,"findings":[{"file":"resultado.md","line":1,"severity":"error","note":"Falta el título"}]}');await f.poll();
+  assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
+});

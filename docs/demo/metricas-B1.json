@@ -1,0 +1,72 @@
+{
+  "desde": null,
+  "hasta": "2026-11-10T07:12:46.393Z",
+  "tareas": {
+    "cerradas": 0,
+    "horas": {
+      "n": 0,
+      "mediana": 0,
+      "p90": 0,
+      "suma": 0
+    }
+  },
+  "estados": {
+    "preparada": {
+      "n": 2,
+      "mediana": 0.13596666666666668,
+      "p90": 0.15616666666666668,
+      "suma": 0.27193333333333336
+    },
+    "implementando": {
+      "n": 1,
+      "mediana": 14.68225,
+      "p90": 14.68225,
+      "suma": 14.68225
+    },
+    "revisando": {
+      "n": 1,
+      "mediana": 0.20926666666666666,
+      "p90": 0.20926666666666666,
+      "suma": 0.20926666666666666
+    }
+  },
+  "huecos": {
+    "entregaAComprobacion": {
+      "n": 1,
+      "mediana": 0.1979,
+      "p90": 0.1979,
+      "suma": 0.1979
+    },
+    "decisionAbierta": {
+      "n": 0,
+      "mediana": 0,
+      "p90": 0,
+      "suma": 0
+    },
+    "preguntaARespuesta": {
+      "n": 0,
+      "mediana": 0,
+      "p90": 0,
+      "suma": 0
+    },
+    "rechazoACorreccion": {
+      "n": 0,
+      "mediana": 0,
+      "p90": 0,
+      "suma": 0
+    }
+  },
+  "decisiones": {
+    "abiertas": 0,
+    "resueltas": 0,
+    "automaticas": 0,
+    "porQuien": {}
+  },
+  "diferidas": [],
+  "revisiones": {
+    "total": 0,
+    "rechazadas": 0,
+    "correcciones": 0
+  },
+  "comprobaciones": {}
+}

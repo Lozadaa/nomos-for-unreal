@@ -26,7 +26,7 @@ export type RunMetadata = {
   relayRequestedAt?: string; relayOf?: string; relayedTo?: string;
   /** Hito 22: run cuyo terminal murió en un reinicio y a la que esta continúa en el mismo árbol. */ recoveredFrom?: string;
   /** Jam 2026-11-10: finales de turno sin marca (y el cursor del último reenvío); de qué run viene tras tres; silencio avisado */
-  nudges?: number; nudgedCursor?: string; restartOf?: string; silentWarnedAt?: number; silentKilledAt?: number; silentMinutes?: number; silenceCheckedAt?: number;
+  nudges?: number; nudgedCursor?: string; reviewRetries?: number; restartOf?: string; silentWarnedAt?: number; silentKilledAt?: number; silentMinutes?: number; silenceCheckedAt?: number;
   lastOutputAt?: string; correctionCount?: number; pollGeneration?: number; hookRetries?: number;
   lastLines?: string[]; markerBuffer?: string; markerFence?: string; idlePolls?: number;
   uncertain?: boolean; /** hito 16: Orca no responde desde entonces; la run sigue en marcha durante `orca.graceMinutes` */ orcaUnreachableSince?: string; /** hito 12: OpenCode no arrancó y su árbol se quitó; nada que reconciliar */ discarded?: boolean;

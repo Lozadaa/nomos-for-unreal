@@ -4,7 +4,7 @@ import { cancelDecisionZombies } from './zombies.ts';
 import { migrateApprovals } from './approvals.ts';
 import { migrateTeam } from './team.ts';
 import { migrateFastVfx } from './fastvfx/cache.ts';
-import { migrateWorker, migrateLeases,migrateWorkerProviders,migrateAssets,migrateChecks,migrateClosing,migrateLanes,migrateEngineSource,migrateChat,migrateNomos,migratePriority,migrateIndexes,migrateDecisionRepeats,migrateHold,migrateDirector } from './migrations.ts';
+import { migrateWorker, migrateLeases,migrateWorkerProviders,migrateAreas,migrateAssets,migrateChecks,migrateClosing,migrateLanes,migrateEngineSource,migrateChat,migrateNomos,migratePriority,migrateIndexes,migrateDecisionRepeats,migrateHold,migrateDirector } from './migrations.ts';
 
 export function openDb(file: string): DatabaseSync {
   const db = new DatabaseSync(file);
@@ -26,6 +26,7 @@ export function openDb(file: string): DatabaseSync {
   migrateWorker(db);
   migrateLeases(db);
   migrateWorkerProviders(db);
+  migrateAreas(db);
   migrateAssets(db);
   migrateChecks(db);
   migrateClosing(db);

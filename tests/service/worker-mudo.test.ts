@@ -9,19 +9,20 @@ import { startRun } from '../../service/src/repo/runs.ts';
 import { insert, read } from '../../service/src/repo/rows.ts';
 import { listEvents } from '../../service/src/store.ts';
 import { workerPoll, silenceStep, nudgeText } from '../../service/src/handlers/worker-poll.ts';
-import { silentMinutes } from '../../service/src/config.ts';
+import { readConfig, silentMinutes } from '../../service/src/config.ts';
+import { writeFileSync } from 'node:fs';
 import type { Run } from '../../service/src/model.ts';
 import type { WorkerContext } from '../../service/src/runner.ts';
 import { removeDir } from '../remove-dir.ts';
 
 /** Un worker `claude -p` (terminal `proc:`) cuya salida y estado se controlan desde la prueba. */
-function mudo(editors = 0) {
+function mudo(editors = 0, role = 'implementacion') {
   const root = mkdtempSync(join(tmpdir(), 'nomos-mudo-')), path = join(root, 'arbol');
   mkdirSync(join(root, '.nomos'), {recursive: true}); mkdirSync(path);
   const db = openDb(':memory:');
   const task = createTask(db, {title: 'Brasa', area: 'gameplay', state: 'implementando', spec: 'Lanzarse', acceptance: ['Se lanza']});
   const tree = insert<{id: string}>(db, 'worktrees', {taskId: task.id, path, branch: 'nomos/brasa', baseCommit: 'base000', state: 'active', closedReason: null});
-  const run = startRun(db, {taskId: task.id, role: 'implementacion', provider: 'claude', sessionRef: 'proc:uno',
+  const run = startRun(db, {taskId: task.id, role, provider: 'claude', sessionRef: 'proc:uno',
     metadata: {worktreeId: tree.id, sessionId: 's1', phase: 'running'}});
   const page = {text: '', cursor: '0'}, killed: string[] = [], created: string[] = [];
   let idle = true;
@@ -113,4 +114,53 @@ test('jam (e): 20 min sin señal y sin Unreal → se mata el proceso y se reenv�
 test('jam: silentMinutes por defecto 10 y 20; config.json lo cambia', () => {
   assert.deepEqual(silentMinutes({}), {warn: 10, act: 20});
   assert.deepEqual(silentMinutes({limits: {silentWarnMinutes: 5, silentActMinutes: 8}}), {warn: 5, act: 8});
+});
+
+test('Candela: un NOMOS_REVIEW con JSON roto pide al revisor repetirlo en review.json (y no se suma el aviso de fin sin marca)', async () => {
+  const f = mudo(0, 'revisor');
+  try {
+    f.ends('NOMOS_REVIEW {"approved":true,"findings":[{"file":"a.cpp","line":1,"severity":"nota","note":"cierra «mal"."}]}');
+    await f.poll();
+    const texts = f.sends().map(s => s.text);
+    assert.equal(texts.length, 1);
+    assert.match(texts[0], /review\.json/);
+  } finally { f.close(); }
+});
+
+test('jam: un revisor que termina sin marca recibe un aviso de revisor y nunca se releva por otro worker', async () => {
+  const f = mudo(0, 'revisor');
+  try {
+    for (const text of ['uno', 'dos', 'tres', 'cuatro']) { f.ends(`Revisado ${text}.`); await f.poll(); }
+    assert.equal(f.created.length, 0, 'sin relevo: la run nueva no traería la instantánea de la revisión');
+    assert.match(f.sends()[0].text, /NOMOS_REVIEW/);
+    assert.equal(f.current().state, 'running');
+    assert.equal(f.current().metadata.waiting, true, 'al tercero queda esperando al director');
+  } finally { f.close(); }
+});
+
+test('jam: un mensaje bloqueado por un hook se reintenta una sola vez, sin sumar el aviso de fin sin marca', async () => {
+  const f = mudo();
+  try {
+    f.ends('Original prompt: Sigue con la tarea\nError: operation blocked by hook');
+    await f.poll();
+    assert.deepEqual(f.sends().map(s => s.text), ['Sigue con la tarea\nError: operation blocked by hook']);
+  } finally { f.close(); }
+});
+
+test('jam: el contador de finales sin marca vuelve a cero cuando el worker deja una marca', async () => {
+  const f = mudo();
+  try {
+    f.ends('Sin marca.'); await f.poll();
+    assert.equal(f.current().metadata.nudges, 1);
+    f.ends('NOMOS_ASK {"question":"¿Sigo con la cámara?"}'); await f.poll();
+    assert.equal(f.current().metadata.nudges, 0);
+  } finally { f.close(); }
+});
+
+test('revisión final: limits.silentWarnMinutes y silentActMinutes en config.json no rompen la config', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'nomos-cfg-'));
+  try {
+    writeFileSync(join(dir, 'config.json'), JSON.stringify({limits: {silentWarnMinutes: 5, silentActMinutes: 8}}));
+    assert.deepEqual(silentMinutes(readConfig(dir)), {warn: 5, act: 8});
+  } finally { removeDir(dir); }
 });

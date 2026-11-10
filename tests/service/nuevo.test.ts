@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { nuevo } from '../../service/src/nuevo.ts';
@@ -59,5 +59,15 @@ test('jam: nombre con espacios o tildes, o destino que ya existe → error sin e
     mkdirSync(taken); writeFileSync(join(taken, 'nota.txt'), 'mío');
     assert.throws(() => nuevo('Ocupado', {dest: taken, source: f.source}), /existe/);
     assert.deepEqual(readdirSync(taken), ['nota.txt']);
+  } finally { f.close(); }
+});
+
+test('revisión final: si algo falla a mitad (aquí, sin panel/dist), nomos nuevo no deja la carpeta a medias', () => {
+  const f = fixture();
+  try {
+    rmSync(join(f.source, 'panel', 'dist'), {recursive: true});
+    const dest = join(f.root, 'Roto');
+    assert.throws(() => nuevo('Roto', {dest, source: f.source}), /panel\/dist/);
+    assert.ok(!existsSync(dest), 'se puede reintentar con el mismo nombre');
   } finally { f.close(); }
 });

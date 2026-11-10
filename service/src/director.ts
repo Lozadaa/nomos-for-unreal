@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, join, relative } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { autonomous, directorConfig, readConfig, roleModel } from './config.ts';
@@ -23,6 +23,16 @@ import type { EventRow } from './store.ts';
 export const wakeTypes = [...new Set(['message.received', 'run.finished', 'worker.waiting', 'command.failed', 'review.finished', 'test.failed',
   'task.moved', 'integration.completed', 'task.closing_blocked', ...requiredTypes, 'team.joined', 'team.request', 'lease.conflict', 'integration.conflict'])];
 const cell = (v: unknown) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 90);
+/** Candela 2026-11-10: el brief cortaba el mensaje a 90 caracteres y el director inventó otro juego. El texto entero va a
+ *  `<datos>/mensajes/<id>.md` y el brief manda leerlo. */
+function whole(dataDir: string, m: {id: unknown; text: unknown}): string {
+  const text = String(m.text ?? '');
+  if (text.replace(/\s+/g, ' ').trim().length <= 90) return '';
+  const dir = join(dataDir, 'mensajes');
+  mkdirSync(dir, {recursive: true});
+  writeFileSync(join(dir, `${m.id}.md`), text);
+  return ` → recortado: léelo entero en \`${basename(dataDir)}/mensajes/${m.id}.md\` antes de actuar`;
+}
 const short = (id: unknown) => String(id ?? '').slice(0, 8);
 const more = (rows: string[], max: number, empty: string, tail = (n: number) => `… ${n} más`) =>
   !rows.length ? [empty] : rows.length > max ? [...rows.slice(0, max), tail(rows.length - max)] : rows;
@@ -88,7 +98,7 @@ export function renderDirectorBrief(db: DatabaseSync, dataDir: string, now = new
     tareas: more(tasks.map(t => `- ${t.state} · ${cell(t.title)} (${short(t.id)}) · último: ${last.get(t.id as string) ?? '—'}${t.blocked || t.wait ? ` · ${cell(t.blocked ?? t.wait)}` : ''}`), 8, 'Ninguna abierta.').join('\n'),
     pendientes: more([...listDecisions(db, 'open').map(d => `- Decisión ${short(d.id)} · ${title(d.taskId)}: ${cell(d.reason)}`),
       ...approvals.map(a => `- Por aprobar: ${title(a.t)}`)], 4, 'Nada pendiente.').join('\n'),
-    mensajes: more(messages.map(m => `- seq ${m.seq} · ${m.id} · «${cell(m.text)}»`), 3, 'Ninguno.').join('\n'),
+    mensajes: more(messages.map(m => `- seq ${m.seq} · ${m.id} · «${cell(m.text)}»${whole(dataDir, m)}`), 3, 'Ninguno.').join('\n'),
     eventos: (events.length > 6 ? [`… ${events.length - 6} anteriores`] : []).concat(events.slice(-6).map(e =>
       `- ${e.seq} ${e.type} · ${cell(e.payload.text ?? (e.payload.taskId ? title(e.payload.taskId) : '') ?? '')}${e.payload.summary || e.payload.reason ? ` · ${cell(e.payload.summary ?? e.payload.reason)}` : ''}`))
       .join('\n') || 'Ninguno desde la última sesión.',

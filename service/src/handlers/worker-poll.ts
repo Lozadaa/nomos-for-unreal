@@ -27,6 +27,9 @@ import { join } from 'node:path';
 
 export const nudgeText='Tu turno terminó sin la marca. Si acabaste, commitea y escribe `.nomos-inbox/done.json`. Si no, continúa donde ibas.';
 const endedLimit=3;
+const reviewerNudgeText='Tu turno terminó sin el veredicto. Escribe una línea NOMOS_REVIEW con el JSON, o el mismo JSON (sin el marcador) en `.nomos-inbox/review.json`.';
+const invalidReviewText='Tu NOMOS_REVIEW no es JSON válido y no cuenta. Escribe el mismo veredicto como JSON válido en `.nomos-inbox/review.json` '
+  +'(sin el marcador). Dentro de `note` no uses comillas rectas: usa «» o comillas simples.';
 export const workerPoll: Handler=async (cmd,ctx)=>{
   const {db,orca}=ctx,payload=cmd.payload as any;
   let run=requireRun(db,payload.runId);
@@ -72,7 +75,7 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
   // hito 18: el HEAD de la marca; si después aparecen commits sin otra marca, el barrido de atascos pide la revisión
   const doneCommit=run.role!=='revisor' && fresh.some(m=>m.kind==='DONE')
     ? await (async()=>ctx.git.head(runTree(db,run).path))().catch(()=>undefined) : undefined;
-  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined,finished=false,restart=false;
+  let review:Extract<(typeof fresh)[number],{kind:'REVIEW'}>|undefined,finished=false,restart=false,sent=false;
   transaction(db,()=>{
     const previous=run.metadata,lastLines=snapshot ? screenLines.slice(-20) : [...(previous.lastLines ?? []),...lines].slice(-20);
     const cursor=stream.source==='screen' ? previous.cursor ?? '0' : stream.cursor;
@@ -116,9 +119,19 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
         finished=task.area!=='ui';
         return;
       }
-      if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) {review=marker;break;}continue;}
+      // jam 2026-11-10: con varias, manda la última (un ejemplo de aprobación en un bloque no gana al veredicto real)
+      if(marker.kind==='REVIEW') {if(run.role==='revisor'&&!blockedNow()) review=marker;continue;}
+      // Candela 2026-11-10: aprobó con JSON roto y quedó «esperando» 8 min; se le pide repetirlo en el archivo, dos veces
+      if(marker.kind==='INVALID_REVIEW' && run.role==='revisor' && (run.metadata.reviewRetries ?? 0)<2) {
+        const n=(run.metadata.reviewRetries ?? 0)+1;
+        run=updateRun(db,run.id,{reviewRetries:n});
+        enqueue(db,'worker.send',{runId:run.id,text:invalidReviewText},`review-invalida:${run.id}:${n}`);
+        sent=true;
+      }
       waiting(marker.question);
     }
+    // una marca cierra la racha de finales sin marca
+    if(observed.some(m=>m.kind!=='SKILLS') && (run.metadata.nudges ?? 0)>0) run=updateRun(db,run.id,{nudges:0});
     // experimento metras 2026-11-08: un hook (p. ej. Second Brain «Memoria ocupada») rechazó el mensaje y el worker se
     // queda parado sin pregunta: se le reenvía el mismo mensaje, hasta 3 veces por run
     const original=lines.findIndex(l=>/^Original prompt: /.test(l));
@@ -126,17 +139,20 @@ export const workerPoll: Handler=async (cmd,ctx)=>{
       const n=(run.metadata.hookRetries ?? 0)+1;
       run=updateRun(db,run.id,{hookRetries:n});
       enqueue(db,'worker.send',{runId:run.id,text:lines.slice(original).join(String.fromCharCode(10)).replace(/^Original prompt: /,'')},`hook-bloqueado:${run.id}:${n}`);
+      sent=true;
       appendEvent(db,'worker.hook_retry',null,{runId:run.id,taskId:run.taskId,provider:run.provider,attempt:n});
     }
     const permission=permissionPrompt(run.provider,lines);
     if(permission) waiting(permission);
     if (idle) waiting(`${run.provider} espera instrucciones`);
     // jam 2026-11-10: el turno de `claude -p` acabó sin DONE, ASK ni REVIEW: se le reenvía al momento; al tercero, worker nuevo
-    if(exited && !review && !permission && !run.metadata.waiting && !blockedNow() && Number(cursor)>0 && cursor!==previous.nudgedCursor) {
-      const nudges=(previous.nudges ?? 0)+1;
+    if(exited && !review && !sent && !permission && !run.metadata.waiting && !blockedNow() && Number(cursor)>0 && cursor!==previous.nudgedCursor) {
+      const nudges=(run.metadata.nudges ?? 0)+1, reviewer=run.role==='revisor';
       run=updateRun(db,run.id,{nudges,nudgedCursor:cursor});
       appendEvent(db,'worker.ended_without_marker',null,{runId:run.id,taskId:run.taskId,nudges});
-      if(nudges<endedLimit) enqueue(db,'worker.send',{runId:run.id,text:nudgeText},`nudge:${run.id}:${nudges}`);
+      if(nudges<endedLimit) enqueue(db,'worker.send',{runId:run.id,text:reviewer ? reviewerNudgeText : nudgeText},`nudge:${run.id}:${nudges}`);
+      // el revisor no se releva (la run nueva no traería la instantánea de la revisión): espera al director
+      else if(reviewer) waiting(`El revisor terminó ${endedLimit} turnos sin NOMOS_REVIEW`);
       else restart=true;
     }
     queuePoll(db,run);

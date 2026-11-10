@@ -60,3 +60,13 @@ test('jam: unrealPath de config.json manda; si no, el motor del .uproject; docto
     assert.equal(assetConfig(data).unrealPath, 'D:/Motor/UnrealEditor-Cmd.exe');
   } finally { g.close(); }
 });
+
+test('revisión final: con un config.json que no valida, doctor sigue diagnosticando', async () => {
+  const g = game('5.9');
+  try {
+    const data = join(g.root, 'Juego', '.nomos');
+    writeFileSync(join(data, 'config.json'), JSON.stringify({limits: {inventado: 1}}));
+    const rows = await necessary(data, {env: {PATH: ''}});
+    assert.ok(rows.some(r => r.name === 'Unreal'));
+  } finally { g.close(); }
+});
