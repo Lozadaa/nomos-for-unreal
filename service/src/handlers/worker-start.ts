@@ -22,7 +22,7 @@ import { workerFailure } from './worker-failure.ts';
 import { schedulingBlocked } from '../scheduler-admission.ts';
 import { rapido, readConfig, roleModel, opencodeModel, maxWorkerMinutes, orcaCreateTimeoutMs } from '../config.ts';
 import { launchPlan, briefLine } from './worker-launch.ts';
-import { skillsForRole } from '../skills.ts';
+import { skillsForRole, skillSplit } from '../skills.ts';
 import { installSkills } from '../skills-install.ts';
 import { continuationBrief } from './continue.ts';
 import { orcaDeferral, orcaDown } from './orca-down.ts';
@@ -62,7 +62,8 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   const changed=schedulingBlocked(ctx,requireTask(db,task.id),payload.provider,cmd.id,false,reusable?.id,payload.role);
   if(changed) return {deferred:true,reason:changed};
   const short=task.id.slice(0,8);
-  const skills=[...new Set([...payload.skills,...skillsForRole(payload.role,task.area)])];
+  // jam 2026-11-10: en modo rápido, solo las tres del núcleo; el brief lista las demás «si las necesitas»
+  const skills=[...new Set([...payload.skills,...rapido(config) ? skillSplit(payload.role,task.area).core : skillsForRole(payload.role,task.area)])];
   let run=reusable ?? startRun(db,{taskId:task.id,role:payload.role,provider:payload.provider,skills,attempt:payload.attempt ?? 1,
     metadata:{...(review ? {review:review.snapshot} : {}),startCommandId:cmd.id,phase:'preparing',deadlineAt:new Date(Date.now()+maxWorkerMinutes(config)*60_000).toISOString(),pollGeneration:0,correctionCount:0}});
   if(reusable) run=updateRun(db,run.id,{waiting:false,question:undefined});

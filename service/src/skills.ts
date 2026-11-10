@@ -34,15 +34,26 @@ const aliases:Record<string,string>={
   alcance:'scope',jam:'scope','game-jam':'scope'
 };
 const normalize=(value:string)=>value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[ _/]+/g,'-');
+const groupOf=(role:string,area:string)=>{
+  const roleGroup=aliases[normalize(role)],areaKey=normalize(area);
+  return roleGroup && roleGroup!=='implementation' ? roleGroup : aliases[areaKey] ?? (areaKey==='gameplay' ? 'implementation' : roleGroup);
+};
 /** El rol especialista prevalece; el área orienta únicamente al rol genérico o desconocido. */
 export function skillsForRole(role:string,area:string):string[] {
-  const roleGroup=aliases[normalize(role)],areaKey=normalize(area);
-  const group=roleGroup && roleGroup!=='implementation' ? roleGroup
-    : aliases[areaKey] ?? (areaKey==='gameplay' ? 'implementation' : roleGroup);
+  const group=groupOf(role,area),areaKey=normalize(area);
   const result=[...(groups[group] ?? [])];
   if(group==='ability' && areaKey==='ui') result.push('ue-ui-umg-slate');
   if(group==='review' && ['arquitectura','architecture'].includes(areaKey)) result.push('architect-review');
   return [...new Set(result)];
+}
+/** Jam 2026-11-10 (la 4.ª vuelta de las metras cargó 12 skills y fue 19 min más lenta): en modo rápido solo `core` es
+ *  obligatoria; `extra`, si hace falta. Los grupos sin núcleo van enteros en `core`. */
+const cores:Record<string,string[]>={implementation:['ue-oficio','ue-cpp-foundations','game-feel'],ability:['ue-oficio','ue-gameplay-abilities','game-feel'],
+  vfx:['ue-oficio','ue-niagara-effects','ue-materials-rendering'],ui:['ue-oficio','ue-umg-ui','game-ui-art-director'],
+  world:['ue-oficio','level-design','lighting'],camera:['ue-oficio','camera-systems'],ai:['ue-oficio','game-ai']};
+export function skillSplit(role:string,area:string):{core:string[];extra:string[]} {
+  const all=skillsForRole(role,area),core=cores[groupOf(role,area)]?.filter(s=>all.includes(s)) ?? all;
+  return {core,extra:all.filter(s=>!core.includes(s))};
 }
 export type InstalledSkill={name:string;path:string;source:'claude'|'agents'};
 function missing(error:unknown):boolean {return ['ENOENT','ENOTDIR'].includes((error as NodeJS.ErrnoException).code ?? '');}

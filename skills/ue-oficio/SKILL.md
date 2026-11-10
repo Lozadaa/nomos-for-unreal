@@ -12,6 +12,8 @@ Lo que un agente tarda horas en redescubrir en Unreal 5.8. Lee la referencia del
 después de que falle. Marcas: **[probado]** se vio pasar en UE 5.8 (en Nomos o en el harness de origen); **[fuente]**
 leído del código del motor o de la documentación; **[plan]** receta publicada sin prueba propia.
 
+**Antes de elegir herramienta**, mira el [camino corto](references/camino-corto.md): qué usar y qué no para cada cosa.
+
 Origen: lecciones publicadas en `per-simmons/unreal-agent-harness` (jun 2026, macOS, MCP de Epic), reescritas y
 filtradas para Windows y para cómo trabaja Nomos (editor caliente por archivos, `-game` para capturas). Lo probado en
 Nomos lo dice expresamente.

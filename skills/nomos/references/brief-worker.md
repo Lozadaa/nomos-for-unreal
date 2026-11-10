@@ -32,6 +32,8 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 - Si corriges después de NOMOS_DONE, commitea y repite la marca; tras una corrección, una marca sin commit nuevo solo cuenta con commits [].
 - Si necesitas una decisión, imprime una línea NOMOS_ASK seguida de JSON con question string y espera.
 - Los marcadores deben comenzar la línea; no los repitas como ejemplos de salida.
+- Antes de `NOMOS_DONE`: `git status --short` vacío y `revisar_acabado.py` sin fallos.
+- Si una trampa de Unreal te costó más de 5 min, añade una línea a `docs/aprendido.md` (la regla, no la historia; ≤ 160 caracteres). Ese archivo siempre está en tu alcance.
 {{turn}}{{rapido}}
 Formato de cierre: `NOMOS_DONE {"summary":"Resumen","commits":[],"tests":"passed"}`.
 Formato de pregunta: `NOMOS_ASK {"question":"Tu pregunta"}`.
@@ -41,6 +43,6 @@ Dos formas de entregar la marca: la línea de arriba, o el mismo JSON (sin el ma
 (resumen largo, varios commits), usa el archivo: el terminal parte las líneas largas y Nomos lee el
 archivo antes que la pantalla.
 
-## Contexto del proyecto
+{{camino}}## Contexto del proyecto
 
 {{context}}
