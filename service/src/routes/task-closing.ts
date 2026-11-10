@@ -40,6 +40,10 @@ export function requestIntegration(db: Db, taskId: string): {commandId: string; 
   const task = integratePayload(db, taskId), run = implementerOf({db} as WorkerContext, task);
   return queue(db, 'integrate.run', task, {taskId: task.id, runId: run.id}, `integrate:${task.id}:${run.id}`);
 }
+/** Sin aprobación del usuario pendiente, nada más la mueve: se integra ya (antes esperaba al atasco, 35 min; metras 2026-11-08). */
+export function integrateIfFree(db: Db, taskId: string): void {
+  if (!pendingApproval(db, taskId)) requestIntegration(db, taskId);
+}
 /** `nomos task finalize` y, tras integration.completed, el integrador solo (experimento metras: el director no hace falta). */
 export function requestFinalize(db: Db, taskId: string): {commandId: string; state: string} {
   const task = finalizePayload(db, taskId);

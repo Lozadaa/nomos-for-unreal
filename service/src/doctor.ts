@@ -10,6 +10,7 @@ import { detectCapabilities } from './repo/capabilities.ts';
 import { ffmpegVersion, findFfmpeg, type Ffmpeg } from './adapters/ffmpeg.ts';
 import { defaultMemoryCommand, readConfig } from './config.ts';
 import { assetConfig } from './catalog/paths.ts';
+import { gameEngine } from './engine-path.ts';
 import { launcherMode } from './adapters/process-terminal.ts';
 import { capabilityList, configFs, type CheckResult } from './capability-checks.ts';
 import { readServiceInfo, isAlive } from './service-info.ts';
@@ -87,12 +88,15 @@ export async function necessary(dataDir: string, deps: CheckDeps = {}): Promise<
   let unreal = deps.unrealPath;
   if (unreal === undefined) try { unreal = assetConfig(dataDir).unrealPath; } catch { /* config ilegible: el valor por defecto */ }
   unreal ||= defaultUnrealCmd;
+  // jam 2026-11-10: el .uproject pide un motor que no está: se dice cuál, no se cae al 5.8 en silencio
+  const engine = deps.unrealPath === undefined && !(readConfig(dataDir) as Record<string, unknown>).unrealPath ? gameEngine(dataDir) : null;
+  const wanted = engine && 'missing' in engine ? engine.missing : null;
   const [git, claude] = await Promise.all([tool('git', env), tool('claude', env)]);
   return [
     {name: 'Git', present: !!git, detail: git ?? 'no está en el PATH', lost: 'sin worktrees, ramas ni integración'},
     {name: 'Node ≥ 25', present: node >= 25, detail: `Node.js ${process.versions.node}`, lost: 'el servicio no arranca'},
     {name: 'Claude Code', present: !!claude, detail: claude ?? '`claude` no está en el PATH', lost: 'sin director ni workers'},
-    {name: 'Unreal', present: existsSync(unreal), detail: unreal, lost: 'sin compilar, probar ni capturar el juego (unrealPath en .nomos/config.json)'},
+    {name: 'Unreal', present: !wanted && existsSync(unreal), detail: wanted ? `Este juego pide Unreal ${wanted} y no está instalado` : unreal, lost: 'sin compilar, probar ni capturar el juego (unrealPath en .nomos/config.json)'},
   ];
 }
 export async function optional(dataDir: string, deps: CheckDeps = {}): Promise<Requirement[]> {

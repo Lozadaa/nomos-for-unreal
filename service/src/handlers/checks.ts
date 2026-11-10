@@ -26,6 +26,7 @@ import { buildCheck } from '../checks/build.ts';
 import { acabadoCheck, touchesVisible } from '../checks/acabado.ts';
 import { animationCheck, characterOf } from '../checks/animation.ts';
 import { readConfig } from '../config.ts';
+import { integrateIfFree } from '../routes/task-closing.ts';
 
 const executors: Partial<Record<CheckId, Executor>> = {acabado: acabadoCheck, cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
 /** `"acabado": false` en .nomos/config.json la apaga (prototipos de usar y tirar); por defecto, encendida. */
@@ -59,6 +60,8 @@ export function advance(ctx: WorkerContext, taskId: string): boolean {
   const task = requireTask(ctx.db, taskId);
   if (task.state !== 'probando' || task.decisionId || !checkGate(ctx.db, taskId).ok) return false;
   moveTask(ctx.db, taskId, 'integrando', 'Pruebas en verde');
+  // jam 2026-11-10: sin esperar al barrido de atascos (10 min) ni a la Decisión automática
+  if (task.reviewApproved === 1) integrateIfFree(ctx.db, taskId);
   return true;
 }
 const commandDecision = (ctx: WorkerContext, task: Task, command: Command): Decision | undefined =>

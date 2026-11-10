@@ -15,3 +15,5 @@ if (!process.env.NOMOS_MACHINE_FAKE) {
 }
 // x10: los comandos de lanzamiento de las pruebas no llevan --settings (lo prueba claude-lean.test.ts)
 process.env.NOMOS_LEAN ??= 'off';
+// jam 2026-11-10: el modo rápido es el valor por defecto; la suite mide los de antes (rapido-defecto.test.ts, el nuevo)
+process.env.NOMOS_RAPIDO_DEFAULT ??= 'off';

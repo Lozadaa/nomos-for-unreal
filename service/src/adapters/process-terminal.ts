@@ -97,6 +97,7 @@ export function createProcessTerminal(dataDir: string, projectDir: string, bin =
       t.closed = true; t.queue = [];
       if (t.child?.pid) killTree(t.child.pid);
     },
+    async terminalKill(handle) { const pid = terms.get(handle)?.child?.pid; if (pid) killTree(pid); },
     async terminalAlive(handle) { const t = terms.get(handle); return !!t && !t.closed; },
     async isRunning() { return true; },
     async open() {},
@@ -120,6 +121,7 @@ export function chooseLauncher(orca: Orca, proc: Orca, mode: LauncherMode, dataD
     terminalWaitIdle: (handle, ms, pattern) => by(handle).terminalWaitIdle(handle, ms, pattern),
     terminalClose: handle => by(handle).terminalClose(handle),
     terminalAlive: handle => by(handle).terminalAlive(handle),
+    terminalKill: handle => by(handle).terminalKill?.(handle) ?? Promise.resolve(),
     isRunning: () => orca.isRunning?.() ?? Promise.resolve(false),
     open: () => orca.open?.() ?? Promise.resolve(),
   };

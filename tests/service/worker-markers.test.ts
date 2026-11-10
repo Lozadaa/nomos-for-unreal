@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { screenMarkers } from '../../service/src/handlers/worker-markers.ts';
+import { screenMarkers, streamMarkers } from '../../service/src/handlers/worker-markers.ts';
 
 const example='• NOMOS_DONE {"summary":"Ejemplo","commits":[],"tests":"passed"}';
 const actual='• NOMOS_DONE {"summary":"Real","commits":["abc"],"tests":"passed"}';
@@ -100,4 +100,23 @@ test('hito 26: el estado a la derecha de Claude Code («No changes this session�
   assert.deepEqual(screenMarkers(frame), [
     {kind: 'SKILLS', skills: ['ue-project-context', 'ue-cpp-foundations', 'ue-gameplay-framework', 'ue-module-build-system']},
     {kind: 'DONE', summary: 'La raqueta escribe «KratosRaqueta: lista para jugar» en el log al empezar la partida.', commits: ['aee691a'], tests: 'none'}]);
+});
+
+// jam 2026-11-10 (5.ª vuelta de las metras): un NOMOS_REVIEW dentro de un bloque de código no se leyó en 31 min
+const fenced=(line:string)=>['```',line,'```'];
+test('jam: la marca al principio de línea dentro de un bloque de código cuenta (pantalla y flujo)',()=>{
+  const review='NOMOS_REVIEW {"approved":true,"findings":[]}';
+  const done='NOMOS_DONE {"summary":"Brasa que se lanza","commits":["abc"],"tests":"passed"}';
+  for(const [line,kind] of [[review,'REVIEW'],[done,'DONE']]) {
+    assert.deepEqual(screenMarkers(fenced(line)).map(m=>m.kind),[kind]);
+    assert.deepEqual(streamMarkers(fenced(line),'').found.map(m=>m.kind),[kind]);
+  }
+});
+test('jam: los ejemplos literales de los briefs dentro de un bloque no cuentan',()=>{
+  for(const line of ['NOMOS_DONE {"summary":"Resumen","commits":[],"tests":"passed"}','NOMOS_ASK {"question":"Tu pregunta"}',
+    'NOMOS_ASK {"question":"Pregunta concreta"}',
+    'NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"El README no dice cómo arrancar el juego; se esperaba el paso a paso"}]}']) {
+    assert.deepEqual(screenMarkers(fenced(line)),[],line);
+    assert.deepEqual(streamMarkers(fenced(line),'').found,[],line);
+  }
 });

@@ -1,3 +1,4 @@
+import { gameEngine } from '../engine-path.ts';
 import * as nodeFs from 'node:fs';
 import { win32 } from 'node:path';
 export type Capability = {
@@ -48,7 +49,8 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         return false;
     } };
     const onPath = (exe: string) => (env.PATH ?? env.Path ?? '').split(';').some(p => exists(p.replace(/[/\\]$/, '') + '/' + exe) || exists(win32.join(p, exe)));
-    const unreal = typeof config.unrealPath === 'string' ? config.unrealPath : 'C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe';
+    const own = gameEngine(gameDir);
+    const unreal = typeof config.unrealPath === 'string' ? config.unrealPath : own && 'cmd' in own ? own.cmd : 'C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe';
     const engine = win32.resolve(win32.dirname(unreal), '../..');
     const plugin = (relative: string) => exists(win32.join(engine, 'Plugins', relative));
     const launcher = [env.ProgramFiles ?? 'C:\\Program Files', env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)']

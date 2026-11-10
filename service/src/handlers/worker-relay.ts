@@ -55,19 +55,27 @@ export async function relayStep(ctx: WorkerContext, run: Run): Promise<boolean> 
   const status = await git.status(tree.path);
   if (!status.clean && Date.now() - Date.parse(run.metadata.relayRequestedAt) < relayWaitMs) return false;
   if (!status.clean) await git.commitAll(tree.path, `${relayMessage} (Nomos)`);
+  await replaceWorker(ctx, run, {state: 'cancelled', note: 'Relevado por el límite de tiempo de Orca'});
+  return true;
+}
+
+/** Un worker nuevo en el mismo árbol con el brief y la nota de continuación; la run vieja acaba en `state`. */
+export async function replaceWorker(ctx: WorkerContext, run: Run, o: {state: 'cancelled' | 'failed'; note: string; title?: string; why?: string;
+  mark?: Record<string, unknown>}): Promise<Run> {
+  const {db, orca, git} = ctx, tree = runTree(db, run);
   const head = await git.head(tree.path), subject = (await git.log(tree.path, tree.baseCommit).catch(() => [])).find(c => c.sha === head)?.subject ?? '';
-  continuationBrief(tree.path, run, head, subject);
+  continuationBrief(tree.path, run, head, subject, o.title, o.why);
   const model = run.metadata.model, sessionId = run.provider === 'claude' ? randomUUID() : undefined;
   const command = launchCommand(run.provider, model, `nomos-${run.taskId.slice(0, 8)}`, sessionId);
   if (!orca.terminalCreate) throw new Error('orca: no puede abrir un terminal nuevo para el relevo');
   const handle = await orca.terminalCreate(tree.path, `nomos-${run.taskId.slice(0, 8)}`, run.provider === 'opencode' ? command : `${command} "${briefLine}"`);
   const next = transaction(db, () => {
-    finishRun(db, run.id, 'cancelled', 'Relevado por el límite de tiempo de Orca');
+    finishRun(db, run.id, o.state, o.note);
     updateRun(db, run.id, {phase: 'finished', waiting: false, pollGeneration: (run.metadata.pollGeneration ?? 0) + 1});
     const max = maxWorkerMinutes(readConfig(ctx.dataDir));
     const fresh = startRun(db, {taskId: run.taskId, role: run.role, provider: run.provider, sessionRef: handle, attempt: run.attempt, skills: run.skills,
       model: run.model, metadata: {worktreeId: tree.id, relayOf: run.id, phase: 'running', pollGeneration: 0, correctionCount: run.metadata.correctionCount ?? 0,
-        deadlineAt: new Date(Date.now() + max * 60_000).toISOString(), ...(model ? {model} : {}), ...(sessionId ? {sessionId} : {})}});
+        deadlineAt: new Date(Date.now() + max * 60_000).toISOString(), ...(model ? {model} : {}), ...(sessionId ? {sessionId} : {}), ...o.mark}});
     acquire(db, fresh.id, run.taskId, requireTask(db, run.taskId).leases);
     updateRun(db, run.id, {relayedTo: fresh.id});
     appendEvent(db, 'worker.relayed', null, {taskId: run.taskId, oldRun: run.id, newRun: fresh.id});
@@ -75,5 +83,5 @@ export async function relayStep(ctx: WorkerContext, run: Run): Promise<boolean> 
     return fresh;
   });
   try { await orca.terminalClose(run.sessionRef!); } catch { /* ya cerrado: el nuevo sigue igual */ }
-  return !!next;
+  return next;
 }

@@ -14,7 +14,7 @@ import { appendEvent } from '../store.ts';
 import { enqueue } from '../commands.ts';
 import { attribute } from '../attribution.ts';
 import { finishReviewApproval, pendingApproval } from '../approvals.ts';
-import { requestIntegration } from '../routes/task-closing.ts';
+import { integrateIfFree } from '../routes/task-closing.ts';
 import { readConfig } from '../config.ts';
 import { umgAttempt } from '../checks/umg.ts';
 import { umgStuck } from './ui-cycle.ts';
@@ -80,9 +80,5 @@ export function afterApproval(ctx:WorkerContext,taskId:string,implementerId:stri
     moveTask(db,taskId,'probando');
     // hito 5: la puerta probando → integrando la abren las comprobaciones del diff
     enqueue(db,'checks.run',{taskId,runId:implementerId},checksKey);
-  } else if(!pendingApproval(db,taskId)) {
-    // sin comprobaciones ni aprobación del usuario nada más la mueve: se integra ya (antes esperaba al atasco, 35 min;
-    // experimento de las metras 2026-11-08)
-    requestIntegration(db,taskId);
-  }
+  } else integrateIfFree(db,taskId);
 }

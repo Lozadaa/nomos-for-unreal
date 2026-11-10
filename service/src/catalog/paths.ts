@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { readConfig } from '../config.ts';
 import type { CatalogEntry } from '../model.ts';
 import type { Input } from '../repo/rows.ts';
+import { gameEngine } from '../engine-path.ts';
 
 export type CatalogEntryInput = Input<CatalogEntry> & Pick<CatalogEntry, 'name' | 'category' | 'description' | 'source'>;
 /** Rutas de las fuentes del catálogo; todas se pueden fijar en `<dataDir>/config.json` (las pruebas usan carpetas temporales). */
@@ -24,7 +25,8 @@ export function assetConfig(dataDir: string, overrides: Record<string, unknown> 
   return {
     projectsDir, vaultDir,
     quarantineProject: str(raw.quarantineProject) ?? (existsSync(quarantine) ? quarantine : null),
-    unrealPath: str(raw.unrealPath) ?? null, blenderPath: str(raw.blenderPath) ?? null,
+    // jam 2026-11-10: unrealPath de config.json; si no, el motor que pide el .uproject
+    unrealPath: str(raw.unrealPath) ?? (() => { const e = gameEngine(dataDir); return e && 'cmd' in e ? e.cmd : null; })(), blenderPath: str(raw.blenderPath) ?? null,
     megascansDir: str(raw.megascansDir) ?? join(docs, 'Megascans Library', 'Downloaded', 'UAssets'),
     launcherLogPath: str(raw.launcherLogPath)
       ?? join(process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local'), 'EpicGamesLauncher', 'Saved', 'Logs', 'EpicGamesLauncher.log'),

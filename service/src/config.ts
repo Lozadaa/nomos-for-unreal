@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 
 export type WorkerProvider = 'codex' | 'claude' | 'opencode';
 /** `umgRetries`: fallos umg seguidos sin mejora medible antes de parar en una Decisión (docs/x10/umg-bucles.md). */
-export type Limits = {corrections: number; umgRetries: number};
+export type Limits = {corrections: number; umgRetries: number; silentWarnMinutes?: number; silentActMinutes?: number};
 export type WorkerModel = 'sonnet' | 'opus' | 'haiku';
 const models=['sonnet','opus','haiku'];
 /** Tiempo muerto: cupo aparte para revisores y QA, que no compiten con los implementadores por `claude`. */
@@ -63,18 +63,23 @@ export const orcaGraceMinutes = (config: SchedulerConfig) => config.orca?.graceM
 export const maxWorkerMinutes = (config: SchedulerConfig) => config.orca?.maxWorkerMinutes ?? 240;
 /** Rápido (metras 2026-11-08): los 17-27 min «compilando» por pista eran esperas de turno, RAM y «Unreal ajeno»; compilar eran 50-80 s.
  *  Dos plazas de Unreal, 1,5 GB libres, sin esperar a editores ajenos, una corrección y revisión que solo para lo grave. */
-export const rapido = (config: SchedulerConfig) => config.rapido === true;
+/** Jam 2026-11-10: el modo rápido es el modo; `nomos rapido off` (o `rapido: false`) queda como salida de emergencia.
+ *  `NOMOS_RAPIDO_DEFAULT=off` solo lo usa la suite para seguir midiendo los valores de antes. */
+export const rapido = (config: SchedulerConfig) => config.rapido ?? process.env.NOMOS_RAPIDO_DEFAULT !== 'off';
 export const heavyMax = (config: SchedulerConfig) => config.scheduler?.heavy?.maxConcurrent ?? (rapido(config) ? 2 : 1);
 export const minFreeRamGb = (config: SchedulerConfig) => config.scheduler?.minFreeRamGb ?? (rapido(config) ? 1.5 : 6);
 export const heavyRequiresNoEditor = (config: SchedulerConfig) => config.scheduler?.heavyRequiresNoEditor ?? !rapido(config);
 export const orcaCreateTimeoutMs = (config: SchedulerConfig) => config.orca?.createTimeoutMs ?? 180_000;
 /** Hito 22: CVars de consola antes de cada captura (sin comas ni comillas: viajan en -ExecCmds). */
 export const captureCvars = (config: SchedulerConfig): string[] => (config as {checks?: {captureCvars?: string[]}}).checks?.captureCvars ?? [];
-export const directorConfig = (config: SchedulerConfig) => ({mode: config.director?.mode ?? 'sesion', debounceSeconds: config.director?.debounceSeconds ?? 60});
+export const directorConfig = (config: SchedulerConfig) => ({mode: config.director?.mode ?? (rapido(config) ? 'evento' : 'sesion'), debounceSeconds: config.director?.debounceSeconds ?? 60});
 export const limits = (config: SchedulerConfig): Limits => {
   const n = rapido(config) ? 1 : 3;
   return {corrections: config.limits?.corrections ?? n, umgRetries: config.limits?.umgRetries ?? n};
 };
+/** Jam 2026-11-10: minutos sin señal de vida (salida, transcripción o archivos del árbol) para avisar y para reenviar. */
+export const silentMinutes = (config: SchedulerConfig) =>
+  ({warn: config.limits?.silentWarnMinutes ?? 10, act: config.limits?.silentActMinutes ?? 20});
 /** Hito 30: brain.py de Second Brain en `SECOND_BRAIN_ROOT` o en `~/Documents/SecondBrain`; sin él, null y la memoria queda apagada. */
 export function defaultMemoryCommand(env: NodeJS.ProcessEnv = process.env): string[] | null {
   const home = env.USERPROFILE || env.HOME || homedir();
