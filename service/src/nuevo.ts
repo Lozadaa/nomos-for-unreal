@@ -49,7 +49,7 @@ export function nuevo(name: string, opts: {dest?: string; engine?: string; sourc
 export function nuevoCli(argv: string[]): boolean {
   if (argv[0] !== 'nuevo') return false;
   const {values, positionals} = parseArgs({args: argv.slice(1), allowPositionals: true,
-    options: {destino: {type: 'string'}, motor: {type: 'string'}}});
+    options: {destino: {type: 'string'}, motor: {type: 'string'}, data: {type: 'string'}}});
   if (positionals.length !== 1) throw new Error('Uso: nomos nuevo <Nombre> [--destino CARPETA] [--motor 5.9]');
   const dest = values.destino ? resolve(values.destino) : undefined;
   nuevo(positionals[0], {dest, engine: values.motor});
