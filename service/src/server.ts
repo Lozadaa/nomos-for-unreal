@@ -26,7 +26,7 @@ import { workerProcesses } from './sweep.ts';
 import { activeHolds } from './hold.ts';
 import { capacityNote } from './scheduler-state.ts';
 import { machineWaits } from './scheduler.ts';
-import { readConfig } from './config.ts';
+import { directorConfig, rapido, readConfig } from './config.ts';
 import { createWorkerHandlers } from './handlers/worker.ts';
 import { createAssetHandlers } from './handlers/asset.ts';
 import { createCheckHandlers } from './handlers/checks.ts';
@@ -84,6 +84,7 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
         return res.end(await readFile(file));
       }
       if (method === "GET" && path === "/status") return json(res, 200, { ...status(db), project: projectInfo(dataDir), workers: workerProcesses(db), holds: activeHolds(db), capacity: capacity(db, dataDir), unreal: machineWaits(db), approvals: pendingCount(db), team: listPeers(db).map(p => ({ name: p.name, frente: p.frente, present: p.present, tasks: p.tasks.length, leases: p.leases.map(l => l.path), build: p.build?.commit ?? null })), disk: diskOf(dataDir), tokens: tokensByRole(db),
+        modo: (() => { let c = {}; try { c = readConfig(dataDir); } catch { /* config ilegible: valores por defecto */ } return {rapido: rapido(c), director: directorConfig(c).mode}; })(),
         // jam 2026-11-10: workers vivos sin señal de vida pasado el aviso
         silent: db.prepare("select id, task_id, json_extract(metadata,'$.silentMinutes') m from runs where state='running' and json_extract(metadata,'$.silentMinutes')>0").all()
           .map(r => ({runId: r.id, taskId: r.task_id, aviso: `sin actividad ${r.m} min`})) });
