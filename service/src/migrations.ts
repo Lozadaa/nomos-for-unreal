@@ -49,6 +49,11 @@ function widenCheck(db: DatabaseSync, table: string, column: string, value: stri
   return true;
 }
 
+/** Candela 2026-11-10: la API acepta `vfx`, `camara` e `ia` (routes/context.ts) y la tabla no: crear la tarea daba un 500. */
+export function migrateAreas(db: DatabaseSync): void {
+  transaction(db, () => { for (const area of ['vfx', 'camara', 'ia']) widenCheck(db, 'tasks', 'area', area); });
+}
+
 /** Amplía el proveedor persistible sin convertirlo en un adaptador ejecutable. */
 export function migrateWorkerProviders(db:DatabaseSync):void {
   transaction(db,()=>widenCheck(db,'runs','provider','opencode'));

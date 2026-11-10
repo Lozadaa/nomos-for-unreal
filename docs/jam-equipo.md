@@ -80,4 +80,4 @@ Si algún paso falla, apuntad qué salió en `nomos equipo` y en el panel antes 
 - **Dos máquinas de verdad con GitHub y Git LFS.** La prueba se hizo con dos clones en el mismo PC y un remoto local
   (`docs/aceptacion-jam-equipo.md`). Credenciales de GitHub, LFS con mapas grandes y redes lentas no se han probado:
   por eso la prueba de 10 minutos.
-- `nomos nuevo` lo está añadiendo otra tarea; si no está en tu versión, crea el juego a mano y, desde el repo de Nomos, `nomos embed <carpeta-del-juego>`.
+- `nomos nuevo` se probó en este PC con Unreal 5.9 (`docs/aceptacion-semilla.md`), no en otras máquinas.
