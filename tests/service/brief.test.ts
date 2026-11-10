@@ -80,3 +80,20 @@ test('jam: lo aprendido en el juego (docs/aprendido.md del worktree) entra en el
     for (let i=1;i<=20;i++) assert.doesNotMatch(context,new RegExp(`- línea ${i}\n`));
   } finally {removeDir(project);}
 });
+
+test('jam vista: el worker mira tres capturas del modo demo; el revisor recibe sus rutas y rechaza si no se lee',async()=>{
+  const {mkdirSync,mkdtempSync,writeFileSync}=await import('node:fs'),{tmpdir}=await import('node:os'),{join}=await import('node:path');
+  const {capturasBrief}=await import('../../service/src/brief.ts'),{removeDir}=await import('../remove-dir.ts');
+  const db=openDb(':memory:'),tree=mkdtempSync(join(tmpdir(),'nomos-capturas-'));
+  try {
+    const task=createTask(db,{title:'Brasa',area:'gameplay',spec:'x',acceptance:['A'],scope:['Source']});
+    const brief=renderBrief(task,startRun(db,{taskId:task.id,role:'implementacion',provider:'claude'}));
+    assert.match(brief,/## Mira lo que hiciste[\s\S]*capturar\.ps1 -Demo[\s\S]*VISTO:/);
+    assert.equal(capturasBrief(tree),'','sin capturas no hay sección');
+    mkdirSync(join(tree,'docs','capturas'),{recursive:true});
+    for(const n of ['inicio','mitad','final']) writeFileSync(join(tree,'docs','capturas',`${n}.png`),'');
+    const review=capturasBrief(tree);
+    for(const n of ['inicio','mitad','final']) assert.ok(review.includes(join(tree,'docs','capturas',`${n}.png`)),n);
+    assert.match(review,/Rechaza si no se lee/);
+  } finally {db.close();removeDir(tree);}
+});

@@ -33,6 +33,9 @@ NOMOS_REVIEW {"approved":false,"findings":[{"file":"Docs/README.md","line":3,"se
 Cada `note` ≤ 140 caracteres: qué falla y qué se esperaba, en comportamiento; la ruta y la línea van en `file`/`line`.
 Ejemplo: «Al pulsar Esc el menú no se cierra; se esperaba volver al juego».
 
+Si el árbol trae `docs/capturas/inicio.png`, `mitad.png` y `final.png`, el brief da sus rutas: ábrelas. Rechaza si no se lee
+(el protagonista no se distingue, el escenario se sale del cuadro o la pantalla es casi toda negra); nunca por gusto.
+
 Si falta una aclaración, usa `NOMOS_ASK {"question":"Pregunta concreta"}`. No termines con `NOMOS_DONE`.
 
 Si el JSON pasa de una línea, guarda el mismo JSON (sin el marcador) en `.nomos-inbox/review.json`

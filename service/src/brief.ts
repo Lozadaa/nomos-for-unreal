@@ -1,5 +1,5 @@
 import type { Task, Run } from './model.ts';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { nomosSkills } from './skills-install.ts';
 import { skillSplit } from './skills.ts';
@@ -36,6 +36,13 @@ const extraSkills = (task: Task, run: Run, rules: BriefRules) => {
 
 ` : '';
 };
+/** Jam vista: Candela B salió ilegible y nadie miró la imagen; el revisor recibe las tres capturas del modo demo. */
+export function capturasBrief(tree: string): string {
+  const shots = ['inicio', 'mitad', 'final'].map(n => join(tree, 'docs', 'capturas', `${n}.png`)).filter(p => existsSync(p));
+  return shots.length ? `\n## Capturas del modo demo\n\nÁbrelas con la herramienta de leer imágenes:\n${shots.map(p => `- ${p}`).join('\n')}\n`
+    +`Rechaza si no se lee: el protagonista no se distingue, el escenario se sale del cuadro o la pantalla es casi toda negra. `
+    +`No rechaces por gusto.\n` : '';
+}
 export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): string {
   const template=readFileSync(join(nomosSkills,'nomos','references','brief-worker.md'),'utf8');
   const values: Record<string,string>={title:task.title,spec:task.spec,

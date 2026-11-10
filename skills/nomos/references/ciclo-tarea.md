@@ -31,25 +31,30 @@ y concurrencia: `GET /capabilities?details=1` autenticado; la ruta sin query sig
 Recibe y confirma `message.received`, clasifica el mensaje y consulta el registro
 local de su ID antes de crear nada. Si ya existe taskId, inspecciónalo y continúa.
 Elige un ID local para el archivo; el servicio asignará el taskId definitivo.
-Ejemplo completo en `.nomos/specs/documentacion.md`:
+Un juego pequeño es una sola tarea con el encargo entero ([Repartir](../SKILL.md#repartir)). Ejemplo en `.nomos/specs/juego.md`:
 
 ```md
-# Documentar el juego
+# Chispa: el juego entero
 ## Qué
-Quien abre el juego encuentra un README y un script que le dice la versión del motor.
+Una chispa recorre una cueva y enciende 5 hogueras antes de apagarse; con las 5 encendidas ganas.
 ## Por qué
-Permitir que otra persona identifique el proyecto y su versión antes de probarlo.
+Es el encargo entero del usuario y cabe en una hora: lo hace una sola cabeza.
 ## Criterios de aceptación
-1. El README describe el proyecto sin inventar mecánicas.
-2. El script imprime la versión del motor que figura en el proyecto.
-3. El script termina sin errores desde la raíz del juego.
+1. Se juega de menú a victoria o derrota y R reinicia.
+2. «Tiene que sentirse bien»: pausa al impactar, sacudida y chispas al encender una hoguera.
+3. Con CHISPA_AUTO=1 el juego se juega solo y gana en menos de 60 s.
+4. El protagonista y lo que le amenaza se distinguen a 1280×720 en las tres capturas del modo demo.
+5. El escenario entero cabe en pantalla, o la cámara sigue al protagonista.
+6. Comprobación `imagen` sin fallos y las tres capturas miradas (línea `VISTO` en `docs/hecho.md`).
+7. `revisar_acabado.py` sin fallos y el `.exe` empaquetado arranca.
 ## Alcance
-- Docs/README-nomos.md
-- Scripts/hello.ps1
-## No tocar
+- Source/
 - Content/
 - Config/
-- Source/
+- Scripts/
+- docs/
+## No tocar
+- Plugins/
 ```
 
 Exactamente esos cinco encabezados una vez cada uno. Qué/Por qué tienen texto;
@@ -61,12 +66,12 @@ No tocar se conserva en el Markdown/brief. Contrato ampliado: `docs/task-spec.md
 del repositorio Nomos, no del juego. Si falta una decisión creativa, pregunta al usuario.
 
 ```sh
-nomos task create --title 'Documentar el juego' --area qa --spec-file .nomos/specs/documentacion.md
+nomos task create --title 'Chispa: el juego entero' --area gameplay --spec-file .nomos/specs/juego.md
 nomos worker start TASK --role implementacion
 ```
 
 Entre ambos comandos, guarda `{taskId,messageId,specFile}` en
-`.nomos/specs/documentacion.json` y publica ID + resumen de dos líneas con
+`.nomos/specs/juego.json` y publica ID + resumen de dos líneas con
 `nomos reply MESSAGE -- '<texto de dos líneas>'`. La tarea ya queda `preparada`.
 `task spec TASK --spec-file ARCHIVO` prepara una tarea existente sin run activo.
 Entrega contexto/skills mediante la plantilla brief-worker.md enlazada desde SKILL.md.
