@@ -18,6 +18,11 @@ generan personajes ni formas orgánicas con Meshy**; salen del catálogo (Fab,
 MetaHuman, packs con esqueleto). Una entrada con `aiForbidden` no se usa como entrada
 de ninguna generación (`asset_ai_forbidden`).
 
+**Varias cuentas de Meshy**: `MESHY_API_KEY` (cuenta «env») y las de `%USERPROFILE%\.nomos\meshy-claves.json`
+(cifradas con DPAPI). Cada job nuevo usa la de más saldo y, si Meshy responde sin créditos, la siguiente; el seguimiento
+y la descarga van con la cuenta que lo creó. `nomos meshy cuentas` lista nombre, origen y saldo. Añadir más:
+`powershell -ExecutionPolicy Bypass -File scripts\guardar-claves-meshy.ps1` (desde el repo de Nomos).
+
 ## Comandos
 
 Todos encolan en la bandeja (`POST /commands`); el resultado llega por eventos.

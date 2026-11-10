@@ -25,7 +25,8 @@ void ASemillaPlayerController::BeginPlay()
 	// modo demo: con SEMILLA_AUTO=1 el juego se juega solo (capturas y vídeo). La marca la busca la comprobación imagen de Nomos
 	if (ASemillaGameMode* GM = GetWorld()->GetAuthGameMode<ASemillaGameMode>())
 	{
-		GM->bAuto = FPlatformMisc::GetEnvironmentVariable(TEXT("SEMILLA_AUTO")) == TEXT("1");
+		GM->bAuto = FPlatformMisc::GetEnvironmentVariable(TEXT("SEMILLA_AUTO")) == TEXT("1")
+			|| FParse::Param(FCommandLine::Get(), TEXT("SemillaAuto"));  // en web no hay entorno: ?args=-SemillaAuto
 		if (GM->bAuto) UE_LOG(LogTemp, Display, TEXT("NOMOS_DEMO activo"));
 	}
 	Ejemplo();

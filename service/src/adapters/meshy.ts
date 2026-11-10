@@ -17,7 +17,7 @@ export function requireKind(kind: unknown): MeshyKind {
 }
 const mime: Record<string, string> = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'};
 
-/** REST de Meshy con `fetch`, sin dependencias. La clave vive en MESHY_API_KEY y nunca se escribe en eventos ni artefactos. */
+/** REST de Meshy con `fetch`, sin dependencias. La clave sale de una cuenta (meshy-accounts.ts) y nunca se escribe en eventos ni artefactos. */
 export function createMeshy(opts: {baseUrl?: string; apiKey?: string; fetch?: typeof fetch} = {}) {
   const baseUrl = opts.baseUrl ?? 'https://api.meshy.ai', doFetch = opts.fetch ?? globalThis.fetch;
   const apiKey = opts.apiKey ?? process.env.MESHY_API_KEY;
@@ -25,7 +25,11 @@ export function createMeshy(opts: {baseUrl?: string; apiKey?: string; fetch?: ty
     if (!apiKey) throw new Error('meshy_missing_key');
     const res = await doFetch(baseUrl + path, {method, headers: {Authorization: `Bearer ${apiKey}`,
       ...(body ? {'Content-Type': 'application/json'} : {})}, body: body ? JSON.stringify(body) : undefined});
-    if (!res.ok) throw new Error(`meshy_http_${res.status}`);
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      // sin créditos en esta cuenta: el handler pasa a la siguiente
+      throw new Error(res.status === 402 || /insufficient\s*credits/i.test(text) ? 'meshy_no_credits' : `meshy_http_${res.status}`);
+    }
     return res.json();
   }
   const normal = (t: any): MeshyTask => ({id: t.id, status: t.status, progress: Number(t.progress ?? 0), type: t.type, prompt: t.prompt,

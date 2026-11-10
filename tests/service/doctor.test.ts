@@ -21,9 +21,9 @@ test('comprobación real por capacidad: Node, Orca (abre si está cerrado), Git,
   assert.equal(opened, 1, '«Abrir Orca» ejecuta orca open antes de volver a mirar');
   assert.equal((await checkCapability('orca', {orca: orca(true)})).state, 'comprobado');
   assert.match((await checkCapability('git', {})).detail, /^git version/);
-  assert.deepEqual(await checkCapability('meshy', {env: {}}), {state: 'ausente', detail: 'Falta MESHY_API_KEY'});
+  assert.deepEqual(await checkCapability('meshy', {env: {}}), {state: 'ausente', detail: 'Falta MESHY_API_KEY o meshy-claves.json'});
   assert.deepEqual(await checkCapability('meshy', {env: {MESHY_API_KEY: 'k'}, meshy: {balance: async () => 120}}),
-    {state: 'comprobado', detail: 'Saldo de Meshy: 120 créditos'});
+    {state: 'comprobado', detail: '1 cuenta de Meshy: 120 créditos'});
   assert.equal((await checkCapability('meshy', {env: {MESHY_API_KEY: 'k'}, meshy: {balance: async () => { throw new Error('401'); }}})).state, 'roto');
   assert.equal((await checkCapability('unreal', {unrealPath: 'C:/no/existe/UnrealEditor-Cmd.exe'})).state, 'ausente');
   await assert.rejects(checkCapability('inventada', {}), /unknown_capability/);

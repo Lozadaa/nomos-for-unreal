@@ -5,6 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { createOrca } from './adapters/orca.ts';
 import { createMeshy } from './adapters/meshy.ts';
+import { balances, meshyAccounts } from './adapters/meshy-accounts.ts';
 import { createUnrealCmd, defaultUnrealCmd } from './adapters/unreal-cmd.ts';
 import { detectCapabilities } from './repo/capabilities.ts';
 import { ffmpegVersion, findFfmpeg, type Ffmpeg } from './adapters/ffmpeg.ts';
@@ -53,9 +54,13 @@ export async function checkCapability(id: string, deps: CheckDeps): Promise<Chec
     catch { return {state: 'ausente', detail: 'git-lfs no está instalado: el contenido pesado solo puede integrarse sin LFS'}; }
   }
   if (id === 'meshy') {
-    if (!env.MESHY_API_KEY) return {state: 'ausente', detail: 'Falta MESHY_API_KEY'};
-    try { return {state: 'comprobado', detail: `Saldo de Meshy: ${await (deps.meshy ?? createMeshy()).balance()} créditos`}; }
-    catch (error) { return {state: 'roto', detail: `Meshy rechazó la consulta: ${error instanceof Error ? error.message : String(error)}`}; }
+    // varias cuentas (env y meshy-claves.json): solo cuántas y el saldo total, nunca nombres ni claves
+    const accounts = meshyAccounts(env);
+    if (!accounts.length) return {state: 'ausente', detail: 'Falta MESHY_API_KEY o meshy-claves.json'};
+    const known = await balances(accounts, a => deps.meshy ?? createMeshy({apiKey: a.key()}));
+    const failed = known.filter(n => n === null).length, total = known.reduce<number>((t, n) => t + (n ?? 0), 0);
+    return failed ? {state: 'roto', detail: `Meshy rechazó la consulta de ${failed} de ${accounts.length} cuentas`}
+      : {state: 'comprobado', detail: `${accounts.length} ${accounts.length === 1 ? 'cuenta' : 'cuentas'} de Meshy: ${total} créditos`};
   }
   if (id === 'unreal') {
     // la versión sale de Engine/Build/Build.version: UnrealEditor-Cmd no tiene un «-version» que salga sin cargar el motor

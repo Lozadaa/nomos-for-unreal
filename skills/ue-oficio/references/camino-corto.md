@@ -9,6 +9,7 @@
 | Probar física y aspecto | Modo demo por variable de entorno y captura | Mirar solo el editor |
 | Ver cómo quedó | Captura `-game` con su `.png.json`; del `.exe`, `captura_empaquetado.ps1` | Juzgar sin exposición manual; fiarse del editor para el empaquetado |
 | Empaquetar | `RunUAT BuildCookRun` una vez al final, con `DirectoriesToAlwaysCook` ([acabado](acabado.md)) | Empaquetar en cada paso |
+| Versión web (navegador) | `Scripts/empaquetar-web.ps1` (emscripten 6.0.10, motor del Launcher, sin compilar el motor) y probar con `webrun.py` ([web](web.md)) | Abrir `index.html` desde disco; compilar el motor desde fuente; Lumen o Nanite en la versión web |
 | Importar una malla | Receta `importar_malla`: mide y rechaza escalas ×100 ([importar](importar.md)) | Importar y colocar sin medir |
 | Cámara | Receta `camara_tercera_persona`, o una sola cámara en el pawn desde C++ ([camara-pawn](camara-pawn.md)) | Dos cámaras activas |
 | Encuadrar la escena | `EncuadrarEscena(caja)` del PlayerController de la semilla (etiqueta `Escena`; `Inclinacion` 55 desde arriba, 20-30 de lado): avisa si el protagonista mide < 3 % | Colocar la cámara a ojo y no mirar la captura |

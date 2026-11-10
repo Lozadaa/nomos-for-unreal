@@ -12,9 +12,17 @@ import { finishRun, startRun } from '../repo/runs.ts';
 import { updateRun } from '../repo/worker.ts';
 import { appendEvent } from '../store.ts';
 import { saveMeshyResult } from './asset-meshy-save.ts';
+import { balances, meshyAccounts, type MeshyAccount } from '../adapters/meshy-accounts.ts';
 
-export type MeshyDeps = {meshy?: () => Meshy};
-const client = (deps: MeshyDeps) => deps.meshy?.() ?? createMeshy();
+export type MeshyDeps = {meshy?: (account: MeshyAccount) => Meshy; accounts?: () => MeshyAccount[]};
+const accountsOf = (deps: MeshyDeps) => deps.accounts?.() ?? meshyAccounts();
+const clientFor = (deps: MeshyDeps, account: MeshyAccount) => deps.meshy?.(account) ?? createMeshy({apiKey: account.key()});
+/** Seguimiento, descarga y reconciliación: siempre la cuenta que creó el job (runs anteriores a las cuentas: la primera). */
+function client(deps: MeshyDeps, name?: string): Meshy {
+  const all = accountsOf(deps), account = name === undefined ? all[0] : all.find(a => a.name === name);
+  if (!account) throw new Error('meshy_missing_key');
+  return clientFor(deps, account);
+}
 const tenMinutes = 10 * 60_000;
 
 /** Presupuesto de la tarea si lo tiene; si no, el del workspace. Sin ninguno, uno con 0 créditos: gastar exige Decisión. */
@@ -51,9 +59,9 @@ export async function reconcile(db: DatabaseSync, meshy: Meshy, run: Run): Promi
 }
 
 /** Al arrancar el servicio: runs de Meshy que se quedaron sin `remoteId` confirmado (Review Focus 4). */
-export async function recoverMeshy(db: DatabaseSync, meshy: Meshy): Promise<number> {
+export async function recoverMeshy(db: DatabaseSync, deps: MeshyDeps = {}): Promise<number> {
   const orphans = filtered<Run>(db, 'runs', {provider: 'meshy', state: 'running'}).filter(r => !r.metadata.remoteId);
-  for (const run of orphans) await reconcile(db, meshy, run);
+  for (const run of orphans) await reconcile(db, client(deps, run.metadata.account), run);
   return orphans.length;
 }
 
@@ -66,11 +74,12 @@ export function createMeshyGenerate(deps: MeshyDeps = {}): Handler {
     if (source?.aiForbidden) throw new Error('asset_ai_forbidden');
     const estimated = Number(p.estimatedCredits);
     if (!Number.isFinite(estimated) || estimated < 0) throw new Error('invalid_command_payload');
-    const meshy = client(deps), key = command.idempotencyKey;
+    const accounts = accountsOf(deps), key = command.idempotencyKey;
+    if (!accounts.length) throw new Error('meshy_missing_key');
     // una misma clave nunca genera dos veces: un reintento reutiliza su run y, sin remoteId, lo reconcilia
     const previous = filtered<Run>(ctx.db, 'runs', {provider: 'meshy'}).find(r => r.metadata.idempotencyKey === key);
     if (previous?.metadata.remoteId) return {runId: previous.id, remoteId: previous.metadata.remoteId, existing: true};
-    if (previous) return {runId: previous.id, reconciled: previous.state === 'running' ? await reconcile(ctx.db, meshy, previous) : previous.state};
+    if (previous) return {runId: previous.id, reconciled: previous.state === 'running' ? await reconcile(ctx.db, client(deps, previous.metadata.account), previous) : previous.state};
     const budget = budgetFor(ctx.db, task.id);
     const run = startRun(ctx.db, {taskId: task.id, role: 'arte', provider: 'meshy', metadata: {kind, stage: 'Solicitud',
       idempotencyKey: key, prompt: typeof params.prompt === 'string' ? params.prompt : undefined, params, budgetId: budget.id, estimatedCredits: estimated}});
@@ -79,7 +88,23 @@ export function createMeshyGenerate(deps: MeshyDeps = {}): Handler {
       finishRun(ctx.db, run.id, 'failed', 'Presupuesto de Meshy agotado: decide en Decisiones');
       throw error;
     }
-    const remoteId = await submit(meshy, kind, params);
+    // rotación: la cuenta con más saldo primero (sin saldo conocido, en su orden); sin créditos, la siguiente, una vez cada una
+    const known = await balances(accounts, a => clientFor(deps, a));
+    const order = accounts.map((a, i) => ({a, n: known[i] ?? -1})).sort((x, y) => y.n - x.n).map(x => x.a);
+    let remoteId: string | undefined;
+    for (const account of order) {
+      updateRun(ctx.db, run.id, {account: account.name});
+      try { remoteId = await submit(clientFor(deps, account), kind, params); break; }
+      catch (error) {
+        if ((error as Error).message !== 'meshy_no_credits') throw error;
+        appendEvent(ctx.db, 'meshy.account_exhausted', null, {taskId: task.id, runId: run.id, account: account.name});
+      }
+    }
+    if (!remoteId) {
+      ctx.db.prepare("update spends set amount=0 where run_id=? and kind='meshyCredits'").run(run.id);
+      finishRun(ctx.db, run.id, 'failed', 'Todas las cuentas de Meshy sin créditos');
+      throw new Error('meshy_missing_key');
+    }
     updateRun(ctx.db, run.id, {remoteId, stage: 'Preview'});
     appendEvent(ctx.db, 'meshy.job.created', null, {taskId: task.id, runId: run.id, kind, remoteId, stage: 'Preview'});
     enqueue(ctx.db, 'asset.meshy_poll', {runId: run.id}, `meshy_poll:${run.id}`, {notBefore: new Date(Date.now() + 10_000).toISOString()});
@@ -92,7 +117,7 @@ export function createMeshyPoll(deps: MeshyDeps = {}): Handler {
     const run = read<Run>(ctx.db, 'runs', String((command.payload as {runId?: unknown}).runId));
     if (!run || run.provider !== 'meshy') throw new Error('invalid_meshy_run');
     if (run.state !== 'running' || !run.metadata.remoteId) return {state: run.state};
-    const kind = requireKind(run.metadata.kind), meshy = client(deps);
+    const kind = requireKind(run.metadata.kind), meshy = client(deps, run.metadata.account);
     const job: MeshyTask = await meshy.getTask(kind, run.metadata.remoteId);
     const refine = kind === 'text' && (run.metadata.params as {mode?: string} | undefined)?.mode === 'refine';
     const stage = job.status === 'SUCCEEDED' ? 'Guardado' : refine ? 'Refinado' : 'Preview';

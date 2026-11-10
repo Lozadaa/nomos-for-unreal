@@ -73,4 +73,5 @@ cm), `base_z` (altura de la base), `dist` a la cámara y `px` (píxel en la imag
 - [pcg](references/pcg.md): grafos PCG desde un agente, gramática de edificios, trampas.
 - [diagnostico](references/diagnostico.md): crashes, procesos huérfanos, flags de arranque, PIE.
 - [acabado](references/acabado.md): nada por defecto, indicadores con cariño, UI nítida, pantalla de carga, empaquetado y la comprobación que bloquea el FIN.
+- [web](references/web.md): versión web (Wasm + WebGPU) del 5.9: requisitos, empaquetar, probar y qué se rompe.
 - [ue59-preview](references/ue59-preview.md): qué cambia en el 5.9 MegaJam Preview (Python, MCP, PCG), qué queda sin confirmar, fuentes.
