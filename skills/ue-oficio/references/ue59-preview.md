@@ -99,7 +99,9 @@ De las notas de la versión [fuente].
 - Editor: subsistema Map Check (log en Blueprint, sustituir actores por asset o clase), Sequencer con «marks and mark
   ranges», Forge (herramientas web de diseño dentro del editor), Modular Test Framework para tests de plugins, GraphDsl
   (lenguaje de texto para grafos).
-- Target WebAssembly/WebGPU experimental: exige build desde fuente y proyecto C++ [fuente: anuncio]; no afecta a Nomos.
+- Target WebAssembly/WebGPU experimental. El anuncio dice «requires a source build» [fuente: anuncio], pero en Windows el
+  motor del Launcher empaqueta para web sin compilar nada del motor: hace falta proyecto C++ y emscripten 6.0.10. Trompo
+  cargó en 3,4 s y corrió a unos 170 fps. [observado] Cómo y qué se rompe: [web](web.md).
 
 ## Sin confirmar en 5.9 (ninguna fuente oficial lo menciona)
 
@@ -108,7 +110,7 @@ De las notas de la versión [fuente].
 | MetaHuman | Nada en el anuncio ni en las notas. [personajes](../../nomos/references/personajes.md) y `nomos_metahuman.py` siguen siendo de 5.8.3. |
 | Visual Studio y toolchain | La tabla oficial no tiene fila 5.9. Fila 5.8: VS 2022 17.14 o posterior, VS 2026 18.0 o posterior; MSVC 14.38 mín. / 14.50 rec.; Windows SDK 10.0.22621.0 mín. / 10.0.26100 rec.; .NET 10 con VS 2026. Suponer lo de 5.8. [fuente: página de VS] |
 | UBT, UAT, UnrealEditor-Cmd | Ningún cambio de flags publicado. |
-| Formato de `.uproject` | Sin cambios anunciados; el anuncio solo pide ediciones puntuales (`AllToolsets`, quitar `Wasm` de `PlatformDenyList`). |
+| Formato de `.uproject` | Sin cambios anunciados; el anuncio solo pide ediciones puntuales (`AllToolsets`, quitar `Wasm` de `PlatformDenyList`). Los `.uproject` de la semilla no llevan `PlatformDenyList`: no hubo que tocar nada para web. [observado] |
 | Plugins renombrados o retirados | Anunciado como retirado: Python Foundation Packages. Sin embargo, la carpeta `Experimental/PythonFoundationPackages` sigue en la instalación del 5.9 Preview (observado 2026-11-09). Fuera de los toolsets: `UMGToolSet` y `SemanticSearchToolset` ya no están (observado). |
 | Verse, UEFN, Scene Graph | Nada en las fuentes oficiales; lo que circula en redes sobre Verse + Scene Graph no está confirmado. |
 | Ruta de crashes | `%LOCALAPPDATA%\UnrealEngine\5.9\Saved\Crashes` es la pauta de 5.8 con el número cambiado. |
