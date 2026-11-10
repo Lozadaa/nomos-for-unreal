@@ -54,3 +54,14 @@ test('ue59: con el motor 5.9 el brief manda leer el mapa de features y pide NOMO
     for (const engine of ['5.8.3',undefined]) assert.doesNotMatch(renderBrief(task,run,{engine}),/NOMOS_UE59/);
   } finally {db.close();}
 });
+test('jam: el brief de quien implementa trae el camino corto y las dos reglas de entrega; el del revisor, no',()=>{
+  const db=openDb(':memory:');
+  try {
+    const task=createTask(db,{title:'Brasa',area:'gameplay',spec:'x',acceptance:['A'],scope:['Source']});
+    const brief=renderBrief(task,startRun(db,{taskId:task.id,role:'implementacion',provider:'claude'}));
+    assert.match(brief,/## Camino corto[\s\S]*\| Poner cosas en el nivel \|[\s\S]*## Contexto del proyecto/);
+    assert.match(brief,/Antes de `NOMOS_DONE`: `git status --short` vacío y `revisar_acabado\.py` sin fallos/);
+    assert.match(brief,/docs\/aprendido\.md/);
+    for(const role of ['revisor','qa','director']) assert.doesNotMatch(renderBrief(task,startRun(db,{taskId:task.id,role,provider:'claude'})),/Camino corto/);
+  } finally {db.close();}
+});

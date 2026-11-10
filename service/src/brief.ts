@@ -22,12 +22,19 @@ export function workerSkillsBrief(run:Pick<Run,'provider'|'skills'>):string {
     +'Responde en tu primera línea NOMOS_SKILLS […] con la lista JSON de las de la lista que existen en este entorno.\n'
     +'Si alguna no está disponible, omítela de la confirmación y continúa; no afirmes que existe.\n\n';
 }
+/** Jam 2026-11-10: la tabla «Quiero / Usa / No uses» de ue-oficio (una sola fuente), para todo rol que construye. */
+const camino = (role: string) => ['revisor', 'qa', 'director'].includes(role) ? ''
+  : `## Camino corto
+
+${readFileSync(join(nomosSkills, 'ue-oficio', 'references', 'camino-corto.md'), 'utf8').trim()}
+
+`;
 export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): string {
   const template=readFileSync(join(nomosSkills,'nomos','references','brief-worker.md'),'utf8');
   const values: Record<string,string>={title:task.title,spec:task.spec,
     acceptance:task.acceptance.map((item,index)=>`${index+1}. ${item}`).join('\n'),
     scope:task.scope.map(path=>`- ${path}`).join('\n') || '(vacío: no autoriza archivos)',
-    provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run),
+    provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run),camino:camino(run.role),
     context:[rules.engine?.startsWith('5.9') ? ue59Rules : '',rules.projectContext ?? ''].filter(Boolean).join('\n\n') || 'Sin contexto adicional.',rapido:rules.rapido ? rapidoRules : '',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
     // x10: el Python del editor y los tests van al editor caliente (0,1 s por script frente a 12-15 s en frío) y piden
     // y sueltan el turno solos en cada orden, para que las comprobaciones de Nomos no esperen detrás de un turno retenido
