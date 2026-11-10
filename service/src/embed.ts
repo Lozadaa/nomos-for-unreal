@@ -6,7 +6,8 @@ import { nomosSkills } from './skills-install.ts';
 
 /** Hito 30: Nomos viaja dentro del repo del juego (`Tools/Nomos`, `.claude/skills`, envoltorios y sección en CLAUDE.md). */
 const own = resolve(import.meta.dirname, '..', '..');
-const parts = ['service', 'panel/dist', 'scripts/instalar-arranque.ps1', 'package.json', 'LICENSE'];
+// jam 2026-11-10: con la semilla, un Nomos embebido también puede hacer `nomos nuevo`
+const parts = ['service', 'panel/dist', 'plantillas', 'scripts/instalar-arranque.ps1', 'package.json', 'LICENSE'];
 export const embeddedSkills = ['nomos', 'game-ui-art-director', 'ue-umg-ui', 'ue-visual-qa'];
 export const claudeSection = `## Nomos
 

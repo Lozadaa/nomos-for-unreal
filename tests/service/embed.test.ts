@@ -14,7 +14,7 @@ const git = (cwd: string, ...args: string[]) => spawnSync('git', args, {cwd, enc
 /** Nomos de mentira (servicio real, panel de una línea) con su propio Git, y un juego con Git y CLAUDE.md propio. */
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'nomos-embed-')), source = join(root, 'nomos'), game = join(root, 'Juego');
-  for (const part of ['service', 'skills', 'scripts/instalar-arranque.ps1', 'package.json', 'LICENSE']) cpSync(join(nomos, part), join(source, part), {recursive: true});
+  for (const part of ['service', 'skills', 'plantillas', 'scripts/instalar-arranque.ps1', 'package.json', 'LICENSE']) cpSync(join(nomos, part), join(source, part), {recursive: true});
   mkdirSync(join(source, 'panel', 'dist'), {recursive: true});
   writeFileSync(join(source, 'panel', 'dist', 'index.html'), '<title>panel embebido</title>');
   for (const dir of [source, game]) {
