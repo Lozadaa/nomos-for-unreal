@@ -2,9 +2,20 @@ import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { request, serviceInfo } from './client.ts';
+import { createMeshy } from './adapters/meshy.ts';
+import { balances, meshyAccounts } from './adapters/meshy-accounts.ts';
 
 /** `nomos asset index|search|migrate|prepare|download|generate|candidates|character|metahuman|cascadeur`: envoltorios de GET /catalog y POST /commands. */
 export async function assetCli(argv: string[]): Promise<boolean> {
+  if (argv[0] === 'meshy') {
+    // `nomos meshy cuentas`: nombre, origen y saldo de cada cuenta, en este proceso y sin claves
+    if (argv[1] !== 'cuentas' || argv.slice(2).some(a => !a.startsWith('--') && argv[argv.indexOf(a) - 1] !== '--data')) throw new Error('Uso: nomos meshy cuentas');
+    const accounts = meshyAccounts();
+    if (!accounts.length) { console.log('Sin cuentas de Meshy: MESHY_API_KEY o scripts/guardar-claves-meshy.ps1'); return true; }
+    const known = await balances(accounts, a => createMeshy({apiKey: a.key()}));
+    accounts.forEach((a, i) => console.log(`${a.name} (${a.origin}): ${known[i] === null ? 'sin respuesta de Meshy' : `${known[i]} créditos`}`));
+    return true;
+  }
   const at = argv.findIndex((arg, i) => arg === 'asset' && !['--data', '--target', '--task', '--animation', '--action', '--why', '--mesh'].includes(argv[i - 1] ?? ''));
   if (at < 0) return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},

@@ -32,7 +32,7 @@ import { createAssetHandlers } from './handlers/asset.ts';
 import { createCheckHandlers } from './handlers/checks.ts';
 import { createClosingHandlers } from './handlers/closing.ts';
 import { recoverMeshy } from './handlers/asset-meshy.ts';
-import { createMeshy } from './adapters/meshy.ts';
+import { meshyAccounts } from './adapters/meshy-accounts.ts';
 import { diskOf } from './retention.ts';
 import { writeAtomic } from './atomic.ts';
 import { pendingCount } from './approvals.ts';
@@ -176,7 +176,7 @@ export async function start(opts: { dataDir: string; port?: number; webDir?: str
   try { register(opts.dataDir, port); } catch { /* sin registro, el panel sigue funcionando solo con este proyecto */ }
   writeAtomic(file, JSON.stringify(info), 0o600);
   // jobs de Meshy cobrados cuya respuesta se perdió: se reconcilian antes de que nadie cree otro
-  if(!opts.runner?.handlers && process.env.MESHY_API_KEY) void recoverMeshy(db,createMeshy()).catch(error=>
+  if(!opts.runner?.handlers && meshyAccounts().length) void recoverMeshy(db).catch(error=>
     appendEvent(db,'meshy.recover_failed',null,{reason:error instanceof Error ? error.message : String(error)}));
   runner=startRunner(db,opts.runner?.handlers ?? {...createWorkerHandlers(),...createAssetHandlers(),...createCheckHandlers(),...createClosingHandlers()},
     {...opts.runner,context:{dataDir:opts.dataDir,...opts.runner?.context}});

@@ -22,7 +22,8 @@ import { removeDir } from '../remove-dir.ts';
 
 async function setup(opts: Parameters<typeof meshyServer>[0] = {}, credits: number | null = 100) {
   const fake = await meshyServer(opts), db = openDb(':memory:'), dataDir = mkdtempSync(join(tmpdir(), 'nomos-meshy-'));
-  const deps = {meshy: () => createMeshy({baseUrl: fake.baseUrl, apiKey: 'clave-falsa'})};
+  const deps = {accounts: () => [{name: 'env', origin: 'env' as const, key: () => 'clave-falsa'}],
+    meshy: () => createMeshy({baseUrl: fake.baseUrl, apiKey: 'clave-falsa'})};
   const ctx = {db, dataDir, projectDir: dataDir} as unknown as WorkerContext;
   setLimits(db, 'workspace', 'default', {meshyCredits: credits});
   const task = createTask(db, {title: 'Caja de munición', area: 'assets'});
@@ -103,7 +104,7 @@ test('respuesta perdida tras cobrar: el reintento y el arranque reconcilian sin 
     // arranque con un run huérfano cuyo job no existe en Meshy: se marca fallido y no se relanza
     const orphan = (await import('../../service/src/repo/runs.ts')).startRun(s.db, {taskId: s.task.id, role: 'arte', provider: 'meshy',
       metadata: {kind: 'text', prompt: 'otra cosa', idempotencyKey: 'clave-2'}});
-    assert.equal(await recoverMeshy(s.db, s.deps.meshy()), 1);
+    assert.equal(await recoverMeshy(s.db, s.deps), 1);
     assert.equal(filtered<Run>(s.db, 'runs', {}).find(r => r.id === orphan.id)!.state, 'failed');
     assert.ok(types(s.db).includes('meshy.job.unconfirmed'));
     assert.equal(s.fake.created.length, 1);
