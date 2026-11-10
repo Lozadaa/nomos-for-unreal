@@ -177,3 +177,31 @@ test('POST /tasks/:id/integrate encola una sola orden viva y rechaza tareas sin 
   const bad = await requestJson(server, 'POST', '/commands', {type: 'checks.run', payload: {taskId: task.id, dir: 'C:/x'}, idempotencyKey: 'k1'});
   assert.equal(bad.status, 400, 'el directorio de recomprobación solo lo pone el integrador');
 });
+
+// usuario 2026-11-10: en modo rápido, recomprobar al integrar solo si hay conflicto (main tocó los mismos archivos)
+test('rápido: main avanzó con otros archivos → integra sin recomprobar', async () => {
+  const f = integrationFixture();
+  try {
+    writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({rapido: true}));
+    const a = f.addTask('a', {'Source/A.cpp': 'a\n'});
+    f.repo.commitMaster({'Source/B.cpp': 'de otra persona\n'});
+    const result = await integrate(f, a.task.id);
+    assert.equal(result.integrated, true);
+    assert.equal(commands(f, 'checks.run').length, 0, 'sin cruce no recomprueba');
+  } finally { f.close(); }
+});
+
+test('rápido: main cambió el mismo archivo y git lo mezcló solo → recomprueba y dice cuál', async () => {
+  const f = integrationFixture({'Source/Comun.h': 'uno\ndos\ntres\ncuatro\ncinco\n'});
+  try {
+    writeFileSync(join(f.dataDir, 'config.json'), JSON.stringify({rapido: true}));
+    f.repo.commitMaster({'Source/Comun.h': 'uno\ndos\ntres\ncuatro\ncinco\n'});
+    const a = f.addTask('a', {'Source/Comun.h': 'UNO\ndos\ntres\ncuatro\ncinco\n'});
+    f.repo.commitMaster({'Source/Comun.h': 'uno\ndos\ntres\ncuatro\nCINCO\n'});
+    const first = await integrate(f, a.task.id);
+    assert.deepEqual(first, {deferred: true, reason: 'Recomprobando: main también cambió Source/Comun.h'});
+    assert.equal(commands(f, 'checks.run').at(-1)!.payload.recheck, true);
+    checksFinished(f, a.task.id, 'passed');
+    assert.equal((await integrate(f, a.task.id)).integrated, true);
+  } finally { f.close(); }
+});

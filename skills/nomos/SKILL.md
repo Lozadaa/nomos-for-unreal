@@ -126,7 +126,8 @@ Con `rapido: true` (`nomos rapido on --data .nomos`) manda la velocidad; algún 
    la comprobación de [acabado](../ue-oficio/references/acabado.md#7-comprobación-que-bloquea-el-fin): `revisar_acabado.py` sin fallos
    y una captura del `.exe` empaquetado sin material por defecto. La pista visual lleva `docs/direccion.md` y la pantalla de carga.
 4. No crees tareas de QA, ni de revisión ni de cierre aparte: la revisión ya es automática y solo para lo grave.
-El servicio pone dos plazas de Unreal, 1,5 GB libres, sin esperar a Unreal ajenos, una corrección y sin recomprobar al integrar.
+El servicio pone dos plazas de Unreal, 1,5 GB libres, sin esperar a Unreal ajenos y una corrección. Al integrar solo recomprueba si hay
+cruce: `main` avanzó tocando los mismos archivos que la tarea (también en equipo). Con archivos distintos integra directo.
 
 ## Modo evento
 

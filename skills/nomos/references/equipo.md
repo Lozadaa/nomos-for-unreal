@@ -30,7 +30,8 @@ Eventos: `team.joined` (alguien se unió o cambió de frente: dilo en una línea
   la tarea se bloquea con su nombre.
 - Un título muy parecido a una tarea abierta de un peer abre la Decisión «Ana ya tiene “Barra de vida”: ¿duplicar o
   pedírsela?». Con «pedir», usa `team ask` y no arranques la tarea.
-- `main` compartido: antes de integrar Nomos trae `origin/main`; después empuja. Si no avanza tras 3 intentos, la tarea
+- `main` compartido: antes de integrar Nomos trae `origin/main`; después empuja. En modo rápido recomprueba solo si un peer
+  tocó los mismos archivos que la tarea (cruce); si no, empuja sin recomprobar. Si no avanza tras 3 intentos, la tarea
   queda bloqueada «No se pudo publicar main» (`integration.push_failed`).
 - Conflicto en un binario: la tarea queda bloqueada «Conflicto en L_Arena con Ana» y el usuario elige en «Por aprobar»
   **Quedarme con la mía** o **Quedarme con la suya**. Al dueño del frente le llega el aviso. Si lo resuelve a mano, Nomos sigue.
