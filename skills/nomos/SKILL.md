@@ -3,7 +3,7 @@ name: nomos
 description: 'Dirige producción de videojuegos Unreal con workers Claude Code (Codex solo con cupo): recibe mensajes del panel, reparte tareas verificables con dependencias y reservas, pide revisión independiente y correcciones al mismo responsable. Triggers: /nomos, "nomos", "Nomos", "Nomos for Unreal", "panel de producción", "director", "levanta el entorno", /nomos estado o /nomos cerrar. No usar para programar gameplay directamente ni fuera de la carpeta de un juego.'
 license: MIT
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # Nomos for Unreal
@@ -126,30 +126,30 @@ Es el modo por defecto. El director de sesión, con `Monitor`, está en el [modo
 
 La velocidad manda; algún bug menor se acepta. Cada tarea lleva su spec, `scope` (rutas que puede tocar) y `leases`
 (uasset y umap bajo Content, widgets, esqueletos que nadie más debe editar a la vez).
-1. **Dos pistas como máximo**, con archivos disjuntos (cada `.cpp/.h` en una sola). Nada de tarea «Base» aparte: la pista A
-   crea el módulo y el contrato mínimo en su primer commit; la B no depende de A si puede crear sus propias clases. Lo que
-   una pista añade al nivel lo crea su C++ en `BeginPlay`, no editando el `.umap`.
-2. Pista A: gameplay en C++ (física, reglas, CPU). Pista B: lo visual (material por fastvfx/receta, HUD, demo y vídeo).
-3. Criterios ≤ 5 por tarea, todos observables; el vídeo y `docs/hecho.md` van en la última que se integre, que además pasa
-   la comprobación de [acabado](../ue-oficio/references/acabado.md#7-comprobación-que-bloquea-el-fin): `revisar_acabado.py` sin fallos
-   y una captura del `.exe` empaquetado sin material por defecto. La pista visual lleva `docs/direccion.md` y la pantalla de carga.
-4. No crees tareas de QA, ni de revisión ni de cierre aparte: la revisión ya es automática y solo para lo grave.
-El servicio pone dos plazas de Unreal, 1,5 GB libres, sin esperar a Unreal ajenos y una corrección. Al integrar solo recomprueba si hay
-cruce: `main` avanzó tocando los mismos archivos que la tarea (también en equipo). Con archivos distintos integra directo.
-Un juego hecho con `nomos nuevo` ya trae menú, HUD, carga, fuentes y empaquetado: las specs piden el juego, no eso.
-Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config le da cupo.
-Modelo Claude por rol (`models` en config.json; el run lo guarda en `metadata.model`): `implementacion`, `opus` (o
-`workerModel`); `revisor`, `qa`, `integrador` y `animacion`, `sonnet`.
-
-En equipo, todo `.umap` y `.uasset` que la tarea vaya a tocar va en `--leases` (sin reserva no se toca un mapa
-ni un Blueprint); un título parecido al de una tarea abierta de un peer abre una Decisión. Ver [equipo](references/equipo.md).
-Con dos tareas sobre el mismo asset, solo una arranca; la otra queda `preparada` con
-`waitReason` «Esperando reserva…» hasta que la primera termine: no la fuerces ni
-subas `attempt`. Cupos en `concurrency`; un Unreal pesado a la vez y RAM libre: [máquina](references/maquina.md). OpenCode es el
-proveedor barato para tareas sencillas sin Unreal: reglas en [OpenCode](references/opencode.md).
-Las skills de cada worker salen del rol y el área (`service/src/skills.ts`): gameplay carga física, input, cámara y
-*game feel*; `vfx`/`materiales` luz y Niagara; `escenarios` diseño de niveles; `camara`, `ia` y `sonido` tienen su propio
-grupo. Elige el área que mejor nombra la pista: es lo que decide qué sabe el worker.
+1. **Un juego o una petición que cabe en una hora es una sola tarea**: el encargo entero, área `gameplay` y alcance de
+   todo el juego (`Source/`, `Content/`, `Config/`, `Scripts/`, `docs/`). Es el caso por defecto.
+2. **Dos pistas solo si** el usuario lo pide, hay dos personas con frentes distintos o la petición pasa claramente de una
+   hora. Nunca en serie: si la segunda depende de la primera, es una sola tarea.
+3. **Si se parte, por lo que se ve, no por archivos.** La pista visual es dueña de cámara, luz, aspecto de cada actor,
+   nivel, HUD y sonido, con los archivos donde eso viva. La de mecánica es dueña de reglas, movimiento, colisiones y modo
+   demo; no pone mallas ni materiales: llama a `<Juego>Aspecto::Vestir`. Ningún `## No tocar` quita a la otra pista algo visible.
+4. **La spec copia literal las frases de calidad del usuario** («tiene que sentirse bien», «claramente distinto»), como criterios.
+5. **Toda spec con algo visible lleva tres criterios fijos**: «El protagonista y lo que le amenaza se distinguen a 1280×720
+   en las tres capturas del modo demo.» · «El escenario entero cabe en pantalla, o la cámara sigue al protagonista.» ·
+   «Comprobación `imagen` sin fallos y las tres capturas miradas (línea `VISTO` en `docs/hecho.md`).»
+6. Criterios ≤ 5 por tarea (≤ 8 si es el juego entero), observables. El vídeo y `docs/hecho.md` van en la última que se
+   integre, que pasa el [acabado](../ue-oficio/references/acabado.md#7-comprobación-que-bloquea-el-fin) y lleva `docs/direccion.md`.
+   No crees tareas de QA, revisión ni cierre aparte: la revisión ya es automática y solo para lo grave.
+El servicio pone dos plazas de Unreal y una corrección; al integrar solo recomprueba si `main` avanzó tocando los mismos
+archivos. Un juego de `nomos nuevo` ya trae menú, HUD, carga, fuentes, luz, cámara y empaquetado: las specs piden el juego, no eso.
+Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config le da cupo. Modelo por rol (`models`;
+el run lo guarda en `metadata.model`): `implementacion`, `opus` (o `workerModel`); `revisor`, `qa`, `integrador` y `animacion`, `sonnet`.
+En equipo, todo `.umap` y `.uasset` que la tarea vaya a tocar va en `--leases`; un título parecido al de una tarea abierta
+de un peer abre una Decisión ([equipo](references/equipo.md)). Con dos tareas sobre el mismo asset, solo una arranca; la otra
+queda `preparada` («Esperando reserva…»): no la fuerces ni subas `attempt`. Cupos en `concurrency`; un Unreal pesado a la
+vez: [máquina](references/maquina.md). OpenCode, para tareas sencillas sin Unreal: [OpenCode](references/opencode.md).
+Las skills del worker salen del rol y el área (`service/src/skills.ts`): gameplay carga física, input, cámara y *game feel*;
+`vfx`/`materiales` luz y Niagara; `escenarios` niveles; `camara`, `ia` y `sonido`, el suyo. El área decide qué sabe el worker.
 El revisor es otro run (otro proveedor si hay dos) con brief de revisión y skills de
 `revisor`. Aprobado no es `done`. Detalle en [brief del revisor](references/brief-revisor.md).
 

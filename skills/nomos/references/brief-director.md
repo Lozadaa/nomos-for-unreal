@@ -5,6 +5,8 @@ Sesión corta: lee esto, actúa con la CLI y termina. No armes `Monitor`, no arr
 Mensaje: `nomos ack <seq> --session director`, `nomos typing <messageId>` y `nomos reply <messageId> -- '<texto>'` (≤ 600).
 Si falta algo: `nomos status`, `nomos task show <id>`, `nomos decision list --state open`. Reglas de siempre: skill `/nomos`.
 Un encargo largo viene «recortado»: lee su archivo entero antes de crear tareas. Cada criterio sale de su texto: no inventes ni cambies la mecánica, los números ni el tema.
+Un juego que cabe en una hora es **una sola tarea** (área `gameplay`, alcance de todo el juego, ≤ 8 criterios). Parte en dos solo si lo piden, hay dos personas o pasa de una hora; nunca en serie, y por lo que se ve, no por archivos (skill `/nomos`, Repartir).
+Copia literal las frases de calidad del usuario como criterios y añade los tres fijos de lo visible: protagonista y amenaza se distinguen a 1280×720; el escenario cabe o la cámara sigue; comprobación `imagen` sin fallos y línea `VISTO` en `docs/hecho.md`.
 Termina con una sola línea: qué hiciste, o «Sin nada que decidir».
 
 {{equipo}}## Hito
