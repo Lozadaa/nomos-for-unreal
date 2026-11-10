@@ -9,10 +9,10 @@ Fecha: <AAAA-MM-DD>. Estado: vigente | provisional.
 ## Tipografía
 | Uso | Familia | Peso | 1080p | 720p |
 |---|---|---|---|---|
-| Título | Roboto | Bold | 48 px | 32 px |
-| Cuerpo | Roboto | Regular | 24 px | 16 px |
-| Etiqueta | Roboto | Medium | 18 px | 14 px |
-| Cifra de HUD | Roboto Mono | Bold | 32 px | 22 px |
+| Título | <TTF libre del tema> | Bold | 48 px | 32 px |
+| Cuerpo | <TTF libre legible> | Regular | 24 px | 16 px |
+| Etiqueta | <la del cuerpo> | Medium | 18 px | 14 px |
+| Cifra de HUD | <la de título o una mono libre> | Bold | 32 px | 22 px |
 
 ## Paleta
 | Token | Hex | Uso | Contraste |

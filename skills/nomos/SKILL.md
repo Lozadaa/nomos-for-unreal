@@ -122,7 +122,9 @@ Con `rapido: true` (`nomos rapido on --data .nomos`) manda la velocidad; algún 
 1. **Dos pistas como máximo**, con archivos disjuntos (cada `.cpp/.h` en una sola). Nada de tarea «Base» aparte: la pista A
    crea el módulo y el contrato mínimo en su primer commit; la B no depende de A si puede crear sus propias clases.
 2. Pista A: gameplay en C++ (física, reglas, CPU). Pista B: lo visual (material por fastvfx/receta, HUD, demo y vídeo).
-3. Criterios ≤ 5 por tarea, todos observables; el vídeo y `docs/hecho.md` van en la última que se integre.
+3. Criterios ≤ 5 por tarea, todos observables; el vídeo y `docs/hecho.md` van en la última que se integre, que además pasa
+   la comprobación de [acabado](../ue-oficio/references/acabado.md#7-comprobación-que-bloquea-el-fin): `revisar_acabado.py` sin fallos
+   y una captura del `.exe` empaquetado sin material por defecto. La pista visual lleva `docs/direccion.md` y la pantalla de carga.
 4. No crees tareas de QA, ni de revisión ni de cierre aparte: la revisión ya es automática y solo para lo grave.
 El servicio pone dos plazas de Unreal, 1,5 GB libres, sin esperar a Unreal ajenos, una corrección y sin recomprobar al integrar.
 
@@ -225,7 +227,8 @@ DONE él mismo ni fuerza retirar un worktree. «Ajusta esto» sobre una tarea `d
 `nomos task continue <id> --file <texto>`: crea una tarea hija con la atribución
 anterior. `/nomos pausar|reanudar` (`nomos pausar --data .nomos`) frena o vuelve a
 permitir arranques nuevos; lo que ya integra o cierra termina. Ver [cierre](references/cierre.md).
-Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta `Build/Windows-actual/`, estámpalo con `nomos build stamp Build/Windows-actual` y, antes de decir «listo para probar», mira `nomos play --status`: `stale: true` (anterior a main) = fusiona y empaqueta otra vez ([build jugable](references/cierre.md#build-jugable)). Si `nomos status` dice «ejecuta nomos clean», hazlo ([disco](references/cierre.md#disco)).
+Lo visible nunca sale con lo del motor por defecto: toda spec con algo visible incluye el criterio «`revisar_acabado.py` sin
+fallos y captura del empaquetado revisada» ([acabado](../ue-oficio/references/acabado.md)). Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta `Build/Windows-actual/`, estámpalo con `nomos build stamp Build/Windows-actual` y, antes de decir «listo para probar», mira `nomos play --status`: `stale: true` (anterior a main) = fusiona y empaqueta otra vez ([build jugable](references/cierre.md#build-jugable)). Si `nomos status` dice «ejecuta nomos clean», hazlo ([disco](references/cierre.md#disco)).
 **Una sesión de director por hito; nunca más de 200 eventos del vigilante en la misma sesión.** Cuando la tarea de cierre del hito
 queda `done`, anuncia en una línea que terminas la sesión y que la siguiente arranca con `/nomos` y lee `.nomos/reanudacion.md`
 (Nomos lo reescribe al cerrar cada tarea y al parar; `nomos reanudacion --data .nomos` lo regenera): [reanudación](references/cierre.md#reanudacion).

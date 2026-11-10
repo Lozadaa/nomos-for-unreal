@@ -23,7 +23,9 @@ Mira lo que el proyecto ya tiene; no inventes un estilo ajeno al juego.
    juego con su categoría y miniatura.
 3. Paleta 3D: colores dominantes de los materiales principales y del cielo o la luz del mapa
    (si hay una captura de Nomos en `.nomos/artifacts/tests/`, úsala).
-4. Fuentes: `Content/**/Fonts` o las del motor (Roboto) si el proyecto no trae ninguna.
+4. Fuentes: `Content/**/Fonts`. Si el proyecto no trae ninguna, elige dos TTF libres (OFL, `github.com/google/fonts`)
+   que encajen con el tema, con tildes y ñ, e impórtalas. Las del motor (Roboto) no cuentan como elección:
+   ver [acabado](../ue-oficio/references/acabado.md).
 
 Detalle de qué mirar y cómo medir: [references/leer-estilo.md](references/leer-estilo.md).
 
