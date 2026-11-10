@@ -215,12 +215,17 @@ export const integrateRun: Handler = async (command, ctx) => {
   // la rama objetivo cambió desde que nació el worktree: recomprobar el resultado integrado antes de publicarlo
   // (no si lo único nuevo es el .gitattributes de LFS)
   const moved = state.base !== tree.baseCommit && !await onlyAttributes(ctx, ws.dir, tree.baseCommit, state.base);
-  // rápido: sin recomprobar sobre main (el worker ya compiló y probó); lo que rompa la mezcla lo ve la tarea siguiente
-  if (moved && !state.checked && !rapido(readConfig(ctx.dataDir))) {
+  // rápido: solo si hay cruce, es decir, main avanzó tocando archivos que la tarea también tocó y git los mezcló solo
+  // (usuario 2026-11-10: «no quiero que compruebe a menos que haya un conflicto»). Archivos distintos: el worker ya
+  // compiló y probó lo suyo. Los conflictos de git se paran antes, en el merge
+  const fast = rapido(readConfig(ctx.dataDir));
+  const crossed = moved && fast && !state.checked ? await crossedFiles(ctx, ws.dir, tree.baseCommit, state.base, state.files) : [];
+  if (moved && !state.checked && (!fast || crossed.length)) {
     const checks = enqueue(ctx.db, 'checks.run', {taskId: task.id, runId: implementerOf(ctx, task).id, files: state.files, dir: ws.dir, recheck: true},
       `integrate.checks:${run.id}:${state.commit}`);
     const current = read<Command>(ctx.db, 'commands', checks.id)!;
-    if (current.state === 'pending' || current.state === 'running') return {deferred: true, reason: 'Recomprobando sobre la rama objetivo'};
+    if (current.state === 'pending' || current.state === 'running') return {deferred: true, reason: crossed.length
+      ? `Recomprobando: main también cambió ${crossed.slice(0, 3).join(', ')}${crossed.length > 3 ? '…' : ''}` : 'Recomprobando sobre la rama objetivo'};
     const gate = checkGate(ctx.db, task.id);
     if (current.state === 'failed' || !gate.ok) {
       await ctx.git.checkout(ws.dir, ws.branch);
@@ -285,3 +290,11 @@ export const integrateRun: Handler = async (command, ctx) => {
   finishRun(ctx.db, run.id, 'done', `Integrado en ${ws.branch}@${short(state.commit)}`);
   return {integrated: true, commit: state.commit};
 };
+
+/** Archivos que main cambió desde que nació el worktree y que la tarea también cambia: lo que git mezcló sin conflicto. */
+export async function crossedFiles(ctx: {git: {filesBetween(dir: string, from: string, to: string): Promise<string[]>}}, dir: string,
+  from: string, to: string, mine: string[]): Promise<string[]> {
+  const norm = (f: string) => f.replaceAll('\\', '/');
+  const theirs = new Set((await ctx.git.filesBetween(dir, from, to)).map(norm));
+  return mine.map(norm).filter(f => theirs.has(f));
+}
