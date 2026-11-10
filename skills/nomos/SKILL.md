@@ -3,7 +3,7 @@ name: nomos
 description: 'Dirige producción de videojuegos Unreal con workers Claude Code (Codex solo con cupo): recibe mensajes del panel, reparte tareas verificables con dependencias y reservas, pide revisión independiente y correcciones al mismo responsable. Triggers: /nomos, "nomos", "Nomos", "Nomos for Unreal", "panel de producción", "director", "levanta el entorno", /nomos estado o /nomos cerrar. No usar para programar gameplay directamente ni fuera de la carpeta de un juego.'
 license: MIT
 metadata:
-  version: 0.5.0
+  version: 0.6.0
 ---
 
 # Nomos for Unreal
@@ -19,7 +19,9 @@ la config le da cupo; Git Bash en Windows. Si algo falla, `nomos doctor --data .
 En lo siguiente, `nomos` abrevia `node "<base>/scripts/nomos.ts"` y todos los
 comandos se ejecutan desde el juego con `--data .nomos`. Si el juego trae Nomos en `Tools/Nomos` (embebido), el mismo `nomos.ts` lo encuentra; el envoltorio `.\nomos.cmd`/`./nomos.sh` de la raíz equivale. `scripts/kratos.ts` es el alias del nombre viejo (avisa y delega) y la carpeta de datos con el nombre anterior, parada, se migra sola a `.nomos`.
 
-1. Comprueba un `.uproject` en la carpeta actual; si falta, explica el requisito y para.
+1. Comprueba un `.uproject` en la carpeta actual. Si falta y piden un juego nuevo, `nomos nuevo <Nombre>` lo crea en
+   `Documents/Unreal Projects/<Nombre>` (UE 5.9, con menú, HUD, carga, fuentes y Nomos dentro) y sigues en esa carpeta.
+   Si no, explica el requisito y para.
    Ejecuta `nomos start --data .nomos`. Lee `URL ...`; `YA_ACTIVO` reutiliza servicio.
    Después `nomos skills install --data .nomos` copia las skills de UI al juego; si
    avisa de cambios locales, se conservan y lo dices en una línea.
@@ -31,19 +33,13 @@ comandos se ejecutan desde el juego con `--data .nomos`. Si el juego trae Nomos 
    unirse no pide permiso a nadie; si devuelve `aviso` (frente ya tomado), dilo en una línea y sigue.
 2. El comando abre el navegador. Muestra la URL en `show_pane preview` si existe.
    Reiniciar no invalida los accesos directos (token por carpeta; `--new-token` lo cambia). Un servicio por juego: [panel por proyecto](references/contrato-eventos.md#panel-por-proyecto).
-3. Consulta `nomos status --data .nomos`. Si otra sesión tiene vigilante vivo,
-   conserva esa directora. Con `director.mode: "evento"` no armes nada ([modo evento](#modo-evento)). En otro caso, arma `Monitor` durante 30 minutos con
-   `nomos vigila --session <sesion> --data .nomos --types <tipos>` con
-   `message.received,run.finished,worker.waiting,command.failed,review.finished,test.failed,`
-   `task.moved,integration.completed,task.closing_blocked`.
-   `--types` reemplaza los defaults; `decision.opened/updated` llegan siempre; rearmar no repite eventos (cursor por sesión).
-4. Anuncia escucha en una línea solo cuando Monitor esté armado. Si la herramienta
-   no está disponible, explica la limitación; no afirmes estar escuchando.
-   Añade `.nomos/` al `.gitignore` del juego si falta. No pidas permiso para conectar.
+3. Consulta `nomos status --data .nomos`. El director va por evento ([modo evento](#modo-evento)): no armes `Monitor` ni
+   vigilante. Con `rapido: false` y director de sesión, sigue el [modo completo](references/modo-completo.md).
+4. Añade `.nomos/` al `.gitignore` del juego si falta. No pidas permiso para conectar.
 
 ## Dirigir
 
-Procesa las líneas del vigilante por `seq` ascendente. Todas llevan `type`; `message.received` lleva
+Procesa los eventos (los del brief de evento o, en sesión, los del vigilante) por `seq` ascendente. Todas llevan `type`; `message.received` lleva
 `messageId,text,origin` y el resto `payload,createdAt`. Antes, lee [ciclo de tarea](references/ciclo-tarea.md).
 
 1. **Acusa en < 1 min, responde en < 3 min, trabaja después, cierra con lo creado.** Al recibir
@@ -80,8 +76,8 @@ Procesa las líneas del vigilante por `seq` ascendente. Todas llevan `type`; `me
    Si cumple, pide `nomos task review <taskId>` una vez por run (en UI la encola el QA visual).
    Si falla, escribe .nomos/correcciones/RUN/N.md: Qué se ve mal, Qué debería verse y Dónde;
    envía `nomos worker send <runId> --file .nomos/correcciones/<runId>/<n>.md`.
-   Conserva run y worktree. Máximo tres correcciones; si la tercera no cumple,
-   abre Decisión antes de una cuarta. Nunca declares la tarea terminada.
+   Conserva run y worktree. Una corrección; si no basta, el servicio abre la Decisión del máximo (nunca cancela solo).
+   Nunca declares la tarea terminada.
 6. Ante `worker.waiting`, consulta estado actual y `nomos run output <runId> --since <seq>`;
    usa el cursor de salida guardado, o 0 para la primera lectura. Si la spec responde,
    envía esa respuesta mediante `worker send`. Si no, abre una Decisión mediante
@@ -116,19 +112,6 @@ tareas del día en curso y la de cierre; ninguna tarea nueva fuera de `docs/plan
 que la acepte. Detalle en [modo jam](references/jam.md).
 Un juego sin `.cpp`/`.h` bajo `Source/` no tiene grafo: graphify solo indexa código (doctor: «sin código C++, apagado»).
 
-## Modo rápido
-
-Con `rapido: true` (`nomos rapido on --data .nomos`) manda la velocidad; algún bug menor se acepta. Reparte así:
-1. **Dos pistas como máximo**, con archivos disjuntos (cada `.cpp/.h` en una sola). Nada de tarea «Base» aparte: la pista A
-   crea el módulo y el contrato mínimo en su primer commit; la B no depende de A si puede crear sus propias clases.
-2. Pista A: gameplay en C++ (física, reglas, CPU). Pista B: lo visual (material por fastvfx/receta, HUD, demo y vídeo).
-3. Criterios ≤ 5 por tarea, todos observables; el vídeo y `docs/hecho.md` van en la última que se integre, que además pasa
-   la comprobación de [acabado](../ue-oficio/references/acabado.md#7-comprobación-que-bloquea-el-fin): `revisar_acabado.py` sin fallos
-   y una captura del `.exe` empaquetado sin material por defecto. La pista visual lleva `docs/direccion.md` y la pantalla de carga.
-4. No crees tareas de QA, ni de revisión ni de cierre aparte: la revisión ya es automática y solo para lo grave.
-El servicio pone dos plazas de Unreal, 1,5 GB libres, sin esperar a Unreal ajenos y una corrección. Al integrar solo recomprueba si hay
-cruce: `main` avanzó tocando los mismos archivos que la tarea (también en equipo). Con archivos distintos integra directo.
-
 ## Modo evento
 
 Con `director.mode: "evento"` en `config.json` no hay director permanente: el servicio te lanza (`/nomos evento`) cuando
@@ -137,33 +120,26 @@ un evento pide decisión, con el brief en `.nomos/director-brief.md` (lo mismo i
 2. Actúa con la CLI: ack, typing y reply a cada mensaje; crea, revisa, integra o contesta al worker que espera.
 3. No armes `Monitor`, no esperes a workers ni a eventos: el siguiente evento te vuelve a lanzar.
 4. Termina con una sola línea: qué hiciste, o «Sin nada que decidir». Plazo: 20 min.
-El modo `sesion` (por defecto fuera de jam) sigue como arriba.
+Es el modo por defecto. El director de sesión, con `Monitor`, está en el [modo completo](references/modo-completo.md).
 
 ## Repartir
 
-Divide una petición cuando tiene partes independientes o un orden real (base antes
-que uso). Cada tarea lleva su spec, `scope` (rutas que puede tocar) y `leases`:
-assets compartidos de Unreal (uasset y umap bajo Content, widgets, esqueletos)
-que nadie más debe editar a la vez. Crea primero la base y pasa su ID en `--depends`;
-las banderas se aplican antes de preparar, así el planificador nunca la ve a medias.
-**Pistas en paralelo (lo que hace a Nomos más rápido que un solo agente).** Un plan de hitos no es una fila de
-tareas: una base corta (≤ 15 min: módulo, clases vacías, GameMode, mapa con cámara y luz) y, colgando de ella, pistas
-que avanzan a la vez, cada una con varios hitos y archivos propios (p. ej. física y tiro · aspecto de la pieza ·
-reglas y CPU · HUD). Nada de una tarea por hito con `--depends` en cadena. Para que dos pistas no se esperen:
-- lo que una pista añade al nivel lo crea su C++ en `BeginPlay` (o un `Spawner` propio), no editando el `.umap`;
-  el mapa solo lo reserva la base;
-- cada pista tiene su clase/archivo; el punto de unión (GameMode, Build.cs) lo deja preparado la base;
-- `concurrency.claude` ≥ número de pistas y `scheduler.heavy.maxConcurrent` 2-3 (cada worker abre su Unreal; la RAM
-  libre manda).
+La velocidad manda; algún bug menor se acepta. Cada tarea lleva su spec, `scope` (rutas que puede tocar) y `leases`
+(uasset y umap bajo Content, widgets, esqueletos que nadie más debe editar a la vez).
+1. **Dos pistas como máximo**, con archivos disjuntos (cada `.cpp/.h` en una sola). Nada de tarea «Base» aparte: la pista A
+   crea el módulo y el contrato mínimo en su primer commit; la B no depende de A si puede crear sus propias clases. Lo que
+   una pista añade al nivel lo crea su C++ en `BeginPlay`, no editando el `.umap`.
+2. Pista A: gameplay en C++ (física, reglas, CPU). Pista B: lo visual (material por fastvfx/receta, HUD, demo y vídeo).
+3. Criterios ≤ 5 por tarea, todos observables; el vídeo y `docs/hecho.md` van en la última que se integre, que además pasa
+   la comprobación de [acabado](../ue-oficio/references/acabado.md#7-comprobación-que-bloquea-el-fin): `revisar_acabado.py` sin fallos
+   y una captura del `.exe` empaquetado sin material por defecto. La pista visual lleva `docs/direccion.md` y la pantalla de carga.
+4. No crees tareas de QA, ni de revisión ni de cierre aparte: la revisión ya es automática y solo para lo grave.
+El servicio pone dos plazas de Unreal, 1,5 GB libres, sin esperar a Unreal ajenos y una corrección. Al integrar solo recomprueba si hay
+cruce: `main` avanzó tocando los mismos archivos que la tarea (también en equipo). Con archivos distintos integra directo.
+Un juego hecho con `nomos nuevo` ya trae menú, HUD, carga, fuentes y empaquetado: las specs piden el juego, no eso.
 Claude es el proveedor por defecto (`defaultProvider`); Codex solo si la config le da cupo.
-Modelo Claude por rol (`sonnet`, `opus` o `haiku`; el run lo guarda en `metadata.model`):
-
-| Rol (`models` en config.json) | Modelo por defecto | Quién |
-|---|---|---|
-| `implementacion` | `opus` (o `workerModel` si existe) | worker de cualquier área |
-| `revisor` | `sonnet` | revisión de código |
-| `qa` | `sonnet` | QA visual tras `ui.cycle` |
-| `integrador`, `animacion` | `sonnet` | integración y animación |
+Modelo Claude por rol (`models` en config.json; el run lo guarda en `metadata.model`): `implementacion`, `opus` (o
+`workerModel`); `revisor`, `qa`, `integrador` y `animacion`, `sonnet`.
 
 En equipo, todo `.umap` y `.uasset` que la tarea vaya a tocar va en `--leases` (sin reserva no se toca un mapa
 ni un Blueprint); un título parecido al de una tarea abierta de un peer abre una Decisión. Ver [equipo](references/equipo.md).
@@ -186,12 +162,9 @@ formas orgánicas, `rig` ni `animate`. Migra con `asset migrate`, importa con
 `asset prepare`; licencia desconocida y presupuesto agotado abren Decisión.
 Detalle, niveles y guion del Launcher en [assets](references/assets.md).
 
-**VFX y materiales**: la spec pide una receta y `nomos fastvfx crear <receta> --preview`, no Python nodo a nodo;
-plantillas, caché y límites en [fastvfx](references/fastvfx.md). A mano solo si ninguna plantilla sirve.
-
-**Escenas, sondeos, BP + DataAsset, importar mallas, cámara del pawn, luz exterior y PCG**: la spec pide una receta y
-`nomos ue receta --tarea <id> <receta.json>`, no un script por tarea; plantillas y ejemplos en [recetas](references/recetas.md).
-Si Unreal se cae, `nomos ue crash` da el mensaje, la pila y el log desde el fallo.
+**VFX, materiales, escenas, sondeos, BP + DataAsset, mallas, cámara, luz y PCG**: la spec pide la receta del [camino corto](../ue-oficio/references/camino-corto.md)
+(`nomos fastvfx crear <receta> --preview`, `nomos ue receta --tarea <id> <receta.json>`), no Python nodo a nodo ni un script por
+tarea: [fastvfx](references/fastvfx.md), [recetas](references/recetas.md). Si Unreal se cae, `nomos ue crash` da el mensaje, la pila y el log.
 
 ## Personajes y animación
 
@@ -233,36 +206,23 @@ anterior. `/nomos pausar|reanudar` (`nomos pausar --data .nomos`) frena o vuelve
 permitir arranques nuevos; lo que ya integra o cierra termina. Ver [cierre](references/cierre.md).
 Lo visible nunca sale con lo del motor por defecto: toda spec con algo visible incluye el criterio «`revisar_acabado.py` sin
 fallos y captura del empaquetado revisada» ([acabado](../ue-oficio/references/acabado.md)). Si la tarea tocó `Source/`, `Content/` o `Config/`, fusiona main, re-empaqueta `Build/Windows-actual/`, estámpalo con `nomos build stamp Build/Windows-actual` y, antes de decir «listo para probar», mira `nomos play --status`: `stale: true` (anterior a main) = fusiona y empaqueta otra vez ([build jugable](references/cierre.md#build-jugable)). Si `nomos status` dice «ejecuta nomos clean», hazlo ([disco](references/cierre.md#disco)).
-**Una sesión de director por hito; nunca más de 200 eventos del vigilante en la misma sesión.** Cuando la tarea de cierre del hito
-queda `done`, anuncia en una línea que terminas la sesión y que la siguiente arranca con `/nomos` y lee `.nomos/reanudacion.md`
-(Nomos lo reescribe al cerrar cada tarea y al parar; `nomos reanudacion --data .nomos` lo regenera): [reanudación](references/cierre.md#reanudacion).
 
 ## Solución de problemas (Troubleshooting)
 
 `{"error":"service_down"}` sale una vez por caída real (sin proceso o puerto cerrado tras 3 `/health` en 15 s): arranca el servicio;
 `{"warn":"service_slow","ms":N}` (máx. 1/min) es vivo pero lento: no arranques otro. No es petición ni genera ack/reply. Si falla una operación, conserva los IDs, consulta antes de reenviar y usa
-claves de idempotencia estables.
-
-El cursor de eventos vive en .nomos/watcher-cursors.json, separado de `lastAckSeq`; rearmar
-reentrega mensajes sin confirmar sin repetir eventos del director ya impresos (ausente: desde cero;
-corrupto: avisa del replay). `watcher_checkpoint_error` detiene el vigilante: conserva el archivo
-y `.tmp`, corrige acceso o espacio y rearma con la misma sesión.
-Consulta [contrato de eventos](references/contrato-eventos.md) antes de recuperar.
-No prometas procesamiento exactamente una vez: comprueba estado actual antes de actuar.
-Una caída entre ack y reply deja el mensaje en SQLite sin reentrega: `GET /messages/:id` y responde con ese ID.
-
-Al expirar Monitor, reármalo a 30 minutos con la misma sesión y tipos; con Run activo, pregunta
-pendiente o Decisión abierta sigue escuchando. Tras dos expiraciones vacías (60 min) sin trabajo
-activo, apágalo y dilo; el siguiente `/nomos` lo arma de nuevo.
+claves de idempotencia estables. Antes de recuperar, [contrato de eventos](references/contrato-eventos.md); no prometas
+procesamiento exactamente una vez: comprueba el estado actual antes de actuar. Una caída entre ack y reply deja el mensaje
+en SQLite sin reentrega: `GET /messages/:id` y responde con ese ID.
 
 ## Argumentos y salida
 
 | Argumento | Acción |
 |---|---|
-| (nada) | Arrancar/conectar, abrir panel y armar vigilante |
+| (nada) | Arrancar/conectar y abrir el panel |
 | `estado` | `nomos status --data .nomos`; resumen de servicio, vigilante y pendientes |
 | `evento` | Lo lanza el servicio: [modo evento](#modo-evento); sin arrancar, sin vigilante |
-| `cerrar` | Detener Monitor y rearmados; `nomos stop --data .nomos`; conservar base del juego |
+| `cerrar` | `nomos stop --data .nomos`; conservar base del juego |
 
 Ejemplo de reply de creación (dos líneas, sustituye el ID con el devuelto):
 
@@ -276,7 +236,7 @@ ese archivo ni el token al chat. El servicio solo escucha en `127.0.0.1` y sus r
 
 ## Recursos adicionales (Additional Resources)
 
-- [Contrato de eventos y recuperación](references/contrato-eventos.md).
+- [Contrato de eventos y recuperación](references/contrato-eventos.md); [modo completo (`rapido: false`)](references/modo-completo.md).
 - [Assets: política, niveles de Fab y Meshy](references/assets.md); [personajes y animación](references/personajes.md); [VFX y materiales por receta](references/fastvfx.md).
 - [Ciclo, especificación y Decisiones](references/ciclo-tarea.md); [equipo: varios Nomos sobre el mismo juego](references/equipo.md).
 - [Plantilla del brief del worker](references/brief-worker.md), [del revisor](references/brief-revisor.md)
@@ -286,10 +246,5 @@ ese archivo ni el token al chat. El servicio solo escucha en `127.0.0.1` y sus r
   Si el juego está en el 5.9 MegaJam Preview (inestable, solo en copia): [ue59-preview](../ue-oficio/references/ue59-preview.md).
   Al repartir un juego en 5.9, cada spec nombra la feature del 5.9 que encaja con la tarea y su plan B de 5.8, sacadas de
   [ue59-juego](../ue-oficio/references/ue59-juego.md); el brief del worker lo recuerda solo cuando `Build.version` dice 5.9.
-- Casos: [arranque](evals/01-arranque.md), [ida y vuelta](evals/02-ida-vuelta.md),
-  [recuperación](evals/03-recuperacion.md), [petición](evals/04-peticion-a-tarea.md),
-  [corrección](evals/05-correccion.md), [dos tareas, un widget](evals/06-dos-tareas-un-widget.md),
-  [cinco personajes](evals/07-cinco-personajes.md), [licencia desconocida](evals/08-licencia-desconocida.md),
-  [héroe con ataque](evals/09-heroe-ataque.md), [cierre](evals/10-cierre.md), [continuación](evals/11-continuacion.md),
-  [formato evaluable](evals/evals.json).
-- Los casos describen expectativas; ejecutar un lint no verifica Monitor, workers ni panel.
+- Casos: [arranque](evals/01-arranque.md), [petición](evals/04-peticion-a-tarea.md), [corrección](evals/05-correccion.md),
+  [cierre](evals/10-cierre.md) y el resto en `evals/` ([formato evaluable](evals/evals.json)); describen expectativas, no verifican workers ni panel.
