@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { stampBuild } from '../../service/src/build-info.ts';
 import { appendEvent } from '../../service/src/store.ts';
 import { join } from 'node:path';
-import { identity, listPeers, myCard, publishCard, recordPeers, teamTick, type Card, type TeamTick } from '../../service/src/team.ts';
+import { identity, listPeers, myCard, publishCard, recordPeers, teamText, teamTick, type Card, type Peer, type TeamTick } from '../../service/src/team.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { finishRun, startRun } from '../../service/src/repo/runs.ts';
 import { teamFixture } from './team-fixture.ts';
@@ -119,4 +119,20 @@ test('equipo: una tarjeta de un Nomos viejo, sin done ni main, se lee igual y sa
     assert.deepEqual(peer.done, []);
     assert.equal(peer.main, null);
   } finally { f.close(); }
+});
+
+test('nomos equipo: una persona por bloque, haciendo y hecho solo si hay algo, y quién va por detrás de main', () => {
+  const now = new Date(2026, 10, 10, 16, 0).getTime(), at = (min: number) => new Date(now - min * 60_000).toISOString();
+  const base = {leases: [], decisions: [], build: null, requests: [], tasks: [], done: []};
+  const me: Card = {...base, id: 'r1', name: 'Richard', frente: 'combate', updatedAt: at(0), main: {commit: '4e3fa41c0ffee', at: at(5)},
+    tasks: [{id: 't1', title: 'Lanzamiento de la brasa', state: 'implementando', area: 'gameplay'}, {id: 't2', title: 'Luces', state: 'preparada', area: 'escenarios'}],
+    leases: [{path: 'Content/Mapas/L_Patio.umap', taskId: 't1', until: new Date(2026, 10, 10, 16, 40).toISOString(), at: at(10)}],
+    done: [{id: 't0', title: 'Sombras que nacen en los bordes', summary: 'Las sombras nacen en los bordes', at: at(12)}, {id: 'tx', title: 'Antigua', summary: '', at: at(90)}]};
+  const ana: Peer = {...base, id: 'a1', name: 'Ana', frente: 'UI', updatedAt: at(40), main: {commit: '9ab948d00000', at: at(50)}, present: false};
+  assert.equal(teamText(me, [ana], {r1: 0, a1: 2}, now), [
+    'Richard (combate) · presente · main 4e3fa41, al día',
+    '  haciendo: Lanzamiento de la brasa [implementando] · reserva L_Patio hasta 16:40',
+    '  hecho:    Sombras que nacen en los bordes (hace 12 min)',
+    'Ana (UI) · ausente 40 min · main 9ab948d, 2 commits atrás',
+  ].join('\n'));
 });

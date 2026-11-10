@@ -1,13 +1,17 @@
 import { body, json } from '../http.ts';
 import { appendEvent } from '../store.ts';
-import { listPeers, teamConfig, identity } from '../team.ts';
+import { dirname } from 'node:path';
+import { behindCounts, listPeers, teamConfig, identity } from '../team.ts';
 import { text, type Context } from './context.ts';
 
 /** Hito 29: `GET /team` (yo y los peers) y `POST /team/ask` (petición a otra persona; viaja en mi tarjeta). */
 export async function team({db, req, res, url, dataDir}: Context): Promise<boolean> {
   if (url.pathname === '/team' && req.method === 'GET') {
     const config = dataDir ? teamConfig(dataDir) : null;
-    json(res, 200, {me: config ? {id: identity(dataDir!).id, name: config.name, frente: config.frente} : null, peers: listPeers(db)});
+    // jam: cuántos commits va cada uno por detrás de origin/main (lo último traído), para «N atrás» junto a su commit
+    const peers = listPeers(db), behind = config ? await behindCounts(dataDir!, dirname(dataDir!), peers) : {};
+    json(res, 200, {me: config ? {id: identity(dataDir!).id, name: config.name, frente: config.frente} : null,
+      peers: peers.map(p => ({...p, behind: behind[p.id] ?? null}))});
     return true;
   }
   if (url.pathname !== '/team/ask' || req.method !== 'POST') return false;

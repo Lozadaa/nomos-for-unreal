@@ -200,13 +200,37 @@ const unavailable = (db: DatabaseSync, s: TeamTick, reason: string) => {
   s.warned = true;
 };
 
+/** La rama compartida (la de integrar) y su cabeza en mi clon. */
+async function localMain(dataDir: string, projectDir: string): Promise<{git: Git; branch: string; main: Card['main']}> {
+  const git = createGit(), branch = await targetBranch({dataDir, projectDir, git} as unknown as WorkerContext).catch(() => '');
+  const main = branch ? await teamGit(projectDir, ['log', '-1', '--format=%H %cI', `refs/heads/${branch}`])
+    .then(out => { const [commit, at] = out.trim().split(' '); return {commit, at}; }, () => null) : null;
+  return {git, branch, main};
+}
+/** Cuántos commits le faltan a cada `main` para llegar a `origin/<rama>` (lo último traído); sin dato si no se sabe. */
+export async function behindCounts(dataDir: string, projectDir: string, cards: Pick<Card, 'id' | 'main'>[]): Promise<Record<string, number>> {
+  const {branch} = await localMain(dataDir, projectDir), behind: Record<string, number> = {};
+  if (branch) for (const card of cards) if (card.main?.commit)
+    await teamGit(projectDir, ['rev-list', '--count', `${card.main.commit}..${remoteRef(branch)}`]).then(n => { behind[card.id] = Number(n.trim()); }, () => {});
+  return behind;
+}
+const ago = (iso: string, now: number) => { const min = Math.max(0, Math.round((now - Date.parse(iso)) / 60_000)); return min < 60 ? `${min} min` : `${Math.round(min / 60)} h`; };
+/** `nomos equipo`: una persona por bloque; las líneas `haciendo` y `hecho` solo si hay algo. */
+export function teamText(me: Card, peers: Peer[], behind: Record<string, number>, now: number): string {
+  return [{...me, present: true}, ...peers].flatMap(p => {
+    const n = behind[p.id], last = p.done?.[0];
+    const main = p.main ? ` · main ${p.main.commit.slice(0, 7)}${n === undefined ? '' : n ? `, ${n} commit${n > 1 ? 's' : ''} atrás` : ', al día'}` : '';
+    const doing = [...p.tasks.filter(t => !['pendiente', 'preparada'].includes(t.state)).map(t => `${t.title} [${t.state}]`),
+      ...p.leases.filter(l => Date.parse(l.until) > now).map(l => `reserva ${leaf(l.path)} hasta ${hhmm(l.until)}`)];
+    return [`${p.name} (${p.frente}) · ${p.present ? 'presente' : `ausente ${ago(p.updatedAt, now)}`}${main}`,
+      ...doing.length ? [`  haciendo: ${doing.join(' · ')}`] : [], ...last ? [`  hecho:    ${last.title} (hace ${ago(last.at, now)})`] : []];
+  }).join('\n');
+}
 /** Un pase (cada 10 s): publica si mi tarjeta cambió (agrupa los cambios de esos 10 s) o toca latido; trae cada `pullSeconds`. */
 export async function teamTick(db: DatabaseSync, dataDir: string, projectDir: string, s: TeamTick, now = Date.now(), force = false): Promise<void> {
   const team = teamConfig(dataDir);
   if (!team) return;
-  const git = createGit(), branch = await targetBranch({dataDir, projectDir, git} as unknown as WorkerContext).catch(() => '');
-  const main = branch ? await teamGit(projectDir, ['log', '-1', '--format=%H %cI', `refs/heads/${branch}`])
-    .then(out => { const [commit, at] = out.trim().split(' '); return {commit, at}; }, () => null) : null;
+  const {git, branch, main} = await localMain(dataDir, projectDir);
   const card = myCard(db, dataDir, new Date(now), main), hash = content(card);
   if (force || hash !== s.hash || now - s.pushedAt >= HEARTBEAT_MS) {
     const ok = await publishCard(projectDir, dataDir, card.id, card, team.branch);
@@ -287,14 +311,16 @@ export function similarPeerTask(db: DatabaseSync, title: string): {name: string;
   return null;
 }
 
-const usage = 'Uso: nomos team init --name N --frente F|status|frente F|leave|ask --to PERSONA TEXTO';
+const usage = 'Uso: nomos team init --name N --frente F|status [--texto]|frente F|leave|ask --to PERSONA TEXTO; nomos equipo';
 /** `nomos team …`: init, status, frente, leave sin servicio; ask lo deja en el servicio (va en mi tarjeta). */
 export async function teamCli(argv: string[], open: (dataDir: string) => DatabaseSync): Promise<boolean> {
   const first = argv.find((a, i) => !a.startsWith('--') && !['--data', '--port', '--session'].includes(argv[i - 1]));
-  if (first !== 'team') return false;
+  if (first !== 'team' && first !== 'equipo') return false;
+  // `nomos equipo` = `nomos team status --texto`
+  const at = argv.indexOf(first), args = first === 'equipo' ? [...argv.slice(0, at), 'team', 'status', ...argv.slice(at + 1), '--texto'] : argv;
   const {parseArgs} = await import('node:util');
-  const {values, positionals} = parseArgs({args: argv, allowPositionals: true,
-    options: {data: {type: 'string', default: '.nomos'}, name: {type: 'string'}, frente: {type: 'string'}, to: {type: 'string'}, title: {type: 'string'}}});
+  const {values, positionals} = parseArgs({args, allowPositionals: true,
+    options: {data: {type: 'string', default: '.nomos'}, name: {type: 'string'}, frente: {type: 'string'}, to: {type: 'string'}, title: {type: 'string'}, texto: {type: 'boolean'}}});
   if (positionals[0] !== 'team') return false;
   const [, action, ...rest] = positionals, dataDir = values.data!, projectDir = dirname(dataDir), file = join(dataDir, 'config.json');
   const config = () => existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
@@ -328,6 +354,14 @@ export async function teamCli(argv: string[], open: (dataDir: string) => Databas
       recordPeers(db, dataDir, cards);
     }
     const others = cards ? cards.filter(c => c.id !== me).map(c => ({...c, present: Date.now() - Date.parse(c.updatedAt) < ABSENT_MS})) : listPeers(db);
+    if (values.texto) {
+      if (!team) { console.log('El equipo está apagado. Para unirte: nomos team init --name <nombre> --frente <frente>'); return true; }
+      const {branch: target, main} = await localMain(dataDir, projectDir);
+      if (target && cards) await fetchMain(db, projectDir, target);
+      const mine = myCard(db, dataDir, new Date(), main), peers = others.map(p => ({...p, done: p.done ?? [], main: p.main ?? null}));
+      console.log(teamText(mine, peers, await behindCounts(dataDir, projectDir, [mine, ...peers]), Date.now()));
+      return true;
+    }
     const shared = (others.length > 0) || !!team;
     const taken = team ? others.filter(p => p.frente.toLowerCase() === team.frente.toLowerCase()).map(p => p.name) : [];
     print({enabled: !!team, remote: cards !== null, shared, me: team ? {id: me, name: team.name, frente: team.frente} : null,
