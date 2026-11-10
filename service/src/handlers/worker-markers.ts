@@ -36,6 +36,15 @@ function fenceLine(line:string,fence:string): string | undefined {
   if(!fence) return token;
   return token[0]===fence[0] && token.length>=fence.length && /^\s*$/.test(suffix) ? '' : fence;
 }
+/** Los ejemplos literales de los briefs (worker y revisor): dentro de un bloque de código son plantilla, no marca. */
+const briefExamples=new Set(['{"summary":"Resumen","commits":[],"tests":"passed"}','{"question":"Tu pregunta"}','{"question":"Pregunta concreta"}',
+  '{"approved":false,"findings":[{"file":"Docs/README.md","line":3,"severity":"error","note":"El README no dice cómo arrancar el juego; se esperaba el paso a paso"}]}']);
+/** Jam 2026-11-10 (metras, 5.ª vuelta: un REVIEW en un bloque no se leyó en 31 min): dentro de un bloque cuenta la marca
+ *  que empieza la línea, en una sola línea, con JSON válido y que no es un ejemplo del brief. */
+function fencedMarker(line:string): Marker | undefined {
+  const match=/^(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW|SKILLS) ([\[{].*?)\s*$/.exec(line);
+  return match && !briefExamples.has(match[2]) ? decode(match[1],match[2]) : undefined;
+}
 /** Hito 13: una marca partida se reensambla hasta 40 líneas u 8 KB; más allá se abandona. */
 export const markerLimits={lines:40,bytes:8192};
 const prefixes=['NOMOS_DONE ','NOMOS_ASK ','NOMOS_REVIEW ','NOMOS_SKILLS ','KRATOS_DONE ','KRATOS_ASK ','KRATOS_REVIEW ','KRATOS_SKILLS '];
@@ -60,7 +69,7 @@ export function streamMarkers(lines:string[],buffer:string,fence=''): {found:Mar
     let line=original;
     const nextFence=fenceLine(line,fence);
     if(nextFence!==undefined) {fence=nextFence;rows=[];continue;}
-    if(fence) {rows=[];continue;}
+    if(fence) {rows=[];const marker=fencedMarker(line);if(marker) found.push(marker);continue;}
     const bare=line.replace(lead,'');
     if(rows.length && !/^(?:NOMOS|KRATOS)_/.test(bare)) {
       const head=/^(?:NOMOS|KRATOS)_(DONE|ASK|REVIEW|SKILLS) ([\[{].*)$/.exec(rows[0]);
@@ -125,7 +134,7 @@ export function screenMarkers(lines:string[]): Marker[] {
   for(let i=0;i<lines.length;i++) {
     const nextFence=fenceLine(lines[i],fence);
     if(nextFence!==undefined) {fence=nextFence;continue;}
-    if(fence) continue;
+    if(fence) {const marker=fencedMarker(lines[i]);if(marker) found.push(marker);continue;}
     // hito 26: Claude Code 2.1 pinta a la derecha del primer renglón un estado («No changes this session») tras el JSON
     // ponytail: solo si el JSON cierra en ese renglón; un estado tras un JSON partido seguiría rompiendo la marca
     const line=(/^ {2}(?:NOMOS|KRATOS)_/.test(lines[i]) && bulletContinuation(lines,i) ? lines[i].slice(2) : lines[i]).replace(/([\]}]) {3,}\S[^\]}]*$/,'$1');
