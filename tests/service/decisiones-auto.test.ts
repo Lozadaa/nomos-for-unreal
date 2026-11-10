@@ -54,7 +54,8 @@ test('las «para una persona» solo se resuelven sin persona (evento o decisione
   assert.equal(autoOption({reason: 'Máximo de 5 correcciones alcanzado', options: accept}, 0, true), 'aceptar');
   // metras 4.ª vuelta: el director despertó 3 veces y no la resolvió; sin «aceptar», una corrección más y la siguiente vez cancelar
   assert.equal(autoOption({reason: 'Máximo de 1 correcciones alcanzado', options: accept.filter(o => o.id !== 'aceptar')}, 0, true), 'review');
-  assert.equal(autoOption({reason: 'Máximo de 1 correcciones alcanzado', options: accept.filter(o => o.id !== 'aceptar')}, 1, true), 'cancel');
+  // jam 2026-11-10: la regla nunca cancela una tarea; la segunda vez la pregunta queda abierta para el director
+  assert.equal(autoOption({reason: 'Máximo de 1 correcciones alcanzado', options: accept.filter(o => o.id !== 'aceptar')}, 1, true), null);
   assert.equal(autoOption({reason: 'QA de UI sin mejora medible', options: [{id: 'return', label: '', description: ''}, {id: 'aceptar', label: '', description: ''}]}, 0, true), 'aceptar');
   const db = openDb(':memory:');
   const task = createTask(db, {title: 'M1', area: 'gameplay'});
@@ -65,4 +66,21 @@ test('las «para una persona» solo se resuelven sin persona (evento o decisione
   const other = createTask(db, {title: 'M2', area: 'builds'});
   const obvious = openDecision(db, {taskId: other.id, reason: 'Comprobación no disponible: build', options: checkOptions, evidence: [{kind: 'gate:checks', ref: '["x"]'}]});
   assert.equal(sweepAutoDecisions(db, {director: {mode: 'evento'}}, Date.parse(obvious.createdAt) + min), 1, 'las obvias, a 1 min en evento');
+});
+
+test('jam: el máximo de correcciones que vuelve tras «Revisar» automático queda abierto y despierta al director, una vez', () => {
+  const db = openDb(':memory:');
+  const task = createTask(db, {title: 'Brasa', area: 'gameplay'});
+  const options = [{id: 'review', label: '', description: ''}, {id: 'cancel', label: '', description: ''}];
+  const open = () => openDecision(db, {taskId: task.id, reason: 'Máximo de 1 correcciones alcanzado', options, evidence: [{kind: 'gate:corrections', ref: 'a'}]});
+  const first = open();
+  assert.equal(sweepAutoDecisions(db, {director: {mode: 'evento'}}, Date.parse(first.createdAt) + min), 1);
+  assert.equal(listDecisions(db).find(d => d.id === first.id)!.chosenOptionId, 'review');
+  const again = open();
+  const at = Date.parse(again.createdAt) + min;
+  assert.equal(sweepAutoDecisions(db, {director: {mode: 'evento'}}, at), 0);
+  assert.equal(sweepAutoDecisions(db, {director: {mode: 'evento'}}, at + min), 0);
+  assert.equal(listDecisions(db, 'open').some(d => d.id === again.id), true, 'sigue abierta: nunca se cancela sola');
+  assert.deepEqual(listEvents(db, 0).filter(e => e.type === 'task.closing_blocked').map(e => (e.payload as any).reason), ['Máximo de correcciones: decide tú']);
+  db.close();
 });
