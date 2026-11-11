@@ -13,7 +13,7 @@ function opencode(model:string,flags=''):string {
 // Hito 12: OpenCode corre con `run` (salida plana que Orca lee) y el brief viaja en la orden; termina al acabar.
 export function launchCommand(provider:string,model:string='sonnet',title='nomos',sessionId?:string):string {
   const kind=adapter(provider);
-  return kind==='codex' ? 'codex --yolo --no-daemon' : kind==='opencode' ? `${opencode(model)} --title ${title} ${briefLine}`
+  return kind==='codex' ? 'codex --yolo --no-daemon -c model_reasoning_effort=medium' : kind==='opencode' ? `${opencode(model)} --title ${title} ${briefLine}`
     : `claude --model ${model as WorkerModel} --dangerously-skip-permissions${lean()}${sessionId ? ` --session-id ${sessionId}` : ''}`;
 }
 // x10: sin los plugins del usuario que un juego no usa y compactando a 200 k (ver claude-lean.ts)
