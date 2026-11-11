@@ -188,3 +188,15 @@ test('mcp: sin MCP (5.8 o sin AllToolsets) ue compilar dice qué falta en vez de
   try { await assert.rejects(liveCompile(uproject, {...opts, mcpWaitMs: 1500}), /AllToolsets/); }
   finally { delete process.env.NOMOS_FAKE_SIN_MCP; await stopWarm(uproject); }
 });
+
+test('ue: en una carpeta sin compilar (worktree nuevo) dice «compila primero» sin abrir el editor', async () => {
+  const {dir, uproject} = game();
+  writeFileSync(uproject, JSON.stringify({Modules: [{Name: 'Juego'}]}));
+  const t0 = Date.now();
+  await assert.rejects(runWarm(uproject, join(dir, 'a.py'), {}, opts), /compila primero con Scripts\/compilar\.ps1/);
+  assert.ok(Date.now() - t0 < 1000, 'no espera al editor');
+  assert.equal(warmBeat(uproject), null);
+  // compilado: arranca como siempre
+  mkdirSync(join(dir, 'Binaries', 'Win64'), {recursive: true}); writeFileSync(join(dir, 'Binaries', 'Win64', 'UnrealEditor-Juego.dll'), '');
+  try { assert.equal((await runWarm(uproject, join(dir, 'a.py'), {}, opts)).ok, true); } finally { await stopWarm(uproject); }
+});
