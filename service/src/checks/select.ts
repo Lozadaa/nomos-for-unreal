@@ -1,6 +1,6 @@
 import { legacySpecFile } from '../legacy.ts';
-/** `acabado` e `imagen` no las elige selectChecks: el lote de comprobaciones la antepone cuando el diff toca algo visible (checks/acabado.ts). */
-export type CheckId = 'acabado' | 'imagen' | 'cpp' | 'blueprint' | 'asset' | 'animation' | 'map' | 'umg' | 'build';
+/** `acabado`, `imagen` y `arte` no las elige selectChecks: el lote de comprobaciones las añade cuando el diff toca algo visible (checks/acabado.ts). */
+export type CheckId = 'acabado' | 'imagen' | 'arte' | 'cpp' | 'blueprint' | 'asset' | 'animation' | 'map' | 'umg' | 'build';
 /** Orden de ejecución: compilar antes de abrir el editor; empaquetar, al final y solo si se pide. */
 export const checkOrder: CheckId[] = ['cpp', 'blueprint', 'asset', 'animation', 'map', 'umg', 'build'];
 /** Hito 5b: mallas con esqueleto, clips, Animation Blueprints, IK Rigs y retargeters, carpetas de personajes y la ficha del personaje. */
@@ -33,3 +33,12 @@ export function selectChecks(files: string[], scope: string[] = []): CheckId[] {
   if (scope.some(path => /(^|\/)build/i.test(path))) found.add('build');
   return checkOrder.filter(id => found.has(id));
 }
+
+type Criterios = {acceptance: string[]; scope: string[]};
+/** La tarea que empaqueta: alcance `build` o criterios que piden empaquetar, el .exe o la comprobación `imagen` (criterio fijo de lo visible). */
+export const empaqueta = (task: Criterios) => task.scope.some(p => /(^|\/)build/i.test(p))
+  || (task.acceptance ?? []).some(a => /empaquet|\.exe\b|`?imagen`? sin fallos/i.test(a));
+/** La spec pide el juez de arte (criterio fijo de toda spec visible, skill nomos · Repartir). */
+export const juezArte = (task: Criterios) => task.acceptance.some(a => /juez de arte/i.test(a));
+/** 2026-11-11: el lote corría solo con criterios `check:`; en modo rápido nadie los escribe y acabado e imagen no corrían nunca. */
+export const pideLote = (task: Criterios) => task.acceptance.some(a => a.startsWith('check:')) || empaqueta(task) || juezArte(task);

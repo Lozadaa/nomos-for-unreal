@@ -49,10 +49,10 @@ test('límites y tolerancia visual configurables con defectos; valores inválido
   const dir = mkdtempSync(join(tmpdir(), 'nomos-config-'));
   try {
     assert.equal(visualTolerance(readConfig(dir)), 0.02);
-    assert.deepEqual(limits(readConfig(dir)), {corrections: 3, umgRetries: 3});
+    assert.deepEqual(limits(readConfig(dir)), {corrections: 3, umgRetries: 3, arte: 2});
     writeFileSync(join(dir, 'config.json'), '{"visualTolerance":0.05,"limits":{"corrections":5}}');
     assert.equal(visualTolerance(readConfig(dir)), 0.05);
-    assert.deepEqual(limits(readConfig(dir)), {corrections: 5, umgRetries: 3});
+    assert.deepEqual(limits(readConfig(dir)), {corrections: 5, umgRetries: 3, arte: 2});
     for (const bad of ['{"visualTolerance":2}', '{"visualTolerance":"2%"}', '{"limits":{"corrections":-1}}', '{"limits":{"otra":1}}']) {
       writeFileSync(join(dir, 'config.json'), bad);
       assert.throws(() => readConfig(dir), /invalid_worker_config/, bad);

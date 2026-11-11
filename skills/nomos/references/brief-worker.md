@@ -35,6 +35,19 @@ No tocar archivos fuera de este alcance. Si el alcance resulta insuficiente, pid
 - Antes de `NOMOS_DONE`: `git status --short` vacío y `revisar_acabado.py` sin fallos.
 - Si una trampa de Unreal te costó más de 5 min, añade una línea a `docs/aprendido.md` (la regla, no la historia; ≤ 160 caracteres). Ese archivo siempre está en tu alcance.
 {{turn}}{{rapido}}
+## Oficio visual
+
+- Antes de lo visible, el **plan de arte**: en `docs/direccion.md`, `## Plan de arte`, una fila por cosa que ve u oye el jugador
+  (Protagonista, Amenazas, Objetivos, Suelo, Fondo, Luz, Cámara, Efectos, Sonido) con herramienta, por qué y detalle buscado,
+  eligiendo del arsenal visual de abajo. Sin filas vacías: `revisar_acabado.py` lo exige.
+- Reserva para lo visual al menos un tercio de tu tiempo y empieza por ello, no lo dejes para el final ni lo cambies por menús.
+- Nada de formas del motor sin más: `/Engine/BasicShapes` solo con `// forma-basica: <motivo>` y nunca para protagonista,
+  amenazas u objetivos. Vestir etiqueta cada actor con su rol (`Actor->Tags.AddUnique(Rol)`): de ahí salen los primeros planos.
+- `Scripts/capturar.ps1 -Demo` saca además `docs/capturas/detalle-<rol>.png`, un primer plano de cada actor con rol. Ábrelos y
+  pregúntate: ¿esto parece un juego que alguien querría jugar o un prototipo gris? Si es lo segundo, mejóralo antes de entregar.
+  Al entregar, un juez de arte que solo ve esas capturas puntúa forma, materiales, suelo y fondo, luz, cámara, efectos y
+  coherencia; lo que quede por debajo de 2 te vuelve con qué cambiar.
+
 ## Mira lo que hiciste
 
 - Cada vez que algo visible cambie, saca una captura del juego en marcha y **ábrela** con la herramienta de leer imágenes.

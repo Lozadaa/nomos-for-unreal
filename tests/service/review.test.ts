@@ -59,6 +59,9 @@ test('aprobación atrasada no aprueba diff modificado y queda informe auditable'
   f.output('NOMOS_REVIEW {"approved":true,"findings":[]}');await f.poll();
   assert.equal(requireTask(f.db,f.task.id).reviewApproved,0);
   assert.equal(listEvents(f.db,0).find(e=>e.type==='review.finished')?.payload.stale,true);
+  // y no se queda en revisando: se revisa lo nuevo una vez
+  const again=f.db.prepare("select payload,idempotency_key k from commands where type='review.start' and idempotency_key like 'review.restale:%'").all();
+  assert.equal(again.length,1);assert.equal(JSON.parse(again[0].payload as string).implementerRunId,f.implementer.id);
 });
 test('snapshot detecta cambio binario del mismo tamaño sin incluir binario en diff.patch',async t=>{
   const f=await reviewFixture(t);const binary=join(f.implementerTree.path,'asset.bin');

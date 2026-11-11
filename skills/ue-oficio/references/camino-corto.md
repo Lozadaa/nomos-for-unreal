@@ -1,7 +1,7 @@
 | Quiero | Usa | No uses |
 |---|---|---|
 | Poner cosas en el nivel | Que su C++ las cree en `BeginPlay`, o `nomos ue receta` con la plantilla `escena` | Editar el `.umap` a mano; un script de Python por tarea |
-| Un material o un efecto | `nomos fastvfx crear <receta.json> --preview` | Python nodo a nodo; en 5.9, Python sin renderer (no compila materiales) |
+| Un material o un efecto | Material con variación del [arsenal visual](arsenal-visual.md); efectos con `nomos fastvfx crear <receta.json> --preview` | Python nodo a nodo; en 5.9, Python sin renderer (no compila materiales) |
 | HUD y menús | UMG construido en C++, con el `UFont` compuesto en C++ ([acabado](acabado.md)) | Canvas, `DrawText`, fuentes del motor, Blueprint de widget a mano |
 | Música o un sonido | `nomos sonido buscar "<palabras en inglés>"` y `nomos sonido bajar <id> --juego .` (WeLoveIndies: deja `.wav`, licencia, receta y `CREDITOS.md`; [assets](../../nomos/references/assets.md)); sin sesión, plan B: sintetizado o MetaSound ([ue59-juego](ue59-juego.md)) | Audio de otras webs; un `.wav` sin su `.licencia.json`; descargar de más |
 | Compilar | `Build.bat` desde PowerShell, una vez por paso (50-80 s) | Bash; compilar tras cada línea |
@@ -13,8 +13,8 @@
 | Importar una malla | Receta `importar_malla`: mide y rechaza escalas ×100 ([importar](importar.md)) | Importar y colocar sin medir |
 | Cámara | Receta `camara_tercera_persona`, o una sola cámara en el pawn desde C++ ([camara-pawn](camara-pawn.md)) | Dos cámaras activas |
 | Encuadrar la escena | `EncuadrarEscena(caja)` del PlayerController de la semilla (etiqueta `Escena`; `Inclinacion` 55 desde arriba, 20-30 de lado): avisa si el protagonista mide < 3 % | Colocar la cámara a ojo y no mirar la captura |
-| Dar aspecto a un actor | `<Juego>Aspecto::Vestir(actor, rol)`: malla, material, luz y efectos por rol en un solo archivo | Mallas y materiales repartidos por las clases de mecánica |
-| Luz de exterior | Receta `post_exterior` ([iluminacion](iluminacion.md)) | Tocar la exposición a ojo, captura tras captura |
+| Dar aspecto a un actor | El plan de arte de `docs/direccion.md` y la herramienta del [arsenal visual](arsenal-visual.md) para cada rol, todo en `<Juego>Aspecto::Vestir(actor, rol)` | `/Engine/BasicShapes` sin `// forma-basica: <motivo>` (nunca para protagonista, amenazas u objetivos); colores planos; mallas repartidas por las clases de mecánica |
+| Luz de exterior | Receta `post_exterior` como base, más posproceso, cielo y niebla ([arsenal visual](arsenal-visual.md), [iluminacion](iluminacion.md)) | Tocar la exposición a ojo, captura tras captura |
 | Repartir objetos | Receta `poblar_pcg` y contar instancias ([pcg](pcg.md)) | PCG a mano sin contar |
 | Datos de juego | Receta `bp_datos`: Blueprint hijo y DataAsset | Valores escritos en el nivel |
 | Algo nuevo del 5.9 | Probarlo 10 min, con su plan B escrito antes ([ue59-juego](ue59-juego.md)) | Insistir pasado ese tiempo |

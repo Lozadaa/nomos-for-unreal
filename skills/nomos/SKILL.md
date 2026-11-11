@@ -133,10 +133,13 @@ La velocidad manda; algún bug menor se acepta. Cada tarea lleva su spec, `scope
 3. **Si se parte, por lo que se ve, no por archivos.** La pista visual es dueña de cámara, luz, aspecto de cada actor,
    nivel, HUD y sonido, con los archivos donde eso viva. La de mecánica es dueña de reglas, movimiento, colisiones y modo
    demo; no pone mallas ni materiales: llama a `<Juego>Aspecto::Vestir`. Ningún `## No tocar` quita a la otra pista algo visible.
-4. **La spec copia literal las frases de calidad del usuario** («tiene que sentirse bien», «claramente distinto»), como criterios.
-5. **Toda spec con algo visible lleva tres criterios fijos**: «El protagonista y lo que le amenaza se distinguen a 1280×720
+4. **La spec copia literal las frases de calidad y de aspecto del usuario** («tiene que sentirse bien», «que no parezca un prototipo»), como criterios.
+5. **Toda spec con algo visible lleva cuatro criterios fijos**: «El protagonista y lo que le amenaza se distinguen a 1280×720
    en las tres capturas del modo demo.» · «El escenario entero cabe en pantalla, o la cámara sigue al protagonista.» ·
-   «Comprobación `imagen` sin fallos y las tres capturas miradas (línea `VISTO` en `docs/hecho.md`).»
+   «Comprobación `imagen` sin fallos y las tres capturas miradas (línea `VISTO` en `docs/hecho.md`).» · «Plan de arte escrito
+   y juez de arte con todos los criterios en 2 o más.» El juez es un run aparte (`qa`) que solo ve las capturas (demo y
+   `detalle-<rol>`), esos criterios y `docs/direccion.md`; lo que quede por debajo de 2 vuelve al worker, como mucho
+   `limits.arte` pasadas (2; 0 lo apaga), sin gastar la corrección. Herramientas: [arsenal visual](../ue-oficio/references/arsenal-visual.md).
 6. Criterios ≤ 5 por tarea (≤ 8 si es el juego entero), observables. El vídeo y `docs/hecho.md` van en la última que se
    integre, que pasa el [acabado](../ue-oficio/references/acabado.md#7-comprobación-que-bloquea-el-fin) y lleva `docs/direccion.md`.
    No crees tareas de QA, revisión ni cierre aparte: la revisión ya es automática y solo para lo grave.

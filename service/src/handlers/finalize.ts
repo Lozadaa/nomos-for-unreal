@@ -8,6 +8,7 @@ import { listDecisions, openDecision } from '../repo/decisions.ts';
 import { enqueue } from '../commands.ts';
 import { appendEvent } from '../store.ts';
 import { checkGate } from '../checks/gate.ts';
+import { pideLote } from '../checks/select.ts';
 import { attribute } from '../attribution.ts';
 import { preserveTask, type ArchiveWriter } from '../archive.ts';
 import { storedPath } from '../data-paths.ts';
@@ -88,7 +89,7 @@ async function verify(ctx: WorkerContext, task: Task, tree: Worktree | undefined
   const finished = ctx.db.prepare(`select max(seq) seq from events where type='run.finished' and json_extract(payload,'$.runId')=?`).get(implementer.id);
   if (Number(events!.seq) < Number(finished?.seq ?? 0)) throw new Blocked('integration', 'La integración es anterior a la última versión del responsable');
   const tests = filtered<TestRun>(ctx.db, 'test_runs', {taskId: task.id});
-  if ((tests.length || task.acceptance.some(a => a.startsWith('check:'))) && !checkGate(ctx.db, task.id).ok)
+  if ((tests.length || pideLote(task)) && !checkGate(ctx.db, task.id).ok)
     throw new Blocked('checks', (checkGate(ctx.db, task.id) as {reason: string}).reason);
 }
 

@@ -9,6 +9,7 @@ import type { ReviewSnapshot } from '../review.ts';
 import { startRun } from '../repo/runs.ts';
 import { updateRun, queuePoll } from '../repo/worker.ts';
 import { renderBrief } from '../brief.ts';
+import { capabilityList } from '../capability-checks.ts';
 import { createUnrealCmd } from '../adapters/unreal-cmd.ts';
 import { assetConfig } from '../catalog/paths.ts';
 import { workerPolicy, decisionGate } from './worker-policy.ts';
@@ -50,7 +51,7 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     || payload.attempt!==undefined && (!Number.isSafeInteger(payload.attempt)||payload.attempt<1)) throw new Error('invalid_worker_payload');
   if (!task.title.trim() || !task.spec.trim() || !task.acceptance.length
     || !task.acceptance.every(s=>typeof s==='string'&&s.trim())) throw new Error('invalid_worker_spec');
-  const config=readConfig(ctx.dataDir),model=payload.provider==='opencode' ? opencodeModel(config) : roleModel(config,payload.role,!!payload.qa);
+  const config=readConfig(ctx.dataDir),model=payload.provider==='opencode' ? opencodeModel(config) : roleModel(config,payload.role,!!(payload.qa||payload.arte));
   const history=filtered<Run>(db,'runs',{taskId:task.id});
   const reusable=history.find(r=>r.state==='running'&&r.provider===payload.provider&&r.attempt===(payload.attempt ?? 1)
     &&r.metadata.startCommandId===cmd.id&&r.metadata.phase==='preparing'
@@ -132,10 +133,18 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   await git.renameBranch(created.path,await git.branchExists(projectDir,name) ? name+'-'+run.id.slice(0,8) : name);
   const branch=await git.currentBranch(created.path);
   db.prepare('update worktrees set branch=?,updated_at=? where id=?').run(branch,new Date().toISOString(),created.worktreeId);
+  // …pero lo commiteado del intento anterior entra en el árbol nuevo; con conflicto queda fuera y el brief lo dice
+  let inherited='';
+  if(!review && branch!==name) {
+    const merged=await git.merge(created.path,name,{noFf:true,message:`Trabajo del intento anterior (${name})`});
+    if(!merged.ok) { await git.abortMerge(created.path); inherited=`no se pudo fusionar la rama \`${name}\` del intento anterior (conflicto en ${merged.conflicts.join(', ')}); mírala con \`git log ${name}\` y recupera lo que sirva.`; }
+    else if(merged.commit!==baseCommit) inherited=`el trabajo del intento anterior (rama \`${name}\`) ya está fusionado en tu árbol: míralo con \`git diff ${baseCommit.slice(0,7)}\`, continúa desde ahí y no lo rehagas.`;
+  }
   const context=briefContext(projectDir,created.path,task.area);
-  writeFileSync(join(created.path,'.nomos-brief.md'),review ? review.brief(created.path,run) : renderBrief(task,run,
+  writeFileSync(join(created.path,'.nomos-brief.md'),(review ? review.brief(created.path,run) : renderBrief(task,run,
     {projectContext:context || undefined,continuation:continuationBrief(db,task,ctx.dataDir),
-      rapido:rapido(config),engine:createUnrealCmd({bin:assetConfig(ctx.dataDir).unrealPath}).engineVersion() ?? undefined,turn:`node "${join(import.meta.dirname,'..','cli.ts')}" worker turn ${task.id} --data "${ctx.dataDir}"`}));
+      rapido:rapido(config),capacidades:capabilityList(ctx.dataDir,db).filter(c=>c.state==='detectado'||c.state==='comprobado').map(c=>c.id),engine:createUnrealCmd({bin:assetConfig(ctx.dataDir).unrealPath}).engineVersion() ?? undefined,turn:`node "${join(import.meta.dirname,'..','cli.ts')}" worker turn ${task.id} --data "${ctx.dataDir}"`}))
+    +(inherited ? `\n## Intento anterior\n\nEl worker anterior de esta tarea se cortó; ${inherited}\n` : ''));
   await git.excludeLocal(created.path);
   // el árbol nace de Git: las skills de UI del juego no están versionadas y se copian (excluidas del diff)
   installSkills(created.path);

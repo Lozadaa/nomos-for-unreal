@@ -37,6 +37,9 @@ test('CLI spec-file valida antes de crear, prepara y conserva Markdown con contr
   assert.deepEqual(task.scope,['Docs/README.md','Scripts']);assert.equal(task.spec,markdown.replaceAll('\r\n','\n'));
   const show=cli(dataDir,'task','show',task.id);assert.equal(show.status,0,show.stderr);
   assert.equal(JSON.parse(show.stdout).task.title,'Cambio');
+  // el id corto del brief del director (TrompoArte: el director se quedó en unknown_task)
+  const short=cli(dataDir,'task','show',task.id.slice(0,8));assert.equal(short.status,0,short.stderr);
+  assert.equal(JSON.parse(short.stdout).task.id,task.id);
   const pending=cli(dataDir,'task','create','--title','Pendiente','--area','qa');assert.equal(pending.status,0,pending.stderr);
   const id=JSON.parse(pending.stdout).id;assert.equal(JSON.parse(pending.stdout).state,'pendiente');
   const prepared=cli(dataDir,'task','spec',id,'--spec-file',file);assert.equal(prepared.status,0,prepared.stderr);

@@ -118,7 +118,10 @@ if (mode === 'hang') {
   const dir = process.env.NOMOS_DEMO_DIR, capturas = ['inicio', 'mitad', 'final'].map(n => join(dir, `${n}.png`));
   mkdirSync(dir, {recursive: true});
   capturas.forEach((c, i) => png(c, 32, 18, true, i * 5));
-  write({ok: true, engine, capturas, errors: []});
+  // primeros planos de cada actor con rol (juez de arte)
+  const detalles = process.env.NOMOS_DEMO_DETALLE === '0' ? [] : [join(dir, 'detalle-protagonista.png')];
+  detalles.forEach(d => png(d, 32, 18, false));
+  write({ok: true, engine, capturas, detalles, errors: []});
 } else if (script.endsWith('nomos_pie_capture.py')) {
   // resolución reducida (÷40) para que las pruebas sean rápidas; la diferencia relativa se conserva
   const width = Math.max(8, Math.round(Number(arg('ResX') ?? 1280) / 40)), height = Math.max(8, Math.round(Number(arg('ResY') ?? 720) / 40));
