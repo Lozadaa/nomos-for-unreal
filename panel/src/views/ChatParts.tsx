@@ -19,7 +19,7 @@ export interface ChatMessage {
   links: { kind: 'task' | 'decision' | 'correction'; taskId: string; decisionId?: string; at: string }[]
 }
 
-export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+export const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 /** Sin acuse en este tiempo, el panel lo dice en ámbar: nunca una frase tranquilizadora falsa. */
 export const unreadAfterMs = 60_000
 
@@ -29,8 +29,8 @@ export function Bubble({ text, at, from, author, fresh, taskTitle, children }: {
   return (
     <li className={cn('flex min-w-0 flex-col gap-1', fresh && 'animate-in duration-(--k-dur-standard) ease-k fade-in slide-in-from-bottom-1 motion-reduce:animate-none', from === 'tu' ? 'items-end' : 'items-start')}>
       <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-        {from === 'nomos' ? <><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} /><span>{BRAND.short}</span></> : <span>{author ?? 'Tú'}</span>}
-        {at && <time dateTime={at} title={relativeTime(at)}>{relativeTime(at).replace(/^hace /, '')}</time>}
+        {from === 'nomos' ? <><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} /><span>{BRAND.short}</span></> : <span>{author ?? 'You'}</span>}
+        {at && <time dateTime={at} title={relativeTime(at)}>{relativeTime(at).replace(/^hace | ago$/g, '')}</time>}
       </span>
       <Markdown clamp text={text} taskTitle={taskTitle} className={cn('max-w-[85%] min-w-0 rounded-lg border px-3 py-2 text-sm', from === 'tu' ? 'border-subtle bg-card' : 'border-transparent')} />
       {children}
@@ -40,9 +40,9 @@ export function Bubble({ text, at, from, author, fresh, taskTitle, children }: {
 
 /** Estado real del mensaje del usuario, con la hora de cada paso. */
 export function MessageStatus({ m, now }: { m: ChatMessage; now: number }) {
-  if (m.state === 'recibido' && now - Date.parse(m.createdAt) > unreadAfterMs) return <span className="text-xs text-warning">{BRAND.short} no ha leído tu mensaje todavía</span>
-  if (m.state === 'leido' && m.timedOut) return <span className="text-xs text-warning">{BRAND.short} sigue trabajando en tu mensaje</span>
-  const text = m.readAt ? `Leído por ${BRAND.short} ${hhmm(m.readAt)}` : `Recibido ${hhmm(m.createdAt)}`
+  if (m.state === 'recibido' && now - Date.parse(m.createdAt) > unreadAfterMs) return <span className="text-xs text-warning">{BRAND.short} hasn't read your message yet</span>
+  if (m.state === 'leido' && m.timedOut) return <span className="text-xs text-warning">{BRAND.short} is still working on your message</span>
+  const text = m.readAt ? `Read by ${BRAND.short} ${hhmm(m.readAt)}` : `Received ${hhmm(m.createdAt)}`
   // cada cambio de estado entra con un fundido corto (la clave cambia con el texto)
   return <span key={text} className="animate-in text-xs text-muted-foreground duration-(--k-dur-micro) fade-in motion-reduce:animate-none">{text}</span>
 }
@@ -50,12 +50,12 @@ export function MessageStatus({ m, now }: { m: ChatMessage; now: number }) {
 /** Tres puntos y el avatar mientras el director redacta; con movimiento reducido, quietos. */
 export function Typing() {
   return (
-    <li role="status" aria-label={`${BRAND.short} está escribiendo…`} className="flex animate-in items-center gap-2 text-xs text-muted-foreground duration-(--k-dur-standard) fade-in motion-reduce:animate-none">
+    <li role="status" aria-label={`${BRAND.short} is typing…`} className="flex animate-in items-center gap-2 text-xs text-muted-foreground duration-(--k-dur-standard) fade-in motion-reduce:animate-none">
       <span className="k-pulse inline-flex rounded-full"><AgentAvatar id="nomos" provider="nomos" name={BRAND.short} size={32} state="running" /></span>
       <span className="inline-flex gap-1 rounded-lg border border-subtle px-3 py-2" aria-hidden>
         {[0, 1, 2].map((i) => <span key={i} data-dot style={{ animationDelay: `${i * 160}ms` }} className="size-1.5 animate-pulse rounded-full bg-muted-foreground motion-reduce:animate-none" />)}
       </span>
-      <span aria-hidden>{BRAND.short} está escribiendo…</span>
+      <span aria-hidden>{BRAND.short} is typing…</span>
     </li>
   )
 }
@@ -65,11 +65,11 @@ export function CreatedCards({ links, tasks }: { links: ChatMessage['links']; ta
   if (!links.length) return null
   return (
     <li className="flex flex-col gap-1">
-      <ul aria-label="Creado a partir de tu mensaje" className="grid max-w-[85%] gap-2 sm:grid-cols-2">
+      <ul aria-label="Created from your message" className="grid max-w-[85%] gap-2 sm:grid-cols-2">
         {links.map((link, i) => {
           const task = tasks.find((t) => t.id === link.taskId)
-          const title = task?.title ?? 'Tarea'
-          const what = link.kind === 'decision' ? 'Decisión abierta' : link.kind === 'correction' ? 'Corrección enviada' : null
+          const title = task?.title ?? 'Task'
+          const what = link.kind === 'decision' ? 'Decision opened' : link.kind === 'correction' ? 'Fix sent' : null
           return (
             <li key={`${link.kind}-${link.taskId}-${i}`} className="animate-in duration-(--k-dur-standard) ease-k fade-in slide-in-from-bottom-1 motion-reduce:animate-none">
               <Link to={link.kind === 'decision' ? '/decisiones' : `/?tarea=${encodeURIComponent(link.taskId)}`}

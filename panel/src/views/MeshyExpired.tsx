@@ -14,13 +14,13 @@ export function MeshyExpired({ a }: { a: Artifact }) {
   const regenerate = useAction(() => sendCommand('asset.meshy_generate', {
     taskId: p.taskId ?? a.taskId, kind: p.kind, params: p.params ?? {}, estimatedCredits: Number(p.estimatedCredits ?? 0),
   }, `meshy:${a.id}:${crypto.randomUUID()}`), {
-    success: () => { setSent(true); return { title: 'Regenerando con Meshy', description: 'Pasa por el presupuesto antes de crear el job.' } },
+    success: () => { setSent(true); return { title: 'Regenerating with Meshy', description: 'It goes through the budget before the job is created.' } },
   })
   return <div className="grid size-full place-items-center p-4 text-center">
     <div className="flex flex-col items-center gap-2">
-      <p className="text-sm text-warning">Enlace vencido y sin copia</p>
+      <p className="text-sm text-warning">Link expired, no local copy</p>
       <Button variant="outline" size="sm" disabled={regenerate.pending || sent} aria-busy={regenerate.pending}
-        onClick={() => void regenerate.fire()}>{sent ? 'En cola' : 'Regenerar'}</Button>
+        onClick={() => void regenerate.fire()}>{sent ? 'Queued' : 'Regenerate'}</Button>
     </div>
   </div>
 }

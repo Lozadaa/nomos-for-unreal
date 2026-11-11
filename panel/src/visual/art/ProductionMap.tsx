@@ -46,7 +46,7 @@ export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, onKe
   })
   const namespace = id ?? signature(shown)
   const question = memoSeed('map-id', namespace, () => `q${Math.floor(rng(namespace)() * 4294967296).toString(36)}`)
-  return <div title={hint}><svg viewBox="0 0 800 80" role="group" aria-label="Flujo de producción" className="k-map">
+  return <div title={hint}><svg viewBox="0 0 800 80" role="group" aria-label="Production flow" className="k-map">
     <path d="M50 28H750" />
     <path d="M50 28H751" />
     <path d="M50 28H751" />
@@ -58,9 +58,9 @@ export const ProductionMap = memo(function ProductionMap({ tasks, onSelect, onKe
     </g>
     {geometry.points.some((p) => p.decisionId) && <defs><path id={question} d="M-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0m3-1q0-2 2-1t-1 3m0 1v1" /></defs>}
     <g>{geometry.points.map((p) => p.decisionId
-      ? <use key={p.id} data-point="" role="img" aria-label="Espera decisión" href={`#${question}`} x={p.x} />
+      ? <use key={p.id} data-point="" role="img" aria-label="Needs decision" href={`#${question}`} x={p.x} />
       : p.blockedReason
-        ? <path key={p.id} data-point="" role="img" aria-label="Bloqueada" d={`M${p.x} -4l4 4-4 4-4-4Z`} />
+        ? <path key={p.id} data-point="" role="img" aria-label="Blocked" d={`M${p.x} -4l4 4-4 4-4-4Z`} />
         : <circle key={p.id} data-point="" cx={p.x} r="2" />)}</g>
   </svg></div>
 })

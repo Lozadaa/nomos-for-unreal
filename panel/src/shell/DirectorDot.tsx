@@ -27,14 +27,14 @@ export function directorState(status: Status | null, session: Session = 'ok', ty
 }
 
 const look: Record<DirectorState, { dot: string; label: (pending: number) => string }> = {
-  esperando: { dot: 'bg-neutral', label: () => `Esperando a ${BRAND.short}` },
-  escuchando: { dot: 'bg-success k-pulse', label: () => `${BRAND.short} escuchando` },
-  respondiendo: { dot: 'bg-info k-pulse', label: () => `${BRAND.short} respondiendo` },
-  atendiendo: { dot: 'bg-info', label: (n) => (n > 0 ? `${BRAND.short} atendiendo ${n} ${n === 1 ? 'mensaje' : 'mensajes'}` : `${BRAND.short} atendiendo`) },
-  vigilanteCaido: { dot: 'bg-warning', label: () => 'Vigilante caído' },
-  desconectado: { dot: 'bg-error', label: () => 'Servicio desconectado' },
-  sinToken: { dot: 'bg-error', label: () => `Sin sesión · ábrelo desde ${BRAND.short}` },
-  caducada: { dot: 'bg-error', label: () => `Sesión caducada · ábrelo de nuevo desde ${BRAND.short}` },
+  esperando: { dot: 'bg-neutral', label: () => `Waiting for ${BRAND.short}` },
+  escuchando: { dot: 'bg-success k-pulse', label: () => `${BRAND.short} listening` },
+  respondiendo: { dot: 'bg-info k-pulse', label: () => `${BRAND.short} replying` },
+  atendiendo: { dot: 'bg-info', label: (n) => (n > 0 ? `${BRAND.short} working on ${n} ${n === 1 ? 'message' : 'messages'}` : `${BRAND.short} working`) },
+  vigilanteCaido: { dot: 'bg-warning', label: () => 'Watcher down' },
+  desconectado: { dot: 'bg-error', label: () => 'Service disconnected' },
+  sinToken: { dot: 'bg-error', label: () => `No session · open it from ${BRAND.short}` },
+  caducada: { dot: 'bg-error', label: () => `Session expired · open it again from ${BRAND.short}` },
 }
 
 export function DirectorDot({ state, pending = 0 }: { state: DirectorState; pending?: number }) {

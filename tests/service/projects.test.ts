@@ -9,7 +9,7 @@ import { openDb } from '../../service/src/db.ts';
 import { createServer } from '../../service/src/server.ts';
 import { createTask } from '../../service/src/repo/tasks.ts';
 import { addArtifact } from '../../service/src/repo/artifacts.ts';
-import { listProjects, register, registryFile, unregister } from '../../service/src/projects.ts';
+import { latestCapture, listProjects, register, registryFile, unregister } from '../../service/src/projects.ts';
 import { token } from '../helpers.ts';
 import { removeDir } from '../remove-dir.ts';
 
@@ -80,4 +80,22 @@ test('GET /projects: tareas vivas y Decisiones abiertas de cada juego, sin token
   const rebound = await new Promise<number>(accept => get({host: '127.0.0.1', port, path: '/session', headers: {Host: `evil.example:${port}`}}, r => { r.resume(); accept(r.statusCode!); }));
   assert.equal(rebound, 403, 'rebinding de DNS: solo el host 127.0.0.1');
   } finally { await close(); }
+});
+
+test('latestCapture: la build jugable, si no la última captura registrada, si no la más nueva de docs/capturas; null sin ninguna', () => {
+  const root = mkdtempSync(join(tmpdir(), 'nomos-capture-')), data = join(root, '.nomos');
+  mkdirSync(join(data, 'artifacts'), { recursive: true });
+  const db = openDb(join(data, 'nomos.db'));
+  try {
+    assert.equal(latestCapture(db, data), null);
+    mkdirSync(join(root, 'docs', 'capturas'), { recursive: true });
+    writeFileSync(join(root, 'docs', 'capturas', 'inicio.png'), 'png');
+    assert.equal(latestCapture(db, data), join(root, 'docs', 'capturas', 'inicio.png'));
+    const task = createTask(db, {title: 'Salto', area: 'gameplay', state: 'implementando'});
+    writeFileSync(join(data, 'artifacts', 'shot.png'), 'png');
+    addArtifact(db, {taskId: task.id, runId: null, kind: 'screenshot', path: 'shot.png', provenance: {}, previewPath: null});
+    assert.equal(latestCapture(db, data), join(data, 'artifacts', 'shot.png'));
+    writeFileSync(join(root, 'docs', 'empaquetado.png'), 'png');
+    assert.equal(latestCapture(db, data), join(root, 'docs', 'empaquetado.png'));
+  } finally { db.close(); }
 });

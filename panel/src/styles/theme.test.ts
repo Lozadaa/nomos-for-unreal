@@ -22,9 +22,9 @@ describe('tokens', () => {
     const css = readFileSync(join(src, 'styles/play.css'), 'utf8')
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '').match(/^[^\s@}{][^{]*\{/gm)!.every((rule) => rule.includes('.k-play'))).toBe(true)
   })
-  it('theme.css mapea shadcn a los tokens vbg: claro crema por defecto y oscuro cálido con .dark', () => {
+  it('theme.css mapea shadcn a los tokens vbg de la marca v2: hueso claro y negro con .dark', () => {
     const css = readFileSync(join(src, 'styles/theme.css'), 'utf8')
-    for (const l of ['color-scheme: light;', 'color-scheme: dark;', '.dark {', '--k-paper: #F5F0E8;', '--k-ink: #1F1E1D;', '--k-clay: #C96442;', '--k-clay-light: #E49A7B;', '--background: var(--vbg-surface-primary);', '--card: var(--vbg-surface-secondary);',
+    for (const l of ['color-scheme: light;', 'color-scheme: dark;', '.dark {', '--k-black: #0B0B0C;', '--k-surface: #141416;', '--k-raised: #1C1C1F;', '--k-bone: #F2EFEA;', '--k-steel: #8A8A8F;', '--k-ember: #FF5A1F;', '--k-ember-deep: #B83D0B;', '--k-font-display:', '--background: var(--vbg-surface-primary);', '--card: var(--vbg-surface-secondary);',
       '--foreground: var(--vbg-text-primary);', '--muted-foreground: var(--vbg-text-secondary);', '--border: var(--vbg-border-default);',
       '--ring: var(--vbg-focus);', '--radius: var(--vbg-radius);', '--k-font-mono:']) expect(css).toContain(l)
     expect(css).not.toMatch(/box-shadow/)

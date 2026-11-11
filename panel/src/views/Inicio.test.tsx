@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Task } from '@/lib/tasks'
 
@@ -31,26 +31,42 @@ afterEach(cleanup)
 
 describe('Inicio', () => {
   it('frases de persona en vez de estados internos', () => {
-    expect(humanStatus(task('a'), false).text).toBe('Construyéndolo')
-    expect(humanStatus(task('a', { blockedReason: 'x' }), false).text).toBe('Se ha atascado')
-    expect(humanStatus(task('a'), true).text).toBe('Tiene una pregunta')
-    expect(humanQuestion('Tarea parada en «probando» sin ningún paso en marcha')).toMatch(/^Se ha quedado parada/)
+    expect(humanStatus(task('a'), false).text).toBe('Building it')
+    expect(humanStatus(task('a', { blockedReason: 'x' }), false).text).toBe('Stuck')
+    expect(humanStatus(task('a'), true).text).toBe('Has a question')
+    expect(humanQuestion('Tarea parada en «probando» sin ningún paso en marcha')).toMatch(/^It stopped/)
     expect(humanQuestion('¿Qué personaje?')).toBe('¿Qué personaje?')
   })
 
   it('una sola página: decisión, en marcha, terminado, cola plegada y chat; sin ids', async () => {
     render(<TooltipProvider><RouterProvider router={createMemoryRouter([{ path: '/', element: <Inicio /> }])} /></TooltipProvider>)
     await act(async () => { await refresh() })
-    expect(await screen.findByRole('status', { name: '' })).toHaveTextContent('1 cosa espera tu decisión')
-    const decision = await screen.findByRole('region', { name: 'Necesita tu decisión' })
-    expect(within(decision).getByText('Se ha quedado parada. ¿La retomo o la cancelo?')).toBeInTheDocument()
+    expect(await screen.findByRole('status', { name: '' })).toHaveTextContent('1 thing needs your call')
+    const decision = await screen.findByRole('region', { name: 'Needs your call' })
+    expect(within(decision).getByText('It stopped. Resume it or cancel it?')).toBeInTheDocument()
     expect(within(decision).getByRole('button', { name: 'Retomar' })).toBeInTheDocument()
-    // la tarea que espera decisión no se repite en «Ahora mismo»
-    const now = screen.getByRole('region', { name: 'Ahora mismo' })
-    expect(within(now).getByRole('button', { name: 'Salto, Construyéndolo' })).toBeInTheDocument()
+    // la tarea que espera decisión no se repite en «Right now»
+    const now = screen.getByRole('region', { name: 'Right now' })
+    expect(within(now).getByRole('button', { name: 'Salto, Building it' })).toBeInTheDocument()
     expect(within(now).queryByText('Personaje')).not.toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Terminado' })).getByText('Estatua')).toBeInTheDocument()
-    expect(screen.getByText('En cola').closest('details')).not.toHaveAttribute('open')
-    expect(screen.getByRole('complementary', { name: 'Habla con Nomos' })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Done' })).getByText('Estatua')).toBeInTheDocument()
+    expect(screen.getByText('Queued').closest('details')).not.toHaveAttribute('open')
+    expect(screen.getByRole('complementary', { name: 'Talk to Nomos' })).toBeInTheDocument()
+  })
+
+  it('las tarjetas siempre llevan imagen: la propia, si no la del juego, y la marca solo sin ninguna captura', async () => {
+    const base = vi.mocked(api).getMockImplementation()!
+    vi.mocked(api).mockImplementation(async (path: string) => path === '/artifacts'
+      ? [{ id: 'shot', taskId: 'Salto', kind: 'screenshot', path: 's.png', license: null, createdAt: '2026-10-23T11:00:00.000Z' }] : base(path))
+    render(<TooltipProvider><RouterProvider router={createMemoryRouter([{ path: '/', element: <Inicio /> }])} /></TooltipProvider>)
+    await act(async () => { await refresh() })
+    const own = await screen.findByRole('img', { name: 'Latest image of Salto' })
+    expect(own.getAttribute('src')).toContain('/artifacts/shot/file')
+    const game = screen.getByRole('img', { name: 'Latest image of Estatua' })
+    expect(game.getAttribute('src')).toMatch(/^\/capture\?/)
+    // el proyecto no tiene ninguna captura: /capture da 404 y queda la marca, no una imagen rota
+    fireEvent.error(game)
+    expect(screen.queryByRole('img', { name: 'Latest image of Estatua' })).toBeNull()
+    expect(screen.getAllByRole('img', { name: 'No capture yet' }).length).toBeGreaterThan(0)
   })
 })

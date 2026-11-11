@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { enginePathFor } from '../../service/src/engine-path.ts';
+import { editorCmdIn, enginePathFor, iniInstall } from '../../service/src/engine-path.ts';
 import { assetConfig } from '../../service/src/catalog/paths.ts';
 import { necessary } from '../../service/src/doctor.ts';
 import { removeDir } from '../remove-dir.ts';
@@ -68,5 +68,31 @@ test('revisión final: con un config.json que no valida, doctor sigue diagnostic
     writeFileSync(join(data, 'config.json'), JSON.stringify({limits: {inventado: 1}}));
     const rows = await necessary(data, {env: {PATH: ''}});
     assert.ok(rows.some(r => r.name === 'Unreal'));
+  } finally { g.close(); }
+});
+
+test('macOS y Linux: /Users/Shared/Epic Games/UE_5.9, NOMOS_UNREAL_ROOT y el GUID de Install.ini; binario por plataforma', () => {
+  const g = game('5.9');
+  try {
+    const none = join(g.root, 'no.dat');
+    const mac = (base: string) => { mkdirSync(join(base, 'Engine', 'Binaries', 'Mac'), {recursive: true}); return base; };
+    mac(join(g.root, 'PF', 'Epic Games', 'UE_5.9'));
+    const found = enginePathFor(g.uproject, {platform: 'darwin', env: {}, launcherDat: none, programFiles: join(g.root, 'PF')});
+    assert.ok(found && 'cmd' in found);
+    assert.match(found.cmd, /UE_5\.9[\\/]Engine[\\/]Binaries[\\/]Mac[\\/]UnrealEditor\.app[\\/]Contents[\\/]MacOS[\\/]UnrealEditor$/);
+    // si la instalación trae UnrealEditor-Cmd, se usa ese
+    const linux = join(g.root, 'motor'), bin = join(linux, 'Engine', 'Binaries', 'Linux');
+    mkdirSync(bin, {recursive: true});
+    writeFileSync(join(bin, 'UnrealEditor-Cmd'), '');
+    assert.equal(editorCmdIn(linux, 'linux'), join(bin, 'UnrealEditor-Cmd'));
+    // Linux sin launcher: pide 5.9 y solo NOMOS_UNREAL_ROOT lo da
+    assert.deepEqual(enginePathFor(g.uproject, {platform: 'linux', env: {}, installIni: none}), {missing: '5.9'});
+    assert.deepEqual(enginePathFor(g.uproject, {platform: 'linux', env: {NOMOS_UNREAL_ROOT: linux}}), {cmd: join(bin, 'UnrealEditor-Cmd'), version: '5.9'});
+    // motor compilado: el GUID de EngineAssociation en Install.ini
+    const guid = '{9D6A3B1C-0000-4E2A-8B1F-123456789ABC}', ini = join(g.root, 'Install.ini');
+    writeFileSync(g.uproject, JSON.stringify({EngineAssociation: guid}));
+    writeFileSync(ini, `[Installations]\n9D6A3B1C-0000-4E2A-8B1F-123456789ABC=${linux}\n`);
+    assert.deepEqual(enginePathFor(g.uproject, {platform: 'linux', env: {}, installIni: ini}), {cmd: join(bin, 'UnrealEditor-Cmd'), version: guid});
+    assert.equal(iniInstall(ini, '{00000000-0000-0000-0000-000000000000}'), null);
   } finally { g.close(); }
 });

@@ -1,9 +1,10 @@
-/** Símbolo de la marca (nomos-media/logo/nomos-simbolo.svg): la N de tres piezas, en la arcilla del tema (clara en oscuro).
- *  En la cabecera va el símbolo y el nombre en texto: la firma completa con «for Unreal» solo se lee desde 320 px de ancho. */
-export function Mark({ size = 22 }: { size?: number }) {
-  return <svg aria-hidden width={size} height={size} viewBox="0 0 256 256" fill="currentColor" className="shrink-0 text-clay">
-    <path d="M40 36 C51 35 65 36 75 36 Q80 36 80 41 L79 216 Q79 221 74 221 L40 220 Q35 220 35 215 L36 41 Q36 36 40 36Z" />
-    <path d="M90 50 Q90 47 93 51 L165 145 Q167 148 167 152 L166 204 Q166 209 163 205 L92 112 Q89 108 89 104Z" />
-    <path d="M181 36 L216 35 Q221 35 221 40 L220 215 Q220 220 215 220 L181 221 Q176 221 176 216 L177 41 Q177 36 181 36Z" />
+/** Símbolo de la marca v2 (docs/media/nomos-mark.svg): tres barras inclinadas forman la N y la diagonal va en brasa.
+ *  Los montantes toman el color del texto (hueso en oscuro, negro en claro); la diagonal, el acento del tema. Mínimo legible: 32 px de ancho
+ *  según las notas del logo; en la cabecera va a 28 px junto al nombre en texto, que también lo identifica. */
+export function Mark({ size = 28 }: { size?: number }) {
+  return <svg aria-hidden width={size} height={size} viewBox="16 40 224 176" className="shrink-0">
+    <path fill="currentColor" d="M67 48L97 48L65.7 195.3L53 208L23 208L54.3 60.7Z" />
+    <path className="fill-ember" d="M96 84L124 56L160 172L132 200Z" />
+    <path fill="currentColor" d="M203 48L233 48L201.7 195.3L189 208L159 208L190.3 60.7Z" />
   </svg>
 }

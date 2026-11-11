@@ -31,7 +31,7 @@ export const viewerType = (path: string): ViewerItem['type'] =>
 export function ViewerButton({ name, onOpen, children, className }: {
   name: string; onOpen: (el: HTMLElement) => void; children: ReactNode; className?: string
 }) {
-  return <button type="button" aria-label={`Ver ${name} a tamaño completo`} className={className ?? 'block size-full cursor-zoom-in outline-offset-2'}
+  return <button type="button" aria-label={`View ${name} full size`} className={className ?? 'block size-full cursor-zoom-in outline-offset-2'}
     onClick={(e) => { e.stopPropagation(); onOpen(e.currentTarget) }}>{children}</button>
 }
 
@@ -41,11 +41,11 @@ function TextBody({ src }: { src: string }) {
   useEffect(() => {
     let alive = true
     setText(null)
-    fetch(src).then((r) => r.ok ? r.text() : 'No se pudo leer el archivo.').then((t) => { if (alive) setText(t) }, () => { if (alive) setText('No se pudo leer el archivo.') })
+    fetch(src).then((r) => r.ok ? r.text() : 'Couldn’t read the file.').then((t) => { if (alive) setText(t) }, () => { if (alive) setText('Couldn’t read the file.') })
     return () => { alive = false }
   }, [src])
-  if (text === null) return <p role="status" className="text-sm text-muted-foreground">Cargando…</p>
-  return <pre aria-label="Contenido completo" className="size-full overflow-auto rounded-md bg-card p-3 font-mono text-xs leading-5">
+  if (text === null) return <p role="status" className="text-sm text-muted-foreground">Loading…</p>
+  return <pre aria-label="Full content" className="size-full overflow-auto rounded-md bg-card p-3 font-mono text-xs leading-5">
     {text.split(/\r?\n/).map((line, i) => <span key={i} className={isErrorLine(line) ? 'block text-error' : 'block'}>{line || ' '}</span>)}
   </pre>
 }
@@ -91,15 +91,15 @@ function AssetDialog({ items, id, setId, opener }: {
       <div data-viewer-frame className="relative grid min-h-0 flex-1 place-items-center overflow-hidden">
         <Body item={item} src={src} />
       </div>
-      {angles.length > 1 && <div role="group" aria-label="Ángulos" className="flex justify-center gap-2 overflow-x-auto">
+      {angles.length > 1 && <div role="group" aria-label="Angles" className="flex justify-center gap-2 overflow-x-auto">
         {angles.map((a) => <AngleThumb key={a.id} item={a} active={a.id === item.id} onSelect={() => setId(a.id)} />)}
       </div>}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" aria-label="Anterior" disabled={items.length < 2} onClick={() => go(-1)}><ChevronLeft />Anterior</Button>
-        <Button variant="outline" size="sm" aria-label="Siguiente" disabled={items.length < 2} onClick={() => go(1)}>Siguiente<ChevronRight /></Button>
-        <span className="text-xs text-muted-foreground tabular-nums">{index + 1} de {items.length}</span>
-        {src && <a href={src} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'outline', size: 'sm', className: 'ml-auto' })}>Abrir original</a>}
-        <DialogClose render={<Button variant="outline" size="sm" className={src ? undefined : 'ml-auto'} />}><XIcon />Cerrar</DialogClose>
+        <Button variant="outline" size="sm" aria-label="Previous" disabled={items.length < 2} onClick={() => go(-1)}><ChevronLeft />Previous</Button>
+        <Button variant="outline" size="sm" aria-label="Next" disabled={items.length < 2} onClick={() => go(1)}>Next<ChevronRight /></Button>
+        <span className="text-xs text-muted-foreground tabular-nums">{index + 1} of {items.length}</span>
+        {src && <a href={src} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'outline', size: 'sm', className: 'ml-auto' })}>Open original</a>}
+        <DialogClose render={<Button variant="outline" size="sm" className={src ? undefined : 'ml-auto'} />}><XIcon />Close</DialogClose>
       </div>
     </DialogContent>}
   </Dialog>

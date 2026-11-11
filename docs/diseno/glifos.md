@@ -9,31 +9,31 @@ La columna «Dónde aparece» conserva la referencia de la galería; la tabla de
 | Clave | Glifo | Significado | Dónde aparece |
 |---|---|---|---|
 | `area/gameplay` | `Gamepad2` | Gameplay | /estilo · Glifos y Arte |
-| `area/ui` | `LayoutPanelTop` | Interfaz | /estilo · Glifos y Arte |
-| `area/vfx` | `Sparkles` | Efectos y materiales | /estilo · Glifos y Arte |
-| `area/camara` | `Video` | Cámara | /estilo · Glifos y Arte |
-| `area/ia` | `BrainCircuit` | IA | /estilo · Glifos y Arte |
-| `area/escenarios` | `Mountain` | Escenarios | /estilo · Glifos y Arte |
+| `area/ui` | `LayoutPanelTop` | UI | /estilo · Glifos y Arte |
+| `area/vfx` | `Sparkles` | VFX and materials | /estilo · Glifos y Arte |
+| `area/camara` | `Video` | Camera | /estilo · Glifos y Arte |
+| `area/ia` | `BrainCircuit` | AI | /estilo · Glifos y Arte |
+| `area/escenarios` | `Mountain` | Levels | /estilo · Glifos y Arte |
 | `area/assets` | `Box` | Assets | /estilo · Glifos y Arte |
-| `area/animacion` | `PersonStanding` | Animación | /estilo · Glifos y Arte |
+| `area/animacion` | `PersonStanding` | Animation | /estilo · Glifos y Arte |
 | `area/audio` | `AudioWaveform` | Audio | /estilo · Glifos y Arte |
-| `area/qa` | `FlaskConical` | Calidad | /estilo · Glifos y Arte |
-| `area/builds` | `Package` | Compilaciones | /estilo · Glifos y Arte |
-| `taskState/pendiente` | `Circle` | Pendiente | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/preparada` | `CircleDot` | Preparada | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/implementando` | `Hammer` | Implementando | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/revisando` | `Eye` | Revisando | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/probando` | `TestTube2` | Probando | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/integrando` | `GitMerge` | Integrando | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/cerrando` | `DoorClosed` | Cerrando | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/done` | `CheckCircle2` | Hecha | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/bloqueada` | `Ban` | Bloqueada | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `taskState/decision` | `HelpCircle` | Espera decisión | /estilo · Glifos; mapa de Arte para estados y modificadores |
-| `directorState/esperando` | `Hourglass` | Esperando | /estilo · Glifos |
-| `directorState/escuchando` | `Radio` | Escuchando | /estilo · Glifos |
-| `directorState/atendiendo` | `Activity` | Atendiendo | /estilo · Glifos |
-| `directorState/vigilanteCaido` | `WifiOff` | Vigilante caído | /estilo · Glifos |
-| `directorState/desconectado` | `PlugZap` | Desconectado | /estilo · Glifos |
+| `area/qa` | `FlaskConical` | QA | /estilo · Glifos y Arte |
+| `area/builds` | `Package` | Builds | /estilo · Glifos y Arte |
+| `taskState/pendiente` | `Circle` | Pending | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/preparada` | `CircleDot` | Ready | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/implementando` | `Hammer` | Building | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/revisando` | `Eye` | Reviewing | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/probando` | `TestTube2` | Testing | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/integrando` | `GitMerge` | Merging | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/cerrando` | `DoorClosed` | Wrapping up | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/done` | `CheckCircle2` | Done | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/bloqueada` | `Ban` | Blocked | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `taskState/decision` | `HelpCircle` | Needs decision | /estilo · Glifos; mapa de Arte para estados y modificadores |
+| `directorState/esperando` | `Hourglass` | Idle | /estilo · Glifos |
+| `directorState/escuchando` | `Radio` | Listening | /estilo · Glifos |
+| `directorState/atendiendo` | `Activity` | Working | /estilo · Glifos |
+| `directorState/vigilanteCaido` | `WifiOff` | Watcher down | /estilo · Glifos |
+| `directorState/desconectado` | `PlugZap` | Disconnected | /estilo · Glifos |
 | `provider/codex` | `Pastilla` | Codex | /estilo · Glifos y Arte |
 | `provider/claude` | `Pastilla` | Claude | /estilo · Glifos y Arte |
 | `provider/opencode` | `Pastilla / Oc` | OpenCode | /estilo · Glifos y grupo de agentes; sin adaptador nuevo en servicio |
@@ -42,13 +42,13 @@ La columna «Dónde aparece» conserva la referencia de la galería; la tabla de
 | `provider/unreal` | `Pastilla` | Unreal | /estilo · Glifos y Arte |
 | `provider/nomos` | `Pastilla` | Nomos | /estilo · Glifos y Arte |
 | `provider/launcher` | `Pastilla` | Launcher | /estilo · Glifos y Arte |
-| `artifact/model` | `Shapes` | Modelo | /estilo · Glifos |
-| `artifact/texture` | `Image` | Textura | /estilo · Glifos |
-| `artifact/screenshot` | `Camera` | Captura | /estilo · Glifos |
-| `artifact/video` | `Film` | Vídeo | /estilo · Glifos |
-| `artifact/build` | `PackageCheck` | Compilación | /estilo · Glifos |
-| `artifact/report` | `FileText` | Informe | /estilo · Glifos |
-| `artifact/diff` | `Diff` | Cambios | /estilo · Glifos |
+| `artifact/model` | `Shapes` | Model | /estilo · Glifos |
+| `artifact/texture` | `Image` | Texture | /estilo · Glifos |
+| `artifact/screenshot` | `Camera` | Screenshot | /estilo · Glifos |
+| `artifact/video` | `Film` | Video | /estilo · Glifos |
+| `artifact/build` | `PackageCheck` | Build | /estilo · Glifos |
+| `artifact/report` | `FileText` | Report | /estilo · Glifos |
+| `artifact/diff` | `Diff` | Changes | /estilo · Glifos |
 
 ## Lectura y reutilización
 

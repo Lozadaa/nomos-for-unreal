@@ -17,40 +17,41 @@ import { ApprovalCard } from './ApprovalCard'
 import { Chat } from './Chat'
 import { DecisionCard } from './DecisionCard'
 import { EstadoCard } from './EstadoCard'
+import { NoCapture } from '@/components/NoCapture'
 import { viewerItems } from './PorAprobar'
 import { useLatestCaptures } from './Produccion'
 import { TaskSheet } from './TaskSheet'
 
 const active: Stage[] = ['preparada', 'implementando', 'revisando', 'probando', 'integrando', 'cerrando']
 const doing: Record<Stage, string> = {
-  pendiente: 'En cola', preparada: 'A punto de empezar', implementando: 'Construyéndolo', revisando: 'Comprobando que esté bien',
-  probando: 'Probándolo en el juego', integrando: 'Metiéndolo en el juego', cerrando: 'Rematando', done: 'Terminado',
+  pendiente: 'Queued', preparada: 'About to start', implementando: 'Building it', revisando: 'Checking it works',
+  probando: 'Testing it in the game', integrando: 'Adding it to the game', cerrando: 'Finishing up', done: 'Done',
 }
 
 /** Una frase en lenguaje de persona: qué le pasa a la tarea ahora. Los motivos técnicos se ven al abrirla. */
 export function humanStatus(t: Task, asking: boolean): { text: string; tone: Tone } {
-  if (t.failure || (t.blockedReason && t.state !== 'cerrando')) return { text: 'Se ha atascado', tone: 'error' }
-  if (t.blockedReason) return { text: 'No se pudo rematar', tone: 'warning' }
-  if (asking) return { text: 'Tiene una pregunta', tone: 'warning' }
+  if (t.failure || (t.blockedReason && t.state !== 'cerrando')) return { text: 'Stuck', tone: 'error' }
+  if (t.blockedReason) return { text: 'Couldn’t finish', tone: 'warning' }
+  if (asking) return { text: 'Has a question', tone: 'warning' }
   return { text: doing[t.state], tone: t.state === 'done' ? 'success' : t.state === 'preparada' ? 'neutral' : 'info' }
 }
 
 /** La pregunta de una decisión dicha como la diría una persona; las que no se reconocen quedan tal cual. */
 export function humanQuestion(reason: string): string {
-  if (/^Tarea parada en «/.test(reason)) return 'Se ha quedado parada. ¿La retomo o la cancelo?'
-  if (/^Lista para integrar/.test(reason)) return 'Ya está lista. ¿La meto en el juego?'
-  if (/NOMOS_DONE/.test(reason)) return 'Paró sin avisar de que había terminado. ¿Miro qué pasó?'
+  if (/^Tarea parada en «/.test(reason)) return 'It stopped. Resume it or cancel it?'
+  if (/^Lista para integrar/.test(reason)) return 'It’s ready. Add it to the game?'
+  if (/NOMOS_DONE/.test(reason)) return 'It stopped without saying it was done. Look into it?'
   return reason
 }
 
 const plural =(n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
-/** La imagen de la tarea: su última captura o, sin captura, el pictograma de su área. */
+/** La imagen de la tarea: su captura, si no la última del juego; solo sin ninguna captura en el proyecto, la marca. */
 function Cover({ path, task, className }: { path?: string; task: Task; className?: string }) {
   const src = useAuthedSrc(path ?? null)
-  // sin imagen, en móvil el hueco es más bajo: un pictograma no merece media pantalla
-  return <div className={cn('flex w-full items-center justify-center overflow-hidden bg-card', src ? 'aspect-video' : 'aspect-[3/1] sm:aspect-video', className)}>
-    {src ? <img src={src} alt={`Última imagen de ${task.title}`} loading="lazy" className="size-full object-cover" /> : <AreaPictogram area={task.area} size={40} />}
+  const [broken, setBroken] = useState<string | null>(null)
+  return <div className={cn('flex aspect-video w-full items-center justify-center overflow-hidden bg-card', className)}>
+    {src && broken !== src ? <img src={src} alt={`Latest image of ${task.title}`} loading="lazy" className="size-full object-cover" onError={() => setBroken(src)} /> : <NoCapture />}
   </div>
 }
 
@@ -125,31 +126,31 @@ export function Inicio() {
     document.querySelector<HTMLElement>(`[data-task-id="${CSS.escape(id ?? '')}"]`)?.focus()
   }
 
-  const headline = !loaded ? ' ' : needs ? `${plural(needs, 'cosa espera', 'cosas esperan')} tu decisión` : now.length ? 'Todo avanza; no hace falta nada de ti' : `${BRAND.short} está libre: pídele algo`
-  const summary = [now.length && plural(now.length, 'en marcha', 'en marcha'), queued.length && plural(queued.length, 'en cola', 'en cola'), done.length && plural(done.length, 'terminada', 'terminadas')].filter(Boolean).join(' · ')
+  const headline = !loaded ? ' ' : needs ? `${plural(needs, 'thing needs', 'things need')} your call` : now.length ? 'All moving. Nothing needed from you' : `${BRAND.short} is free. Ask for something`
+  const summary = [now.length && plural(now.length, 'running', 'running'), queued.length && plural(queued.length, 'queued', 'queued'), done.length && plural(done.length, 'done', 'done')].filter(Boolean).join(' · ')
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10">
-      <div className="lg:col-span-2"><EstadoCard /></div>
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10">
+      <div className="min-w-0 lg:col-span-2"><EstadoCard /></div>
       <div className="flex min-w-0 flex-col gap-10">
         <header className="flex flex-col gap-1 pt-1">
           <h2 role="status" className="text-2xl font-semibold tracking-tight sm:text-3xl">{headline}</h2>
           {summary && <p className="text-muted-foreground">{summary}</p>}
           {/* en móvil el chat queda al final: un atajo lleva hasta él */}
           <a href="#chat" onClick={(e) => { e.preventDefault(); document.getElementById('chat')?.scrollIntoView({ block: 'start' }); document.querySelector<HTMLTextAreaElement>('#chat textarea')?.focus({ preventScroll: true }) }}
-            className="mt-3 inline-flex h-11 items-center gap-2 self-start rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground lg:hidden">
-            <MessageCircle className="size-5" aria-hidden />Habla con {BRAND.short}
+            className="k-cut k-display mt-3 inline-flex h-11 items-center gap-2 self-start bg-primary px-5 text-lg leading-none text-primary-foreground lg:hidden">
+            <MessageCircle className="size-5" aria-hidden />Talk to {BRAND.short}
           </a>
         </header>
 
-        {needs > 0 && <Section title="Necesita tu decisión">
+        {needs > 0 && <Section title="Needs your call">
           <div className="flex flex-col gap-4">
             {approvalItems.map((item) => <ApprovalCard key={item.id} compact item={item} open={openViewer} patch={patch(item.id)} />)}
             {openDecisions.slice(0, allDecisions ? undefined : 3).map((d) => {
               const task = tasks.find((t) => t.id === d.taskId)!
               const thumb = thumbs.get(task.id)
               return <article key={d.id} aria-label={task.title} className={cn('grid gap-5 rounded-xl border border-warning/40 p-4 sm:p-5', thumb && 'sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]')}>
-                {thumb && <button type="button" onClick={() => openTask(task)} className="overflow-hidden rounded-lg" aria-label={`Ver ${task.title}`}>
+                {thumb && <button type="button" onClick={() => openTask(task)} className="overflow-hidden rounded-lg" aria-label={`View ${task.title}`}>
                   <Cover path={thumb} task={task} className="rounded-lg" />
                 </button>}
                 <DecisionCard bare decision={d} task={task} onStale={decisions.reload} heading={<span className="flex flex-col gap-1">
@@ -158,19 +159,19 @@ export function Inicio() {
                 </span>} />
               </article>
             })}
-            {openDecisions.length > 3 && !allDecisions && <button type="button" onClick={() => setAllDecisions(true)} className="self-start rounded-md border border-subtle px-4 py-2 text-sm hover:border-strong">Ver {openDecisions.length - 3} más</button>}
+            {openDecisions.length > 3 && !allDecisions && <button type="button" onClick={() => setAllDecisions(true)} className="self-start rounded-md border border-subtle px-4 py-2 text-sm hover:border-strong">Show {openDecisions.length - 3} more</button>}
           </div>
         </Section>}
 
-        <Section title="Ahora mismo" count={now.length}>
+        <Section title="Right now" count={now.length}>
           <div data-tour-anchor="map">
             {now.length ? <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {now.map((t) => <TaskCard key={t.id} task={t} thumb={thumbs.get(t.id)} asking={!!waiting[t.id]} onOpen={openTask} />)}
-            </ul> : <p className="flex items-center gap-2 text-muted-foreground"><CheckCircle2 className="size-5" aria-hidden />{loaded ? 'Nada en marcha ahora mismo.' : 'Cargando…'}</p>}
+            </ul> : <p className="flex items-center gap-2 text-muted-foreground"><CheckCircle2 className="size-5" aria-hidden />{loaded ? 'Nothing running right now.' : 'Loading…'}</p>}
           </div>
         </Section>
 
-        {done.length > 0 && <Section title="Terminado" count={done.length}>
+        {done.length > 0 && <Section title="Done" count={done.length}>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {done.slice(0, 8).map((t) => <TaskCard key={t.id} small task={t} thumb={thumbs.get(t.id)} asking={false} onOpen={openTask} />)}
           </ul>
@@ -179,7 +180,7 @@ export function Inicio() {
         {queued.length > 0 && <details className="group rounded-xl border border-subtle">
           <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
             <ChevronRight className="size-4 transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden />
-            En cola<span className="font-normal text-muted-foreground">{queued.length}</span>
+            Queued<span className="font-normal text-muted-foreground">{queued.length}</span>
           </summary>
           <ul className="flex flex-col border-t border-subtle">
             {queued.map((t) => <li key={t.id}><button type="button" data-task-id={t.id} onClick={() => openTask(t)}
@@ -188,11 +189,11 @@ export function Inicio() {
         </details>}
       </div>
 
-      <aside id="chat" aria-label={`Habla con ${BRAND.short}`} data-tour-anchor="composer"
+      <aside id="chat" aria-label={`Talk to ${BRAND.short}`} data-tour-anchor="composer"
         className="flex h-[75dvh] min-h-[28rem] flex-col gap-3 rounded-xl border border-subtle p-4 lg:sticky lg:top-5 lg:h-[calc(100dvh-var(--k-header)-2.5rem)]">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Habla con {BRAND.short}</h2>
-          <p className="text-sm text-muted-foreground">Pide cambios o cosas nuevas con tus palabras.</p>
+          <h2 className="text-lg font-semibold tracking-tight">Talk to {BRAND.short}</h2>
+          <p className="text-sm text-muted-foreground">Ask for changes or new things in your own words.</p>
         </div>
         <Chat className="h-auto min-h-0 max-w-none flex-1" autoFocus={params.get('nueva') === '1'} />
       </aside>

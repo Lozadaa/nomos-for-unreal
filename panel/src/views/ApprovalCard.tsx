@@ -35,7 +35,7 @@ function Side({ title, side }: { title: string; side: ConflictSide }) {
     <h4 className={label}>{title}</h4>
     <p className="font-medium">{side.who}{side.frente && <span className="text-muted-foreground"> · {side.frente}</span>}</p>
     <p>{side.task}</p>
-    <p className="text-xs text-muted-foreground">{new Date(side.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
+    <p className="text-xs text-muted-foreground">{new Date(side.at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</p>
   </div>
 }
 
@@ -81,7 +81,7 @@ export function ApprovalCard({ item, open, patch, compact = false }: {
   const videos = item.evidence.filter((a) => a.kind === 'video'), images = item.evidence.filter((a) => a.kind !== 'video')
   const pending = item.state === 'pending', conflict = item.conflict, shots = item.baseline
   const size = compact ? 'lg' : 'sm', big = compact ? 'h-11 min-w-32 px-6 text-base' : undefined
-  const status = conflict ? (pending ? 'Conflicto: elige con qué versión te quedas' : choiceText[item.choice ?? 'manual']) : shots ? baselineText[item.state] : stateText[item.state]
+  const status = conflict ? (pending ? 'Conflict: choose which version to keep' : choiceText[item.choice ?? 'manual']) : shots ? baselineText[item.state] : stateText[item.state]
 
   return (
     <article aria-label={item.title} data-approval className="flex flex-col gap-4 rounded-lg border border-subtle p-6">
@@ -90,44 +90,44 @@ export function ApprovalCard({ item, open, patch, compact = false }: {
         {item.summary && <Markdown clamp className="text-sm text-muted-foreground" text={item.summary} />}
         <span role="status" className="flex items-center gap-2 text-xs"><StatusDot tone={pending ? 'warning' : item.state === 'approved' ? 'success' : 'neutral'} />{status}</span>
         {pending && item.blocked && <p className="text-sm font-medium text-warning">{item.blocked}</p>}
-        {conflict && <p className="text-sm font-medium text-warning">Conflicto en {conflict.files.map(assetName).join(', ')} con {conflict.theirs.who}</p>}
+        {conflict && <p className="text-sm font-medium text-warning">Conflict in {conflict.files.map(assetName).join(', ')} with {conflict.theirs.who}</p>}
       </header>
-      {conflict && <section aria-label="Las dos versiones" className="grid gap-3 sm:grid-cols-2">
-        <Side title="La tuya" side={conflict.mine} />
-        <Side title="La suya" side={conflict.theirs} />
+      {conflict && <section aria-label="Both versions" className="grid gap-3 sm:grid-cols-2">
+        <Side title="Yours" side={conflict.mine} />
+        <Side title="Theirs" side={conflict.theirs} />
       </section>}
-      {shots && <section aria-label="Línea base" className="grid gap-3 sm:grid-cols-3">
-        <Shot src={`${base}/baseline/propuesta`} title={pending ? 'Propuesta' : 'Línea base'} />
-        {pending && shots.current && <Shot src={`${base}/baseline/actual`} title="Actual" />}
-        {shots.diff && <Shot src={`${base}/baseline/diferencia`} title="Diferencia" />}
+      {shots && <section aria-label="Baseline" className="grid gap-3 sm:grid-cols-3">
+        <Shot src={`${base}/baseline/propuesta`} title={pending ? 'Proposed' : 'Baseline'} />
+        {pending && shots.current && <Shot src={`${base}/baseline/actual`} title="Current" />}
+        {shots.diff && <Shot src={`${base}/baseline/diferencia`} title="Difference" />}
       </section>}
       {/* para juzgar un golpe hay que verlo grande: cada vídeo a todo el ancho útil (máx. 1280 px); las imágenes, debajo en tira */}
       {videos.length > 0 && <div className="flex flex-col gap-3">{videos.map((a) => <Video key={a.id} a={a} />)}</div>}
-      {images.length > 0 && <ul aria-label="Imágenes" className={compact ? 'grid gap-3 sm:grid-cols-2' : 'flex gap-3 overflow-x-auto pb-1'}>
+      {images.length > 0 && <ul aria-label="Images" className={compact ? 'grid gap-3 sm:grid-cols-2' : 'flex gap-3 overflow-x-auto pb-1'}>
         {images.map((a) => <Thumb key={a.id} a={a} wide={compact} onOpen={(el) => open(a.id, el)} />)}
       </ul>}
-      {!item.evidence.length && !shots && <p className="text-sm text-muted-foreground">Aún no hay vídeo ni imágenes de este elemento.</p>}
-      {item.focus.length > 0 && <section className="flex flex-col gap-2"><h4 className={label}>En qué fijarte</h4>
+      {!item.evidence.length && !shots && <p className="text-sm text-muted-foreground">No video or images for this item yet.</p>}
+      {item.focus.length > 0 && <section className="flex flex-col gap-2"><h4 className={label}>What to look at</h4>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">{item.focus.map((f) => <li key={f}>{f}</li>)}</ul></section>}
       {!compact && <Comments list={item.comments} />}
       {(!compact || mode === 'changes') && <NoteField text={text} setText={setText} imageId={imageId} setImageId={setImageId}
-        label={mode === 'changes' ? `Qué cambiar en ${item.title}` : `Comentario sobre ${item.title}`}
-        placeholder={mode === 'changes' ? 'Qué debería cambiar (obligatorio)…' : 'Tu opinión; puedes pegar una imagen…'}
+        label={mode === 'changes' ? `What to change in ${item.title}` : `Comment on ${item.title}`}
+        placeholder={mode === 'changes' ? 'What should change (required)…' : 'Your thoughts. You can paste an image…'}
         onSubmit={() => void (mode === 'changes' ? changes.fire() : comment.fire())} />}
       <div className="flex flex-wrap items-center gap-2">
         {pending && conflict && <>
-          <Button size="sm" disabled={keeping} onClick={() => void mine.fire()}>Quedarme con la mía</Button>
-          <Button size="sm" variant="outline" disabled={keeping} onClick={() => void theirs.fire()}>Quedarme con la suya</Button>
+          <Button size="sm" disabled={keeping} onClick={() => void mine.fire()}>Keep mine</Button>
+          <Button size="sm" variant="outline" disabled={keeping} onClick={() => void theirs.fire()}>Keep theirs</Button>
         </>}
-        {pending && !conflict && mode === 'idle' && <Button size={size} className={big} disabled={approve.pending} aria-busy={approve.pending} onClick={() => void approve.fire()}>Aprobar</Button>}
-        {pending && !conflict && !shots && mode === 'idle' && <Button size={size} className={big} variant="outline" onClick={() => setMode('changes')}>Pedir cambios</Button>}
-        {pending && shots && mode === 'idle' && <Button size={size} className={big} variant="outline" disabled={reject.pending} onClick={() => void reject.fire()}>Rechazar</Button>}
+        {pending && !conflict && mode === 'idle' && <Button size={size} className={big} disabled={approve.pending} aria-busy={approve.pending} onClick={() => void approve.fire()}>Approve</Button>}
+        {pending && !conflict && !shots && mode === 'idle' && <Button size={size} className={big} variant="outline" onClick={() => setMode('changes')}>Request changes</Button>}
+        {pending && shots && mode === 'idle' && <Button size={size} className={big} variant="outline" disabled={reject.pending} onClick={() => void reject.fire()}>Reject</Button>}
         {pending && mode === 'changes' && <>
-          <Button size="sm" disabled={!text.trim() || changes.pending} onClick={() => void changes.fire()}>Enviar los cambios</Button>
-          <Button size="sm" variant="ghost" onClick={() => setMode('idle')}>Cancelar</Button>
+          <Button size="sm" disabled={!text.trim() || changes.pending} onClick={() => void changes.fire()}>Send changes</Button>
+          <Button size="sm" variant="ghost" onClick={() => setMode('idle')}>Cancel</Button>
         </>}
-        {mode === 'idle' && !compact && <Button size="sm" variant="ghost" disabled={!text.trim() || comment.pending} onClick={() => void comment.fire()}>Comentar</Button>}
-        {failed && <span role="alert" className="text-xs text-error">No se registró. {humanError(failed)}</span>}
+        {mode === 'idle' && !compact && <Button size="sm" variant="ghost" disabled={!text.trim() || comment.pending} onClick={() => void comment.fire()}>Comment</Button>}
+        {failed && <span role="alert" className="text-xs text-error">Not saved. {humanError(failed)}</span>}
       </div>
     </article>
   )

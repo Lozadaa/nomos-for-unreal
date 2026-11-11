@@ -45,27 +45,27 @@ describe('Chat: burbuja optimista', () => {
     let listed: unknown[] = []
     serve((path, init) => (path === '/messages' && init?.method === 'POST' ? post.promise : listed))
     render(<Chat />)
-    expect(await screen.findByText('Cuéntale a Nomos qué quieres construir')).toBeInTheDocument()
+    expect(await screen.findByText('Tell Nomos what you want to build')).toBeInTheDocument()
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Mensaje para Nomos'), 'Hola Nomos')
-    await user.click(screen.getByRole('button', { name: 'Enviar' }))
+    await user.type(screen.getByLabelText('Message for Nomos'), 'Hola Nomos')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
 
     // el servidor aún no ha respondido y la burbuja ya está, con su estado
     expect(await screen.findByText('Hola Nomos')).toBeInTheDocument()
-    expect(screen.getByText('Enviando…', { selector: 'li span' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Mensaje para Nomos')).toHaveValue('')
+    expect(screen.getByText('Sending…', { selector: 'li span' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Message for Nomos')).toHaveValue('')
 
     // hito 10: el chat se vuelve a pedir con cada evento y muestra estados reales con hora
     const sent = { id: 'm1', text: 'Hola Nomos', createdAt: new Date().toISOString(), state: 'recibido', readAt: null, typingAt: null, repliedAt: null, timedOut: false, replies: [], links: [] }
     await act(async () => { post.resolve({ messageId: 'm1' }) })
     listed = [sent]
     act(() => { ingest(event('message.received', { messageId: 'm1', payload: { text: 'Hola Nomos', origin: 'web' } })) })
-    expect(await screen.findByText(/^Recibido \d\d:\d\d$/)).toBeInTheDocument()
+    expect(await screen.findByText(/^Received \d\d:\d\d$/)).toBeInTheDocument()
     expect(screen.getAllByText('Hola Nomos')).toHaveLength(1)
     listed = [{ ...sent, state: 'respondido', readAt: sent.createdAt, repliedAt: sent.createdAt, replies: [{ text: 'Hecho, lo preparo', at: sent.createdAt }] }]
     act(() => { ingest(event('message.replied', { messageId: 'm1', payload: { text: 'Hecho, lo preparo' } })) })
     expect(await screen.findByText('Hecho, lo preparo')).toBeInTheDocument()
-    expect(screen.getByText(/^Leído por Nomos \d\d:\d\d$/)).toBeInTheDocument()
+    expect(screen.getByText(/^Read by Nomos \d\d:\d\d$/)).toBeInTheDocument()
     expect(screen.queryByText(/lo atenderá en breve/)).toBeNull()
   })
 
@@ -74,8 +74,8 @@ describe('Chat: burbuja optimista', () => {
     serve((path, init) => (path === '/messages' && init?.method === 'POST' ? post.promise : []))
     render(<Chat />)
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Mensaje para Nomos'), 'Una sola vez')
-    await user.click(screen.getByRole('button', { name: 'Enviar' }))
+    await user.type(screen.getByLabelText('Message for Nomos'), 'Una sola vez')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
     await screen.findByText('Una sola vez')
     // el SSE gana la carrera: el servidor ya publicó el evento y el POST todavía no ha vuelto
     act(() => { ingest(event('message.received', { messageId: 'm9', payload: { text: 'Una sola vez', origin: 'web' }, createdAt: new Date(Date.now() + 5).toISOString() })) })
@@ -88,11 +88,11 @@ describe('Chat: burbuja optimista', () => {
     serve((path, init) => { if (path === '/messages' && init?.method === 'POST') throw new Error('http_500'); return [] })
     render(<Chat />)
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Mensaje para Nomos'), 'Se pierde?')
-    await user.click(screen.getByRole('button', { name: 'Enviar' }))
-    await waitFor(() => expect(screen.getByLabelText('Mensaje para Nomos')).toHaveValue('Se pierde?'), { timeout: 2000 })
-    expect(screen.queryByText('Enviando…', { selector: 'li span' })).not.toBeInTheDocument()
-    expect(await screen.findByRole('alert')).toHaveTextContent('El servicio falló')
+    await user.type(screen.getByLabelText('Message for Nomos'), 'Se pierde?')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(screen.getByLabelText('Message for Nomos')).toHaveValue('Se pierde?'), { timeout: 2000 })
+    expect(screen.queryByText('Sending…', { selector: 'li span' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('The service hit an error')
   })
 })
 
@@ -119,9 +119,9 @@ describe('Actividad: carriles estables', () => {
     act(() => { ingest(event('task.activity', { payload: { source: 'Codex', taskId: 't1' } })); ingest(event('task.activity', { payload: { source: 'Nomos', taskId: 't2' } })) })
     inRouter(<Actividad />)
     expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2)
-    fireEvent.change(screen.getByRole('combobox', { name: 'Tarea' }), { target: { value: 't1' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Task' }), { target: { value: 't1' } })
     await waitFor(() => expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(1))
-    fireEvent.change(screen.getByRole('combobox', { name: 'Tarea' }), { target: { value: '' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Task' }), { target: { value: '' } })
     await waitFor(() => expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(2))
   })
 
@@ -145,8 +145,8 @@ describe('Actividad: carriles estables', () => {
   it('sin eventos explica por qué y ofrece una acción', () => {
     serve(() => [])
     inRouter(<Actividad />)
-    expect(screen.getByText('Aún no hay actividad')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Nueva petición' })).toBeInTheDocument()
+    expect(screen.getByText('No activity yet')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New request' })).toBeInTheDocument()
   })
 })
 
@@ -157,7 +157,7 @@ describe('Entregas', () => {
       { id: 'a2', taskId: 't', kind: 'screenshot', path: 'captura-01.png', license: 'MIT', createdAt: '' },
     ] : []))
     const { container } = inRouter(<Entregas />)
-    const img = await screen.findByAltText('Captura')
+    const img = await screen.findByAltText('Screenshot')
     expect(img.getAttribute('src')).toContain('/artifacts/a2/file?token=tok')
     await waitFor(() => expect(container.querySelector('model-viewer')).not.toBeNull())
     expect(container.querySelector('model-viewer')!.getAttribute('src')).toContain('/artifacts/a1/file')
@@ -165,7 +165,7 @@ describe('Entregas', () => {
   it('sin entregas muestra el vacío con su acción', async () => {
     serve(() => [])
     inRouter(<Entregas />)
-    expect(await screen.findByText('Aún no hay entregas')).toBeInTheDocument()
+    expect(await screen.findByText('No deliveries yet')).toBeInTheDocument()
   })
 })
 
@@ -177,12 +177,12 @@ describe('Catálogo', () => {
     inRouter(<Catalogo />)
     await screen.findByText('Bruno')
     const card = (name: string) => screen.getByRole('heading', { name }).closest('li')!
-    expect(within(card('Bruno')).getByText(/Prohibido para IA/)).toBeInTheDocument()
+    expect(within(card('Bruno')).getByText(/No AI/)).toBeInTheDocument()
     // solo la miniatura que abre el visor; ninguna acción
-    expect(within(card('Bruno')).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Ver Bruno a tamaño completo'])
-    expect(within(card('Explorador')).getByRole('img', { name: 'Licencia desconocida' })).toBeInTheDocument()
-    expect(within(card('Explorador')).getByRole('button', { name: 'Revisar licencia' })).toBeInTheDocument()
-    expect(within(card('Instalado')).getByLabelText('Instalado en CrazyPadel')).toBeInTheDocument()
+    expect(within(card('Bruno')).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['View Bruno full size'])
+    expect(within(card('Explorador')).getByRole('img', { name: 'Unknown license' })).toBeInTheDocument()
+    expect(within(card('Explorador')).getByRole('button', { name: 'Check license' })).toBeInTheDocument()
+    expect(within(card('Instalado')).getByLabelText('Installed in CrazyPadel')).toBeInTheDocument()
   })
 
   it('«Preparar para Unreal» muestra pendiente ≥ 300 ms y, si el servicio aún no acepta la orden, lo dice en la tarjeta', async () => {
@@ -192,11 +192,11 @@ describe('Catálogo', () => {
     })
     inRouter(<Catalogo />)
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Preparar para Unreal' }))
-    const busy = await screen.findByRole('button', { name: 'Preparando…' })
+    await user.click(await screen.findByRole('button', { name: 'Prepare for Unreal' }))
+    const busy = await screen.findByRole('button', { name: 'Preparing…' })
     expect(busy).toHaveAttribute('aria-busy', 'true')
     const t0 = Date.now()
-    expect(await screen.findByText('Disponible cuando el ejecutor de comandos esté listo.', {}, { timeout: 2000 })).toBeInTheDocument()
+    expect(await screen.findByText('Available once the command runner is ready.', {}, { timeout: 2000 })).toBeInTheDocument()
     expect(Date.now() - t0).toBeGreaterThanOrEqual(150) // el pendiente se mantuvo aunque el servidor respondió al instante
   })
 
@@ -204,11 +204,11 @@ describe('Catálogo', () => {
     serve((path) => path === '/catalog' ? [entry({ id: 'c1', name: 'Bruno', aiForbidden: 1 }), entry({ id: 'c2', name: 'Ada' })] : [])
     inRouter(<Catalogo />)
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Usables con IA' }))
+    await user.click(await screen.findByRole('button', { name: 'AI-usable' }))
     await waitFor(() => expect(screen.queryByText('Bruno')).not.toBeInTheDocument())
-    await user.type(screen.getByLabelText('Buscar asset'), 'zzz')
-    expect(await screen.findByText('Ningún asset coincide con tu búsqueda')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Quitar filtros' }))
+    await user.type(screen.getByLabelText('Search assets'), 'zzz')
+    expect(await screen.findByText('No assets match your search')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
     await waitFor(() => expect(screen.getByText('Bruno')).toBeInTheDocument())
   })
 })
@@ -221,12 +221,12 @@ describe('Decisiones: elegir resalta al instante', () => {
     serve((path, init) => (path.endsWith('/resolve') && init?.method === 'POST' ? post.promise : path === '/decisions' ? [decision('d1'), decision('d2')] : []))
     inRouter(<Decisiones />)
     const user = userEvent.setup()
-    expect(await screen.findByText('Tienes 2 decisiones pendientes')).toBeInTheDocument()
+    expect(await screen.findByText('2 decisions waiting on you')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Opción B' }))
     // la decisión elegida se queda a la vista, ya resuelta, y desaparece de «pendientes» antes de que responda el servidor
-    expect(await screen.findByText(/Elegiste Opción B/)).toBeInTheDocument()
+    expect(await screen.findByText(/You chose Opción B/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Pregunta d1' })).toBeInTheDocument()
-    expect(await screen.findByText('Tienes 1 decisión pendiente')).toBeInTheDocument()
+    expect(await screen.findByText('1 decision waiting on you')).toBeInTheDocument()
     await act(async () => { post.resolve({}) })
   })
 
@@ -239,14 +239,14 @@ describe('Decisiones: elegir resalta al instante', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Opción A' }))
     await waitFor(() => expect(toasts.error).toHaveBeenCalled(), { timeout: 2000 })
-    expect(vi.mocked(toasts.error).mock.calls[0][0].action?.label).toBe('Recargar decisión')
-    await waitFor(() => expect(screen.getByText('Tienes 1 decisión pendiente')).toBeInTheDocument())
+    expect(vi.mocked(toasts.error).mock.calls[0][0].action?.label).toBe('Reload decision')
+    await waitFor(() => expect(screen.getByText('1 decision waiting on you')).toBeInTheDocument())
   })
 
   it('j y k recorren la bandeja', async () => {
     serve((path) => (path === '/decisions' ? [decision('d1'), decision('d2')] : []))
     inRouter(<Decisiones />)
-    const list = await screen.findByRole('list', { name: 'Bandeja de decisiones' })
+    const list = await screen.findByRole('list', { name: 'Decision inbox' })
     const current = () => within(list).getAllByRole('button').findIndex((b) => b.getAttribute('aria-current') === 'true')
     expect(current()).toBe(0)
     fireEvent.keyDown(document, { key: 'j' })
@@ -258,8 +258,8 @@ describe('Decisiones: elegir resalta al instante', () => {
   it('sin decisiones lo dice y ofrece ir a Producción', async () => {
     serve(() => [])
     inRouter(<Decisiones />)
-    expect(await screen.findByText('No tienes decisiones pendientes')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ver producción' })).toBeInTheDocument()
+    expect(await screen.findByText('No decisions waiting on you')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Go to Production' })).toBeInTheDocument()
   })
 })
 
@@ -276,18 +276,18 @@ describe('Presupuesto: cifras con tick', () => {
     const first = within(meshy).getByText('60')
     expect(first).toHaveAttribute('data-tick', '60')
     expect(within(meshy).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '60')
-    expect(screen.getAllByText('Sin límite definido')).toHaveLength(3)
+    expect(screen.getAllByText('No limit set')).toHaveLength(3)
 
     spent = 100
     act(() => { ingest(event('run.finished')) })
     const last = await within(meshy).findByText('100')
     expect(last).not.toBe(first)
-    expect(within(meshy).getByText('Meshy · límite agotado')).toBeInTheDocument()
+    expect(within(meshy).getByText('Meshy · limit reached')).toBeInTheDocument()
   })
 })
 
 describe('Presupuesto: fijar límites', () => {
-  it('«Definir límite» envía PUT /budget con solo esa métrica', async () => {
+  it('«Set limit» envía PUT /budget con solo esa métrica', async () => {
     serve((path) => (path === '/budget' ? {
       scope: 'workspace', scopeId: 'w1',
       limits: { meshyCredits: null, elevenlabsCredits: null, tokens: null, buildMinutes: null },
@@ -297,9 +297,9 @@ describe('Presupuesto: fijar límites', () => {
     render(<Presupuesto />)
     const meshy = await screen.findByRole('region', { name: 'Meshy' })
     const user = userEvent.setup()
-    await user.click(within(meshy).getByRole('button', { name: 'Definir límite' }))
-    await user.type(within(meshy).getByLabelText('Límite de Meshy'), '400')
-    await user.click(within(meshy).getByRole('button', { name: 'Guardar' }))
+    await user.click(within(meshy).getByRole('button', { name: 'Set limit' }))
+    await user.type(within(meshy).getByLabelText('Meshy limit'), '400')
+    await user.click(within(meshy).getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/budget', { method: 'PUT', body: { scope: 'workspace', scopeId: 'w1', limits: { meshyCredits: 400 } } }))
   })
 })
@@ -313,26 +313,26 @@ describe('Capacidades', () => {
     serve((path) => path === '/capabilities/git/check' ? { ...caps[0], state: 'comprobado', checkedAt: new Date().toISOString() } : caps)
     render(<Capacidades />)
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Comprobar ahora' }))
-    expect(await screen.findByRole('button', { name: 'Comprobando…' })).toHaveAttribute('aria-busy', 'true')
-    expect(await screen.findByText(/revisado/, {}, { timeout: 2000 })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Check now' }))
+    expect(await screen.findByRole('button', { name: 'Checking…' })).toHaveAttribute('aria-busy', 'true')
+    expect(await screen.findByText(/checked/, {}, { timeout: 2000 })).toBeInTheDocument()
   })
   it('lo ausente ofrece «Ver cómo instalar», que despliega la ayuda sin salir de la fila', async () => {
     serve(() => caps)
     render(<Capacidades />)
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Ver cómo instalar' }))
-    expect(screen.getByText(/Instálalo y pulsa/)).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'How to install' }))
+    expect(screen.getByText(/Install it, then select/)).toBeInTheDocument()
   })
 })
 
 describe('Estilo', () => {
   it('muestra la guía con su índice y el peor caso alimenta las filas con datos extremos', async () => {
     render(<Estilo />)
-    expect(screen.getByRole('navigation', { name: 'Secciones de la guía' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Style guide sections' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThanOrEqual(8)
-    expect(screen.queryByText(/Nude_Tennis_Racket_🎾 con un nombre larguísimo/)).not.toBeInTheDocument()
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Peor caso' }))
-    expect(screen.getByText(/Nude_Tennis_Racket_🎾 con un nombre larguísimo/)).toBeInTheDocument()
+    expect(screen.queryByText(/Nude_Tennis_Racket_🎾 with an extremely long name/)).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Worst case' }))
+    expect(screen.getByText(/Nude_Tennis_Racket_🎾 with an extremely long name/)).toBeInTheDocument()
   })
 })

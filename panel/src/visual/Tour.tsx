@@ -13,9 +13,9 @@ export function needsTour() {
 }
 
 const steps = [
-  { target: 'director', text: `Aquí ves si ${BRAND.short} escucha` },
-  { target: 'composer', text: 'Pide algo aquí' },
-  { target: 'map', text: 'Así avanza el trabajo' },
+  { target: 'director', text: `See whether ${BRAND.short} is listening` },
+  { target: 'composer', text: 'Ask for something here' },
+  { target: 'map', text: 'Watch the work move along' },
 ] as const
 
 /** La guía señala los controles reales y solo navega cuando se pide el segundo paso. */
@@ -64,13 +64,13 @@ export function Tour({ onClose }: { onClose: () => void }) {
             ? previousFocus.current : anchor.querySelector<HTMLElement>('input,button,[tabindex]') ?? document.getElementById('contenido')}
           className="flex w-80 max-w-[calc(100vw-3rem)] flex-col gap-3 rounded-lg border border-strong bg-popover p-4 text-popover-foreground outline-none">
           <div className="flex items-center justify-between gap-4">
-            <Popover.Title className="text-sm font-medium">Guía de {BRAND.short}</Popover.Title>
-            <span className="font-mono text-xs text-muted-foreground" aria-label={`Paso ${step + 1} de 3`}>{step + 1} / 3</span>
+            <Popover.Title className="text-sm font-medium">{BRAND.short} tour</Popover.Title>
+            <span className="font-mono text-xs text-muted-foreground" aria-label={`Step ${step + 1} of 3`}>{step + 1} / 3</span>
           </div>
           <Popover.Description className="text-sm" aria-live="polite">{current.text}</Popover.Description>
           <div className="flex items-center justify-between gap-3">
-            <Popover.Close render={<Button variant="ghost" size="sm" onClick={() => void close.fire()} />}>Cerrar guía</Popover.Close>
-            <Button size="sm" disabled={next.pending} aria-busy={next.pending} onClick={() => void next.fire()}>{step === 2 ? 'Terminar' : 'Siguiente'}</Button>
+            <Popover.Close render={<Button variant="ghost" size="sm" onClick={() => void close.fire()} />}>Close tour</Popover.Close>
+            <Button size="sm" disabled={next.pending} aria-busy={next.pending} onClick={() => void next.fire()}>{step === 2 ? 'Finish' : 'Next'}</Button>
           </div>
         </Popover.Popup>
       </Popover.Positioner>

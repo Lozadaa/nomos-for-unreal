@@ -17,10 +17,10 @@ export const AvatarGroup = memo(function AvatarGroup({ agents, size = 32 }: { ag
   return <div className="k-avatar-group">
     <div className="k-avatar-stack" style={{ '--agent-size': `${size}px` } as CSSProperties}>
       {agents.slice(0, 3).map((agent) => <AgentAvatar key={agent.id} {...agent} size={size} />)}
-      {agents.length > 3 && <span className="k-avatar-overflow" aria-label={`${agents.length - 3} agentes más`}>+{agents.length - 3}</span>}
+      {agents.length > 3 && <span className="k-avatar-overflow" aria-label={`${agents.length - 3} more agents`}>+{agents.length - 3}</span>}
     </div>
     <div className="k-avatar-summary">
-      {[...providers].map(([provider, count]) => <p key={provider}>{count.total} {glyphFor('provider', provider).label} · {count.active} {count.active === 1 ? 'activo' : 'activos'}</p>)}
+      {[...providers].map(([provider, count]) => <p key={provider}>{count.total} {glyphFor('provider', provider).label} · {count.active} active</p>)}
     </div>
   </div>
 })

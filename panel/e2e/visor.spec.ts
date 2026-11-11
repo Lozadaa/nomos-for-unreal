@@ -40,7 +40,7 @@ for (const [width, height] of [[1366, 768], [1920, 1080]] as const) {
     await expect(page.getByRole('dialog', { name })).toBeVisible()
     await expectLarge(page, width, height)
     if (browserName === 'chromium' && width === 1920) await page.screenshot({ path: '../docs/capturas-7/visor-catalogo-1920.png' })
-    await page.getByRole('button', { name: 'Cerrar' }).click()
+    await page.getByRole('button', { name: 'Close' }).click()
     await expect(page.getByRole('dialog')).toBeHidden()
     await expect(thumb).toBeFocused()
   })

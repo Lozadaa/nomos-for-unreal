@@ -20,12 +20,12 @@ test('nomos stop/start: el panel lo dice, reconecta solo con el mismo token y no
   const pending = await (await page.request.get(`${service.origin}/status`, auth(first))).json() as { pending: number }
 
   service.stop()
-  await expect(page.getByText('Servicio desconectado')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Service disconnected')).toBeVisible({ timeout: 15_000 })
   const second = service.start()
   expect(second).toBe(first)
   expect((await page.request.get(`${service.origin}/status`, auth(first))).status()).toBe(200)
   // sin recargar: la pestaña vuelve sola
-  await expect(page.getByText('Servicio desconectado')).toBeHidden({ timeout: 15_000 })
+  await expect(page.getByText('Service disconnected')).toBeHidden({ timeout: 15_000 })
   await page.waitForTimeout(1500)
   await expect(page.getByText(/Sesión caducada/)).toHaveCount(0)
   await expect(rows).toHaveCount(before)

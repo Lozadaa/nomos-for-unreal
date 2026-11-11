@@ -21,16 +21,16 @@ describe('cierre en el panel', () => {
     vi.mocked(api).mockResolvedValue({ commandId: 'c' })
     render(<ClosingNote task={task()} onOpen={() => {}} />)
     expect(screen.getByText('Cambios sin registrar: b.txt')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Reintentar cierre' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Retry wrap-up' }))
     await waitFor(() => expect(api).toHaveBeenCalledWith('/tasks/t1/finalize', { method: 'POST', body: {} }))
   })
 
   it('con Decisión abierta la acción es decidir (abre la tarea)', async () => {
     const onOpen = vi.fn()
     render(<ClosingNote task={task({ decisionId: 'd1', blockedReason: 'Conflicto binario al integrar en master: BP_Puerta.uasset' })} onOpen={onOpen} />)
-    await userEvent.click(screen.getByRole('button', { name: 'Decidir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Decide' }))
     expect(onOpen).toHaveBeenCalled()
-    expect(screen.queryByRole('button', { name: 'Reintentar cierre' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Retry wrap-up' })).toBeNull()
   })
 
   it('atribución por rol con avatar y nombre corto', () => {
@@ -39,7 +39,7 @@ describe('cierre en el panel', () => {
       implemento: [{ runId: 'r1', provider: 'claude', agentName: 'UI Worker', at: '' }],
     } })} />)
     const rows = screen.getAllByRole('listitem').map((li) => li.textContent)
-    expect(rows).toEqual(['ImplementóClUI Worker', 'VerificóNoUI Builder'])
+    expect(rows).toEqual(['BuiltClUI Worker', 'VerifiedNoUI Builder'])
     expect(screen.getByRole('img', { name: 'UI Worker · Claude' })).toBeInTheDocument()
   })
 
@@ -57,9 +57,9 @@ describe('cierre en el panel', () => {
     const header = <TooltipProvider><Header project="Juego" onCommand={() => {}} onTogglePause={() => {}}
       status={{ service: true, listener: true, listenerAgeSec: 1, director: 's', lastAckSeq: 0, lastAckAt: null, pending: 0, paused: true }} /></TooltipProvider>
     render(<RouterProvider router={createMemoryRouter([{ path: '*', element: header }])} />)
-    expect(screen.getByText('En pausa')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Esperando' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Más' }))
-    expect(await screen.findByRole('button', { name: 'Reanudar el trabajo' })).toBeInTheDocument()
+    expect(screen.getByText('Paused')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Idle' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
+    expect(await screen.findByRole('button', { name: 'Resume work' })).toBeInTheDocument()
   })
 })

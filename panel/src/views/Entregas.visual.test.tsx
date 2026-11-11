@@ -27,19 +27,19 @@ describe('Entregas · previews y vacío visual', () => {
       artifact('report', 'report', 'informe.txt'), artifact('video', 'video', 'recorrido.mp4'),
     ])
     const { container } = inRouter()
-    const image = await screen.findByRole('img', { name: 'Captura' })
+    const image = await screen.findByRole('img', { name: 'Screenshot' })
     expect(image.getAttribute('src')).toBe('/artifacts/capture/file?token=fixture-token')
     expect(image).toHaveAttribute('loading', 'lazy')
     await waitFor(() => expect(container.querySelector('model-viewer')).not.toBeNull())
     const model = container.querySelector('model-viewer')!
-    expect(model).toHaveAttribute('alt', 'Modelo 3D de Modelo') // hito 7: el nombre del artefacto, nunca el del archivo
+    expect(model).toHaveAttribute('alt', '3D model of Model') // hito 7: el nombre del artefacto, nunca el del archivo
     expect(model).toHaveAttribute('src', '/artifacts/model/file?token=fixture-token')
     expect(model).toHaveAttribute('camera-controls')
     expect(model).not.toHaveAttribute('auto-rotate')
     // hito 10: el informe va plegado en «Informes y registros», no como tarjeta
-    expect(screen.queryByRole('img', { name: 'Informe' })).toBeNull()
-    expect(screen.getByText('Informes y registros')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Vídeo' })).toHaveClass('lucide-film')
+    expect(screen.queryByRole('img', { name: 'Report' })).toBeNull()
+    expect(screen.getByText('Reports and logs')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Video' })).toHaveClass('lucide-film')
     expect(screen.queryByText('TXT')).toBeNull()
     expect(screen.queryByText('MP4')).toBeNull()
     expect(screen.queryByText(/MIT|captura\.png|informe\.txt/)).toBeNull()
@@ -48,12 +48,12 @@ describe('Entregas · previews y vacío visual', () => {
   it('vacío: un icono de48, una frase y una acción que navega al compositor', async () => {
     mockApi.mockResolvedValue([])
     const { container, router } = inRouter()
-    const icon = await screen.findByRole('img', { name: 'Entregas sin elementos' })
+    const icon = await screen.findByRole('img', { name: 'Deliveries: empty' })
     expect(icon).toHaveAttribute('width', '48')
     expect(container.querySelectorAll('p')).toHaveLength(1)
-    expect(screen.getByText('Aún no hay entregas')).toBeInTheDocument()
+    expect(screen.getByText('No deliveries yet')).toBeInTheDocument()
     expect(screen.getAllByRole('button')).toHaveLength(1)
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Nueva petición' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'New request' }))
     await waitFor(() => expect(router.state.location.search).toBe('?nueva=1'))
   })
 
@@ -66,7 +66,7 @@ describe('Entregas · previews y vacío visual', () => {
     render(<RouterProvider router={createMemoryRouter([{ path: '/', element: <Entregas /> }])} />)
     const groups = await screen.findAllByRole('region')
     expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual(['Componer plaza', 'Diseñar HUD'])
-    expect([...groups[1].querySelectorAll('li p')].map((p) => p.textContent)).toEqual(['UMG · 2 capturas'])
+    expect([...groups[1].querySelectorAll('li p')].map((p) => p.textContent)).toEqual(['UMG · 2 screenshots'])
     expect(groups[1].querySelector('details')!.open).toBe(false)
   })
 

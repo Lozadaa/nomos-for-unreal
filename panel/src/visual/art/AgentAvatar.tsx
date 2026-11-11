@@ -21,7 +21,7 @@ const monograms: Record<string, string> = {
 
 /** Tooltip del agente: proveedor, modelo Claude (workerModel) y skills confirmadas. */
 export function agentTitle(provider: string, model?: string, skills?: readonly string[]) {
-  return [glyphFor('provider', provider).label, model && `modelo ${model}`, skills?.length && `skills confirmadas: ${skills.join(', ')}`]
+  return [glyphFor('provider', provider).label, model && `model ${model}`, skills?.length && `confirmed skills: ${skills.join(', ')}`]
     .filter(Boolean).join(' · ')
 }
 

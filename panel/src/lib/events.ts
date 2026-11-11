@@ -2,11 +2,11 @@ import { providerLabel, stageLabel, stages, type NomosEvent } from './tasks'
 import type { PresentationKind } from '@/visual/glyphs'
 import { BRAND, legacyProvider } from '@/lib/brand'
 
-export const lanes = [BRAND.short, 'Codex', 'Claude Code', 'OpenCode', 'Meshy', 'Blender', 'Unreal', 'Compilaciones'] as const
+export const lanes = [BRAND.short, 'Codex', 'Claude Code', 'OpenCode', 'Meshy', 'Blender', 'Unreal', 'Builds'] as const
 export type Lane = (typeof lanes)[number]
 type Providers = ReadonlyMap<string, string>
 const sourceProviders: Record<string, string> = { nomos: 'nomos', codex: 'codex', claude: 'claude', 'claude code': 'claude', opencode: 'opencode', meshy: 'meshy', blender: 'blender', unreal: 'unreal', compilaciones: 'launcher', builds: 'launcher', launcher: 'launcher' }
-const providerLanes: Record<string, Lane> = { nomos: BRAND.short, codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', launcher: 'Compilaciones' }
+const providerLanes: Record<string, Lane> = { nomos: BRAND.short, codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode', meshy: 'Meshy', blender: 'Blender', unreal: 'Unreal', launcher: 'Builds' }
 
 /** Proveedor declarado por el evento o comprobado para su ejecución; nunca se toma del responsable de la tarea. */
 export function eventProvider(e: NomosEvent, providers?: Providers): string | undefined {
@@ -104,23 +104,23 @@ export function eventText(e: NomosEvent, providers?: Providers): string {
   const stage = (value: unknown) => stageLabel[value as keyof typeof stageLabel] ?? String(value ?? '')
   const provider = eventProvider(e, providers)
   switch (e.type) {
-    case 'task.created': return 'Tarea creada'
-    case 'task.activity': return `Actividad de ${String(p.source ?? BRAND.short)}`
-    case 'task.moved': return `${p.from ? `Pasó de ${stage(p.from)} a` : 'Pasó a'} ${stage(p.state ?? p.to)}${p.reason ? ` · ${String(p.reason)}` : ''}`
-    case 'task.blocked': return `Bloqueada: ${String(p.reason)}`
-    case 'decision.opened': return `Se pidió una decisión: ${String(p.reason)}`
-    case 'decision.updated': return `La decisión se repitió: ${String(p.reason)} · ${String(p.seenCount)} veces`
-    case 'decision.resolved': return `Decisión resuelta por ${String(p.by)}`
-    case 'run.started': return `Ejecución iniciada${provider ? ` con ${providerLabel[provider] ?? provider}` : ''}`
-    case 'run.finished': return `Ejecución terminada (${String(p.state)})${p.summary ? ` · ${String(p.summary)}` : ''}`
-    case 'artifact.created': return 'Nuevo asset'
-    case 'message.received': return 'Mensaje recibido'
-    case 'message.acked': case 'message.read': return `${BRAND.short} leyó el mensaje`
-    case 'director.typing': return `${BRAND.short} empezó a responder`
-    case 'director.typing_timeout': return `${BRAND.short} sigue trabajando en el mensaje`
-    case 'reply.published': case 'message.replied': return `${BRAND.short} respondió`
-    case 'director.started': return `${BRAND.short} empezó a escuchar`
-    case 'director.stopped': return `${BRAND.short} dejó de escuchar`
+    case 'task.created': return 'Task created'
+    case 'task.activity': return `Activity from ${String(p.source ?? BRAND.short)}`
+    case 'task.moved': return `${p.from ? `Moved from ${stage(p.from)} to` : 'Moved to'} ${stage(p.state ?? p.to)}${p.reason ? ` · ${String(p.reason)}` : ''}`
+    case 'task.blocked': return `Blocked: ${String(p.reason)}`
+    case 'decision.opened': return `Decision requested: ${String(p.reason)}`
+    case 'decision.updated': return `Decision came up again: ${String(p.reason)} · ${String(p.seenCount)} times`
+    case 'decision.resolved': return `Decision made by ${String(p.by)}`
+    case 'run.started': return `Run started${provider ? ` on ${providerLabel[provider] ?? provider}` : ''}`
+    case 'run.finished': return `Run finished (${String(p.state)})${p.summary ? ` · ${String(p.summary)}` : ''}`
+    case 'artifact.created': return 'New asset'
+    case 'message.received': return 'Message received'
+    case 'message.acked': case 'message.read': return `${BRAND.short} read the message`
+    case 'director.typing': return `${BRAND.short} started replying`
+    case 'director.typing_timeout': return `${BRAND.short} is still working on the message`
+    case 'reply.published': case 'message.replied': return `${BRAND.short} replied`
+    case 'director.started': return `${BRAND.short} started listening`
+    case 'director.stopped': return `${BRAND.short} stopped listening`
     default: return e.type
   }
 }

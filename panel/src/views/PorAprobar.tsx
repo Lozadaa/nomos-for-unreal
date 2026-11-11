@@ -27,14 +27,14 @@ function General({ list, add }: { list: ApprovalComment[]; add: (c: ApprovalComm
     },
   })
   return (
-    <section aria-label="Comentario general" className="flex flex-col gap-3 rounded-lg border border-subtle p-6">
-      <h3 className="text-sm font-medium">Comentario general</h3>
+    <section aria-label="General comment" className="flex flex-col gap-3 rounded-lg border border-subtle p-6">
+      <h3 className="text-sm font-medium">General comment</h3>
       <Comments list={list} />
-      <NoteField text={text} setText={setText} imageId={imageId} setImageId={setImageId} label="Comentario general"
-        placeholder="Algo sobre el conjunto; puedes pegar una imagen…" onSubmit={() => void send.fire()} />
+      <NoteField text={text} setText={setText} imageId={imageId} setImageId={setImageId} label="General comment"
+        placeholder="Something about the whole set. You can paste an image…" onSubmit={() => void send.fire()} />
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" disabled={!text.trim() || send.pending} onClick={() => void send.fire()}>Comentar</Button>
-        {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
+        <Button size="sm" variant="outline" disabled={!text.trim() || send.pending} onClick={() => void send.fire()}>Comment</Button>
+        {send.error && <span role="alert" className="text-xs text-error">Not sent. {humanError(send.error)}</span>}
       </div>
     </section>
   )
@@ -51,13 +51,13 @@ export function PorAprobar() {
   })
   const addGeneral = (c: ApprovalComment) => mutate((all) => ({ ...all, general: [...all.general, c] }))
 
-  if (error && !data) return <p role="alert" className="text-sm text-error">No se pudo cargar «Por aprobar». {humanError(new Error(error))}</p>
-  if (loading) return slow ? <div role="status" aria-label="Cargando lo que está por aprobar" className="flex flex-col gap-3">{Array.from({ length: 2 }, (_, i) => <Skeleton key={i} className="h-64" />)}</div> : null
+  if (error && !data) return <p role="alert" className="text-sm text-error">Couldn’t load Approvals. {humanError(new Error(error))}</p>
+  if (loading) return slow ? <div role="status" aria-label="Loading approvals" className="flex flex-col gap-3">{Array.from({ length: 2 }, (_, i) => <Skeleton key={i} className="h-64" />)}</div> : null
   const pending = items.filter((i) => i.state === 'pending').length
   return (
     <div className="flex w-full max-w-[1400px] flex-col gap-6">
       <h2 role="status" className="text-sm text-muted-foreground">
-        {pending === 0 ? 'Nada por aprobar ahora' : pending === 1 ? 'Tienes 1 elemento por aprobar' : `Tienes ${pending} elementos por aprobar`}
+        {pending === 0 ? 'Nothing to approve right now' : pending === 1 ? '1 item to approve' : `${pending} items to approve`}
       </h2>
       {items.map((item) => <ApprovalCard key={item.id} item={item} open={open} patch={patch(item.id)} />)}
       <General list={data?.general ?? []} add={addGeneral} />

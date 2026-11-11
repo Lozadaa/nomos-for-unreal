@@ -13,9 +13,9 @@ import { Glyph } from '@/visual/Glyph'
 import type { PresentationKind } from '@/visual/glyphs'
 import { Sparkline } from '@/visual/art/Sparkline'
 
-const clock = (iso: number | string) => new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+const clock = (iso: number | string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 const TEN_MIN = 10 * 60_000
-const rangeTime = (time: number) => new Date(time).toLocaleString('es', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+const rangeTime = (time: number) => new Date(time).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 /** Eje estable: el final sube de diez en diez minutos, así una entrada nueva no mueve el resto de golpe. */
 export function axis(times: number[]): [number, number] {
@@ -64,16 +64,16 @@ export function Actividad() {
   const filter = (id: string) => void animateUpdate(() => { setSelected(null); return setTaskId(id) })
 
   if (events.length === 0) {
-    return <EmptyState view="actividad" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
+    return <EmptyState view="actividad" action={{ label: 'New request', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          Tarea
+          Task
           <select value={taskId} onChange={(e) => filter(e.target.value)} className="h-8 max-w-64 rounded-md border border-input bg-background px-2 text-sm text-foreground">
-            <option value="">Todas</option>
+            <option value="">All</option>
             {tasks.filter((t) => !t.id.startsWith('tmp-')).map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
           </select>
         </label>
@@ -81,16 +81,16 @@ export function Actividad() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rounded-lg border border-subtle"><EmptyState view="actividad" message="Ningún evento coincide con el filtro" action={{ label: 'Quitar filtro', onClick: () => filter('') }} /></div>
+        <div className="rounded-lg border border-subtle"><EmptyState view="actividad" message="No events match this filter" action={{ label: 'Clear filter', onClick: () => filter('') }} /></div>
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)_240px] items-start gap-4">
-        <section aria-label="Actividad por carriles" className="min-w-0 rounded-lg border border-subtle">
+        <section aria-label="Activity by lane" className="min-w-0 rounded-lg border border-subtle">
           {byLane.map(({ lane, items, placements, groups, inCluster, tall }) => (
             <div key={lane} role="group" aria-label={lane} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-subtle last:border-b-0">
               <h2 className="flex items-center px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">{lane}</h2>
               <div className={cn('relative mx-4 [container-type:inline-size]', tall ? 'h-16' : 'h-11')}>
                 {gaps.map((g) => (
-                  <span key={g.from} aria-hidden title={`Sin datos de ${clock(g.from)} a ${clock(g.to)} · servicio desconectado`}
+                  <span key={g.from} aria-hidden title={`No data from ${clock(g.from)} to ${clock(g.to)} · service disconnected`}
                     className="absolute inset-y-1 border-x border-dashed border-subtle bg-card" style={{ left: pct(g.from), width: `calc(${pct(g.to)} - ${pct(g.from)})` }} />
                 ))}
                 {items.map((e, index) => {
@@ -117,23 +117,23 @@ export function Actividad() {
             </div>
           )}
         </section>
-        <section aria-label="Actividad por hora" className="flex flex-col gap-3 rounded-lg border border-subtle p-3">
-          <h2 className="text-xs font-medium">Actividad por hora</h2>
+        <section aria-label="Activity by hour" className="flex flex-col gap-3 rounded-lg border border-subtle p-3">
+          <h2 className="text-xs font-medium">Activity by hour</h2>
           <p className="text-xs text-muted-foreground">24 h · {rangeTime(hourly.start)} – {rangeTime(hourly.end)}</p>
           <div className="grid gap-3 [&_figure>div]:grid-cols-[96px_minmax(0,1fr)]">
-            {hourly.lanes.map((lane) => <Sparkline key={lane.label} title={`Actividad por hora: ${lane.label}`} lanes={[lane]} hideTitle />)}
+            {hourly.lanes.map((lane) => <Sparkline key={lane.label} title={`Activity by hour: ${lane.label}`} lanes={[lane]} hideTitle />)}
           </div>
-          <p className="text-xs text-muted-foreground" title={`${events.length >= 500 ? 'Ventana de 500 eventos recibidos; puede faltar actividad anterior.' : 'Solo eventos recibidos; los ceros no garantizan cobertura.'}${gaps.length > 0 ? ' Hay intervalos sin datos por desconexión.' : ''}`}>{visible.length} eventos{gaps.length > 0 ? ` · ${gaps.length} huecos` : ''}</p>
+          <p className="text-xs text-muted-foreground" title={`${events.length >= 500 ? 'Showing the last 500 events received; older activity may be missing.' : 'Received events only; a zero does not guarantee nothing happened.'}${gaps.length > 0 ? ' Some intervals have no data because the service was disconnected.' : ''}`}>{visible.length} events{gaps.length > 0 ? ` · ${gaps.length} gaps` : ''}</p>
         </section>
         </div>
       )}
 
       {detail && (
-        <section aria-label="Evento seleccionado" className="flex flex-col gap-2 rounded-lg border border-subtle bg-card p-4 text-sm">
+        <section aria-label="Selected event" className="flex flex-col gap-2 rounded-lg border border-subtle bg-card p-4 text-sm">
           <h3 className="font-medium">{label(detail)}</h3>
           <p className="text-muted-foreground">{clock(detail.createdAt)} · {laneOf(detail, providers)}</p>
-          <p><span className="text-muted-foreground">Causa: </span>{cause ? label(cause) : 'sin causa registrada'}</p>
-          <p><span className="text-muted-foreground">Efecto: </span>{effects.length ? effects.map(label).join(' · ') : 'sin efectos todavía'}</p>
+          <p><span className="text-muted-foreground">Cause: </span>{cause ? label(cause) : 'none recorded'}</p>
+          <p><span className="text-muted-foreground">Effect: </span>{effects.length ? effects.map(label).join(' · ') : 'none yet'}</p>
         </section>
       )}
     </div>

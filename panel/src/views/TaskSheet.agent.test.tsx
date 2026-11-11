@@ -58,9 +58,9 @@ describe('TaskSheet · identidad de agentes compartida con Producción', () => {
     serve([run('review', 'claude', 'running', 'revisor')], selectedTask)
     render(<TaskSheet id={task.id} task={selectedTask} onClose={() => {}} />)
     const dialog = screen.getByRole('dialog')
-    expect(await within(dialog).findAllByRole('img', { name: 'Escenas Master · Claude' })).toHaveLength(2)
+    expect(await within(dialog).findAllByRole('img', { name: 'Level Master · Claude' })).toHaveLength(2)
     const header = dialog.querySelector('[data-slot="sheet-description"]')!
-    expect(header).toHaveTextContent('Escenas Master')
+    expect(header).toHaveTextContent('Level Master')
     expect(header).toHaveTextContent('Claude Code')
   })
 
@@ -87,7 +87,7 @@ describe('TaskSheet · spec por secciones (hito 23)', () => {
     const part = async (name: string) => (await within(dialog).findByText(name, { selector: 'summary span' })).closest('details')!
     expect((await part('Qué')).open).toBe(true)
     expect((await part('Criterios de aceptación')).open).toBe(true)
-    for (const [name, count] of [['Por qué', '1 línea'], ['Alcance', '2 líneas'], ['No tocar', '1 línea']]) {
+    for (const [name, count] of [['Por qué', '1 line'], ['Alcance', '2 lines'], ['No tocar', '1 line']]) {
       const details = await part(name)
       expect(details.open).toBe(false)
       expect(details.querySelector('summary')).toHaveTextContent(count)

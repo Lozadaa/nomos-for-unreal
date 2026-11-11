@@ -22,15 +22,15 @@ export function DecisionCard({ decision, task, onStale, bare = false, heading }:
   )
   const choose = (id: string) => { option.current = id; setChosen(id); void action.fire() }
   return (
-    <section aria-label="Decisión pendiente" data-decision-card className={bare ? 'flex flex-col gap-3' : 'flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4'}>
+    <section aria-label="Pending decision" data-decision-card className={bare ? 'flex flex-col gap-3' : 'flex flex-col gap-3 rounded-lg border border-subtle bg-card p-4'}>
       <div className="flex items-start justify-between gap-3">
         <h3 aria-label={decision.reason} title={decision.reason} className="text-base font-medium">{heading ?? decisionText(decision).reason}</h3>
         <DecisionDetails decision={decision} taskTitle={task.title} />
       </div>
       {repeatText(decision) && <p className="text-xs text-muted-foreground">{repeatText(decision)}</p>}
       <DecisionOptions decision={decision} area={task.area} selected={chosen} disabled={action.pending} onChoose={choose} />
-      {action.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
-      {action.error && !action.pending && <p className="text-xs text-error" role="alert">No se registró la elección. {humanError(action.error)}</p>}
+      {action.pending && <p className="text-xs text-muted-foreground" role="status">Saving your choice…</p>}
+      {action.error && !action.pending && <p className="text-xs text-error" role="alert">Your choice wasn't saved. {humanError(action.error)}</p>}
     </section>
   )
 }

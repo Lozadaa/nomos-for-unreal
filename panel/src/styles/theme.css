@@ -4,34 +4,36 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Papel y arcilla (jam-panel, 2026-11-10): colores exactos del logo (nomos-media/logo/NOTAS.md). Claro crema por defecto,
-   oscuro cálido con `.dark` (sigue a prefers-color-scheme salvo que el conmutador de la cabecera elija). El prefijo `vbg`
-   es histórico (hito 8): los nombres se conservan para no tocar cada componente; los valores ya no son de Vercel.
-   Contraste medido (WCAG): docs/diseno-visual.md. */
+/* Marca v2 (2026-11-11): negro, hueso y una sola brasa. Oscuro es la base de la marca; claro, la alternativa (clase `.dark`
+   según prefers-color-scheme salvo que el conmutador de la cabecera elija). El prefijo `vbg` es histórico (hito 8): los nombres
+   se conservan para no tocar cada componente. Contraste medido (WCAG): tests/tokens.test.ts y docs/diseno-visual.md. */
 :root {
   color-scheme: light;
-  --k-paper: #F5F0E8;
-  --k-ink: #1F1E1D;
-  --k-clay: #C96442;
-  --k-clay-light: #E49A7B;
-  --vbg-surface-primary: var(--k-paper);
-  --vbg-surface-secondary: oklch(0.985 0.006 85);
-  --vbg-text-primary: var(--k-ink);
-  --vbg-text-secondary: oklch(0.48 0.014 65);
-  --vbg-border-subtle: color-mix(in oklch, var(--k-ink) 11%, transparent);
-  --vbg-border-default: color-mix(in oklch, var(--k-ink) 14%, transparent);
-  --vbg-border-strong: color-mix(in oklch, var(--k-ink) 48%, transparent);
-  /* el acento de marca (marcas, barras, anillos, logo) es la arcilla exacta; con texto encima, una arcilla más honda (AA) */
-  --k-accent: var(--k-clay);
-  --vbg-color-primary: #A9502F;
-  --k-on-primary: #FFFDF9;
-  --vbg-color-info: oklch(0.5 0.065 245);
-  --vbg-color-success: oklch(0.5 0.075 145);
-  --vbg-color-warning: oklch(0.51 0.1 70);
-  --vbg-color-error: oklch(0.5 0.15 25);
-  --vbg-focus: #A9502F;
-  --vbg-gray-100: oklch(0.93 0.015 80);
-  --vbg-gray-200: oklch(0.9 0.017 80);
+  --k-black: #0B0B0C;
+  --k-surface: #141416;
+  --k-raised: #1C1C1F;
+  --k-bone: #F2EFEA;
+  --k-steel: #8A8A8F;
+  --k-ember: #FF5A1F;
+  /* claro: la brasa honda (#B83D0B, 4,9:1 sobre hueso; hueso encima 4,9:1) para texto y botones */
+  --k-ember-deep: #B83D0B;
+  --vbg-surface-primary: var(--k-bone);
+  --vbg-surface-secondary: #FAF8F5;
+  --vbg-text-primary: var(--k-black);
+  --vbg-text-secondary: #5E5E63;
+  --vbg-border-subtle: color-mix(in oklch, var(--k-black) 12%, transparent);
+  --vbg-border-default: color-mix(in oklch, var(--k-black) 16%, transparent);
+  --vbg-border-strong: color-mix(in oklch, var(--k-black) 55%, transparent);
+  --k-accent: var(--k-ember-deep);
+  --vbg-color-primary: var(--k-ember-deep);
+  --k-on-primary: var(--k-bone);
+  --vbg-color-info: oklch(0.5 0.09 250);
+  --vbg-color-success: oklch(0.5 0.1 150);
+  --vbg-color-warning: oklch(0.52 0.11 75);
+  --vbg-color-error: oklch(0.5 0.16 25);
+  --vbg-focus: var(--k-ember-deep);
+  --vbg-gray-100: oklch(0.915 0.006 80);
+  --vbg-gray-200: oklch(0.88 0.006 80);
   --vbg-space-1: 4px;
   --vbg-space-2: 8px;
   --vbg-space-3: 12px;
@@ -42,8 +44,8 @@
   --vbg-space-10: 40px;
   --vbg-space-12: 48px;
   --vbg-space-16: 64px;
-  --vbg-radius-small: 8px;
-  --vbg-radius: 12px;
+  --vbg-radius-small: 2px;
+  --vbg-radius: 4px;
   /* shadcn ← vbg */
   --background: var(--vbg-surface-primary);
   --foreground: var(--vbg-text-primary);
@@ -72,9 +74,9 @@
   --k-info: var(--vbg-color-info);
   --k-neutral: var(--vbg-text-secondary);
   --k-font-sans: "Instrument Sans Variable", system-ui, sans-serif;
-  --k-font-serif: "Newsreader Variable", Georgia, serif;
+  --k-font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --k-font-mono: "Geist Mono Variable", ui-monospace, monospace;
-  --k-header: 56px;
+  --k-header: 64px;
   --k-tabs: 40px;
   --k-content: 100%;
   --k-prose: 72ch;
@@ -85,33 +87,36 @@
   --k-dur-reorder: 260ms;
 }
 
-/* Oscuro cálido: tinta de fondo, papel de texto, arcilla clara de acento (con tinta encima: 7,3:1). */
+/* Oscuro (principal): negro de fondo, superficies en dos alturas, hueso de texto, acero secundario, la brasa tal cual
+   (negro encima: 6,3:1). */
 .dark {
   color-scheme: dark;
-  --vbg-surface-primary: var(--k-ink);
-  --vbg-surface-secondary: oklch(0.25 0.007 60);
-  --vbg-text-primary: var(--k-paper);
-  --vbg-text-secondary: oklch(0.75 0.014 75);
-  --vbg-border-subtle: color-mix(in oklch, var(--k-paper) 11%, transparent);
-  --vbg-border-default: color-mix(in oklch, var(--k-paper) 14%, transparent);
-  --vbg-border-strong: color-mix(in oklch, var(--k-paper) 45%, transparent);
-  --k-accent: var(--k-clay-light);
-  --vbg-color-primary: var(--k-clay-light);
-  --k-on-primary: var(--k-ink);
-  --vbg-color-info: oklch(0.75 0.06 240);
-  --vbg-color-success: oklch(0.76 0.085 145);
-  --vbg-color-warning: oklch(0.8 0.1 80);
-  --vbg-color-error: oklch(0.71 0.13 28);
-  --vbg-focus: var(--k-clay-light);
-  --vbg-gray-100: oklch(0.29 0.008 60);
-  --vbg-gray-200: oklch(0.32 0.009 60);
+  --vbg-surface-primary: var(--k-black);
+  --vbg-surface-secondary: var(--k-surface);
+  --vbg-text-primary: var(--k-bone);
+  --vbg-text-secondary: var(--k-steel);
+  --vbg-border-subtle: color-mix(in oklch, var(--k-bone) 10%, transparent);
+  --vbg-border-default: color-mix(in oklch, var(--k-bone) 14%, transparent);
+  --vbg-border-strong: color-mix(in oklch, var(--k-bone) 42%, transparent);
+  --k-accent: var(--k-ember);
+  --vbg-color-primary: var(--k-ember);
+  --k-on-primary: var(--k-black);
+  --vbg-color-info: oklch(0.76 0.07 240);
+  --vbg-color-success: oklch(0.78 0.1 155);
+  --vbg-color-warning: oklch(0.84 0.11 85);
+  --vbg-color-error: oklch(0.7 0.15 25);
+  --vbg-focus: var(--k-ember);
+  --vbg-gray-100: var(--k-raised);
+  --vbg-gray-200: oklch(0.27 0.004 285);
 }
 
 @theme inline {
   --font-sans: var(--k-font-sans);
-  --font-heading: var(--k-font-serif);
-  --font-serif: var(--k-font-serif);
+  --font-heading: var(--k-font-display);
+  --font-serif: var(--k-font-display);
+  --font-display: var(--k-font-display);
   --color-clay: var(--k-accent);
+  --color-ember: var(--k-accent);
   --font-mono: var(--k-font-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -150,13 +155,24 @@
 }
 
 @layer base {
+  /* escala de la marca v2: todo un 15 % más grande desde la raíz (rem); las tarjetas de imagen van por columnas y no crecen */
+  html { font-size: 115%; }
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground font-sans antialiased; touch-action: manipulation; font-variant-numeric: tabular-nums; }
-  /* los títulos de vista hablan en serif; el resto del panel en sans */
-  h1, h2 { font-family: var(--k-font-serif); font-optical-sizing: auto; letter-spacing: -0.01em; }
+  /* titulares como el logotipo: condensada pesada, cursiva y en mayúsculas; el resto del panel en sans */
+  h1, h2, .k-display { font-family: var(--k-font-display); font-style: italic; font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em; }
+  code, kbd, samp, pre { font-family: var(--k-font-mono); }
+  /* todo lo que se pulsa lleva la mano; lo deshabilitado, la prohibición (petición del usuario, 2026-11-11) */
+  :where(button, a[href], [role=button], [role=tab], [role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=option], [role=switch], [role=checkbox], [role=radio], summary, label[for], select, input[type=checkbox], input[type=radio], input[type=range], input[type=file], input[type=color], [onclick], [tabindex]:not([tabindex="-1"]):not(textarea):not(input):not([role=dialog]):not([role=region]):not(main):not([role=tabpanel])) { cursor: pointer; }
+  :where(:disabled, [aria-disabled=true], [data-disabled]) { cursor: not-allowed; }
   ::selection { background: color-mix(in oklch, var(--k-accent) 28%, transparent); color: var(--foreground); }
   :root { caret-color: var(--k-accent); scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent; }
 }
+
+/* Formas de la marca v2: esquina cortada a 45° (botón principal, Jugar) y la barra diagonal de acento, la única brasa de la pantalla */
+.k-cut { clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+.k-slash { display: inline-block; flex: none; width: 4px; height: 0.9em; background: var(--k-accent); transform: skewX(-18deg); }
+.k-label { font-family: var(--k-font-mono); font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; }
 
 /* Transiciones de vista: crossfade de 180 ms; con movimiento reducido, fundidos de 80 ms */
 ::view-transition-old(root),

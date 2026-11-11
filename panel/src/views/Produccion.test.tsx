@@ -58,20 +58,20 @@ describe('Producción: lista viva', () => {
     expect(first.querySelector('.k-agent-ordinal')).toHaveTextContent('1')
     expect(second.querySelector('.k-agent-ordinal')).toHaveTextContent('2')
   })
-  it('hito 27: los despertares del director por evento salen como runs, sin vista nueva', async () => {
+  it('hito 27: los wake-ups del director por evento salen como runs, sin vista nueva', async () => {
     mockApi.mockImplementation((async (path: string) => path === '/tasks' ? [...server] : {
       run: { id: path.slice(-2), taskId: 'director', role: 'director', provider: 'claude', state: path.endsWith('d2') ? 'running' : 'done', startedAt: '', finishedAt: null, summary: null },
       latestStatus: { waiting: false },
     }) as typeof api)
     for (let i = 1; i <= 2; i++) ingest({ seq: i, id: `e${i}`, type: 'run.started', messageId: null, payload: { runId: `d${i}`, taskId: 'director' }, createdAt: '' })
     await mount()
-    expect(await screen.findByText(/Director: 2 despertares · en marcha/)).toBeInTheDocument()
+    expect(await screen.findByText(/Director: 2 wake-ups · running/)).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /, / })).toHaveLength(3)
   })
   it('agrupa por etapa con cabeceras y una fila por tarea', async () => {
     await mount()
-    expect(screen.getByRole('group', { name: /Pendiente/ })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: /Probando/ })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Pending/ })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Testing/ })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /, / })).toHaveLength(3)
   })
 
@@ -84,14 +84,14 @@ describe('Producción: lista viva', () => {
     }) as typeof api)
     await mount()
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Título de la petición'), 'Habilidad Meteorito')
-    await user.click(screen.getByRole('button', { name: 'Enviar a Nomos' }))
+    await user.type(screen.getByLabelText('Request title'), 'Habilidad Meteorito')
+    await user.click(screen.getByRole('button', { name: 'Send to Nomos' }))
 
     // el servidor todavía no ha respondido: la fila ya está, pendiente y marcada como temporal
     const temp = await screen.findByRole('button', { name: /Habilidad Meteorito/ })
     expect(temp).toHaveAttribute('data-temp')
-    expect(within(temp).getByText('enviando')).toBeInTheDocument()
-    expect(screen.getByLabelText('Título de la petición')).toHaveValue('')
+    expect(within(temp).getByText('sending')).toBeInTheDocument()
+    expect(screen.getByLabelText('Request title')).toHaveValue('')
 
     // llega la tarea real y, además, su evento ya la había traído a la lista
     const real = task(9, { title: 'Habilidad Meteorito' })
@@ -108,64 +108,64 @@ describe('Producción: lista viva', () => {
     }) as typeof api)
     await mount()
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Título de la petición'), 'Se rechaza')
-    await user.click(screen.getByRole('button', { name: 'Enviar a Nomos' }))
+    await user.type(screen.getByLabelText('Request title'), 'Se rechaza')
+    await user.click(screen.getByRole('button', { name: 'Send to Nomos' }))
     await waitFor(() => expect(screen.queryByRole('button', { name: /Se rechaza/ })).not.toBeInTheDocument(), { timeout: 2000 })
-    expect(screen.getByLabelText('Título de la petición')).toHaveValue('Se rechaza')
-    expect(await screen.findByText(/El servicio no aceptó los datos/, { selector: '[role="alert"]' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Request title')).toHaveValue('Se rechaza')
+    expect(await screen.findByText(/The service rejected that input/, { selector: '[role="alert"]' })).toBeInTheDocument()
   })
 
   it('no envía una petición sin título y lo dice junto al campo', async () => {
     await mount()
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar a Nomos' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Escribe un título')
+    fireEvent.click(screen.getByRole('button', { name: 'Send to Nomos' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Give the request a title')
     expect(mockApi.mock.calls.some(([, init]) => (init as { method?: string } | undefined)?.method === 'POST')).toBe(false)
   })
 
   it('el filtro por etapa deja solo esas filas y volver a pulsarlo las devuelve', async () => {
     await mount()
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /^Probando/ }))
+    await user.click(screen.getByRole('button', { name: /^Testing/ }))
     await waitFor(() => expect(screen.queryByRole('button', { name: /Tarea 1/ })).not.toBeInTheDocument())
     expect(screen.getAllByRole('button', { name: /Probar/ })).toHaveLength(2)
-    await user.click(screen.getByRole('button', { name: /^Probando/ })) // desmarca → «Todas»
+    await user.click(screen.getByRole('button', { name: /^Testing/ })) // desmarca → «Todas»
     await waitFor(() => expect(screen.getByRole('button', { name: /Tarea 1/ })).toBeInTheDocument())
   })
 
   it('la búsqueda sin resultados explica por qué y ofrece quitar el filtro', async () => {
     await mount()
     const user = userEvent.setup()
-    await user.type(screen.getByLabelText('Buscar tarea'), 'zzzz')
-    expect(await screen.findByText('Ninguna tarea coincide con el filtro')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Quitar filtro' }))
+    await user.type(screen.getByLabelText('Search tasks'), 'zzzz')
+    expect(await screen.findByText('No tasks match the filter')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Clear filter' }))
     await waitFor(() => expect(screen.getByRole('button', { name: /Tarea 1/ })).toBeInTheDocument())
   })
 
   it('con la producción vacía invita a escribir la primera petición', async () => {
     server = []
     await mount()
-    expect(screen.getByText('Escribe la primera petición a Nomos')).toBeInTheDocument()
+    expect(screen.getByText('Send Nomos your first request')).toBeInTheDocument()
   })
 
   it('una tarea bloqueada o en espera de decisión lo dice en texto, no solo en color', async () => {
     server = [task(4, { blockedReason: 'Falta el pack de texturas.' }), task(5, { decisionId: 'd', blockedReason: 'Elegir' }), task(6, { state: 'cerrando', blockedReason: 'Espacio sin retirar' })]
     await mount()
-    expect(screen.getByText('Bloqueada')).toBeInTheDocument()
-    expect(screen.getByText('Espera decisión')).toBeInTheDocument()
-    expect(screen.getByText('No se pudo cerrar')).toBeInTheDocument()
+    expect(screen.getByText('Blocked')).toBeInTheDocument()
+    expect(screen.getByText('Needs decision')).toBeInTheDocument()
+    expect(screen.getByText('Wrap-up failed')).toBeInTheDocument()
   })
 })
 
 describe('Producción a todo el ancho (hito 10)', () => {
-  it('cada fila lleva la miniatura de su última entrega visual; sin entrega, el hueco vacío', async () => {
+  it('cada fila lleva la miniatura de su última entrega visual; sin entrega, la última captura del juego', async () => {
     mockApi.mockImplementation((async (path: string) => path === '/tasks' ? [...server] : path === '/artifacts' ? [
       { id: 'a-old', taskId: server[0].id, kind: 'screenshot', path: 'old.png', license: null, createdAt: '2026-10-23T09:00:00.000Z' },
       { id: 'a-new', taskId: server[0].id, kind: 'screenshot', path: 'new.png', license: null, createdAt: '2026-10-23T11:00:00.000Z' },
       { id: 'a-log', taskId: server[0].id, kind: 'report', path: 'log.txt', license: null, createdAt: '2026-10-23T12:00:00.000Z' },
     ] : []) as typeof api)
     await mount()
-    const thumb = await screen.findByRole('img', { name: 'Última entrega de Tarea 1' })
+    const thumb = await screen.findByRole('img', { name: 'Latest delivery of Tarea 1' })
     expect(thumb.getAttribute('src')).toContain('/artifacts/a-new/file')
-    expect(screen.queryByRole('img', { name: 'Última entrega de Probar recorrido' })).toBeNull()
+    expect(screen.getByRole('img', { name: 'Latest delivery of Probar recorrido' }).getAttribute('src')).toMatch(/^\/capture\?/)
   })
 })

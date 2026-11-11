@@ -12,8 +12,8 @@ export function EditorQueue({ agents }: { agents: Map<string, NamedAgent> }) {
   const { data } = useResource<EditorSlot[]>('/editors', /^(editor\.|lease\.)/)
   if (!data?.length) return null
   return (
-    <section aria-label="Editor de Unreal" className="flex flex-col gap-3">
-      <h2 className="text-sm font-medium">Editor de Unreal</h2>
+    <section aria-label="Unreal editor" className="flex flex-col gap-3">
+      <h2 className="text-sm font-medium">Unreal editor</h2>
       <ul className="overflow-hidden rounded-lg border border-subtle">
         {data.map((slot) => {
           const agent = slot.busy ? agents.get(slot.busy.runId) : undefined
@@ -22,8 +22,8 @@ export function EditorQueue({ agents }: { agents: Map<string, NamedAgent> }) {
             <li key={slot.project} className="flex h-14 items-center gap-4 border-b border-subtle px-4 text-sm last:border-b-0">
               {slot.busy && <AgentAvatar provider={agent?.provider ?? slot.busy.provider ?? 'unreal'} name={who} state={agent?.state ?? 'running'} ordinal={agent?.ordinal} size={24} />}
               <span className="font-medium">{slot.project}</span>
-              <span className="min-w-0 flex-1 truncate text-muted-foreground" title={slot.busy ? `Desde ${slot.busy.since}` : undefined}>
-                {slot.busy ? `Ocupado por ${who}` : 'Libre'}
+              <span className="min-w-0 flex-1 truncate text-muted-foreground" title={slot.busy ? `Since ${slot.busy.since}` : undefined}>
+                {slot.busy ? `In use by ${who}` : 'Free'}
               </span>
             </li>
           )

@@ -29,10 +29,10 @@ describe('CommandMenu (hito 7)', () => {
   it('con una tarea abierta ofrece sus acciones según la etapa y «Lanzar pruebas» llama al servicio', async () => {
     mount('/?tarea=abc1234')
     fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true })
-    expect(screen.getByText('Tarea abierta: Habilidad Meteorito')).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Integrar' })).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getByRole('option', { name: 'Cerrar' })).toHaveAttribute('aria-disabled', 'true')
-    await userEvent.setup().click(screen.getByRole('option', { name: 'Lanzar pruebas' }))
+    expect(screen.getByText('Open task: Habilidad Meteorito')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Merge' })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('option', { name: 'Wrap up' })).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.setup().click(screen.getByRole('option', { name: 'Run checks' }))
     await waitFor(() => expect(api).toHaveBeenCalledWith('/tasks/abc1234/checks', { method: 'POST', body: {} }))
   })
 
@@ -40,6 +40,6 @@ describe('CommandMenu (hito 7)', () => {
     mount('/')
     fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true })
     expect(screen.queryByText(/Tarea abierta/)).toBeNull()
-    expect(screen.getByRole('option', { name: 'Nueva petición' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'New request' })).toBeInTheDocument()
   })
 })

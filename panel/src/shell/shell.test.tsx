@@ -20,11 +20,11 @@ describe('DirectorDot', () => {
   })
 
   it.each([
-    ['escuchando', 'Nomos escuchando', 'bg-success', true],
-    ['vigilanteCaido', 'Vigilante caído', 'bg-warning', false],
-    ['desconectado', 'Servicio desconectado', 'bg-error', false],
-    ['esperando', 'Esperando a Nomos', 'bg-neutral', false],
-    ['atendiendo', 'Nomos atendiendo', 'bg-info', false],
+    ['escuchando', 'Nomos listening', 'bg-success', true],
+    ['vigilanteCaido', 'Watcher down', 'bg-warning', false],
+    ['desconectado', 'Service disconnected', 'bg-error', false],
+    ['esperando', 'Waiting for Nomos', 'bg-neutral', false],
+    ['atendiendo', 'Nomos working', 'bg-info', false],
   ] as const)('%s muestra texto y color de estado', (state, text, color, pulses) => {
     render(<DirectorDot state={state} />)
     expect(screen.getByText(text)).toBeInTheDocument()
@@ -40,12 +40,12 @@ describe('MoreMenu', () => {
     const toggle = vi.fn()
     const router = createMemoryRouter([{ path: '*', element: <MoreMenu paused={false} onTogglePause={toggle} /> }], { initialEntries: ['/'] })
     render(<RouterProvider router={router} />)
-    expect(screen.queryByRole('link', { name: /Todas las tareas/ })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Más' }))
-    const nav = await screen.findByRole('navigation', { name: 'Vistas' })
+    expect(screen.queryByRole('link', { name: /All tasks/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
+    const nav = await screen.findByRole('navigation', { name: 'Views' })
     expect(nav.querySelectorAll('a')).toHaveLength(views.length - 1)
-    expect(screen.getByRole('link', { name: /Todas las tareas/ })).toHaveAttribute('href', '/produccion')
-    fireEvent.click(screen.getByRole('button', { name: 'Pausar el trabajo' }))
+    expect(screen.getByRole('link', { name: /All tasks/ })).toHaveAttribute('href', '/produccion')
+    fireEvent.click(screen.getByRole('button', { name: 'Pause work' }))
     expect(toggle).toHaveBeenCalledTimes(1)
   })
 })
@@ -58,22 +58,22 @@ describe('CommandMenu', () => {
   it('⌘K abre el menú con vistas, tareas y acciones', async () => {
     mount()
     fireEvent.keyDown(document, { key: 'k', metaKey: true })
-    expect(await screen.findByPlaceholderText(/Busca/)).toBeInTheDocument()
-    expect(screen.getByText('Presupuesto')).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText(/Find/)).toBeInTheDocument()
+    expect(screen.getByText('Budget')).toBeInTheDocument()
     expect(screen.getByText('Habilidad Meteorito')).toBeInTheDocument()
-    expect(screen.getByText('Nueva petición')).toBeInTheDocument()
+    expect(screen.getByText('New request')).toBeInTheDocument()
   })
   it('Ctrl+K también abre', async () => {
     mount()
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
-    expect(await screen.findByPlaceholderText(/Busca/)).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText(/Find/)).toBeInTheDocument()
   })
   it('no se abre si el foco está en un textarea', () => {
     mount(<textarea aria-label="mensaje" />)
     const area = screen.getByLabelText('mensaje')
     area.focus()
     fireEvent.keyDown(area, { key: 'k', metaKey: true })
-    expect(screen.queryByPlaceholderText(/Busca/)).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/Find/)).not.toBeInTheDocument()
   })
   it('Esc cierra y devuelve el foco al elemento que lo tenía', async () => {
     const onClose = vi.fn()
@@ -81,9 +81,9 @@ describe('CommandMenu', () => {
     const before = screen.getByText('antes')
     before.focus()
     fireEvent.keyDown(before, { key: 'k', metaKey: true })
-    const input = await screen.findByPlaceholderText(/Busca/)
+    const input = await screen.findByPlaceholderText(/Find/)
     fireEvent.keyDown(input, { key: 'Escape' })
-    await vi.waitFor(() => expect(screen.queryByPlaceholderText(/Busca/)).not.toBeInTheDocument())
+    await vi.waitFor(() => expect(screen.queryByPlaceholderText(/Find/)).not.toBeInTheDocument())
     expect(document.activeElement).toBe(before)
     expect(onClose).not.toHaveBeenCalled()
   })
@@ -91,8 +91,8 @@ describe('CommandMenu', () => {
     const toggle = vi.fn()
     mount(undefined, { paused: false, onTogglePause: toggle })
     fireEvent.keyDown(document, { key: 'k', metaKey: true })
-    expect(await screen.findByText('Indexar')).toHaveAttribute('aria-disabled', 'false')
-    fireEvent.click(screen.getByText('Pausar'))
+    expect(await screen.findByText('Index catalog')).toHaveAttribute('aria-disabled', 'false')
+    fireEvent.click(screen.getByText('Pause'))
     expect(toggle).toHaveBeenCalledTimes(1)
   })
 })

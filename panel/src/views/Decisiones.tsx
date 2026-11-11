@@ -65,9 +65,9 @@ export function Decisiones() {
   const choose = (optionId: string) => { chosen.current = optionId; void resolve.fire() }
   const select = (id: string) => setSelected(id)
 
-  if (loading) return slow ? <div role="status" aria-label="Cargando las decisiones" className="flex flex-col gap-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
+  if (loading) return slow ? <div role="status" aria-label="Loading decisions" className="flex flex-col gap-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
   if (!list.length) {
-    return <VisualEmpty view="decisiones" message="No tienes decisiones pendientes" action={{ label: 'Ver producción', onClick: () => void withViewTransition(() => navigate('/', { flushSync: true })) }} />
+    return <VisualEmpty view="decisiones" message="No decisions waiting on you" action={{ label: 'Go to Production', onClick: () => void withViewTransition(() => navigate('/', { flushSync: true })) }} />
   }
 
   const option = current?.options.find((o) => o.id === (justChosen ?? current.chosenOptionId))
@@ -77,10 +77,10 @@ export function Decisiones() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-sm text-muted-foreground" role="status">
-        {open.length === 0 ? 'No tienes decisiones pendientes' : open.length === 1 ? 'Tienes 1 decisión pendiente' : `Tienes ${open.length} decisiones pendientes`}
+        {open.length === 0 ? 'No decisions waiting on you' : open.length === 1 ? '1 decision waiting on you' : `${open.length} decisions waiting on you`}
       </h2>
       <div className="grid grid-cols-[360px_minmax(0,var(--k-prose))] gap-6">
-        <ul aria-label="Bandeja de decisiones" className="flex flex-col overflow-hidden rounded-lg border border-subtle">
+        <ul aria-label="Decision inbox" className="flex flex-col overflow-hidden rounded-lg border border-subtle">
           {list.map((d) => {
             const t = tasks.find((x) => x.id === d.taskId)
             const active = d.id === current?.id
@@ -93,7 +93,7 @@ export function Decisiones() {
                   className={cn('flex w-full flex-col gap-1 border-b border-subtle px-4 py-3 text-left text-sm transition-colors duration-(--k-dur-micro) last:border-b-0 hover:bg-card', active && 'bg-card', d.state !== 'open' && 'text-muted-foreground')}
                 >
                   <span className="flex items-center gap-2"><StatusDot tone={d.state === 'open' ? 'warning' : d.state === 'resolved' ? 'success' : 'neutral'} /><span title={d.reason} className="truncate font-medium">{d.reason}</span></span>
-                  <span title={t?.title ?? d.taskId} className="truncate pl-4 text-xs text-muted-foreground">{t?.title ?? d.taskId}{d.state === 'resolved' ? ' · resuelta' : d.state === 'stale' ? ' · caducada' : ''}</span>
+                  <span title={t?.title ?? d.taskId} className="truncate pl-4 text-xs text-muted-foreground">{t?.title ?? d.taskId}{d.state === 'resolved' ? ' · resolved' : d.state === 'stale' ? ' · expired' : ''}</span>
                 </button>
               </li>
             )
@@ -101,11 +101,11 @@ export function Decisiones() {
         </ul>
 
         {current && (
-          <section aria-label="Decisión" data-decision-card className={cn('flex flex-col gap-4 rounded-lg border border-subtle p-6', current.state === 'stale' && 'opacity-70')}>
+          <section aria-label="Decision" data-decision-card className={cn('flex flex-col gap-4 rounded-lg border border-subtle p-6', current.state === 'stale' && 'opacity-70')}>
             <div className="flex flex-col gap-1">
               <h3 aria-label={current.reason} title={current.reason} className="text-lg font-semibold">{decisionText(current).reason}</h3>
               <div className="flex items-center gap-3">
-                <span title={task?.title ?? current.taskId} aria-label={`Tarea: ${task?.title ?? current.taskId}`} className="font-mono text-xs text-muted-foreground">{shortId(current.taskId)}</span>
+                <span title={task?.title ?? current.taskId} aria-label={`Task: ${task?.title ?? current.taskId}`} className="font-mono text-xs text-muted-foreground">{shortId(current.taskId)}</span>
                 {repeatText(current) && <span className="text-xs text-muted-foreground">{repeatText(current)}</span>}
                 <DecisionDetails decision={current} taskTitle={task?.title} />
               </div>
@@ -113,23 +113,23 @@ export function Decisiones() {
             {current.state === 'open' && (
               <>
                 <DecisionOptions decision={current} area={task?.area} selected={justChosen} disabled={resolve.pending} onChoose={choose} />
-                {resolve.pending && <p className="text-xs text-muted-foreground" role="status">Registrando tu elección…</p>}
-                {resolve.error && !resolve.pending && <p role="alert" className="text-xs text-error">No se registró la elección. {humanError(resolve.error)}</p>}
+                {resolve.pending && <p className="text-xs text-muted-foreground" role="status">Saving your choice…</p>}
+                {resolve.error && !resolve.pending && <p role="alert" className="text-xs text-error">Your choice wasn't saved. {humanError(resolve.error)}</p>}
               </>
             )}
             {current.state === 'resolved' && (
-              <p role="status" aria-label={`Elegiste ${option?.label ?? 'una opción'}. ${owner} continúa.`} title={`Elegiste ${option?.label ?? 'una opción'}. ${owner} continúa.`} className="text-sm">Elegiste {truncateWords(option?.label ?? 'una opción', decisionText(current).optionLimit)}. {owner} continúa.</p>
+              <p role="status" aria-label={`You chose ${option?.label ?? 'an option'}. ${owner} continues.`} title={`You chose ${option?.label ?? 'an option'}. ${owner} continues.`} className="text-sm">You chose {truncateWords(option?.label ?? 'an option', decisionText(current).optionLimit)}. {owner} continues.</p>
             )}
             {current.state === 'stale' && (
               <div className="flex flex-col items-start gap-2">
-                <p role="status" className="text-sm">Esta decisión caducó porque cambió el contexto. {BRAND.short} la prepara de nuevo.</p>
-                {successor && <Button variant="outline" size="sm" onClick={() => void animateUpdate(() => flushSync(() => select(successor.id)))}>Ver la nueva</Button>}
+                <p role="status" className="text-sm">This decision expired because the context changed. {BRAND.short} is preparing a new one.</p>
+                {successor && <Button variant="outline" size="sm" onClick={() => void animateUpdate(() => flushSync(() => select(successor.id)))}>See the new one</Button>}
               </div>
             )}
           </section>
         )}
       </div>
-      <p className="text-xs text-muted-foreground" title="j / k para moverte por la bandeja"><kbd className="font-mono">j</kbd> / <kbd className="font-mono">k</kbd></p>
+      <p className="text-xs text-muted-foreground" title="j / k to move through the inbox"><kbd className="font-mono">j</kbd> / <kbd className="font-mono">k</kbd></p>
     </div>
   )
 }

@@ -43,10 +43,10 @@ describe('registro de glifos', () => {
 
   it('respeta tamaño, tono y etiqueta visible opcional a 13 px', () => {
     const { container } = render(<Glyph kind="taskState" value="done" size={24} tone="warning" showLabel />)
-    const icon = screen.getByRole('img', { name: 'Hecha' })
+    const icon = screen.getByRole('img', { name: 'Done' })
     expect(icon).toHaveAttribute('width', '24')
     expect(container.firstChild).toHaveStyle({ color: 'var(--k-warning)' })
-    expect(screen.getByText('Hecha')).toHaveClass('text-[13px]')
+    expect(screen.getByText('Done')).toHaveClass('text-[13px]')
   })
 
   it('el tono primario del director usa un token que existe', () => {

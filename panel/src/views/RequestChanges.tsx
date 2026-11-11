@@ -21,28 +21,28 @@ export function RequestChanges({ task }: { task: Task }) {
   )
   return (
     <section className="flex flex-col gap-2">
-      <h3 className={label}>Pedir cambios</h3>
+      <h3 className={label}>Request changes</h3>
       {task.state === 'done' && (
         <p className="text-sm text-muted-foreground">
-          Esta tarea ya está hecha. Tu mensaje abre una continuación con {providerLabel[task.assigneeProvider ?? ''] ?? BRAND.short}, que la hizo.
+          This task is done. Your message opens a follow-up with {providerLabel[task.assigneeProvider ?? ''] ?? BRAND.short}, who built it.
         </p>
       )}
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && text.trim()) { e.preventDefault(); void action.fire() } }}
-        placeholder="Qué debería cambiar…" name="cambios" autoComplete="off"
-        aria-label="Pedir cambios al responsable"
+        placeholder="What should change…" name="cambios" autoComplete="off"
+        aria-label="Request changes from the owner"
         className="min-h-20"
       />
       <div className="flex items-center gap-3">
         <Button size="sm" disabled={!text.trim() || action.pending} aria-busy={action.pending} onClick={() => void action.fire()}>
-          {action.pending ? 'Enviando…' : 'Pedir cambios'}
+          {action.pending ? 'Sending…' : 'Request changes'}
         </Button>
         {sentText && !action.error && (
-          <span role="status" className="text-xs text-muted-foreground">{action.pending ? `Enviado · esperando confirmación de ${BRAND.short}` : `Recibido · ${BRAND.short} lo atenderá en breve`}</span>
+          <span role="status" className="text-xs text-muted-foreground">{action.pending ? `Sent · waiting for ${BRAND.short} to confirm` : `Received · ${BRAND.short} will pick it up shortly`}</span>
         )}
-        {action.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(action.error)}</span>}
+        {action.error && <span role="alert" className="text-xs text-error">Not sent. {humanError(action.error)}</span>}
       </div>
     </section>
   )

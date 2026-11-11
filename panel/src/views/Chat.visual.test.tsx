@@ -18,7 +18,7 @@ describe('Chat visual', () => {
       timedOut: false, replies: [{ text: 'Empiezo a prepararla', at }], links: [] }])
     render(<TooltipProvider><Chat /></TooltipProvider>)
     const userBubble = (await screen.findByText('Construye la escena')).closest('li')!
-    expect(within(userBubble).getByText('Tú')).toBeInTheDocument()
+    expect(within(userBubble).getByText('You')).toBeInTheDocument()
     const nomosBubble = screen.getByText('Empiezo a prepararla').closest('li')!
     expect(within(nomosBubble).getByText('Nomos')).toBeInTheDocument()
     expect(within(nomosBubble).getByRole('img', { name: /Nomos/ })).toBeInTheDocument()
@@ -31,6 +31,6 @@ describe('Chat visual', () => {
     render(<TooltipProvider><Chat /></TooltipProvider>)
     const bubble = (await screen.findByText('¿Me pasas el HUD?')).closest('li')!
     expect(within(bubble).getByText('Ana (UI)')).toBeInTheDocument()
-    expect(within(bubble).queryByText('Tú')).toBeNull()
+    expect(within(bubble).queryByText('You')).toBeNull()
   })
 })

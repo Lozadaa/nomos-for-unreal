@@ -17,7 +17,7 @@ const show = (play: PlayInfo, extra: Partial<Parameters<typeof PlayButton>[0]> =
 describe('PlayButton', () => {
   it('con build: «Jugar» activo, primario, late si la build es más nueva que la última partida', () => {
     const { onPlay } = show(info())
-    const button = screen.getByRole('button', { name: 'Jugar' })
+    const button = screen.getByRole('button', { name: 'Play' })
     expect(button).toBeEnabled()
     expect(button).toHaveAttribute('data-state', 'ready')
     expect(button).toHaveClass('bg-primary')
@@ -28,12 +28,12 @@ describe('PlayButton', () => {
 
   it('una build ya jugada no late', () => {
     show(info({ lastPlayedBuiltAt: build.builtAt }))
-    expect(screen.getByRole('button', { name: 'Jugar' })).toHaveAttribute('data-fresh', 'false')
+    expect(screen.getByRole('button', { name: 'Play' })).toHaveAttribute('data-fresh', 'false')
   })
 
   it('sin build: visible, desactivado y con el motivo en una línea', () => {
     const { onPlay } = show(info({ build: null, reason: 'Todavía no hay ninguna build' }))
-    const button = screen.getByRole('button', { name: 'Jugar' })
+    const button = screen.getByRole('button', { name: 'Play' })
     expect(button).toBeDisabled()
     expect(button).toHaveAttribute('data-state', 'none')
     expect(screen.getByText('Todavía no hay ninguna build')).toBeInTheDocument()
@@ -43,14 +43,14 @@ describe('PlayButton', () => {
 
   it('arrancando: respuesta inmediata con «Arrancando…»', () => {
     show(info(), { starting: true })
-    const button = screen.getByRole('button', { name: /Arrancando/ })
+    const button = screen.getByRole('button', { name: /Starting/ })
     expect(button).toHaveAttribute('aria-busy', 'true')
     expect(button).toHaveAttribute('data-state', 'starting')
   })
 
   it('jugando: verde con el tiempo transcurrido; pulsar detiene', () => {
     const { onStop, onPlay } = show(info({ running: { pid: 7, since: '2026-10-24T23:27:55Z' } }))
-    const button = screen.getByRole('button', { name: /Jugando · 02:05 · Detener/ })
+    const button = screen.getByRole('button', { name: /Playing · 02:05 · Stop/ })
     expect(button).toHaveClass('bg-success')
     expect(button).toHaveAttribute('data-state', 'playing')
     fireEvent.click(button)
@@ -68,18 +68,18 @@ describe('textos de la build', () => {
   it('tooltip: fecha, hace cuánto y de qué tarea o comprobación salió', () => {
     expect(buildSource(build)).toBe('J1.6')
     expect(buildSource({ ...build, task: { id: 'b', code: null, title: 'Empaquetar' } })).toBe('Empaquetar')
-    expect(buildSource({ ...build, task: null })).toBe('comprobación de empaquetado')
-    expect(buildSource({ ...build, task: null, check: null })).toBe('paquete del director')
-    expect(buildLabel(build, now)).toMatch(/^Build del .+ \(hace 12 min\) · J1\.6$/)
+    expect(buildSource({ ...build, task: null })).toBe('packaging check')
+    expect(buildSource({ ...build, task: null, check: null })).toBe('director package')
+    expect(buildLabel(build, now)).toMatch(/^Build from .+ \(12 min ago\) · J1\.6$/)
   })
   it('tiempo transcurrido en mm:ss y h:mm:ss', () => {
     expect(elapsed('2026-10-24T23:29:51Z', now)).toBe('00:09')
     expect(elapsed('2026-10-24T21:29:00Z', now)).toBe('2:01:00')
   })
-  it('Producción: «Última build: hace 12 min · J1.6» con su botón', () => {
+  it('Producción: «Latest build: 12 min ago · J1.6» con su botón', () => {
     render(<TooltipProvider><LastBuildLine play={info()} onPlay={() => {}} onStop={() => {}} now={now} /></TooltipProvider>)
-    expect(screen.getByText('Última build: hace 12 min · J1.6')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Jugar' })).toBeInTheDocument()
+    expect(screen.getByText('Latest build: 12 min ago · J1.6')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument()
   })
 })
 
@@ -90,22 +90,22 @@ describe('origen de la build (hito 17)', () => {
 
   it('anterior a main: aviso con el color de aviso de los tokens y Jugar sigue funcionando', () => {
     line({ ...build, origin, commit: origin.commit, stale: true })
-    const note = screen.getByText('Esta build no incluye los últimos cambios de main')
+    const note = screen.getByText("This build doesn't include the latest changes on main")
     expect(note).toHaveClass('text-warning')
-    expect(screen.getByRole('button', { name: 'Jugar' })).toBeEnabled()
-    expect(originNote({ ...build, origin, stale: true })).toEqual({ text: 'Esta build no incluye los últimos cambios de main', tone: 'warning' })
+    expect(screen.getByRole('button', { name: 'Play' })).toBeEnabled()
+    expect(originNote({ ...build, origin, stale: true })).toEqual({ text: "This build doesn't include the latest changes on main", tone: 'warning' })
   })
 
   it('al día con main: sin aviso ni «Origen desconocido»', () => {
     line({ ...build, origin, commit: origin.commit, stale: false })
-    expect(screen.queryByText('Esta build no incluye los últimos cambios de main')).toBeNull()
-    expect(screen.queryByText('Origen desconocido')).toBeNull()
+    expect(screen.queryByText("This build doesn't include the latest changes on main")).toBeNull()
+    expect(screen.queryByText('Unknown origin')).toBeNull()
     expect(originNote({ ...build, origin, stale: false })).toBeNull()
   })
 
   it('sin build-info.json: «Origen desconocido» discreto', () => {
     line({ ...build, origin: null })
-    const note = screen.getByText('Origen desconocido')
+    const note = screen.getByText('Unknown origin')
     expect(note).toHaveClass('text-muted-foreground')
     expect(note).not.toHaveClass('text-warning')
   })

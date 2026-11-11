@@ -25,7 +25,7 @@ const anchor = (key: number, to: string, label: string) => routed
 function link(label: string, href: string, title: TaskTitle | undefined, key: number): ReactNode {
   const task = /^\/tareas\/([\w-]+)$/.exec(href)?.[1]
   if (task) {
-    const shown = title?.(task) ?? (uuid.test(label) || label === task ? 'tarea' : label)
+    const shown = title?.(task) ?? (uuid.test(label) || label === task ? 'task' : label)
     return anchor(key, `/?tarea=${encodeURIComponent(task)}`, uuid.test(label) || label === task ? shown : label)
   }
   return /^\/(?!\/)/.test(href) ? anchor(key, href, label) : <Fragment key={key}>{label}</Fragment>
@@ -74,7 +74,7 @@ function block(lines: string[], title: TaskTitle | undefined, key: number): Reac
     const item = l.replace(/^\s*[-*•]\s+/, ''), check = /^\[([ xX])\]\s+/.exec(item)
     if (!check) return <li key={i}>{inline(item, title)}</li>
     const Icon = check[1] === ' ' ? Square : SquareCheck
-    return <li key={i} className="-ml-5 flex list-none items-start gap-1.5"><Icon role="img" aria-label={check[1] === ' ' ? 'pendiente' : 'hecho'} className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+    return <li key={i} className="-ml-5 flex list-none items-start gap-1.5"><Icon role="img" aria-label={check[1] === ' ' ? 'to do' : 'done'} className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <span>{inline(item.slice(check[0].length), title)}</span></li>
   })}</ul>
   if (lines.every((l) => /^\s*\d+[.)]\s+/.test(l))) return <ol key={key} className="list-decimal pl-5">{lines.map((l, i) => <li key={i}>{inline(l.replace(/^\s*\d+[.)]\s+/, ''), title)}</li>)}</ol>
@@ -96,7 +96,7 @@ export function Markdown({ text, taskTitle, className, clamp }: { text: string; 
   const parts = text.replace(/\r\n?/g, '\n').split(/^```[^\n]*\n([\s\S]*?)^```\s*$/m)
   let key = 0
   const nodes = parts.flatMap((part, i): ReactNode[] => i % 2
-    ? [<details key={key++} className="text-xs"><summary className="cursor-pointer text-muted-foreground">Detalle técnico · {part.replace(/\n$/, '').split('\n').length} líneas</summary>
+    ? [<details key={key++} className="text-xs"><summary className="cursor-pointer text-muted-foreground">Technical detail · {part.replace(/\n$/, '').split('\n').length} lines</summary>
       <pre className="mt-1 max-w-full overflow-x-auto rounded-md bg-muted p-2 font-mono text-xs [overflow-wrap:normal]">{part.replace(/\n$/, '')}</pre></details>]
     : part.split(/\n\s*\n/).map((b) => b.split('\n').filter((l) => l.trim())).filter((b) => b.length).map((b) => block(b, taskTitle, key++)))
   // recorte por texto (6 líneas o ~6 líneas de ancho): jsdom no mide alturas y el corte es el mismo en todas partes
@@ -104,7 +104,7 @@ export function Markdown({ text, taskTitle, className, clamp }: { text: string; 
   return <div className={cn('flex min-w-0 flex-col gap-2 [overflow-wrap:anywhere]', className)}>
     {long ? <>
       <div className={cn('flex min-w-0 flex-col gap-2', !all && 'max-h-[6lh] overflow-hidden')}>{nodes}</div>
-      <button type="button" className="self-start text-xs text-muted-foreground underline underline-offset-2" onClick={() => setAll(!all)}>{all ? 'Mostrar menos' : 'Mostrar todo'}</button>
+      <button type="button" className="self-start text-xs text-muted-foreground underline underline-offset-2" onClick={() => setAll(!all)}>{all ? 'Show less' : 'Show all'}</button>
     </> : nodes}
   </div>
 }

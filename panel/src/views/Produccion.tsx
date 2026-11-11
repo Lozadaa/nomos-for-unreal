@@ -25,6 +25,11 @@ import { EquipoStrip } from './Equipo'
 type Filter = 'todas' | Stage
 
 /** La última captura (o fotograma de vídeo) de cada tarea, para la miniatura de su fila. */
+/** La captura propia de cada tarea; sin propia, la última del juego (`GET /capture`, que da 404 solo si el proyecto no tiene ninguna). */
+class Captures extends Map<string, string> {
+  override get(task: string): string { return super.get(task) ?? '/capture' }
+}
+
 export function useLatestCaptures(): Map<string, string> {
   const { data } = useResource<Artifact[]>('/artifacts', /^artifact\./)
   return useMemo(() => {
@@ -33,7 +38,7 @@ export function useLatestCaptures(): Map<string, string> {
       if (a.kind !== 'screenshot' && !(a.kind === 'video' && a.previewPath)) continue
       if ((latest.get(a.taskId)?.createdAt ?? '') < a.createdAt) latest.set(a.taskId, a)
     }
-    return new Map([...latest].map(([task, a]) => [task, `/artifacts/${encodeURIComponent(a.id)}/${a.kind === 'video' ? 'preview' : 'file'}`]))
+    return new Captures([...latest].map(([task, a]) => [task, `/artifacts/${encodeURIComponent(a.id)}/${a.kind === 'video' ? 'preview' : 'file'}`]))
   }, [data])
 }
 
@@ -116,28 +121,28 @@ export function Produccion() {
       </figure>}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" size="sm" aria-pressed={filter === 'todas'} onClick={() => void animateUpdate(() => setFilter('todas'))}>Todas</Button>
+        <Button variant="outline" size="sm" aria-pressed={filter === 'todas'} onClick={() => void animateUpdate(() => setFilter('todas'))}>All</Button>
         {!!tokens?.total && <span className="text-xs text-muted-foreground" title={Object.entries(tokens.porRol).map(([role, n]) => `${role}: ${millions(n)}`).join(' · ')}>
-          Tokens del proyecto: {millions(tokens.total)}</span>}
+          Project tokens: {millions(tokens.total)}</span>}
         {/* hito 27: cada despertar del director por evento es una run sin tarea */}
         {!!wakes.length && <span className="text-xs text-muted-foreground">
-          Director: {wakes.length} {wakes.length === 1 ? 'despertar' : 'despertares'}{wakes.some((r) => r.state === 'running') ? ' · en marcha' : ''}
+          Director: {wakes.length} {wakes.length === 1 ? 'wake-up' : 'wake-ups'}{wakes.some((r) => r.state === 'running') ? ' · running' : ''}
           {!!tokens?.porRol.director && ` · ${millions(tokens.porRol.director)} tokens`}</span>}
         <Input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar tarea…" autoComplete="off" name="q" spellCheck={false}
-          aria-label="Buscar tarea"
+          placeholder="Search tasks…" autoComplete="off" name="q" spellCheck={false}
+          aria-label="Search tasks"
           className="ml-auto h-8 w-56"
         />
       </div>
 
-      <section aria-label="Producción" className="overflow-hidden rounded-lg border border-subtle">
+      <section aria-label="Production" className="overflow-hidden rounded-lg border border-subtle">
         {!loaded ? (showSkeleton ? <RowsSkeleton /> : <div className="h-48" />)
           : groups.length === 0 ? (
-            <EmptyState view="produccion" message={filtering ? 'Ninguna tarea coincide con el filtro' : undefined}
-              action={filtering ? { label: 'Quitar filtro', onClick: clearFilters } : { label: 'Nueva petición', onClick: () => document.querySelector<HTMLInputElement>('input[aria-label="Título de la petición"]')?.focus() }} />
+            <EmptyState view="produccion" message={filtering ? 'No tasks match the filter' : undefined}
+              action={filtering ? { label: 'Clear filter', onClick: clearFilters } : { label: 'New request', onClick: () => document.querySelector<HTMLInputElement>('input[aria-label="Request title"]')?.focus() }} />
           ) : groups.map(({ stage, rows }) => (
             <div key={stage} role="group" aria-labelledby={`etapa-${stage}`}>
               <h2 id={`etapa-${stage}`} className="flex h-8 items-center gap-2 border-b border-subtle bg-card px-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">

@@ -11,7 +11,7 @@ export function rng(seed: string): () => number {
 }
 
 export function pick<T>(random: () => number, list: readonly T[]): T {
-  if (!list.length) throw new RangeError('La lista de formas está vacía')
+  if (!list.length) throw new RangeError('The shape list is empty')
   return list[Math.min(list.length - 1, Math.floor(random() * list.length))]
 }
 

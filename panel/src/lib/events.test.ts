@@ -19,7 +19,7 @@ describe('Fuente y glifo de los eventos', () => {
     expect(eventPresentation(event('run.finished', { runId: 'r1' }), providers)).toEqual({ kind: 'provider', value: 'opencode' })
     expect(eventProvider(event('task.activity', { source: 'Claude Code' }))).toBe('claude')
     expect(laneOf(event('run.finished', { provider: 'meshy' }))).toBe('Meshy')
-    expect(laneOf(event('task.activity', { source: 'builds' }))).toBe('Compilaciones')
+    expect(laneOf(event('task.activity', { source: 'builds' }))).toBe('Builds')
     expect(eventProvider(event('run.finished', { taskId: 't1' }))).toBeUndefined()
     expect(eventPresentation(event('run.finished', { taskId: 't1' }))).toEqual({ kind: 'event', value: 'run.finished' })
     expect(laneOf(event('task.activity'))).toBe('Nomos')

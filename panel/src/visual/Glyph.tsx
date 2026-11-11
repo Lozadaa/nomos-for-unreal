@@ -18,7 +18,7 @@ export function Glyph({ kind, value, size = 16, tone, showLabel = false, provide
 }
 
 const kindLabels: Record<GlyphKind, string> = {
-  area: 'Áreas', taskState: 'Estados de tarea', directorState: 'Estados del director', provider: 'Proveedores',
+  area: 'Areas', taskState: 'Task states', directorState: 'Director states', provider: 'Providers',
   artifact: 'Artefactos',
 }
 

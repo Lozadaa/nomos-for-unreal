@@ -30,7 +30,7 @@ describe('Catálogo · Indexar ahora', () => {
   it('el botón de la cabecera encola asset.index con clave por minuto', async () => {
     vi.mocked(api).mockImplementation(async (path: string) => path === '/catalog' ? [] : { commandId: 'c1' })
     mount(<Catalogo />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Indexar ahora' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Index now' }))
     await waitFor(() => expect(indexCall()).toBeDefined())
     const body = indexCall()![1]!.body as { type: string; idempotencyKey: string }
     expect(body.type).toBe('asset.index')
@@ -41,7 +41,7 @@ describe('Catálogo · Indexar ahora', () => {
     vi.mocked(api).mockResolvedValue({ commandId: 'c1' })
     mount(<CommandMenu />)
     fireEvent.keyDown(document, { key: 'k', metaKey: true })
-    const item = await screen.findByText('Indexar')
+    const item = await screen.findByText('Index catalog')
     expect(item).toHaveAttribute('aria-disabled', 'false')
     fireEvent.click(item)
     await waitFor(() => expect((indexCall()![1]!.body as { type: string }).type).toBe('asset.index'))
@@ -53,6 +53,6 @@ describe('Catálogo · Indexar ahora', () => {
     render(<Probe />)
     expect(toasts.success).not.toHaveBeenCalled()
     act(() => ingest({ seq: 2, id: 'new', type: 'catalog.indexed', messageId: null, payload: { entries: 8 }, createdAt: new Date().toISOString() }))
-    expect(toasts.success).toHaveBeenCalledWith({ title: 'Catálogo indexado', description: '8 assets en el catálogo' })
+    expect(toasts.success).toHaveBeenCalledWith({ title: 'Catalog indexed', description: '8 assets in the catalog' })
   })
 })
