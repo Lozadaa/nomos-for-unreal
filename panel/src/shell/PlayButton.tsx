@@ -6,16 +6,16 @@ import type { PlayBuild, PlayInfo } from './usePlay'
 /** De qué salió la build: el código de la tarea (J1.6), su título, la comprobación o el paquete que deja el director. */
 export function buildSource(build: PlayBuild): string {
   if (build.task) return build.task.code ?? build.task.title
-  return build.check ? 'comprobación de empaquetado' : 'paquete del director'
+  return build.check ? 'packaging check' : 'director package'
 }
-const dateTime = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+const dateTime = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 export const buildLabel = (build: PlayBuild, now = Date.now()) =>
-  `Build del ${dateTime.format(new Date(build.builtAt))} (${relativeTime(build.builtAt, now)}) · ${buildSource(build)}`
+  `Build from ${dateTime.format(new Date(build.builtAt))} (${relativeTime(build.builtAt, now)}) · ${buildSource(build)}`
 
 /** Hito 17: si la build es anterior a main (aviso) o no dice de qué commit sale (discreto); al día, nada. */
 export function originNote(build: PlayBuild): { text: string; tone: 'warning' | 'muted' } | null {
-  if (!build.origin) return { text: 'Origen desconocido', tone: 'muted' }
-  return build.stale ? { text: 'Esta build no incluye los últimos cambios de main', tone: 'warning' } : null
+  if (!build.origin) return { text: 'Unknown origin', tone: 'muted' }
+  return build.stale ? { text: "This build doesn't include the latest changes on main", tone: 'warning' } : null
 }
 // en el tooltip (fondo invertido) el aviso lleva un punto del color de aviso en vez de texto de color: se lee en los dos temas
 const Note = ({ build, tip = false }: { build: PlayBuild; tip?: boolean }) => {
@@ -47,22 +47,22 @@ export function PlayButton({ play, starting = false, onPlay, onStop, now, classN
   const build = play?.build ?? null, running = play?.running ?? null
   const state = running ? 'playing' : starting ? 'starting' : build ? 'ready' : 'none'
   const fresh = !!build && (!play?.lastPlayedBuiltAt || build.builtAt > play.lastPlayedBuiltAt)
-  const label = running ? `Jugando · ${elapsed(running.since, now)} · Detener` : starting ? 'Arrancando…' : 'Jugar'
-  const tip = running ? 'Pulsa para cerrar el juego'
+  const label = running ? `Playing · ${elapsed(running.since, now)} · Stop` : starting ? 'Starting…' : 'Play'
+  const tip = running ? 'Click to close the game'
     : build ? <span className="flex flex-col gap-0.5"><span>{buildLabel(build, now)}</span><Note build={build} tip /></span>
-    : play?.reason ?? 'Comprobando la última build…'
+    : play?.reason ?? 'Checking the latest build…'
   return (
     <span className="inline-flex items-center gap-3">
     <Tooltip>
-      <TooltipTrigger render={<span tabIndex={state === 'none' ? 0 : -1} className={cn('inline-flex rounded-md', className)} />}>
+      <TooltipTrigger render={<span tabIndex={state === 'none' ? 0 : -1} className={cn('inline-flex rounded-sm', className)} />}>
         <button type="button" data-state={state} data-fresh={String(state === 'ready' && fresh)} aria-label={label}
           aria-busy={starting} disabled={state === 'none'} onClick={running ? onStop : onPlay}
-          className={cn('k-play inline-flex h-10 shrink-0 items-center gap-2.5 rounded-md px-4 text-sm font-semibold whitespace-nowrap',
+          className={cn('k-play k-display inline-flex h-10 shrink-0 items-center gap-2.5 rounded-sm px-4 text-lg leading-none whitespace-nowrap',
             state === 'playing' ? 'bg-success text-background' : state === 'none' ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground')}>
           {state === 'playing'
-            ? <><span aria-hidden className="size-2 rounded-full bg-current k-pulse" /><span>Jugando</span>
-              <span className="font-mono tabular-nums">{elapsed(running!.since, now)}</span><Square /><span>Detener</span></>
-            : <><Triangle className={cn('size-5', starting && 'k-pulse')} /><span>{starting ? 'Arrancando…' : 'Jugar'}</span></>}
+            ? <><span aria-hidden className="size-2 rounded-full bg-current k-pulse" /><span>Playing</span>
+              <span className="font-mono tabular-nums">{elapsed(running!.since, now)}</span><Square /><span>Stop</span></>
+            : <><Triangle className={cn('size-5', starting && 'k-pulse')} /><span>{starting ? 'Starting…' : 'Play'}</span></>}
         </button>
       </TooltipTrigger>
       <TooltipContent>{tip}</TooltipContent>
@@ -79,7 +79,7 @@ export function LastBuildLine(props: PlayProps) {
     <div className="flex flex-wrap items-center gap-4">
       <PlayButton {...props} hint={false} />
       <p className="text-sm text-muted-foreground">
-        {build ? `Última build: ${relativeTime(build.builtAt, props.now)} · ${buildSource(build)}` : props.play?.reason ?? 'Comprobando la última build…'}
+        {build ? `Latest build: ${relativeTime(build.builtAt, props.now)} · ${buildSource(build)}` : props.play?.reason ?? 'Checking the latest build…'}
       </p>
       {build && <p className="text-sm"><Note build={build} /></p>}
     </div>
