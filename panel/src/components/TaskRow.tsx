@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { ChevronsDown, ChevronsUp } from 'lucide-react'
 import { StatusDot } from './StatusDot'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
@@ -14,10 +14,11 @@ import { agentName } from '@/visual/art/agentName'
 
 export const rowColumns = 'grid grid-cols-[20px_36px_minmax(0,1fr)_auto_64px_64px] items-center gap-x-4'
 
-/** Hito 10: la última entrega visual de la tarea, en miniatura 16:9; sin entrega, el hueco queda vacío. */
+/** Hito 10: la última entrega visual de la tarea (o, sin propia, la última captura del juego) en miniatura 16:9. */
 function Thumb({ path, title }: { path?: string | null; title: string }) {
   const src = useAuthedSrc(path ?? null)
-  return <span className="block h-9 w-16 overflow-hidden rounded-sm bg-card">{src && <img src={src} alt={`Última entrega de ${title}`} width={64} height={36} loading="lazy" className="size-full object-cover" />}</span>
+  const [broken, setBroken] = useState<string | null>(null)
+  return <span className="block h-9 w-16 overflow-hidden rounded-sm bg-card">{src && broken !== src && <img src={src} alt={`Latest delivery of ${title}`} width={64} height={36} loading="lazy" className="size-full object-cover" onError={() => setBroken(src)} />}</span>
 }
 
 function TaskRowView({ task, run, agent, now, open, onOpen, thumb }: {
@@ -31,11 +32,11 @@ function TaskRowView({ task, run, agent, now, open, onOpen, thumb }: {
   const name = agent?.name ?? agentName(run?.role ?? task.assigneeRole, task.area)
   const implementer = run?.provider ?? task.assigneeProvider
   const status = statusOf(task)
-  const provider = implementer ? providerLabel[implementer] ?? implementer : 'Sin responsable'
-  const identity = [areaLabel[task.area], statusText(task), provider, `Etapa: ${stageLabel[task.state]}`, ...(implementer ? [name] : [])]
+  const provider = implementer ? providerLabel[implementer] ?? implementer : 'Unassigned'
+  const identity = [areaLabel[task.area], statusText(task), provider, `Stage: ${stageLabel[task.state]}`, ...(implementer ? [name] : [])]
   const reason = rowReason(task)
   const detail = task.failure ? task.failure.text : task.waitReason
-  const description = `${identity.join(' · ')}${task.blockedReason ? ` · ${task.blockedReason}` : ''}${detail ? ` · ${detail}` : ''}${waiting ? ` · Esperando respuesta${waitingSignal?.runId === run?.id ? `: ${waitingSignal.question}` : ''}` : ''}`
+  const description = `${identity.join(' · ')}${task.blockedReason ? ` · ${task.blockedReason}` : ''}${detail ? ` · ${detail}` : ''}${waiting ? ` · Waiting for an answer${waitingSignal?.runId === run?.id ? `: ${waitingSignal.question}` : ''}` : ''}`
   return (
     <Tooltip>
       <TooltipTrigger render={<button
@@ -43,7 +44,7 @@ function TaskRowView({ task, run, agent, now, open, onOpen, thumb }: {
         aria-label={[task.title, ...identity].join(', ')}
         onClick={(e) => onOpen(task, e.currentTarget)} disabled={temp}
         style={{ viewTransitionName: nameFor('row', task.id), viewTransitionClass: 'k-row' } as React.CSSProperties}
-        className={cn(rowColumns, 'h-12 w-full cursor-pointer border-b border-subtle bg-background px-4 text-left text-sm outline-offset-[-2px] transition-colors duration-(--k-dur-micro) hover:bg-card active:bg-muted disabled:cursor-default disabled:hover:bg-background')}
+        className={cn(rowColumns, 'h-12 w-full cursor-pointer border-b border-subtle bg-background px-4 text-left text-sm outline-offset-[-2px] transition-colors duration-(--k-dur-micro) hover:bg-card active:bg-muted disabled:cursor-not-allowed disabled:hover:bg-background')}
       />}>
         <Glyph kind="area" value={task.area} />
         <span className="flex items-center gap-1.5">
@@ -52,22 +53,22 @@ function TaskRowView({ task, run, agent, now, open, onOpen, thumb }: {
           <span className="sr-only">{statusText(task)}</span>
         </span>
         <span className="flex min-w-0 items-baseline gap-3">
-          {!!task.priority && <span data-task-priority={task.priority > 0 ? 'up' : 'down'} role="img" aria-label={`Prioridad ${task.priority}`}
+          {!!task.priority && <span data-task-priority={task.priority > 0 ? 'up' : 'down'} role="img" aria-label={`Priority ${task.priority}`}
             className="shrink-0 self-center text-muted-foreground">{task.priority > 0 ? <ChevronsUp size={14} aria-hidden /> : <ChevronsDown size={14} aria-hidden />}</span>}
           <span data-task-title className="truncate font-medium" title={task.title}
             style={{ viewTransitionName: open ? undefined : nameFor('task', task.id), viewTransitionClass: 'k-title' } as React.CSSProperties}>{task.title}</span>
-          <span data-task-id-text className="shrink-0 font-mono text-xs text-muted-foreground">{temp ? 'enviando' : shortId(task.id)}</span>
+          <span data-task-id-text className="shrink-0 font-mono text-xs text-muted-foreground">{temp ? 'sending' : shortId(task.id)}</span>
           {reason && <span data-task-reason className={cn('shrink-0 text-xs', task.failure ? 'text-error' : 'text-muted-foreground')}>{reason}</span>}
         </span>
         {implementer ? (
           <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
             <AgentAvatar id={run?.id} provider={implementer} model={run?.metadata?.model} name={name} state={state} ordinal={state === 'idle' ? undefined : agent?.ordinal} size={24} />
             <span>{name}</span>
-            {waiting && <span className="sr-only">Esperando respuesta</span>}
+            {waiting && <span className="sr-only">Waiting for an answer</span>}
           </span>
-        ) : <span className="text-xs text-muted-foreground">Sin responsable</span>}
+        ) : <span className="text-xs text-muted-foreground">Unassigned</span>}
         <Thumb path={thumb} title={task.title} />
-        <time dateTime={task.updatedAt} className="text-right text-xs text-muted-foreground tabular-nums">{temp ? 'ahora' : relativeTime(task.updatedAt, now).replace(/^hace /, '')}</time>
+        <time dateTime={task.updatedAt} className="text-right text-xs text-muted-foreground tabular-nums">{temp ? 'now' : relativeTime(task.updatedAt, now).replace(/^hace | ago$/g, '')}</time>
       </TooltipTrigger>
       <TooltipContent role="tooltip">{description}</TooltipContent>
     </Tooltip>

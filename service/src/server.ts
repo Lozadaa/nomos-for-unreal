@@ -2,7 +2,7 @@ import * as http from "node:http";
 import type { DatabaseSync } from "node:sqlite";
 import { createMessage, getMessage, ackEvent, publishReply, heartbeat, status, appendEvent } from "./store.ts";
 import { checkTyping, listMessages, startTyping } from "./chat.ts";
-import { listProjects, projectCapture, register, unregister } from "./projects.ts";
+import { latestCapture, listProjects, projectCapture, register, unregister } from "./projects.ts";
 import { readFile } from "node:fs/promises";
 import { authorized, body, json, staticFile } from "./http.ts";
 import { streamEvents } from "./sse.ts";
@@ -77,8 +77,9 @@ export function createServer(db: DatabaseSync, token: string, webDir: string, da
       if (!authorized(req, url, token)) return json(res, 401, { error: "unauthorized" });
       if (await production({db, req, res, url, dataDir})) return;
       if (method === "GET" && path === "/projects") return json(res, 200, dataDir ? listProjects(dataDir) : []);
-      if (method === "GET" && parts.length === 4 && parts[1] === "projects" && parts[3] === "capture") {
-        const file = projectCapture(Number(parts[2]));
+      if (method === "GET" && (path === "/capture" || (parts.length === 4 && parts[1] === "projects" && parts[3] === "capture"))) {
+        // `/capture`: la última captura del juego de este servicio (imagen de las tarjetas de tarea sin captura propia)
+        const file = path === "/capture" ? latestCapture(db, dataDir) : projectCapture(Number(parts[2]));
         if (!file) return json(res, 404, { error: "unknown_file" });
         res.writeHead(200, { "Content-Type": /\.jpe?g$/i.test(file) ? "image/jpeg" : "image/png", "Cache-Control": "no-store" });
         return res.end(await readFile(file));
