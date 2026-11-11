@@ -1,3 +1,5 @@
+> This reference is in Spanish, like the skills and the CLI. The English overview is in the [README](../README.md).
+
 # Referencia técnica
 
 Lo que antes estaba en el README: uso del panel, CLI, configuración, estructura del repo, pruebas y seguridad. Para empezar, el [README](../README.md).

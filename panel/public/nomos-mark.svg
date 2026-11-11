@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">Nomos symbol</title>
+<desc id="desc">Three separated forward-slanted pieces form an N; its diagonal is ember orange. Transparent background.</desc>
+<path id="upright-left" fill="#F2EFEA" d="M67.0090 48.0000L97.0090 48.0000L65.6993 195.3007L53.0000 208.0000L23.0000 208.0000L54.3097 60.6993Z"/><path id="ember-diagonal" fill="#FF5A1F" d="M96.0000 84.0000L124.0000 56.0000L160.0000 172.0000L132.0000 200.0000Z"/><path id="upright-right" fill="#F2EFEA" d="M203.0090 48.0000L233.0090 48.0000L201.6993 195.3007L189.0000 208.0000L159.0000 208.0000L190.3097 60.6993Z"/>
+</svg>

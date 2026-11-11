@@ -59,6 +59,6 @@ export function nuevoCli(argv: string[]): boolean {
   const dest = values.destino ? resolve(values.destino) : undefined;
   nuevo(positionals[0], {dest, engine: values.motor});
   const where = dest ?? join(process.env.USERPROFILE ?? homedir(), 'Documents', 'Unreal Projects', positionals[0]);
-  console.log(`${where}\nListo: entra en la carpeta, compila con Scripts\\compilar.ps1 y abre /nomos.`);
+  console.log(`${where}\nListo: entra en la carpeta, compila con ${process.platform === 'win32' ? 'Scripts\\compilar.ps1' : 'bash Scripts/compilar.sh'} y abre /nomos.`);
   return true;
 }
