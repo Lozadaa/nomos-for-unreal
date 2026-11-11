@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, join, relative } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { autonomous, directorConfig, readConfig, roleModel } from './config.ts';
@@ -16,6 +16,7 @@ import { listDecisions } from './repo/decisions.ts';
 import { listLeases } from './leases.ts';
 import { listPeers, teamConfig } from './team.ts';
 import { nomosSkills } from './skills-install.ts';
+import { listarPedidos } from './pedidos.ts';
 import { requiredTypes } from './watcher-cursors.ts';
 import type { EventRow } from './store.ts';
 
@@ -97,7 +98,10 @@ export function renderDirectorBrief(db: DatabaseSync, dataDir: string, now = new
     hito: closing ? `${cell(closing.title)} (${short(closing.id)}, ${closing.state})${jam}` : `Sin tarea de cierre abierta${jam}`,
     tareas: more(tasks.map(t => `- ${t.state} · ${cell(t.title)} (${short(t.id)}) · último: ${last.get(t.id as string) ?? '—'}${t.blocked || t.wait ? ` · ${cell(t.blocked ?? t.wait)}` : ''}`), 8, 'Ninguna abierta.').join('\n'),
     pendientes: more([...listDecisions(db, 'open').map(d => `- Decisión ${short(d.id)} · ${title(d.taskId)}: ${cell(d.reason)}`),
-      ...approvals.map(a => `- Por aprobar: ${title(a.t)}`)], 4, 'Nada pendiente.').join('\n'),
+      ...approvals.map(a => `- Por aprobar: ${title(a.t)}`),
+      // lo que solo puede hacer el usuario a mano (PBRGen en el navegador): docs/pedidos/ del juego, ya integrado
+      ...listarPedidos(dirname(resolve(dataDir))).filter(p => p.estado === 'pendiente').map(p => `- Pedido manual ${p.id} (${p.para}): ${cell(p.prompt)} → ${p.destino}/`)],
+      4, 'Nada pendiente.').join('\n'),
     mensajes: more(messages.map(m => `- seq ${m.seq} · ${m.id} · «${cell(m.text)}»${whole(dataDir, m)}`), 3, 'Ninguno.').join('\n'),
     eventos: (events.length > 6 ? [`… ${events.length - 6} anteriores`] : []).concat(events.slice(-6).map(e =>
       `- ${e.seq} ${e.type} · ${cell(e.payload.text ?? (e.payload.taskId ? title(e.payload.taskId) : '') ?? '')}${e.payload.summary || e.payload.reason ? ` · ${cell(e.payload.summary ?? e.payload.reason)}` : ''}`))

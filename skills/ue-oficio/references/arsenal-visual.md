@@ -22,6 +22,16 @@ La pregunta de control, con tus `docs/capturas/detalle-*.png` delante: ¿parece 
 ## Un material con vida
 - Color por vértice desde la malla procedural (veta, desgaste, franjas pintadas) + un material propio con ruido a dos
   escalas, rugosidad que cambia (barniz 0,3-0,4, tierra 0,9) y normal o relieve. Un color plano por pieza es prototipo.
+- **PBRGen (lo genera el usuario a mano, en el navegador)**: para una superficie que merezca texturas PBR de verdad (suelo,
+  madera, piedra, tela), deja el pedido y **sigue sin esperar** con el material propio de arriba como sustituto:
+  `nomos pedido crear <id> "<prompt>" --encargo "<frase literal del usuario que lo pide>" --destino Importar/Materiales/<id>
+  --sustituto "<qué usas mientras>"`. **El prompt lo va a ejecutar una persona que no ha leído tu tarea: que sea ultra
+  específico y que salga del encargo del usuario, no de tu gusto.** Escribe, en inglés y en este orden: qué es y dónde sale en
+  el juego (con las palabras del encargo), tamaño real de la baldosa en cm, los colores exactos de la paleta de
+  `docs/direccion.md` (hex), estilo (pintado a mano, realista…), desgaste y detalle fino, «seamless tileable», luz plana
+  sin sombras, resolución, los mapas que necesitas (color base, normal, rugosidad, altura) y qué evitar. Menos de 200
+  caracteres se rechaza. Deja el material preparado para recibir los mapas con un parámetro y nombra el pedido en el
+  `summary` de `NOMOS_DONE`. Uno o dos por juego.
 - `nomos fastvfx crear <receta.json> --preview` para materiales de efecto (brillo, holograma, energía): ver fastvfx.md.
 - Material propio por Python en el editor caliente (`nomos ue py`); en 5.9 compílalo con renderer y míralo en una captura.
 - MCP de Unreal en el editor, si está, para inspeccionar y ajustar materiales y actores sin escribir un script. {unreal_mcp}
@@ -34,6 +44,15 @@ La pregunta de control, con tus `docs/capturas/detalle-*.png` delante: ¿parece 
 ## Un fondo
 - Horizonte o paredes que cuenten dónde estamos: `SkyAtmosphere` + `ExponentialHeightFog` cálida o fría según la dirección,
   siluetas lejanas (árboles, casas, montes) con mallas sencillas propias y niebla. Nunca gris liso.
+
+## Arte 2D para la interfaz
+- **Imágenes generadas con fal (Nano Banana Pro)**: `nomos imagen crear "<qué es, estilo y paleta de docs/direccion.md>" --salida
+  Importar/UI/<nombre>.png [--sin-fondo] [--aspecto 16:9] [--resolucion 1K|2K|4K]`. Para iconos, marcos, fondos de menú e
+  ilustraciones; `--sin-fondo` deja el PNG con transparencia (iconos y marcos). 30-60 s y unos 0,15 $ por imagen: pide las
+  que salen en el plan de arte, no variantes. El prompt, ultra específico y fiel al encargo del usuario: qué es, para qué
+  pantalla, tamaño, colores exactos (hex), estilo, qué no debe llevar. Repite en cada prompt el mismo estilo y la misma paleta para que el juego
+  parezca de una sola mano, mira cada imagen antes de usarla e impórtala como textura de UI (grupo UI, sin mipmaps).
+  El texto del juego va en UMG con las fuentes propias, nunca pintado dentro de la imagen. {fal}
 
 ## Luz y cámara
 - Luz con intención: sol bajo con color, cielo, sombras suaves; receta `post_exterior` como punto de partida (iluminacion.md).

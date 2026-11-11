@@ -61,3 +61,15 @@ test('Candela 2026-11-10: un encargo largo llega entero al director (antes se co
   assert.equal(readFileSync(file, 'utf8'), encargo, 'el archivo trae el texto tal cual');
   db.close();
 });
+
+test('pedidos manuales: el director ve en Pendientes el pedido sin hacer del juego, con prompt y destino; hecho, desaparece', async t => {
+  const {db, data} = base(t, {});
+  const {crearPedido} = await import('../../service/src/pedidos.ts'), juego = join(data, '..');
+  assert.match(renderDirectorBrief(db, data), /Nada pendiente\./);
+  crearPedido(juego, {id: 'tierra-ruedo', prompt: 'tierra apisonada rojiza ' + 'con detalle '.repeat(20), encargo: 'un ruedo de tierra', destino: 'Importar/Materiales/tierra-ruedo'});
+  assert.match(renderDirectorBrief(db, data), /- Pedido manual tierra-ruedo \(PBRGen\): tierra apisonada rojiza .*→ Importar\/Materiales\/tierra-ruedo\//);
+  mkdirSync(join(juego, 'Importar', 'Materiales', 'tierra-ruedo'), {recursive: true});
+  writeFileSync(join(juego, 'Importar', 'Materiales', 'tierra-ruedo', 'color.png'), '');
+  assert.match(renderDirectorBrief(db, data), /Nada pendiente\./);
+  db.close();
+});

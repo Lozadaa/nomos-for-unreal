@@ -1,5 +1,8 @@
 import { markSession } from './session'
 
+/** Pedido manual: algo que solo el usuario puede generar (PBRGen en el navegador); `docs/pedidos/` del juego. */
+export interface Pedido { id: string; para: string; prompt: string; encargo?: string; destino: string; sustituto: string | null; creado: string }
+
 export interface Status {
   service: boolean
   listener: boolean
@@ -9,6 +12,8 @@ export interface Status {
   lastAckAt: string | null
   pending: number
   paused: boolean
+  /** Pedidos manuales sin hacer: el panel los enseña como alerta en todas las vistas. */
+  pedidos?: Pedido[]
   project?: { name: string; uproject: string } | null
   /** Hito 24: tokens de entrada medidos en las runs del proyecto, total y por rol. */
   tokens?: { total: number; porRol: Record<string, number> }

@@ -9,6 +9,7 @@ import { startLive, useStore } from '@/store'
 import { CommandMenu, type TaskRef } from './CommandMenu'
 import { Header } from './Header'
 import { BackHome } from './BackHome'
+import { Pedidos } from './Pedidos'
 import { useStatus } from './useStatus'
 import { usePlay } from './usePlay'
 import { LegendSheet } from '@/visual/LegendSheet'
@@ -50,6 +51,7 @@ export function Layout({ project }: { project?: string }) {
       <a href="#contenido" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:border focus-visible:border-strong focus-visible:bg-background focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm">Skip to content</a>
       <Header project={project ?? status?.project?.name ?? 'Unreal project'} status={status} onCommand={(from) => { commandOpener.current = from; setOpen(true) }} onTogglePause={() => void togglePause.fire()} pausePending={togglePause.pending} play={play} />
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-(--k-content) px-4 py-5 outline-none sm:px-6">
+        <Pedidos items={status?.pedidos ?? []} />
         <BackHome />
         <Outlet />
       </main>
