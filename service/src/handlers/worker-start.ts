@@ -114,6 +114,9 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
     workerFailure(db,{...payload,runId:run.id,conflicts:currentReservation.conflicts},'lease_conflict');return;
   }
   const suffix=review ? '-review-'+run.id.slice(0,8) : '';
+  // la rama del último intento (antes de que la fila reutilizada se sobrescriba): es la que trae lo más reciente
+  const previous=review ? undefined : (db.prepare(`select branch from worktrees where task_id=? and branch like 'nomos/%'
+    and branch not like '%-review-%' order by updated_at desc limit 1`).get(task.id) as {branch?:string}|undefined)?.branch;
   const created=await orca.worktreeCreate(repoId,'nomos-'+short+suffix,payload.provider,orcaCreateTimeoutMs(config));
   transaction(db,()=>{
     run=updateRun(db,run.id,{worktreeId:created.worktreeId},{sessionRef:created.terminalHandle});
@@ -135,10 +138,10 @@ export async function startWorker(cmd:Command,ctx:WorkerContext,review?:{
   db.prepare('update worktrees set branch=?,updated_at=? where id=?').run(branch,new Date().toISOString(),created.worktreeId);
   // …pero lo commiteado del intento anterior entra en el árbol nuevo; con conflicto queda fuera y el brief lo dice
   let inherited='';
-  if(!review && branch!==name) {
-    const merged=await git.merge(created.path,name,{noFf:true,message:`Trabajo del intento anterior (${name})`});
-    if(!merged.ok) { await git.abortMerge(created.path); inherited=`no se pudo fusionar la rama \`${name}\` del intento anterior (conflicto en ${merged.conflicts.join(', ')}); mírala con \`git log ${name}\` y recupera lo que sirva.`; }
-    else if(merged.commit!==baseCommit) inherited=`el trabajo del intento anterior (rama \`${name}\`) ya está fusionado en tu árbol: míralo con \`git diff ${baseCommit.slice(0,7)}\`, continúa desde ahí y no lo rehagas.`;
+  if(previous && previous!==branch && await git.branchExists(projectDir,previous)) {
+    const merged=await git.merge(created.path,previous,{noFf:true,message:`Trabajo del intento anterior (${previous})`});
+    if(!merged.ok) { await git.abortMerge(created.path); inherited=`no se pudo fusionar la rama \`${previous}\` del intento anterior (conflicto en ${merged.conflicts.join(', ')}); mírala con \`git log ${previous}\` y recupera lo que sirva.`; }
+    else if(merged.commit!==baseCommit) inherited=`el trabajo del intento anterior (rama \`${previous}\`) ya está fusionado en tu árbol: míralo con \`git diff ${baseCommit.slice(0,7)}\`, continúa desde ahí y no lo rehagas.`;
   }
   const context=briefContext(projectDir,created.path,task.area);
   writeFileSync(join(created.path,'.nomos-brief.md'),(review ? review.brief(created.path,run) : renderBrief(task,run,
