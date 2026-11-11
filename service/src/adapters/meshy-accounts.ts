@@ -5,9 +5,12 @@ import { join } from 'node:path';
 /** Cuenta de Meshy: solo el nombre sale de este módulo; la clave se pide con `key()` y vive en memoria del proceso. */
 export type MeshyAccount = {name: string; origin: 'env' | 'archivo'; key: () => string};
 
-/** Claves guardadas por scripts/guardar-claves-meshy.ps1. En %USERPROFILE% (no AppData\Local, que la app MSIX virtualiza). */
-export const accountsFile = (env: NodeJS.ProcessEnv) =>
-  env.NOMOS_MESHY_CLAVES ?? (env.USERPROFILE ? join(env.USERPROFILE, '.nomos', 'meshy-claves.json') : null);
+/** Claves guardadas por scripts/guardar-claves-meshy.ps1 (Windows, %USERPROFILE%: no AppData\Local, que la app MSIX virtualiza)
+ *  o scripts/guardar-claves-meshy.sh (macOS y Linux, ~/.nomos con permisos 600). */
+export const accountsFile = (env: NodeJS.ProcessEnv) => {
+  const home = env.USERPROFILE ?? env.HOME;
+  return env.NOMOS_MESHY_CLAVES ?? (home ? join(home, '.nomos', 'meshy-claves.json') : null);
+};
 
 /** DPAPI del usuario actual vía Windows PowerShell 5.1; la cadena cifrada va por stdin, nunca en la línea de órdenes. */
 export function dpapi(cipher: string): string {
@@ -27,9 +30,11 @@ export function meshyAccounts(env: NodeJS.ProcessEnv = process.env, decrypt = dp
   const file = accountsFile(env);
   let cuentas: unknown = [];
   if (file && existsSync(file)) try { cuentas = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, '')).cuentas ?? []; } catch { /* ilegible: sin cuentas de archivo */ }
-  for (const c of ([] as {nombre?: unknown; clave?: unknown}[]).concat(cuentas as never)) {
+  for (const c of ([] as {nombre?: unknown; clave?: unknown; cifrado?: unknown}[]).concat(cuentas as never)) {
     if (typeof c?.nombre !== 'string' || typeof c.clave !== 'string') continue;
     const cipher = c.clave;
+    // fuera de Windows no hay DPAPI: guardar-claves-meshy.sh la guarda tal cual («cifrado»: «ninguno») y el archivo queda en 600
+    if (c.cifrado === 'ninguno') { list.push({name: c.nombre, origin: 'archivo', key: () => cipher}); continue; }
     list.push({name: c.nombre, origin: 'archivo', key: () => {
       if (!plain.has(cipher)) plain.set(cipher, decrypt(cipher));
       return plain.get(cipher)!;

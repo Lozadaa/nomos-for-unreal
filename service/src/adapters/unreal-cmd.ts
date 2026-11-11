@@ -1,9 +1,13 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { quote, runLogged } from './process.ts';
+import { editorCmdIn } from '../engine-path.ts';
 
-export const defaultUnrealCmd = 'C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe';
+/** Sin motor en el `.uproject` ni `unrealPath`: `NOMOS_UNREAL_ROOT` o el 5.8 donde lo deja cada plataforma (Linux: ~/UnrealEngine). */
+export const defaultUnrealCmd = process.platform === 'win32' && !process.env.NOMOS_UNREAL_ROOT
+  ? 'C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Cmd.exe'
+  : editorCmdIn(process.env.NOMOS_UNREAL_ROOT ?? (process.platform === 'darwin' ? '/Users/Shared/Epic Games/UE_5.8' : join(homedir(), 'UnrealEngine')));
 const scripts = join(import.meta.dirname, '..', '..', 'unreal');
 
 export type VerifyReport = {

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../../service/src/db.ts';
@@ -40,6 +40,18 @@ test('cuentas: MESHY_API_KEY como «env» y luego las del archivo en orden; desc
     assert.deepEqual(meshyAccounts({}, decrypt), [], 'sin USERPROFILE ni variable, ninguna cuenta');
     assert.equal(meshyAccounts({NOMOS_MESHY_CLAVES: join(dir, 'no-existe.json')}, decrypt).length, 0);
   } finally { removeDir(dir); }
+});
+
+test('macOS y Linux: ~/.nomos/meshy-claves.json desde HOME y claves sin DPAPI («cifrado»: «ninguno») sin descifrar', () => {
+  const home = mkdtempSync(join(tmpdir(), 'nomos-home-'));
+  try {
+    mkdirSync(join(home, '.nomos'));
+    writeFileSync(join(home, '.nomos', 'meshy-claves.json'), JSON.stringify({version: 1, cuentas: [
+      {nombre: 'Ana', clave: 'msy-plana', cifrado: 'ninguno'}, {nombre: 'Beto', clave: 'cifrada-b'}]}));
+    const decrypt = (c: string) => `dpapi-${c}`;
+    const accounts = meshyAccounts({HOME: home}, decrypt);
+    assert.deepEqual(accounts.map(a => [a.name, a.key()]), [['Ana', 'msy-plana'], ['Beto', 'dpapi-cifrada-b']]);
+  } finally { removeDir(home); }
 });
 
 async function setup(servers: Record<string, Parameters<typeof meshyServer>[0]>) {
