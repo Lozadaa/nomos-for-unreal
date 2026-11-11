@@ -2,6 +2,7 @@ import { gameEngine } from '../engine-path.ts';
 import * as nodeFs from 'node:fs';
 import { win32 } from 'node:path';
 import { meshyAccounts } from '../adapters/meshy-accounts.ts';
+import { hayClaveFal } from '../fal.ts';
 export type Capability = {
     id: string;
     label: string;
@@ -69,6 +70,7 @@ export function detectCapabilities(env: NodeJS.ProcessEnv = process.env, fs: Fil
         ['unreal_mcp', 'Unreal MCP', plugin('Experimental/ModelContextProtocol/ModelContextProtocol.uplugin') && plugin('Experimental/Toolsets/AllToolsets/AllToolsets.uplugin'), 'Plugins MCP y herramientas'],
         ['fab_plugin', 'Fab', plugin('Fab/Fab.uplugin'), 'Plugin Fab'], ['launcher', 'Epic Games Launcher', launcher, 'Launcher de Epic Games'],
         ['meshy', 'Meshy', meshy > 0, meshy ? `${meshy} ${meshy === 1 ? 'cuenta' : 'cuentas'} de API` : 'Cuentas de API'],
+        ['fal', 'fal.ai', hayClaveFal(env), 'Clave de API (imágenes para la UI)'],
         ['blender', 'Blender', typeof config.blenderPath === 'string' ? exists(config.blenderPath) : onPath('blender.exe') || onPath('blender'), 'Ejecutable de Blender'],
         ['git', 'Git', onPath('git.exe') || onPath('git'), 'Ejecutable de Git'],
         // hito 5b: MetaHuman (plugin + IK Rig del cuerpo; los presets los cuenta capabilityList), retarget y vídeo de las animaciones
