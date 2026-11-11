@@ -92,4 +92,8 @@ Restarting the service keeps the token, and an open panel reconnects on its own.
 
 Nomos was called Kratos until 2026-10-24. Some paths under `docs/` and some content inside older games (`/Game/Kratos/...`) still carry that name.
 
+## Credits
+
+Panel fonts (Barlow Condensed, Instrument Sans, Geist Mono) and seed fonts (Caveat Brush, Patrick Hand) are under the SIL Open Font License. The logo was drawn with Codex for this project. Unreal Engine is a trademark of Epic Games.
+
 Spanish original: [referencia.md](../referencia.md).

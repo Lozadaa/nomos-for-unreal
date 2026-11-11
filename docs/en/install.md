@@ -1,6 +1,24 @@
 # Install and setup
 
-The one-line installers are in the [README](../../README.md#install). This page covers everything else: what you need, installing by hand, optional tools and uninstalling.
+This page covers what you need, the installers, installing by hand, optional tools and uninstalling.
+
+## Installers
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Lozadaa/nomos-for-unreal/main/install.ps1 | iex
+```
+
+macOS / Linux (written but never run):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Lozadaa/nomos-for-unreal/main/install.sh | bash
+```
+
+## After installing
+
+`nomos nuevo MyGame` creates the project in `Documents/Unreal Projects/MyGame`. Open a terminal there, run `claude` and type `/nomos`. The finished game ends up in `Empaquetado/Windows/MyGame.exe` inside that folder. In our runs a small game used about 9 to 10 million input tokens, most of them cached.
 
 ## What you need
 
