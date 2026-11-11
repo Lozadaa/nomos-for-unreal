@@ -78,11 +78,24 @@ function launch(uproject: string, opts: WarmOpts, mcpPort: number): {salio: numb
   return estado;
 }
 
+/** Los módulos del .uproject sin binario del editor. Un worktree nace sin `Binaries` (no está en Git): el editor se
+ *  cerraría a los 13 s con «The game module could not be found» y el worker lo tomaría por un crash [TrompoNomosMcp 2026-11-11]. */
+export function sinCompilar(uproject: string): string[] {
+  let modulos: string[] = [];
+  try { modulos = (JSON.parse(readFileSync(uproject, 'utf8')).Modules ?? []).map((m: {Name: string}) => m.Name); } catch { return []; }
+  const bin = join(dirname(uproject), 'Binaries');
+  const hechos = existsSync(bin) ? readdirSync(bin, {recursive: true}).map(f => String(f).split(/[\\/]/).pop()!) : [];
+  return modulos.filter(m => !hechos.some(f => f.startsWith(`UnrealEditor-${m}.`) || f.startsWith(`libUnrealEditor-${m}.`)));
+}
+
 /** Deja el editor caliente listo; devuelve los segundos de arranque o null si ya estaba. */
 export async function ensureWarm(uproject: string, opts: WarmOpts = {}): Promise<number | null> {
   const beat = warmBeat(uproject);
   if (beat && !stale(uproject, beat.desde)) return null;
   if (beat) await stopWarm(uproject);
+  const faltan = sinCompilar(uproject);
+  if (faltan.length) throw new Error(`Esta carpeta aún no está compilada (falta el módulo ${faltan.join(', ')} en Binaries): `
+    + 'compila primero con Scripts/compilar.ps1 y repite la orden. No es un crash de Unreal.');
   const t0 = Date.now();
   const proceso = launch(uproject, opts, await freePort());
   for (const end = t0 + (opts.startTimeoutMs ?? 10 * 60_000); Date.now() < end; await sleep(250)) {
