@@ -24,7 +24,7 @@ test('el panel sin token (y sin sesión del servicio) dice «Sin sesión» y con
   await page.route('**/session', (route) => route.fulfill({ status: 403, body: '{"error":"forbidden_origin"}' }))
   await page.goto(origin() + '/')
   await expect(page.getByText('Sin sesión · ábrelo desde Nomos')).toBeVisible()
-  await expect(page.getByText('Servicio desconectado')).toHaveCount(0)
+  await expect(page.getByText('Service disconnected')).toHaveCount(0)
   await page.goto(origin() + '/#token=de-otro-arranque')
   await page.reload()
   await expect(page.getByText(/Sesión caducada/)).toBeVisible()

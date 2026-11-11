@@ -17,13 +17,13 @@ export function ContinueTask({ taskId }: { taskId: string }) {
   )
   return (
     <div className="flex flex-col gap-3">
-      <Textarea value={text} onChange={(e) => setText(e.target.value)} aria-label="Pedir cambios al responsable" placeholder="Pide un ajuste sobre lo entregado…" name="mensaje" autoComplete="off" className="min-h-20" />
+      <Textarea value={text} onChange={(e) => setText(e.target.value)} aria-label="Request changes from the owner" placeholder="Ask for a tweak to what was delivered…" name="mensaje" autoComplete="off" className="min-h-20" />
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" disabled={!text.trim() || send.pending} aria-busy={send.pending} onClick={() => void send.fire()}>
-          {send.pending ? 'Enviando…' : 'Pedir cambios al responsable'}
+          {send.pending ? 'Sending…' : 'Request changes'}
         </Button>
-        <span className="text-xs text-muted-foreground">Abre un ajuste con el mismo responsable.</span>
-        {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
+        <span className="text-xs text-muted-foreground">Opens a follow-up with the same owner.</span>
+        {send.error && <span role="alert" className="text-xs text-error">Not sent. {humanError(send.error)}</span>}
       </div>
     </div>
   )

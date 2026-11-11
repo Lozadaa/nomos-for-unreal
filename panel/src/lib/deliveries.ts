@@ -4,16 +4,16 @@ import type { Artifact } from './tasks'
 /** Entregas para mirar (hito 10): primero lo que se ve, lo textual al final y resumido en una línea. */
 export const deliveryTypes = ['capturas', 'videos', 'modelos', 'informes'] as const
 export type DeliveryType = (typeof deliveryTypes)[number]
-export const deliveryTypeLabel: Record<DeliveryType, string> = { capturas: 'Capturas', videos: 'Vídeos', modelos: 'Modelos', informes: 'Informes' }
+export const deliveryTypeLabel: Record<DeliveryType, string> = { capturas: 'Screenshots', videos: 'Videos', modelos: 'Models', informes: 'Reports' }
 
 const prov = (a: Artifact) => (a.provenance ?? {}) as Record<string, unknown>
 export const deliveryType = (a: Artifact): DeliveryType =>
   a.kind === 'screenshot' ? 'capturas' : a.kind === 'video' ? 'videos' : a.kind === 'model' || a.kind === 'texture' ? 'modelos' : 'informes'
 
 const viewOrder = ['player', 'left', 'right', 'top']
-const viewNames: Record<string, string> = { player: 'Jugador', left: '3/4 izquierda', right: '3/4 derecha', top: 'Picado' }
+const viewNames: Record<string, string> = { player: 'Player', left: '3/4 left', right: '3/4 right', top: 'Top-down' }
 /** Rótulo del ángulo dentro de la galería; sin vista, el nombre del artefacto. */
-export const viewLabel = (a: Artifact) => prov(a).sheet ? 'Hoja de contactos' : prov(a).visual === 'diff' ? 'Diferencia con la línea base'
+export const viewLabel = (a: Artifact) => prov(a).sheet ? 'Contact sheet' : prov(a).visual === 'diff' ? 'Diff against baseline'
   : viewNames[String(prov(a).view)] ?? artifactName(a)
 
 /** Una tarjeta visual: la portada (la hoja de contactos si la hay) y las imágenes que se recorren en la galería. */
@@ -49,7 +49,7 @@ export function taskSections(list: Artifact[], taskTitle: (id: string) => string
   }))
 }
 
-const results: Record<string, string> = { passed: 'correcto', failed: 'falló', skipped: 'omitido', unavailable: 'no disponible', running: 'en curso', pending: 'pendiente' }
+const results: Record<string, string> = { passed: 'passed', failed: 'failed', skipped: 'skipped', unavailable: 'unavailable', running: 'running', pending: 'pending' }
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 const subject = (a: Artifact) => artifactName(a).split(' · ')[0]
 
@@ -58,10 +58,10 @@ function readText(text: string): string | null {
   try {
     const json = JSON.parse(text) as Record<string, unknown>
     const problems = [json.findings, json.issues, json.errors].find(Array.isArray) as unknown[] | undefined
-    if (json.approved === true || json.ok === true || json.passed === true) return 'aprobado'
-    if (problems?.length) return plural(problems.length, 'problema', 'problemas')
+    if (json.approved === true || json.ok === true || json.passed === true) return 'approved'
+    if (problems?.length) return plural(problems.length, 'issue', 'issues')
     if (typeof json.result === 'string') return results[json.result] ?? json.result
-    return json.approved === false || json.ok === false ? 'rechazado' : null
+    return json.approved === false || json.ok === false ? 'rejected' : null
   } catch { /* Markdown o texto */ }
   return /^\s*(?:\*\*)?(?:veredicto|resultado)(?:\*\*)?\s*:\s*\**([^\n*]+)/im.exec(text)?.[1].trim().toLocaleLowerCase('es') ?? null
 }
@@ -70,17 +70,17 @@ function readText(text: string): string | null {
 export function verdict(a: Artifact, text?: string): string {
   const p = prov(a), check = typeof p.check === 'string' ? p.check : null
   // hito 19: la limpieza borra los paquetes de las comprobaciones; solo queda la build actual
-  if (a.kind === 'build') return p.removed === true ? 'Empaquetado · paquete retirado (solo se guarda la build actual)' : 'Empaquetado · ejecutable listo'
+  if (a.kind === 'build') return p.removed === true ? 'Package · removed (only the current build is kept)' : 'Package · executable ready'
   if (p.kind === 'REVIEW' || /^review-/.test(a.path.split(/[\\/]/).pop() ?? '')) {
     let read: Record<string, unknown> = {}
     try { read = text ? JSON.parse(text) : {} } catch { /* sin JSON, la procedencia */ }
     const list = Array.isArray(p.findings) ? p.findings : read.findings
     const findings = Array.isArray(list) ? list.length : null
-    return p.approved === true ? 'Revisión · aprobada' : findings ? `Revisión · ${plural(findings, 'hallazgo', 'hallazgos')}` : 'Revisión · rechazada'
+    return p.approved === true ? 'Review · approved' : findings ? `Review · ${plural(findings, 'finding', 'findings')}` : 'Review · rejected'
   }
   if (check && typeof p.result === 'string' && !p.source) {
     const name = checkNames[check] ?? check
-    if (text !== undefined && ['cpp', 'build', 'blueprint'].includes(check)) return `${name} · ${plural(text.split(/\r?\n/).filter(isErrorLine).length, 'error', 'errores')}`
+    if (text !== undefined && ['cpp', 'build', 'blueprint'].includes(check)) return `${name} · ${plural(text.split(/\r?\n/).filter(isErrorLine).length, 'error', 'errors')}`
     return `${name} · ${results[p.result] ?? p.result}`
   }
   const said = text === undefined ? null : readText(text)
@@ -93,7 +93,7 @@ export const firstErrors = (a: Artifact, text?: string) => text !== undefined &&
 /** Pie de la tarjeta: «Mapa · 4 vistas» para una comprobación con varios ángulos; si no, el nombre del artefacto. */
 export function setCaption(set: VisualSet): string {
   const check = String(prov(set.cover).check ?? '')
-  const what = set.items.every((a) => prov(a).view) ? 'vistas' : 'capturas'
+  const what = set.items.every((a) => prov(a).view) ? 'views' : 'screenshots'
   return set.items.length > 1 && checkNames[check] ? `${checkNames[check]} · ${set.items.length} ${what}` : artifactName(set.cover)
 }
 /** Título de una imagen en el visor: «Mapa · Jugador» si es una vista; si no, su nombre. */

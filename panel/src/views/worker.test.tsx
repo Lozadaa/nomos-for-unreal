@@ -34,14 +34,14 @@ const patch = [
 beforeEach(() => { resetStore(); seq = 0; mockApi.mockReset() })
 afterEach(cleanup)
 
-describe('Cambios', () => {
+describe('Changes', () => {
   it('avisa de archivos fuera del alcance y filtra por archivo', async () => {
     mockApi.mockResolvedValue({ stat: ' 2 files changed', patch })
     render(<ChangesTab detail={detail()} />)
-    const alert = await screen.findByRole('alert', { name: 'Archivos fuera del alcance declarado' })
+    const alert = await screen.findByRole('alert', { name: 'Files outside the declared scope' })
     expect(alert).toHaveTextContent('Config/B.ini')
     expect(alert).not.toHaveTextContent('Source/Cam/A.cpp')
-    await userEvent.setup().selectOptions(screen.getByLabelText('Filtrar por archivo'), 'Config/B.ini')
+    await userEvent.setup().selectOptions(screen.getByLabelText('Filter by file'), 'Config/B.ini')
     expect(screen.queryByText('+b')).toBeNull()
     expect(screen.getByText('+y')).toBeInTheDocument()
   })
@@ -49,7 +49,7 @@ describe('Cambios', () => {
   it('dice que no hay workers si la ruta responde 404', async () => {
     mockApi.mockRejectedValue(new ApiError(404, 'not_found'))
     render(<ChangesTab detail={detail()} />)
-    expect(await screen.findByText('Disponible cuando haya workers')).toBeInTheDocument()
+    expect(await screen.findByText('Available once workers run')).toBeInTheDocument()
   })
 })
 
@@ -59,17 +59,17 @@ describe('Chat del worker', () => {
     render(<WorkerChatTab detail={detail()} />)
     expect(await screen.findByText(/compilando/)).toBeInTheDocument()
     act(() => { ingest(event('worker.waiting', { runId: 'r1', taskId: 't1', question: '¿Uso Enhanced Input?' })) })
-    expect(screen.getByRole('region', { name: 'Pregunta del worker' })).toHaveTextContent('¿Uso Enhanced Input?')
+    expect(screen.getByRole('region', { name: 'Worker question' })).toHaveTextContent('¿Uso Enhanced Input?')
     act(() => { ingest(event('worker.output', { runId: 'r1', taskId: 't1', lines: ['ok'] })) })
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'Pregunta del worker' })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Worker question' })).toBeNull())
   })
 
   it('envía la petición a POST /runs/:id/message', async () => {
     mockApi.mockImplementation((async (path: string) => (path.endsWith('/message') ? { commandId: 'c' } : [])) as typeof api)
     render(<WorkerChatTab detail={detail()} />)
     const user = userEvent.setup()
-    await user.type(await screen.findByLabelText('Pedir cambios al responsable'), 'Usa Enhanced Input')
-    await user.click(screen.getByRole('button', { name: 'Pedir cambios al responsable' }))
+    await user.type(await screen.findByLabelText('Request changes from the owner'), 'Usa Enhanced Input')
+    await user.click(screen.getByRole('button', { name: 'Request changes' }))
     await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/runs/r1/message', { method: 'POST', body: { text: 'Usa Enhanced Input' } }))
   })
 
@@ -77,13 +77,13 @@ describe('Chat del worker', () => {
     mockApi.mockImplementation((async (path: string) => (path.endsWith('/stop') ? { commandId: 'c' } : [])) as typeof api)
     const { unmount } = render(<WorkerChatTab detail={detail()} />)
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Detener worker' }))
+    await user.click(await screen.findByRole('button', { name: 'Stop worker' }))
     expect(mockApi).not.toHaveBeenCalledWith('/runs/r1/stop', expect.anything())
-    await user.click(screen.getByRole('button', { name: 'Detener' }))
+    await user.click(screen.getByRole('button', { name: 'Stop' }))
     await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/runs/r1/stop', { method: 'POST', body: {} }))
     unmount()
     render(<WorkerChatTab detail={detail('done')} />)
-    await screen.findByText('La ejecución ya terminó.')
-    expect(screen.queryByRole('button', { name: 'Detener worker' })).toBeNull()
+    await screen.findByText('This run has ended.')
+    expect(screen.queryByRole('button', { name: 'Stop worker' })).toBeNull()
   })
 })

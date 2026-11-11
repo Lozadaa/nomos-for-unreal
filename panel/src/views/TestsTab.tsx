@@ -12,15 +12,15 @@ import { glyphFor } from '@/visual/glyphs'
 import { BRAND } from '@/lib/brand'
 
 const checkLabel: Record<string, string> = {
-  acabado: 'Acabado', cpp: 'C++', blueprint: 'Blueprint', asset: 'Assets', map: 'Mapa', umg: 'UMG', build: 'Empaquetado', none: 'Sin Unreal',
+  acabado: 'Finish', cpp: 'C++', blueprint: 'Blueprint', asset: 'Assets', map: 'Map', umg: 'UMG', build: 'Package', none: 'No Unreal',
 }
 // estados con glifo del registro; omitida y no disponible no tienen icono claro y van con texto corto
 const resultGlyph: Partial<Record<TestRun['result'], [string, string]>> = {
-  passed: ['done', 'Superada'], failed: ['bloqueada', 'Fallida'], running: ['probando', 'En curso'], pending: ['pendiente', 'Pendiente'],
+  passed: ['done', 'Passed'], failed: ['bloqueada', 'Failed'], running: ['probando', 'Running'], pending: ['pendiente', 'Pending'],
 }
-const resultText: Partial<Record<TestRun['result'], string>> = { skipped: 'Omitida', unavailable: 'No disponible' }
+const resultText: Partial<Record<TestRun['result'], string>> = { skipped: 'Skipped', unavailable: 'Unavailable' }
 const tones: Record<string, string> = { neutral: 'text-neutral', info: 'text-info', success: 'text-success', error: 'text-error', warning: 'text-warning', primary: 'text-primary' }
-const when = (iso: string) => new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '')
+const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '')
 
 function Result({ result }: { result: TestRun['result'] }) {
   const glyph = resultGlyph[result]
@@ -33,36 +33,36 @@ function Result({ result }: { result: TestRun['result'] }) {
 /** Pruebas de la tarea: comprobación · resultado · commit · motor · evidencia; mapa, config y fecha en el detalle. */
 export function TestsTab({ detail, decisionCard }: { detail: TaskDetail; decisionCard?: ReactNode }) {
   const launch = useAction(() => api(`/tasks/${encodeURIComponent(detail.task.id)}/checks`, { method: 'POST', body: {} }),
-    { success: () => ({ title: 'Pruebas encoladas', description: 'Las filas aparecen al empezar' }) })
+    { success: () => ({ title: 'Tests queued', description: 'Rows appear as they start' }) })
   const evidence = (t: TestRun): Artifact[] => detail.artifacts.filter((a) => a.provenance?.testRunId === t.id)
   return (
     <div className="flex flex-col gap-4">
       {decisionCard}
       <div className="flex items-center gap-3">
         <Button size="sm" variant="outline" disabled={launch.pending} aria-busy={launch.pending} onClick={() => void launch.fire()}>
-          {launch.pending ? 'Encolando…' : 'Lanzar pruebas'}
+          {launch.pending ? 'Queuing…' : 'Run tests'}
         </Button>
-        {launch.error && <span role="alert" className="text-xs text-error">No se encolaron. {humanError(launch.error)}</span>}
+        {launch.error && <span role="alert" className="text-xs text-error">Not queued. {humanError(launch.error)}</span>}
       </div>
       {!detail.testRuns.length ? (
         <div className="flex flex-col items-start gap-2 py-6">
-          <p className="text-sm font-medium">Esta tarea aún no tiene pruebas</p>
-          <p className="text-sm text-muted-foreground">{BRAND.short} las lanza al aprobar la revisión; también puedes lanzarlas aquí.</p>
+          <p className="text-sm font-medium">No tests for this task yet</p>
+          <p className="text-sm text-muted-foreground">{BRAND.short} runs them once review passes. You can also run them here.</p>
         </div>
       ) : (
-        <table aria-label="Pruebas" className="w-full text-sm">
+        <table aria-label="Tests" className="w-full text-sm">
           <thead className="text-left text-xs text-muted-foreground">
             <tr className="h-8 border-b border-subtle">
-              <th className="font-normal">Comprobación</th><th className="font-normal">Resultado</th><th className="font-normal">Commit</th>
-              <th className="font-normal">Motor</th><th className="font-normal">Evidencia</th><th className="sr-only">Detalle</th>
+              <th className="font-normal">Check</th><th className="font-normal">Result</th><th className="font-normal">Commit</th>
+              <th className="font-normal">Engine</th><th className="font-normal">Evidence</th><th className="sr-only">Details</th>
             </tr>
           </thead>
           <tbody>
             {detail.testRuns.map((t) => {
-              const info = `Detalle: mapa ${t.map ?? '—'} · config ${t.config ?? '—'} · ${when(t.createdAt)}`
+              const info = `Details: map ${t.map ?? '—'} · config ${t.config ?? '—'} · ${when(t.createdAt)}`
               return (
                 <tr key={t.id} className="h-10 border-b border-subtle">
-                  <td>{t.checkId ? checkLabel[t.checkId] ?? t.checkId : 'Prueba'}</td>
+                  <td>{t.checkId ? checkLabel[t.checkId] ?? t.checkId : 'Test'}</td>
                   <td><Result result={t.result} /></td>
                   <td className="font-mono text-xs text-muted-foreground">{t.commit?.slice(0, 7)}</td>
                   <td className="font-mono text-xs text-muted-foreground">{t.engineVersion}</td>

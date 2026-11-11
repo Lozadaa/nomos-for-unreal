@@ -5,8 +5,8 @@ import type { TaskDetail } from '@/lib/tasks'
 export function TimelineTab({ detail }: { detail: TaskDetail }) {
   if (!detail.events.length) return (
     <div className="flex flex-col items-start gap-2 py-6">
-      <p className="text-sm font-medium">Todavía no hay historia</p>
-      <p className="text-sm text-muted-foreground">Cada cambio de la tarea queda anotado aquí.</p>
+      <p className="text-sm font-medium">No history yet</p>
+      <p className="text-sm text-muted-foreground">Every change to the task is logged here.</p>
     </div>
   )
   return (

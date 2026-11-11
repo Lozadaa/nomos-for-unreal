@@ -64,7 +64,7 @@ for (const [width, height] of [[1024, 768], [1366, 768], [1920, 1080]] as const)
     await page.goto(`${service.origin}/chat#token=${token}`)
     await expect(page.locator('main table').first()).toBeVisible()
     // hito 23: el texto largo se recorta y el código va plegado; abiertos, siguen sin scroll horizontal
-    const more = page.locator('main').getByRole('button', { name: 'Mostrar todo' })
+    const more = page.locator('main').getByRole('button', { name: 'Show all' })
     while (await more.count()) await more.first().click()
     await page.locator('main summary', { hasText: 'Detalle técnico' }).first().click()
     await expect(page.locator('main pre').first()).toBeVisible()

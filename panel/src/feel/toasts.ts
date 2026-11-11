@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 export interface ToastSpec {
   title: string
   description?: string
-  action?: { label: 'Ver' | 'Deshacer' | 'Reintentar' | 'Recargar decisión'; onClick: () => void }
+  action?: { label: 'View' | 'Undo' | 'Retry' | 'Reload decision'; onClick: () => void }
 }
 
 // Un toast por acción, 4 s; el Toaster los apila abajo a la derecha (ver App).

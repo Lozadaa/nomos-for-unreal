@@ -22,7 +22,7 @@ export const DiffBars = memo(function DiffBars({ added, removed, files }: { adde
   const blocks = Array.from({ length: Math.max(1, Math.ceil(rows.length / 4)) }, (_, i) => rows.slice(i * 4, i * 4 + 4))
   return <div className="grid gap-1">
     {blocks.map((block, index) => <div key={index} title={block.map((row) => `${row.label} · +${row.a} / −${row.r}`).join('\n')}>
-      <svg className="w-full" viewBox={`0 0 160 ${Math.max(16, block.length * 16)}`} role="img" aria-label={`Cambios en ${typeof files === 'number' ? files : files.length} archivos`} stroke="var(--vbg-color-info)" fill="none" strokeWidth="3">
+      <svg className="w-full" viewBox={`0 0 160 ${Math.max(16, block.length * 16)}`} role="img" aria-label={`Changes in ${typeof files === 'number' ? files : files.length} files`} stroke="var(--vbg-color-info)" fill="none" strokeWidth="3">
         {block.map((row, i) => <g key={i}>
           <title>{row.label.length > 32 ? `${row.label.slice(0, 31)}…` : row.label} · +{row.a} / −{row.r}</title>
           <path d={`M82 ${i * 16 + 8}h${row.aw}`} />

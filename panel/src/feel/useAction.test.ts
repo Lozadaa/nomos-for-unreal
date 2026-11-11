@@ -37,7 +37,7 @@ describe('useAction', () => {
   it('aplica lo optimista en el acto y muestra el toast de éxito del spec', async () => {
     const optimistic = vi.fn(() => vi.fn())
     const { result } = renderHook(() => useAction(() => Promise.resolve(7), {
-      optimistic, success: (n) => ({ title: `Hecho ${n}`, action: { label: 'Deshacer', onClick: () => {} } }),
+      optimistic, success: (n) => ({ title: `Hecho ${n}`, action: { label: 'Undo', onClick: () => {} } }),
     }))
     act(() => { void result.current.fire() })
     expect(optimistic).toHaveBeenCalledOnce()
@@ -61,7 +61,7 @@ describe('useAction', () => {
     expect(revert).toHaveBeenCalledOnce()
     expect(result.current.error?.message).toBe('caído')
     const spec = vi.mocked(toasts.error).mock.calls[0][0]
-    expect(spec.action?.label).toBe('Reintentar')
+    expect(spec.action?.label).toBe('Retry')
     await act(async () => { spec.action!.onClick(); await vi.advanceTimersByTimeAsync(300) })
     expect(run).toHaveBeenCalledTimes(2)
     expect(result.current.error).toBeNull()
@@ -80,7 +80,7 @@ describe('useAction', () => {
     await act(() => vi.advanceTimersByTimeAsync(300))
     expect(revert).toHaveBeenCalledOnce()
     const spec = vi.mocked(toasts.error).mock.calls[0][0]
-    expect(spec.action?.label).toBe('Recargar decisión')
+    expect(spec.action?.label).toBe('Reload decision')
     spec.action!.onClick()
     expect(reload).toHaveBeenCalledOnce()
     expect(document.activeElement).toBe(button)

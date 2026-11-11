@@ -21,11 +21,11 @@ import { ReportsRow } from './EntregasInformes'
 const file = (a: Artifact) => `/artifacts/${encodeURIComponent(a.id)}/file`
 const prov = (a: Artifact) => (a.provenance ?? {}) as Record<string, unknown>
 const grid = 'grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4'
-const orders = { tarea: 'Por tarea', recientes: 'Más recientes' } as const
+const orders = { tarea: 'By task', recientes: 'Newest' } as const
 
 /** Lo que dice el visor bajo el título: tarea, resolución, mapa y licencia; nunca archivos ni rutas. */
 const meta = (a: Artifact, task: string) => [task, String(prov(a).resolution ?? '').replace('x', '×'), String(prov(a).map ?? '').split('/').pop(),
-  a.license ? `Licencia: ${a.license}` : ''].filter(Boolean) as string[]
+  a.license ? `License: ${a.license}` : ''].filter(Boolean) as string[]
 
 function viewerItems(sections: TaskSection[], title: (id: string) => string): ViewerItem[] {
   const one = (a: Artifact, set?: VisualSet): ViewerItem => ({ id: a.id, name: viewerName(a), meta: meta(a, title(a.taskId)),
@@ -61,13 +61,13 @@ function Section({ s, open }: { s: TaskSection; open: (id: string, el: HTMLEleme
   return (
     <section aria-label={s.title} className="flex flex-col gap-3">
       <h2 className="truncate text-sm font-medium">{s.title}</h2>
-      {s.visuals.length > 0 && <ul data-part="visuales" aria-label="Capturas y vídeos" className={grid}>
+      {s.visuals.length > 0 && <ul data-part="visuales" aria-label="Screenshots and videos" className={grid}>
         {s.visuals.map((set) => {
           const caption = setCaption(set)
           return <Card key={set.key} caption={caption} onOpen={(el) => open(set.items[0].id, el)}><Cover set={set} caption={caption} /></Card>
         })}
       </ul>}
-      {s.models.length > 0 && <ul data-part="modelos" aria-label="Modelos" className={grid}>
+      {s.models.length > 0 && <ul data-part="modelos" aria-label="Models" className={grid}>
         {s.models.map((a) => <Card key={a.id} caption={artifactName(a)} onOpen={(el) => open(a.id, el)}>
           {meshyExpired(a) ? <MeshyExpired a={a} /> : <GlbViewer id={a.id} name={artifactName(a)} />}
         </Card>)}
@@ -78,7 +78,7 @@ function Section({ s, open }: { s: TaskSection; open: (id: string, el: HTMLEleme
 }
 
 /** «Más recientes»: una sola sección con todo, lo visual primero. */
-const flat = (sections: TaskSection[]): TaskSection[] => sections.length ? [{ taskId: '', title: 'Más recientes', newest: sections[0].newest,
+const flat = (sections: TaskSection[]): TaskSection[] => sections.length ? [{ taskId: '', title: 'Newest', newest: sections[0].newest,
   visuals: sections.flatMap((s) => s.visuals).sort((a, b) => b.cover.createdAt.localeCompare(a.cover.createdAt)),
   models: sections.flatMap((s) => s.models), reports: sections.flatMap((s) => s.reports) }] : []
 
@@ -90,31 +90,31 @@ export function Entregas() {
   const [type, setType] = useParam('tipo')
   const [orderParam, setOrder] = useParam('orden', 'tarea')
   const order = orderParam === 'recientes' ? 'recientes' : 'tarea'
-  const title = (id: string) => tasks.find((t) => t.id === id)?.title ?? 'Tarea sin título'
+  const title = (id: string) => tasks.find((t) => t.id === id)?.title ?? 'Untitled task'
   const shown = (data ?? []).filter((a) => !type || deliveryType(a) === type)
   const byTask = taskSections(shown, title)
   const sections = order === 'tarea' ? byTask : flat(byTask)
   const { open, viewer } = useAssetViewer(viewerItems(sections, title))
 
-  if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron cargar las entregas. {humanError(new Error(error))}</p>
-  if (loading) return slow ? <div className={grid} role="status" aria-label="Cargando las entregas">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-video" />)}</div> : null
+  if (error && !data) return <p role="alert" className="text-sm text-error">Couldn't load deliveries. {humanError(new Error(error))}</p>
+  if (loading) return slow ? <div className={grid} role="status" aria-label="Loading deliveries">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-video" />)}</div> : null
   if (!data?.length) {
-    return <VisualEmpty view="entregas" message="Aún no hay entregas" action={{ label: 'Nueva petición', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
+    return <VisualEmpty view="entregas" message="No deliveries yet" action={{ label: 'New request', onClick: () => void withViewTransition(() => navigate('/?nueva=1', { flushSync: true })) }} />
   }
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <ToggleGroup aria-label="Filtrar por tipo" value={[type || 'todos']} variant="outline" size="sm" spacing={0}
+        <ToggleGroup aria-label="Filter by type" value={[type || 'todos']} variant="outline" size="sm" spacing={0}
           onValueChange={(v) => void animateUpdate(() => setType(v[0] === 'todos' ? '' : v[0] ?? ''))}>
-          <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
+          <ToggleGroupItem value="todos">All</ToggleGroupItem>
           {deliveryTypes.map((t) => <ToggleGroupItem key={t} value={t}>{deliveryTypeLabel[t]}</ToggleGroupItem>)}
         </ToggleGroup>
-        <select aria-label="Ordenar entregas" value={order} onChange={(e) => void animateUpdate(() => setOrder(e.target.value))}
+        <select aria-label="Sort deliveries" value={order} onChange={(e) => void animateUpdate(() => setOrder(e.target.value))}
           className="ml-auto h-8 rounded-md border border-subtle bg-background px-2 text-sm">
           {Object.entries(orders).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </div>
-      {shown.length === 0 && <p className="text-sm text-muted-foreground">Ninguna entrega de este tipo.</p>}
+      {shown.length === 0 && <p className="text-sm text-muted-foreground">No deliveries of this type.</p>}
       {sections.map((s) => <Section key={s.taskId || 'todas'} s={s} open={open} />)}
       {viewer}
     </div>

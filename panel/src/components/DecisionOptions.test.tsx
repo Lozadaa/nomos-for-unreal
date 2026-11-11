@@ -21,8 +21,8 @@ describe('Tarjetas y detalle de una decisión', () => {
     expect(first.className).toContain('border-primary')
     expect(second).not.toHaveAttribute('data-recommended')
     expect(second.className).not.toContain('border-primary')
-    expect(screen.getByRole('button', { name: 'Ver Caballero a tamaño completo' }).querySelector('img')).not.toBeNull()
-    expect(screen.queryByRole('button', { name: 'Ver Buscar otro a tamaño completo' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'View Caballero full size' }).querySelector('img')).not.toBeNull()
+    expect(screen.queryByRole('button', { name: 'View Buscar otro full size' })).toBeNull()
   })
 
   it('abrir la miniatura en el visor no elige la opción', async () => {
@@ -30,7 +30,7 @@ describe('Tarjetas y detalle de una decisión', () => {
     const user = userEvent.setup()
     const rich: Decision = { ...decision, options: [{ id: 'a', label: 'Caballero', description: 'Del catálogo', thumbnail: '/catalog/c1/thumbnail' }] }
     render(<TooltipProvider><DecisionOptions decision={rich} disabled={false} onChoose={choose} /></TooltipProvider>)
-    await user.click(screen.getByRole('button', { name: 'Ver Caballero a tamaño completo' }))
+    await user.click(screen.getByRole('button', { name: 'View Caballero full size' }))
     expect(await screen.findByRole('dialog', { name: 'Caballero' })).toBeInTheDocument()
     expect(choose).not.toHaveBeenCalled()
   })
@@ -56,11 +56,11 @@ describe('Tarjetas y detalle de una decisión', () => {
     render(<DecisionDetails decision={decision} taskTitle="Tarea completa" />)
     await user.tab()
     await user.keyboard('{Enter}')
-    const popup = await screen.findByRole('dialog', { name: 'Detalle de la decisión' })
+    const popup = await screen.findByRole('dialog', { name: 'Decision details' })
     expect(popup).toHaveTextContent('Informe completo')
     expect(popup).toHaveTextContent('Tarea completa')
     await user.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(screen.getByRole('button', { name: 'Detalle' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Details' })).toHaveFocus()
   })
 })

@@ -29,39 +29,39 @@ describe('TestsTab · tabla de pruebas con metadatos y evidencia', () => {
   it('una fila por prueba con comprobación, estado del registro, commit corto, motor y evidencia; ≤ 7 palabras visibles', () => {
     render(<TestsTab detail={detail([row('a', 'map', 'passed'), row('b', 'cpp', 'failed'), row('c', 'umg', 'running'), row('d', 'none', 'skipped', { engineVersion: null, commit: null })],
       [artifact('x1', 'report', 'a', 'C:/datos/artifacts/tests/a/log.txt'), artifact('x2', 'screenshot', 'a', 'C:/datos/artifacts/tests/a/map-1280x720.png')])} />)
-    const table = screen.getByRole('table', { name: 'Pruebas' })
+    const table = screen.getByRole('table', { name: 'Tests' })
     const rows = within(table).getAllByRole('row').slice(1)
-    expect(rows.map((r) => within(r).getAllByRole('cell')[0].textContent)).toEqual(['Mapa', 'C++', 'UMG', 'Sin Unreal'])
-    expect(within(rows[0]).getByRole('img', { name: 'Superada' })).toHaveClass('lucide-check-circle-2')
-    expect(within(rows[1]).getByRole('img', { name: 'Fallida' })).toHaveClass('lucide-ban')
-    expect(within(rows[2]).getByRole('img', { name: 'En curso' })).toHaveClass('lucide-test-tube-2')
-    expect(within(rows[3]).getByText('Omitida')).toBeInTheDocument()
+    expect(rows.map((r) => within(r).getAllByRole('cell')[0].textContent)).toEqual(['Map', 'C++', 'UMG', 'No Unreal'])
+    expect(within(rows[0]).getByRole('img', { name: 'Passed' })).toHaveClass('lucide-check-circle-2')
+    expect(within(rows[1]).getByRole('img', { name: 'Failed' })).toHaveClass('lucide-ban')
+    expect(within(rows[2]).getByRole('img', { name: 'Running' })).toHaveClass('lucide-test-tube-2')
+    expect(within(rows[3]).getByText('Skipped')).toBeInTheDocument()
     expect(within(rows[0]).getByText('abc1234')).toBeInTheDocument()
     expect(within(rows[0]).getByText('5.8.3')).toBeInTheDocument()
     const links = within(rows[0]).getAllByRole('link')
-    expect(links.map((l) => l.getAttribute('aria-label'))).toEqual(['Mapa · registro', 'Captura de control']) // hito 7: sin nombres de archivo
+    expect(links.map((l) => l.getAttribute('aria-label'))).toEqual(['Map · log', 'Map check screenshot']) // hito 7: sin nombres de archivo
     expect(links[0].getAttribute('href')).toMatch(/^\/artifacts\/x1\/file\?token=/)
     for (const r of rows) expect(visibleWords(r)).toBeLessThanOrEqual(7)
-    expect(within(rows[0]).getByRole('button', { name: /Detalle/ }).getAttribute('aria-label')).toMatch(/^Detalle: mapa \/Game\/Maps\/Nivel1 · config 1280x720 · \d\d\/10 \d\d:00$/)
+    expect(within(rows[0]).getByRole('button', { name: /Details/ }).getAttribute('aria-label')).toMatch(/^Details: map \/Game\/Maps\/Nivel1 · config 1280x720 · \d\d\/10 \d\d:00$/)
   })
 
   it('no disponible: texto corto y la Decisión en línea cuando la hay', () => {
     render(<TestsTab detail={detail([row('a', 'cpp', 'unavailable')])} decisionCard={<section aria-label="Decisión pendiente">Continuar</section>} />)
-    expect(screen.getByText('No disponible')).toBeInTheDocument()
+    expect(screen.getByText('Unavailable')).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Decisión pendiente' })).toBeInTheDocument()
   })
 
-  it('«Lanzar pruebas» encola checks.run de la tarea y muestra el envío', async () => {
+  it('«Run tests» encola checks.run de la tarea y muestra el envío', async () => {
     let release!: (v: unknown) => void
     mockApi.mockImplementation(() => new Promise((r) => { release = r }))
     render(<TestsTab detail={detail([])} />)
     const user = userEvent.setup()
-    const button = screen.getByRole('button', { name: 'Lanzar pruebas' })
+    const button = screen.getByRole('button', { name: 'Run tests' })
     await user.click(button)
     expect(mockApi).toHaveBeenCalledWith('/tasks/t1/checks', { method: 'POST', body: {} })
     expect(button).toHaveAttribute('aria-busy', 'true')
     release({ commandId: 'c1', state: 'pending' })
     await waitFor(() => expect(button).toHaveAttribute('aria-busy', 'false'))
-    expect(screen.getByText(/Esta tarea aún no tiene pruebas/)).toBeInTheDocument()
+    expect(screen.getByText(/No tests for this task yet/)).toBeInTheDocument()
   })
 })

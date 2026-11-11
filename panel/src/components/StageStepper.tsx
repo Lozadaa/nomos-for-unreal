@@ -7,7 +7,7 @@ export function StageStepper({ task }: { task: Pick<Task, 'state' | 'blockedReas
   const current = stages.indexOf(task.state)
   const status = statusOf(task)
   return (
-    <ol aria-label="Etapa" className="flex">
+    <ol aria-label="Stage" className="flex">
       {stages.map((stage, i) => {
         const here = i === current
         const marked = here && status !== 'normal'
@@ -26,7 +26,7 @@ export function StageStepper({ task }: { task: Pick<Task, 'state' | 'blockedReas
             </span>
             <span className={cn('whitespace-nowrap', here ? 'text-foreground' : 'sr-only')}>
               {stageLabel[stage]}
-              {marked && <span className="sr-only">{status === 'decision' ? ' (espera decisión)' : ' (bloqueada)'}</span>}
+              {marked && <span className="sr-only">{status === 'decision' ? ' (waiting on a decision)' : ' (blocked)'}</span>}
             </span>
           </li>
         )

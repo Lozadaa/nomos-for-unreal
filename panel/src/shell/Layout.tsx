@@ -25,7 +25,7 @@ export function Layout({ project }: { project?: string }) {
   const commandOpener = useRef<HTMLElement | null>(null)
   const showLegend = useCallback((from: HTMLElement | null) => { returnTo.current = from; setLegend(true) }, [])
   const paused = status?.paused ?? false
-  const togglePause = useAction(() => api(paused ? '/director/resume' : '/director/pause', { method: 'POST', body: {} }), { success: () => ({ title: paused ? `${BRAND.short} reanudado` : `${BRAND.short} en pausa` }) })
+  const togglePause = useAction(() => api(paused ? '/director/resume' : '/director/pause', { method: 'POST', body: {} }), { success: () => ({ title: paused ? `${BRAND.short} resumed` : `${BRAND.short} paused` }) })
   const all = useStore((s) => s.tasks)
   const tasks: TaskRef[] = all.filter((t) => !t.id.startsWith('tmp-'))
 
@@ -47,8 +47,8 @@ export function Layout({ project }: { project?: string }) {
 
   return (
     <TooltipProvider>
-      <a href="#contenido" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:border focus-visible:border-strong focus-visible:bg-background focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm">Saltar al contenido</a>
-      <Header project={project ?? status?.project?.name ?? 'Proyecto Unreal'} status={status} onCommand={(from) => { commandOpener.current = from; setOpen(true) }} onTogglePause={() => void togglePause.fire()} pausePending={togglePause.pending} play={play} />
+      <a href="#contenido" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:border focus-visible:border-strong focus-visible:bg-background focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm">Skip to content</a>
+      <Header project={project ?? status?.project?.name ?? 'Unreal project'} status={status} onCommand={(from) => { commandOpener.current = from; setOpen(true) }} onTogglePause={() => void togglePause.fire()} pausePending={togglePause.pending} play={play} />
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-(--k-content) px-4 py-5 outline-none sm:px-6">
         <BackHome />
         <Outlet />

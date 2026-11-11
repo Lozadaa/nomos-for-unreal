@@ -11,10 +11,10 @@ export function GlbViewer({ id, name }: { id: string; name: string }) {
     import('@google/model-viewer').then(() => alive && setReady(true), () => alive && setFailed(true))
     return () => { alive = false }
   }, [])
-  if (failed) return <div className="grid h-full place-items-center text-sm text-muted-foreground">No se pudo cargar el visor 3D.</div>
+  if (failed) return <div className="grid h-full place-items-center text-sm text-muted-foreground">Couldn’t load the 3D viewer.</div>
   if (!ready || !src) return <div aria-hidden className="h-full" />
   return createElement('model-viewer', {
-    src, alt: `Modelo 3D de ${name}`, role: 'img', 'aria-label': `Modelo 3D de ${name}`, 'camera-controls': '', 'shadow-intensity': '0',
+    src, alt: `3D model of ${name}`, role: 'img', 'aria-label': `3D model of ${name}`, 'camera-controls': '', 'shadow-intensity': '0',
     className: 'size-full bg-card', style: { '--poster-color': 'var(--card)' },
   })
 }

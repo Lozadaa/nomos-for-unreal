@@ -49,8 +49,8 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
         setDraft(empty)
         return () => { undo(); setDraft(sent.current) }
       },
-      success: (task) => (isVisible(task) ? undefined : { title: 'Petición enviada', description: 'Está fuera de los filtros activos.', action: { label: 'Ver', onClick: () => onHidden(task) } }),
-      error: (e) => ({ title: 'No se pudo enviar la petición', description: humanError(e), action: { label: 'Reintentar', onClick: () => void send.fire() } }),
+      success: (task) => (isVisible(task) ? undefined : { title: 'Request sent', description: 'It’s hidden by the active filters.', action: { label: 'View', onClick: () => onHidden(task) } }),
+      error: (e) => ({ title: 'Couldn’t send the request', description: humanError(e), action: { label: 'Retry', onClick: () => void send.fire() } }),
     },
   )
 
@@ -64,7 +64,7 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
     <form
       data-tour-anchor="composer"
       ref={root}
-      aria-label="Nueva petición"
+      aria-label="New request"
       onSubmit={(e) => { e.preventDefault(); submit() }}
       onFocus={() => setOpen(true)}
       onBlur={(e) => { if (!root.current?.contains(e.relatedTarget) && !draft.title && !draft.spec) setOpen(false) }}
@@ -75,8 +75,8 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
         ref={title}
         value={draft.title}
         onChange={(e) => { setDraft({ ...draft, title: e.target.value }); setMissing(false) }}
-        placeholder={`Pídele algo a ${BRAND.short}…`} name="titulo" autoComplete="off"
-        aria-label="Título de la petición"
+        placeholder={`Ask ${BRAND.short} for something…`} name="titulo" autoComplete="off"
+        aria-label="Request title"
         aria-invalid={missing || undefined}
         aria-describedby={missing ? 'composer-missing' : undefined}
         className="h-9 border-0 bg-transparent px-2 text-sm focus-visible:ring-0"
@@ -89,28 +89,28 @@ export function Composer({ autoFocus = false, isVisible, onHidden }: {
           <Textarea
             value={draft.spec}
             onChange={(e) => setDraft({ ...draft, spec: e.target.value })}
-            placeholder="Describe qué quieres construir (opcional)…" name="descripcion" autoComplete="off"
-            aria-label="Descripción"
+            placeholder="Describe what you want built (optional)…" name="descripcion" autoComplete="off"
+            aria-label="Description"
             className="mt-1 min-h-20 resize-none border-0 bg-transparent px-2 text-sm focus-visible:ring-0"
           />
           <div className="flex items-center gap-3 px-2 pt-2 pb-1">
-            <label title={`Área: ${areaLabel[draft.area]}`} className="relative inline-flex size-12 shrink-0 items-center justify-center rounded-md border border-input bg-background focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-2">
+            <label title={`Area: ${areaLabel[draft.area]}`} className="relative inline-flex size-12 shrink-0 items-center justify-center rounded-md border border-input bg-background focus-within:outline-2 focus-within:outline-ring focus-within:outline-offset-2">
               <AreaPictogram area={draft.area} size={32} />
               <select
                 value={draft.area}
                 onChange={(e) => setDraft({ ...draft, area: e.target.value as Area })}
                 name="area"
-                aria-label="Área"
+                aria-label="Area"
                 className="absolute inset-0 size-full cursor-pointer opacity-0"
               >
                 {areas.map((a) => <option key={a} value={a}>{areaLabel[a]}</option>)}
               </select>
             </label>
-            {missing && <span id="composer-missing" role="alert" className="text-xs text-error">Escribe un título para la petición.</span>}
-            {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
+            {missing && <span id="composer-missing" role="alert" className="text-xs text-error">Give the request a title.</span>}
+            {send.error && <span role="alert" className="text-xs text-error">Not sent. {humanError(send.error)}</span>}
             <span className="ml-auto hidden text-xs text-muted-foreground sm:inline"><kbd className="font-mono">Ctrl</kbd>+<kbd className="font-mono">Enter</kbd></span>
             <Button type="submit" size="sm" disabled={send.pending} aria-busy={send.pending}>
-              {send.pending ? 'Enviando…' : `Enviar a ${BRAND.short}`}
+              {send.pending ? 'Sending…' : `Send to ${BRAND.short}`}
             </Button>
           </div>
         </div>

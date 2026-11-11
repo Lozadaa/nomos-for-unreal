@@ -22,9 +22,9 @@ describe('avatar por implementador', () => {
     }
   })
 
-  it('el tooltip lleva el modelo Claude antes de las skills, sin icono nuevo', () => {
+  it('el tooltip lleva el model Claude antes de las skills, sin icono nuevo', () => {
     const { container } = render(<AgentAvatar provider="claude" model="opus" skills={['ue-ui-umg-slate']} />)
-    expect(screen.getByRole('img')).toHaveAttribute('title', 'Claude · modelo opus · skills confirmadas: ue-ui-umg-slate')
+    expect(screen.getByRole('img')).toHaveAttribute('title', 'Claude · model opus · confirmed skills: ue-ui-umg-slate')
     expect(container.querySelectorAll('svg')).toHaveLength(0)
   })
 

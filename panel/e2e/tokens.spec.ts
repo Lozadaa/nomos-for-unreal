@@ -34,7 +34,7 @@ test('la ficha enseña los tokens por run y el total de la tarea; Producción, e
   expect(status.tokens.porRol.implementacion).toBeGreaterThanOrEqual(1_284_000)
   await page.goto(url().replace('/#', `/produccion?tarea=${task.id}#`))
   const sheet = page.getByRole('dialog')
-  await expect(sheet.getByText('Tokens: 1,3 M · 42 turnos · opus')).toBeVisible()
+  await expect(sheet.getByText('Tokens: 1.3M · 42 turns · opus')).toBeVisible()
   await expect(sheet.getByText('Tokens: 0,3 M · 9 turnos · sonnet')).toBeVisible()
   await expect(sheet.getByText('Total de la tarea: 1,6 M de tokens')).toBeVisible()
   const header = page.getByText(/^Tokens del proyecto: \d+,\d M$/)

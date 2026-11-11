@@ -14,12 +14,12 @@ export function NoteImage({ imageId, alt }: { imageId: string; alt: string }) {
 export function Comments({ list }: { list: ApprovalComment[] }) {
   if (!list.length) return null
   return (
-    <ul aria-label="Comentarios" className="flex flex-col gap-2">
+    <ul aria-label="Comments" className="flex flex-col gap-2">
       {list.map((c, i) => (
         <li key={`${c.at}-${i}`} className="flex flex-col gap-1 rounded-md bg-card px-3 py-2 text-sm">
-          <span className="text-xs text-muted-foreground">{c.kind === 'changes' ? 'Cambios pedidos' : 'Comentario'}</span>
+          <span className="text-xs text-muted-foreground">{c.kind === 'changes' ? 'Changes requested' : 'Comment'}</span>
           <p className="whitespace-pre-wrap">{c.text}</p>
-          {c.imageId && <NoteImage imageId={c.imageId} alt="Imagen del comentario" />}
+          {c.imageId && <NoteImage imageId={c.imageId} alt="Comment image" />}
         </li>
       ))}
     </ul>
@@ -44,12 +44,12 @@ export function NoteField({ text, setText, imageId, setImageId, label, placehold
       <Textarea value={text} aria-label={label} placeholder={placeholder} name={label} autoComplete="off" className="min-h-16"
         onChange={(e) => setText(e.target.value)} onPaste={(e) => void paste(e)}
         onKeyDown={(e) => { if (onSubmit && e.key === 'Enter' && (e.ctrlKey || e.metaKey) && text.trim()) { e.preventDefault(); onSubmit() } }} />
-      {uploading && <span role="status" className="text-xs text-muted-foreground">Subiendo la imagen…</span>}
-      {!!error && <span role="alert" className="text-xs text-error">No se pudo pegar la imagen. {humanError(error as Error)}</span>}
+      {uploading && <span role="status" className="text-xs text-muted-foreground">Uploading image…</span>}
+      {!!error && <span role="alert" className="text-xs text-error">Couldn't paste the image. {humanError(error as Error)}</span>}
       {imageId && (
         <span className="flex items-start gap-2">
-          <NoteImage imageId={imageId} alt="Imagen pegada" />
-          <button type="button" aria-label="Quitar la imagen" className="rounded-sm p-1 text-muted-foreground hover:text-foreground" onClick={() => setImageId(null)}>
+          <NoteImage imageId={imageId} alt="Pasted image" />
+          <button type="button" aria-label="Remove image" className="rounded-sm p-1 text-muted-foreground hover:text-foreground" onClick={() => setImageId(null)}>
             <XIcon className="size-4" />
           </button>
         </span>

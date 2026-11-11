@@ -13,13 +13,13 @@ const task = (over: Partial<Task> = {}): Task => ({
 
 describe('motivo corto en la fila (hito 7)', () => {
   it('traduce esperas y fallos a tres palabras como mucho; el fallo manda', () => {
-    expect(rowReason(task({ waitReason: 'Esperando reserva: WBP_Vida.uasset (tarea t1)' }))).toBe('Esperando reserva')
-    expect(rowReason(task({ waitReason: 'Editor de KratosFabTest: ocupado por qa · unreal' }))).toBe('Esperando reserva')
-    expect(rowReason(task({ waitReason: 'Depende de Diseñar HUD (implementando)' }))).toBe('Depende de…')
-    expect(rowReason(task({ waitReason: 'Director en pausa' }))).toBe('Director en pausa')
+    expect(rowReason(task({ waitReason: 'Esperando reserva: WBP_Vida.uasset (tarea t1)' }))).toBe('Waiting for lock')
+    expect(rowReason(task({ waitReason: 'Editor de KratosFabTest: ocupado por qa · unreal' }))).toBe('Waiting for lock')
+    expect(rowReason(task({ waitReason: 'Depende de Diseñar HUD (implementando)' }))).toBe('Waiting on task…')
+    expect(rowReason(task({ waitReason: 'Director en pausa' }))).toBe('Director paused')
     // hito 21: la espera deliberada del director (`nomos task hold`)
     expect(rowReason(task({ waitReason: 'En espera: Un Unreal pesado a la vez' }))).toBe('En espera')
-    expect(rowReason(task({ waitReason: 'Esperando reserva: x', failure: { kind: 'connection', text: 'Orca no está abierto · reintento cada 30 s', detail: null, at: '' } }))).toBe('Sin conexión')
+    expect(rowReason(task({ waitReason: 'Esperando reserva: x', failure: { kind: 'connection', text: 'Orca no está abierto · reintento cada 30 s', detail: null, at: '' } }))).toBe('No connection')
     for (const kind of ['execution', 'cancel_requested', 'cancel_confirmed', 'capability_missing'] as const)
       expect(rowReason(task({ failure: { kind, text: '', detail: null, at: '' } }))!.split(' ').length).toBeLessThanOrEqual(3)
     expect(rowReason(task())).toBeNull()
@@ -28,7 +28,7 @@ describe('motivo corto en la fila (hito 7)', () => {
   it('la fila muestra el motivo sin pasar de siete palabras y el detalle completo va al tooltip', () => {
     render(<TooltipProvider><TaskRow task={task({ waitReason: 'Depende de Diseñar HUD (implementando)' })} now={Date.parse('2026-10-23T10:02:00Z')} open={false} onOpen={vi.fn()} /></TooltipProvider>)
     const row = screen.getByRole('button', { name: /Barra de vida/ })
-    expect(within(row).getByText('Depende de…')).toBeInTheDocument()
+    expect(within(row).getByText('Waiting on task…')).toBeInTheDocument()
     const clone = row.cloneNode(true) as HTMLElement
     clone.querySelectorAll('[data-task-title], [data-task-id-text]').forEach((el) => el.remove())
     expect(visibleWords(clone)).toBeLessThanOrEqual(budgets.produccionRow)

@@ -27,7 +27,7 @@ describe('arte con significado', () => {
     expect(Object.keys(catalog)).toEqual(views)
     for (const view of views) {
       const { container, unmount } = render(<EmptyState view={view} />)
-      expect(screen.getByRole('img', { name: `${catalog[view].label} sin elementos` })).toHaveAttribute('width', '48')
+      expect(screen.getByRole('img', { name: `${catalog[view].label}: empty` })).toHaveAttribute('width', '48')
       expect(container.querySelectorAll('p')).toHaveLength(1)
       const action = screen.getByRole('link')
       expect(action.getAttribute('href')).toMatch(/^\/(?:\?nueva=1|chat)?$/)

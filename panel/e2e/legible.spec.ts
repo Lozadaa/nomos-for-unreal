@@ -34,7 +34,7 @@ for (const size of [{ width: 1366, height: 768 }, { width: 1920, height: 1080 }]
     const code = part('Criterios de aceptación').locator('details')
     await expect(code.locator('summary')).toHaveText('Detalle técnico · 4 líneas')
     await expect(code).not.toHaveAttribute('open', '')
-    await expect(part('Criterios de aceptación').getByRole('button', { name: 'Mostrar todo' })).toBeVisible()
+    await expect(part('Criterios de aceptación').getByRole('button', { name: 'Show all' })).toBeVisible()
     if (browserName === 'chromium') await page.screenshot({ path: `../docs/capturas-23/ficha-${size.width}.png` })
     // sin desplazamiento vertical en la primera pantalla de la ficha
     const scroller = sheet.locator('.overflow-y-auto').first()

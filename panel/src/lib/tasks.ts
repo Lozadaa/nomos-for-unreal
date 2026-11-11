@@ -3,15 +3,15 @@ export const stages = ['pendiente', 'preparada', 'implementando', 'revisando', '
 export type Stage = (typeof stages)[number]
 
 export const stageLabel: Record<Stage, string> = {
-  pendiente: 'Pendiente', preparada: 'Preparada', implementando: 'Implementando', revisando: 'Revisando',
-  probando: 'Probando', integrando: 'Integrando', cerrando: 'Cerrando', done: 'Hecha',
+  pendiente: 'Pending', preparada: 'Ready', implementando: 'Building', revisando: 'Reviewing',
+  probando: 'Testing', integrando: 'Merging', cerrando: 'Wrapping up', done: 'Done',
 }
 
 export const areas = ['gameplay', 'ui', 'vfx', 'camara', 'ia', 'escenarios', 'assets', 'animacion', 'audio', 'qa', 'builds'] as const
 export type Area = (typeof areas)[number]
 export const areaLabel: Record<Area, string> = {
-  gameplay: 'Gameplay', ui: 'Interfaz', vfx: 'Efectos y materiales', camara: 'Cámara', ia: 'IA', escenarios: 'Escenarios', assets: 'Assets',
-  animacion: 'Animación', audio: 'Audio', qa: 'Calidad', builds: 'Compilaciones',
+  gameplay: 'Gameplay', ui: 'UI', vfx: 'VFX and materials', camara: 'Camera', ia: 'AI', escenarios: 'Levels', assets: 'Assets',
+  animacion: 'Animation', audio: 'Audio', qa: 'QA', builds: 'Builds',
 }
 
 export const providerLabel: Record<string, string> = {
@@ -96,12 +96,12 @@ export interface TaskDetail {
 }
 
 /** Tokens en millones con una decimal («1,3 M»): nunca cifras largas. */
-export const millions = (n: number) => `${(n / 1e6).toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M`
+export const millions = (n: number) => `${(n / 1e6).toLocaleString('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
 /** «Tokens: 1,3 M · 42 turnos · opus» de una fila de `spends`. */
 export function tokensLine(row: { amount: number; note: string | null }): string {
   let use: { turns?: number; model?: string } = {}
   try { use = JSON.parse(row.note ?? '') } catch { return `Tokens: ${millions(row.amount)} · ${row.note ?? ''}` }
-  return `Tokens: ${millions(row.amount)} · ${use.turns ?? 0} turnos · ${/opus|sonnet|haiku/.exec(use.model ?? '')?.[0] ?? use.model}`
+  return `Tokens: ${millions(row.amount)} · ${use.turns ?? 0} turns · ${/opus|sonnet|haiku/.exec(use.model ?? '')?.[0] ?? use.model}`
 }
 
 /** Estado derivado: una tarea bloqueada o en espera de decisión conserva su etapa. */
@@ -123,8 +123,8 @@ export function toneOf(t: Pick<Task, 'state' | 'blockedReason' | 'decisionId'>):
 /** Texto de estado de la fila: copy de docs/diseno/estados.md. */
 export function statusText(t: Pick<Task, 'state' | 'blockedReason' | 'decisionId'>): string {
   const s = statusOf(t)
-  if (s === 'decision') return 'Espera decisión'
-  if (s === 'bloqueada') return t.state === 'cerrando' ? 'No se pudo cerrar' : 'Bloqueada'
+  if (s === 'decision') return 'Needs decision'
+  if (s === 'bloqueada') return t.state === 'cerrando' ? 'Wrap-up failed' : 'Blocked'
   return stageLabel[t.state]
 }
 
@@ -134,8 +134,8 @@ export const isTemp = (id: string) => id.startsWith('tmp-')
 /** Hito 7: estado de fallo de la orden más reciente de la tarea (lo calcula el servicio en /tasks). */
 export type FailureKind = 'connection' | 'execution' | 'cancel_requested' | 'cancel_confirmed' | 'capability_missing'
 export const failureShort: Record<FailureKind, string> = {
-  connection: 'Sin conexión', execution: 'Ejecución fallida', cancel_requested: 'Cancelación solicitada',
-  cancel_confirmed: 'Cancelación confirmada', capability_missing: 'Falta una capacidad',
+  connection: 'No connection', execution: 'Run failed', cancel_requested: 'Cancel requested',
+  cancel_confirmed: 'Cancelled', capability_missing: 'Missing capability',
 }
 
 /** Motivo de tres palabras como mucho para la fila de Producción: el fallo primero, después la espera. */
@@ -144,9 +144,9 @@ export function rowReason(t: Pick<Task, 'waitReason' | 'failure'> & Partial<Pick
   const reason = t.waitReason?.trim()
   // bloqueada o esperando Decisión: el glifo de estado ya lo dice y el motivo completo está en el detalle
   if (!reason || t.decisionId || t.blockedReason) return null
-  if (/^Esperando reserva|^Editor de .*: ocupado/.test(reason)) return 'Esperando reserva'
-  if (reason.startsWith('Director en pausa')) return 'Director en pausa'
-  if (reason.startsWith('Depende de')) return 'Depende de…'
+  if (/^Esperando reserva|^Editor de .*: ocupado/.test(reason)) return 'Waiting for lock'
+  if (reason.startsWith('Director en pausa')) return 'Director paused'
+  if (reason.startsWith('Depende de')) return 'Waiting on task…'
   const head = reason.split(':')[0].trim()
   if (head !== reason && head.split(/\s+/).length <= 3) return head
   const words = reason.split(/\s+/)

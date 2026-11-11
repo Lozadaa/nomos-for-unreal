@@ -2,7 +2,7 @@ import { BRAND } from '@/lib/brand'
 export interface AgentNamingInput { id: string; role?: string | null; area?: string | null; state: string }
 
 const areas: Record<string, string> = {
-  ui: 'UI', gameplay: 'Gameplay', escenarios: 'Escenas', assets: 'Assets', animacion: 'Anim', audio: 'Audio', qa: 'QA', builds: 'Builds',
+  ui: 'UI', gameplay: 'Gameplay', escenarios: 'Level', assets: 'Assets', animacion: 'Anim', audio: 'Audio', qa: 'QA', builds: 'Builds',
 }
 const roles: Record<string, string> = {
   implementacion: 'Worker', revisor: 'Master', arte: 'Artist', qa: 'Tester', integrador: 'Builder', coordinador: 'Lead',
@@ -11,7 +11,7 @@ const roles: Record<string, string> = {
 
 /** El ordinal 1 queda implícito en el nombre; solo los duplicados posteriores llevan sufijo. */
 export function agentName(role?: string | null, area?: string | null, ordinal?: number): string {
-  const areaName = area && Object.hasOwn(areas, area) ? areas[area] : 'Proyecto'
+  const areaName = area && Object.hasOwn(areas, area) ? areas[area] : 'Project'
   const roleName = role && Object.hasOwn(roles, role) ? roles[role] : 'Worker'
   const base = role === 'director' ? BRAND.short : `${areaName} ${roleName}`
   return ordinal !== undefined && Number.isInteger(ordinal) && ordinal > 1 ? `${base} ${ordinal}` : base

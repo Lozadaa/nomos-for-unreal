@@ -76,7 +76,7 @@ describe('revisión final · Decisiones', () => {
     render(<MemoryRouter><Decisiones /></MemoryRouter>)
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Opción B' }))
     expect(screen.getByRole('heading', { name: 'Pregunta d1' })).toBeInTheDocument()
-    expect(await screen.findByText(/Elegiste Opción B/)).toBeInTheDocument()
+    expect(await screen.findByText(/You chose Opción B/)).toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('button', { name: /Pregunta d2/ }))
     expect(screen.getAllByRole('button', { name: 'Opción B' })[0]).toHaveAttribute('aria-pressed', 'false')
   })
@@ -87,7 +87,7 @@ describe('revisión final · useResource', () => {
     let calls = 0
     serve((p) => { if (p === '/artifacts') calls++; return [] })
     render(<MemoryRouter><Entregas /></MemoryRouter>)
-    await screen.findByText('Aún no hay entregas')
+    await screen.findByText('No deliveries yet')
     const before = calls
     act(() => { ingest(event('artifact.created')); ingest(event('director.started')) })
     await waitFor(() => expect(calls).toBeGreaterThan(before), { timeout: 1500 })
@@ -98,10 +98,10 @@ describe('revisión final · foco tras una acción', () => {
   it('el botón que disparó la acción recupera el foco cuando termina', async () => {
     serve(() => [{ id: 'git', label: 'Git', state: 'detectado', detail: 'ok' }])
     render(<Capacidades />)
-    const button = await screen.findByRole('button', { name: 'Comprobar ahora' })
+    const button = await screen.findByRole('button', { name: 'Check now' })
     button.focus()
     await userEvent.setup().click(button)
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Comprobar ahora' })).toHaveFocus(), { timeout: 2000 })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check now' })).toHaveFocus(), { timeout: 2000 })
   })
 })
 
@@ -130,9 +130,9 @@ describe('revisión final · Catálogo', () => {
     const posts: string[] = []
     serve((p, i) => { if (i?.method === 'POST') posts.push(p); return [{ id: 'c2', name: 'Explorador', category: 'model', description: '', source: 'fab', state: 'owned', projects: [], formats: [], engineVersions: [], license: null, aiForbidden: 0, tags: [] }] })
     render(<MemoryRouter><Catalogo /></MemoryRouter>)
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Revisar licencia' }))
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Check license' }))
     await wait(400)
     expect(posts).toEqual([])
-    expect(screen.getByText(/licencia no está declarada/i)).toBeInTheDocument()
+    expect(screen.getByText(/no license is declared/i)).toBeInTheDocument()
   })
 })

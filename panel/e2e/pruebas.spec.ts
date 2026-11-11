@@ -26,7 +26,7 @@ test('Pruebas: «Lanzar pruebas» encola checks.run y la fila aparece por SSE si
   await page.getByRole('button', { name: new RegExp(title) }).click()
   await page.getByRole('tab', { name: 'Pruebas' }).click()
   await expect(page.getByText('Esta tarea aún no tiene pruebas')).toBeVisible()
-  await page.getByRole('button', { name: 'Lanzar pruebas' }).click()
+  await page.getByRole('button', { name: 'Run checks' }).click()
   const table = page.getByRole('table', { name: 'Pruebas' })
   await expect(table.getByRole('cell', { name: 'Sin Unreal' })).toBeVisible({ timeout: 15_000 })
   await expect(table.getByText('Omitida')).toBeVisible()

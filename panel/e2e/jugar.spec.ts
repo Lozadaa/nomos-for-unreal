@@ -29,7 +29,7 @@ const header = (page: Page) => page.locator('header')
 
 test('sin build el botón sigue visible, desactivado y con el motivo', async ({ page }) => {
   await page.goto(service.url(token).replace('/#', '/produccion#'))
-  const play = header(page).getByRole('button', { name: 'Jugar' })
+  const play = header(page).getByRole('button', { name: 'Play' })
   await expect(play).toBeVisible()
   await expect(play).toBeDisabled()
   await expect(header(page).getByText('Todavía no hay ninguna build')).toBeVisible()
@@ -38,7 +38,7 @@ test('sin build el botón sigue visible, desactivado y con el motivo', async ({ 
 test('Jugar lanza la build, pasa a «Jugando» y Detener la cierra; sin rutas en pantalla', async ({ page }) => {
   fakeGame('setTimeout(() => {}, 120_000);')
   await page.goto(service.url(token).replace('/#', '/produccion#'))
-  const play = header(page).getByRole('button', { name: 'Jugar' })
+  const play = header(page).getByRole('button', { name: 'Play' })
   await expect(play).toBeEnabled()
   await expect(play).toHaveAttribute('data-fresh', 'true')
   await expect(page.getByText(/^Última build: .+ · paquete del director$/)).toBeVisible()
@@ -50,22 +50,22 @@ test('Jugar lanza la build, pasa a «Jugando» y Detener la cierra; sin rutas en
   expect(status.running.pid).toBeGreaterThan(0)
   await expect(page.locator('body')).not.toContainText(/Juego\.exe|Windows-actual|\.nomos/)
   await playing.click()
-  await expect(header(page).getByRole('button', { name: 'Jugar' })).toHaveAttribute('data-state', 'ready')
-  await expect(header(page).getByRole('button', { name: 'Jugar' })).toHaveAttribute('data-fresh', 'false')
+  await expect(header(page).getByRole('button', { name: 'Play' })).toHaveAttribute('data-state', 'ready')
+  await expect(header(page).getByRole('button', { name: 'Play' })).toHaveAttribute('data-fresh', 'false')
 })
 
 test('una partida que termina sola devuelve el botón a «Jugar» por SSE', async ({ page }) => {
   fakeGame('setTimeout(() => {}, 1500);')
   await page.goto(service.url(token).replace('/#', '/produccion#'))
-  await header(page).getByRole('button', { name: 'Jugar' }).click()
+  await header(page).getByRole('button', { name: 'Play' }).click()
   await expect(header(page).getByRole('button', { name: /^Jugando/ })).toBeVisible()
-  await expect(header(page).getByRole('button', { name: 'Jugar' })).toHaveAttribute('data-state', 'ready', { timeout: 15_000 })
+  await expect(header(page).getByRole('button', { name: 'Play' })).toHaveAttribute('data-state', 'ready', { timeout: 15_000 })
 })
 
 test('a 1366 px Jugar destaca sin desbordar la cabecera', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto(service.url(token).replace('/#', '/produccion#'))
-  const play = header(page).getByRole('button', { name: 'Jugar' })
+  const play = header(page).getByRole('button', { name: 'Play' })
   await expect(play).toBeVisible()
   const box = (await play.boundingBox())!
   expect(box.height).toBe(40)

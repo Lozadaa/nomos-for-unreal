@@ -19,9 +19,9 @@ describe('Entregas · Meshy sin copia', () => {
   it('muestra «Enlace vencido y sin copia» y Regenerar encola asset.meshy_generate con los mismos parámetros', async () => {
     vi.mocked(api).mockImplementation(async (path: string) => path === '/artifacts' ? [expired] : { commandId: 'c' })
     render(<MemoryRouter><Entregas /></MemoryRouter>)
-    expect(await screen.findByText('Enlace vencido y sin copia')).toBeInTheDocument()
-    expect(screen.getByText('Modelo Meshy · caja de munición')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Regenerar' }))
+    expect(await screen.findByText('Link expired, no local copy')).toBeInTheDocument()
+    expect(screen.getByText('Model Meshy · caja de munición')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Regenerate' }))
     await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith('/commands', expect.objectContaining({ method: 'POST' })))
     const body = vi.mocked(api).mock.calls.find(([p]) => p === '/commands')![1]!.body as Record<string, any>
     expect(body).toMatchObject({ type: 'asset.meshy_generate', payload: { taskId: 't1', kind: 'text', params: { prompt: 'caja de munición', mode: 'preview' }, estimatedCredits: 20 } })

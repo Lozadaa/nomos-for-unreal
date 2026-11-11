@@ -3,7 +3,7 @@ import { agentName, assignAgentNames } from './agentName'
 
 describe('nombres cortos de agentes', () => {
   it('traduce la tabla completa de áreas', () => {
-    for (const [area, name] of Object.entries({ ui: 'UI', gameplay: 'Gameplay', escenarios: 'Escenas', assets: 'Assets', animacion: 'Anim', audio: 'Audio', qa: 'QA', builds: 'Builds' })) {
+    for (const [area, name] of Object.entries({ ui: 'UI', gameplay: 'Gameplay', escenarios: 'Level', assets: 'Assets', animacion: 'Anim', audio: 'Audio', qa: 'QA', builds: 'Builds' })) {
       expect(agentName('implementacion', area)).toBe(`${name} Worker`)
     }
   })
@@ -14,8 +14,8 @@ describe('nombres cortos de agentes', () => {
     }
     expect(agentName('director', 'ui')).toBe('Nomos')
     expect(agentName('desconocido', 'ui')).toBe('UI Worker')
-    expect(agentName(undefined, undefined)).toBe('Proyecto Worker')
-    expect(agentName('constructor', 'constructor')).toBe('Proyecto Worker')
+    expect(agentName(undefined, undefined)).toBe('Project Worker')
+    expect(agentName('constructor', 'constructor')).toBe('Project Worker')
   })
 
   it('añade al texto solo un ordinal mayor que uno', () => {

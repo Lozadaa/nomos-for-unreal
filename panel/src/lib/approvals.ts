@@ -18,15 +18,15 @@ export interface ConflictSide { who: string; frente: string; task: string; at: s
 export interface Conflict { files: string[]; mine: ConflictSide; theirs: ConflictSide }
 /** «L_Arena» de `Content/Mapas/L_Arena.umap`. */
 export const assetName = (path: string) => path.split('/').pop()!.replace(/\.(umap|uasset)$/i, '')
-export const choiceText = { mine: 'Te quedaste con la tuya · sigue la integración', theirs: 'Te quedaste con la suya · tu tarea se rehace sobre ella',
-  manual: 'Resuelto a mano · sigue la integración' } as const
+export const choiceText = { mine: 'Kept yours · merge continues', theirs: 'Kept theirs · your task is redone on top of it',
+  manual: 'Resolved by hand · merge continues' } as const
 export const baselineText: Record<ApprovalItem['state'], string> = {
-  pending: 'Línea base propuesta · hasta aprobarla, informa sin fallar', approved: 'Aprobada · ya es la línea base', changes: 'Rechazada · la siguiente captura propone otra',
+  pending: 'Proposed baseline · reports without failing until approved', approved: 'Approved · now the baseline', changes: 'Rejected · the next capture proposes another',
 }
 export interface Approvals { pending: number; items: ApprovalItem[]; general: ApprovalComment[] }
 
 export const stateText: Record<ApprovalItem['state'], string> = {
-  pending: 'Esperando tu aprobación', approved: 'Aprobada · sigue a integración', changes: 'Cambios pedidos · vuelve al responsable',
+  pending: 'Waiting for your approval', approved: 'Approved · on to merge', changes: 'Changes requested · back to the owner',
 }
 
 /** La imagen pegada en un comentario sube aparte (el cuerpo JSON tiene 64 KB) y el comentario lleva su referencia. */
