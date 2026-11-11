@@ -100,6 +100,7 @@ None of these are needed for a first game.
 | ffmpeg | Recording videos of the game |
 | A Meshy account | Generated 3D props |
 | A WeLoveIndies account | Sound effects and music |
+| A fal.ai API key | Generated 2D art for the interface (icons, frames, menu backgrounds) |
 
 ### Meshy keys
 
@@ -107,6 +108,15 @@ Nomos can rotate between several Meshy accounts. Keys are stored on your machine
 
 - **Windows:** `powershell -ExecutionPolicy Bypass -File scripts\guardar-claves-meshy.ps1`. Keys are encrypted for your Windows user.
 - **macOS / Linux (never run):** `bash scripts/guardar-claves-meshy.sh`, which writes `~/.nomos/meshy-claves.json` readable only by you. Or set `MESHY_API_KEY`.
+
+### fal.ai key
+
+Nomos generates interface art with fal.ai (Nano Banana Pro, about $0.15 per image). Store your key once; it is never typed into a chat or a repository.
+
+- **Windows:** `powershell -ExecutionPolicy Bypass -File scripts\guardar-clave-fal.ps1`. The key is encrypted for your Windows user.
+- **macOS / Linux (never run):** `bash scripts/guardar-clave-fal.sh`, which writes `~/.nomos/fal-clave.json` readable only by you. Or set `FAL_KEY`.
+
+Then `nomos imagen crear "a round wooden button, hand-painted" --salida icon.png --sin-fondo` (`crear` = create, `salida` = output, `sin-fondo` = transparent background).
 
 ### WeLoveIndies sound
 

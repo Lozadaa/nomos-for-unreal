@@ -66,6 +66,8 @@ licencia cubre la entrega** antes de publicar. Términos e investigación: `docs
 |---|---|---|
 | `nomos sonido login` | Abre Chrome (perfil propio en `~/.nomos/navegador/weloveindies`, fuera del repo) en la página de entrada; el usuario entra él mismo. Dice «Sesión guardada» | La crea |
 | `nomos sonido buscar "<palabras>" [--tipo musica\|efecto] [--limite 10]` | JSON con id (`e…` efecto, `m…` música), título, duración, tipo, URL de escucha, autor y licencia | No hace falta |
+| `nomos imagen crear "<prompt>" --salida <ruta.png> [--aspecto 1:1] [--resolucion 1K\|2K\|4K] [--sin-fondo]` | fal.ai, Nano Banana Pro: deja el PNG y `<ruta.png>.receta.json` (prompt, modelo, coste aproximado). Unos 0,15 $ por imagen (0,30 $ a 4K). Clave: `scripts/guardar-clave-fal.ps1` o `FAL_KEY` |
+| `nomos pedido crear <id> "<prompt ultra específico, ≥ 200 caracteres>" --encargo "<frase literal del usuario>" --destino <carpeta> [--para PBRGen] [--sustituto "…"]` y `nomos pedido lista` | Pedido manual para una herramienta sin API (PBRGen, en el navegador): queda en `docs/pedidos/<id>.json`, el panel lo enseña como alerta en todas las vistas, el director se lo cuenta al usuario y pasa a «hecho» cuando hay una imagen en la carpeta de destino. El worker no espera |
 | `nomos sonido bajar <id…> --juego <carpeta> [--destino Content/Audio]` | Sin ventana, una descarga cada 4 s: `Importar/Audio/<archivo>.wav` (ffmpeg si no era wav), `<archivo>.wav.licencia.json`, `<archivo>.receta.json` y su línea en `CREDITOS.md`. Imprime la orden `nomos ue receta …` que lo importa como `SoundWave` | Necesaria |
 | `nomos sonido importar <carpeta> --juego <carpeta>` | Lo mismo con lo que el usuario bajó del cofre ya licenciado (zip descomprimido); marca `licenciado` | No |
 
