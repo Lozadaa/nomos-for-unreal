@@ -4,14 +4,15 @@ import { join } from 'node:path';
 import { nomosSkills } from './skills-install.ts';
 import { skillSplit } from './skills.ts';
 /** `turn` (hito 22): la orden con la que el worker pide Unreal al planificador antes de abrirlo. */
-export type BriefRules = {projectContext?: string; continuation?: string; turn?: string; rapido?: boolean; engine?: string};
+/** `capacidades`: ids que doctor da por disponibles (detectado o comprobado); sin ella, el arsenal entero. */
+export type BriefRules = {projectContext?: string; continuation?: string; turn?: string; rapido?: boolean; engine?: string; capacidades?: string[]};
 /** 5.9 MegaJam Preview: el worker usa lo nuevo con plan B de 5.8 y deja constancia de qué sirvió (NOMOS_UE59). */
 const ue59Rules = `## Unreal 5.9 Preview\n\nEste proyecto corre en el 5.9 MegaJam Preview (inestable). Antes de planear, lee `
   +`\`ue-oficio/references/ue59-juego.md\`: usa lo nuevo del 5.9 que encaje con tu tarea (vidrio con AVBOIT, StateTree o Blueprints `
   +`por Python, notifies con sonido y Niagara…). Pruébalo 10 min como mucho; si falla o no se nota en la captura, vuelve al camino de 5.8 y sigue.\n`
   +`En el summary, una línea por feature probada: \`NOMOS_UE59 <feature>: usada | descartada — <motivo>\`.`;
 /** Modo rápido: sin TDD estricto ni pulido; en las metras los tests de física frágiles se comieron media hora de una pista. */
-const rapidoRules = `\n## Modo rápido\n\n- Velocidad antes que pulido: haz lo que piden los criterios y nada más.\n`
+const rapidoRules = `\n## Modo rápido\n\n- Velocidad antes que pulido: haz lo que piden los criterios y nada más. Lo visible no es pulido: el plan de arte y el juez de arte son criterio.\n`
   +`- Sin TDD estricto: solo tests de humo y de reglas (nada de física ni de visual: eso se comprueba jugando la demo). Si un test se vuelve frágil más de 10 min, bórralo y comprueba ese criterio jugando la demo.\n`
   +`- No toques nada fuera del alcance, ni para arreglar: anótalo en el summary.\n`
   +`- Compila y prueba una vez al final de cada paso, no tras cada línea.\n`;
@@ -30,6 +31,19 @@ const camino = (role: string) => ['revisor', 'qa', 'director'].includes(role) ? 
 ${readFileSync(join(nomosSkills, 'ue-oficio', 'references', 'camino-corto.md'), 'utf8').trim()}
 
 `;
+/** 2026-11-11: el arsenal visual con solo las herramientas que doctor da por disponibles (`{id}` al final de la viñeta). */
+export function arsenal(role: string, capacidades?: string[]): string {
+  if (['revisor', 'qa', 'director'].includes(role)) return '';
+  const lines = readFileSync(join(nomosSkills, 'ue-oficio', 'references', 'arsenal-visual.md'), 'utf8').trim().split(/\r?\n/), out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const block = [lines[i]];
+    if (lines[i].startsWith('- ')) while (lines[i + 1]?.startsWith('  ')) block.push(lines[++i]);
+    const tag = /\{(\w+)\}\s*$/.exec(block.at(-1)!)?.[1];
+    if (tag && capacidades && !capacidades.includes(tag)) continue;
+    out.push(...block.map(l => l.replace(/\s*\{\w+\}\s*$/, '')));
+  }
+  return `${out.join('\n').replace(/^# /, '## ')}\n\n`;
+}
 const extraSkills = (task: Task, run: Run, rules: BriefRules) => {
   const extra = rules.rapido ? skillSplit(run.role, task.area).extra.filter(s => !run.skills.includes(s)) : [];
   return extra.length ? `Solo si las necesitas: ${extra.join(', ')}. No hace falta confirmarlas.
@@ -48,7 +62,7 @@ export function renderBrief(task: Task, run: Run, rules: BriefRules = {}): strin
   const values: Record<string,string>={title:task.title,spec:task.spec,
     acceptance:task.acceptance.map((item,index)=>`${index+1}. ${item}`).join('\n'),
     scope:task.scope.map(path=>`- ${path}`).join('\n') || '(vacío: no autoriza archivos)',
-    provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run)+extraSkills(task,run,rules),camino:camino(run.role),
+    provider:run.provider,role:run.role,skills:run.skills.join(', '),providerInstructions:workerSkillsBrief(run)+extraSkills(task,run,rules),camino:camino(run.role)+arsenal(run.role,rules.capacidades),
     context:[rules.engine?.startsWith('5.9') ? ue59Rules : '',rules.projectContext ?? ''].filter(Boolean).join('\n\n') || 'Sin contexto adicional.',rapido:rules.rapido ? rapidoRules : '',continuation:rules.continuation ? `\n${rules.continuation}\n` : '',
     // x10: el Python del editor y los tests van al editor caliente (0,1 s por script frente a 12-15 s en frío) y piden
     // y sueltan el turno solos en cada orden, para que las comprobaciones de Nomos no esperen detrás de un turno retenido

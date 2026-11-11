@@ -97,3 +97,20 @@ test('jam vista: el worker mira tres capturas del modo demo; el revisor recibe s
     assert.match(review,/Rechaza si no se lee/);
   } finally {db.close();removeDir(tree);}
 });
+test('2026-11-11: el brief trae el arsenal visual con solo lo disponible en la máquina, el plan de arte y las capturas de detalle',()=>{
+  const db=openDb(':memory:');
+  try {
+    const task=createTask(db,{title:'Trompo',area:'gameplay',spec:'x',acceptance:['A'],scope:['Source/']});
+    const run=startRun(db,{taskId:task.id,role:'implementacion',provider:'claude'});
+    const sin=renderBrief(task,run,{capacidades:['unreal']}),con=renderBrief(task,run,{capacidades:['unreal','meshy','fab_plugin']});
+    assert.match(sin,/## Arsenal visual/);
+    assert.match(sin,/Malla procedural con normales suaves/);
+    assert.match(sin,/Geometry Script/);
+    assert.doesNotMatch(sin,/Meshy|nomos asset download/,'sin cuentas de Meshy ni Fab no se ofrecen');
+    assert.match(con,/\*\*Meshy\*\*/); assert.match(con,/nomos asset download/);
+    assert.doesNotMatch(con,/\{\w+\}/,'sin las etiquetas de capacidad');
+    assert.match(sin,/Plan de arte/); assert.match(sin,/detalle-\*\.png/);
+    const revisor=startRun(db,{taskId:task.id,role:'revisor',provider:'claude'});
+    assert.doesNotMatch(renderBrief(task,revisor,{capacidades:['unreal']}),/## Arsenal visual/);
+  } finally {db.close();}
+});

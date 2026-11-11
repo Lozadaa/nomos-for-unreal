@@ -56,3 +56,37 @@ test('lote: acabado va primero, también en modo rápido, y un fallo devuelve la
     assert.match(f.events('test.failed')[0].summary, /Hud\.cpp:1: HUD o indicador dibujado con Canvas/);
   } finally { f.close(); }
 });
+
+// 2026-11-11: Trompo con Nomos vistió protagonista, rivales y suelo con /Engine/BasicShapes; el agente solo los modeló
+test('acabado: forma básica sin motivo falla; con `forma-basica: <motivo>` pasa y cuenta; nunca para protagonista, amenaza u objetivo', async () => {
+  const dir = juego({'Source/J/Aspecto.cpp': [
+    'Malla->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")));',
+    'Muro->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"))); // forma-basica: colisión invisible del borde',
+    'if (Rol == TEXT("Protagonista")) M = TEXT("/Engine/BasicShapes/Sphere.Sphere"); // forma-basica: provisional',
+    'Plano = TEXT("/Engine/EngineMeshes/Sphere.Sphere"); // acabado: ok',
+  ].join('\n') + '\n', 'Config/DefaultGame.ini': '+DirectoriesToAlwaysCook=(Path="/Engine/BasicShapes")\n'});
+  const out = await correr(dir, ['Source/J/Aspecto.cpp']);
+  assert.equal(out.result, 'failed');
+  const fallos = out.summary.filter(l => /forma básica/.test(l));
+  assert.deepEqual(fallos.map(l => l.split(':')[1]), ['1', '3', '4'], out.summary.join('\n'));
+  assert.ok(fallos.some(l => /Aspecto\.cpp:3: .*nunca para Protagonista/.test(l)), out.summary.join('\n'));
+});
+
+test('acabado: el marcador de la semilla falla hasta que el juego ponga su aspecto', async () => {
+  const dir = juego({'Source/J/Aspecto.cpp': '// NOMOS_SIN_ASPECTO: sustituye este marcador\nint x;\n'});
+  const out = await correr(dir, ['Source/J/Aspecto.cpp']);
+  assert.ok(out.summary.some(l => /Aspecto\.cpp:1: .*marcador de la semilla/.test(l)), out.summary.join('\n'));
+});
+
+test('acabado: la tarea que empaqueta exige el plan de arte en docs/direccion.md, sin filas vacías', async () => {
+  const base = {'Source/J/Carga.cpp': 'StreamAllResources(5.f);\n', 'Config/DefaultGame.ini': '+MapsToCook=(FilePath="/Game/M")\n'};
+  const sin = await correr(juego(base), ['Source/J/Carga.cpp', 'Config/DefaultGame.ini']);
+  assert.ok(sin.summary.some(l => /Plan de arte/.test(l)), sin.summary.join('\n'));
+  const filas = ['Protagonista', 'Amenazas', 'Objetivos', 'Suelo', 'Fondo', 'Luz', 'Cámara', 'Efectos', 'Sonido'];
+  const tabla = (vacia: string) => `## Plan de arte\n| Qué | Herramienta | Por qué | Detalle |\n|---|---|---|---|\n`
+    + filas.map(f => f === vacia ? `| ${f} | | | |` : `| ${f} | malla procedural | se ve de cerca | alto |`).join('\n') + '\n';
+  const hueca = await correr(juego({...base, 'docs/direccion.md': tabla('Fondo')}), ['Source/J/Carga.cpp', 'Config/DefaultGame.ini']);
+  assert.ok(hueca.summary.some(l => /Plan de arte: la fila «Fondo» está vacía/.test(l)), hueca.summary.join('\n'));
+  const llena = await correr(juego({...base, 'docs/direccion.md': tabla('')}), ['Source/J/Carga.cpp', 'Config/DefaultGame.ini']);
+  assert.ok(!llena.summary.some(l => /Plan de arte/.test(l)), llena.summary.join('\n'));
+});

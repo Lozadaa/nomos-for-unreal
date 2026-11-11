@@ -2,6 +2,7 @@ import { body, json } from '../http.ts';
 import { moveTask, requireTask } from '../repo/tasks.ts';
 import { enqueue } from '../commands.ts';
 import { implementerOf } from '../handlers/checks.ts';
+import { pideLote } from '../checks/select.ts';
 import type { WorkerContext } from '../runner.ts';
 import type { Task } from '../model.ts';
 import { id, text, type Context } from './context.ts';
@@ -27,7 +28,7 @@ export function integratePayload(db: Db, taskId: unknown): Task {
   if (typeof taskId !== 'string' || !taskId.trim()) throw new Error('invalid_command_payload');
   let task = requireTask(db, taskId);
   // revisión aprobada sin pruebas exigidas: nada la llevaría a integrando (las comprobaciones solo avanzan desde probando)
-  if (task.state === 'revisando' && task.reviewApproved === 1 && !task.acceptance.some(a => a.startsWith('check:')))
+  if (task.state === 'revisando' && task.reviewApproved === 1 && !pideLote(task))
     task = moveTask(db, task.id, 'integrando', 'Revisión aprobada; sin pruebas exigidas');
   if (task.state !== 'integrando' || task.reviewApproved !== 1) throw new Error('invalid_transition');
   // hito 22: lo que espera la aprobación del usuario no se integra

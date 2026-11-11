@@ -12,20 +12,23 @@ import { updateRun } from '../repo/worker.ts';
 import { capturasBrief, workerSkillsBrief } from '../brief.ts';
 import { skillsForRole } from '../skills.ts';
 import { qaBrief } from './ui-cycle.ts';
+import { arteBrief } from '../checks/arte.ts';
 import { askMerge } from '../main-base.ts';
 
 export const reviewStart:Handler=async(cmd,ctx)=>{
   const payload=cmd.payload as any;
   // QA visual (hito 5): un run revisor más, con las capturas de ui.cycle y sin aprobar el código
   const qa=payload.qa && typeof payload.qa.testRunId==='string' ? {testRunId:payload.qa.testRunId as string} : undefined;
+  // juez de arte (2026-11-11): otro run más, solo con las capturas, el encargo y docs/direccion.md
+  const arte=payload.arte && typeof payload.arte.testRunId==='string' ? {testRunId:payload.arte.testRunId as string} : undefined;
   const {task,implementer}=reviewTarget(ctx.db,payload.taskId,payload.implementerRunId);
   // hito 22: revisar una rama sin lo último de main es revisar otra cosa; antes, que el worker la fusione
-  if(!qa && await askMerge(ctx,task,implementer)) return {needsMain:true};
+  if(!qa && !arte && await askMerge(ctx,task,implementer)) return {needsMain:true};
   const {snapshot,patch}=await reviewSnapshot(ctx,task.id,implementer.id),generation=snapshot.generation;
   if(payload.generation && payload.generation!==generation) throw new Error('invalid_review_generation');
   const history=filtered<Run>(ctx.db,'runs',{taskId:task.id});
   const previous=history.find(r=>r.role==='revisor'&&r.metadata.review?.implementerRunId===implementer.id
-    &&r.metadata.review.generation===generation&&r.metadata.qa?.testRunId===qa?.testRunId);
+    &&r.metadata.review.generation===generation&&r.metadata.qa?.testRunId===qa?.testRunId&&r.metadata.arte?.testRunId===arte?.testRunId);
   if(previous && !(previous.state==='running'&&previous.metadata.phase==='preparing'&&!previous.sessionRef
     &&!previous.metadata.worktreeId&&!previous.metadata.uncertain&&previous.metadata.startCommandId===cmd.id))
     return {runId:previous.id};
@@ -45,7 +48,8 @@ export const reviewStart:Handler=async(cmd,ctx)=>{
     brief:(path,run)=>{
       mkdirSync(join(path,'.nomos-review'),{recursive:true});writeFileSync(join(path,'.nomos-review','diff.patch'),patch);
       appendEvent(ctx.db,'review.started',null,{taskId:task.id,runId:run.id,provider:run.provider,...snapshot,same_provider:choice.sameProvider,
-        ...(qa ? {qa} : {})});
+        ...(qa ? {qa} : {}),...(arte ? {arte} : {})});
+      if(arte) {updateRun(ctx.db,run.id,{arte});return arteBrief(ctx,task,arte.testRunId,implementer,path);}
       if(qa) {updateRun(ctx.db,run.id,{qa});return qaBrief(ctx,task,run,snapshot,qa.testRunId,path);}
       return `# Revisión independiente\n\nSolo inspección: no modificar la implementación, crear commits ni hacer merge.\n\n`
         +workerSkillsBrief(run)

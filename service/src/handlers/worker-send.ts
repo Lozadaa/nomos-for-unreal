@@ -31,7 +31,8 @@ export const workerSend: Handler=async (cmd,ctx)=>{
   if (run.metadata.deadlineAt && Date.now()>=Date.parse(run.metadata.deadlineAt)) throw new Error('orca: tiempo máximo de 4 horas agotado');
   const limit=limits(readConfig(ctx.dataDir)).corrections,count=run.metadata.correctionCount ?? 0;
   // metras 4.ª vuelta: «commitea lo que quedó» al cerrar no es una corrección; gastaba la única del modo rápido y la tarea se paraba
-  const correction=run.state==='done',cuenta=correction && payload.cierre!==true,max=limit+correctionsGranted(db,task.id);
+  // las pasadas del juez de arte (2026-11-11) tampoco: tienen su propio tope, limits.arte
+  const correction=run.state==='done',cuenta=correction && payload.cierre!==true && payload.arte!==true,max=limit+correctionsGranted(db,task.id);
   if (cuenta && count>=max) {
     // experimento metras 2026-11-08: tras hallazgos de la revisión de código se puede aceptar lo hecho (con ellos anotados) y seguir
     const findings=/^Correcciones de revisión:/.test(payload.text ?? '');

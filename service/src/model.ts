@@ -49,7 +49,7 @@ export type RunMetadata = {
   prompt?: string; params?: JsonValue; budgetId?: string; estimatedCredits?: number; entryId?: string;
   /** jam-meshy: nombre de la cuenta de Meshy que creó el job (nunca la clave); el poll y la descarga la reutilizan */ account?: string;
   // pruebas (hito 5): run implementador cuyo diff se prueba
-  implementerRunId?: string; qa?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
+  implementerRunId?: string; qa?: {testRunId: string}; /** juez de arte (checks/arte.ts) */ arte?: {testRunId: string}; checks?: string[]; checksCommit?: string | null;
   /** docs/x10/umg-bucles.md: clave de entrada del ciclo UMG de esta run (caché de intentos fallidos). */ umgInput?: string;
   // integración (hito 6): merge hecho en el workspace y pendiente de publicar
   integration?: {base: string; commit: string; files: string[]; checked?: boolean; /** hito 29: se publica en origin */ remote?: boolean};

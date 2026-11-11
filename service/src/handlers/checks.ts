@@ -15,7 +15,8 @@ import { targetProject, type Project } from './asset-run.ts';
 import { targetBranch } from '../integration/workspace.ts';
 import { createEditorMcpHandlers } from './editor-mcp.ts';
 import { createUiCycle, uiCycleKey } from './ui-cycle.ts';
-import { selectChecks, type CheckId } from '../checks/select.ts';
+import { empaqueta, juezArte, selectChecks, type CheckId } from '../checks/select.ts';
+import { arteCheck } from '../checks/arte.ts';
 import { runCheck, type CheckDeps, type Executor } from '../checks/run.ts';
 import { checkGate, retryOption, waiverOption } from '../checks/gate.ts';
 import { cppCheck } from '../checks/cpp.ts';
@@ -26,17 +27,18 @@ import { buildCheck } from '../checks/build.ts';
 import { acabadoCheck, touchesVisible } from '../checks/acabado.ts';
 import { imagenCheck } from '../checks/imagen.ts';
 import { animationCheck, characterOf } from '../checks/animation.ts';
-import { readConfig } from '../config.ts';
+import { limits, readConfig } from '../config.ts';
 import { integrateIfFree } from '../routes/task-closing.ts';
 
-const executors: Partial<Record<CheckId, Executor>> = {acabado: acabadoCheck, imagen: imagenCheck, cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
+const executors: Partial<Record<CheckId, Executor>> = {acabado: acabadoCheck, imagen: imagenCheck, arte: arteCheck, cpp: cppCheck, blueprint: blueprintCheck, asset: assetCheck, animation: animationCheck(), map: mapCheck, build: buildCheck};
 /** `"acabado": false` en .nomos/config.json la apaga (prototipos de usar y tirar); por defecto, encendida. */
 const acabadoOn = (ctx: WorkerContext) => readConfig(ctx.dataDir).acabado !== false;
 /** Orden del lote: acabado primero (sin Unreal); imagen, solo en la tarea que empaqueta y tras compilar (necesita el editor
- *  del juego al día para lanzarlo en -game con su modo demo). */
-export function loteIds(selected: CheckId[], on: {acabado: boolean; imagen: boolean}): CheckId[] {
-  const imagen = on.imagen && selected.includes('build') ? ['imagen' as const] : [], at = selected.includes('cpp') ? 1 : 0;
-  return [...(on.acabado ? ['acabado' as const] : []), ...selected.slice(0, at), ...imagen, ...selected.slice(at)];
+ *  del juego al día para lanzarlo en -game con su modo demo); `final`: la tarea empaqueta aunque el diff no lo pida. Arte, al final:
+ *  sus capturas las juzga después un run aparte (juez de arte). */
+export function loteIds(selected: CheckId[], on: {acabado: boolean; imagen: boolean; arte?: boolean; final?: boolean}): CheckId[] {
+  const imagen = on.imagen && (selected.includes('build') || on.final) ? ['imagen' as const] : [], at = selected.includes('cpp') ? 1 : 0;
+  return [...(on.acabado ? ['acabado' as const] : []), ...selected.slice(0, at), ...imagen, ...selected.slice(at), ...(on.arte ? ['arte' as const] : [])];
 }
 const returnOption = {id: 'return', label: 'Devolver al responsable', description: 'Enviar la lista al implementador para que lo corrija'};
 
@@ -112,9 +114,12 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     const present = files.filter(file => existsSync(join(worktree, file)));
     // Esquina J1.2: montajes sin personaje montado ni malla en el diff; animation no tiene qué reproducir, no aplica
     // acabado (2026-11-10): lo primero, sin Unreal y en segundos; también en modo rápido, que solo se salta recomprobar al integrar
+    // 2026-11-11: la tarea que empaqueta pasa imagen aunque el diff no toque Config; el juez de arte, en lo visible, salvo al recomprobar
+    const visible = touchesVisible(present), final = selected.includes('build') || empaqueta(task), recheck = payload.recheck === true || !!dir;
     const ids = loteIds(selected.filter(id => id !== 'animation' || characterOf(worktree, present)),
-      {acabado: touchesVisible(present) && deps.acabado !== false && acabadoOn(ctx), imagen: deps.imagen !== false && acabadoOn(ctx)});
-    const note = ids.filter(id => id !== 'acabado' && id !== 'imagen').length < selected.length ? 'animation no aplica: no hay personaje montado ni malla con clips en el diff' : null;
+      {acabado: visible && deps.acabado !== false && acabadoOn(ctx), imagen: deps.imagen !== false && acabadoOn(ctx), final: final && !recheck,
+        arte: visible && !recheck && deps.arte !== false && acabadoOn(ctx) && limits(readConfig(ctx.dataDir)).arte > 0 && (final || juezArte(task))});
+    const note = ids.filter(id => !['acabado', 'imagen', 'arte'].includes(id)).length < selected.length ? 'animation no aplica: no hay personaje montado ni malla con clips en el diff' : null;
     let commit: string | null;
     try { commit = await ctx.git.head(worktree); } catch { commit = null; }
     const run = updateRun(ctx.db, checkRun(ctx, command, task, implementer).id, {checks: ids, checksCommit: commit});
@@ -145,6 +150,9 @@ export function createChecksRun(deps: CheckDeps = {}): Handler {
     rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     const umg = rows.find(r => r.checkId === 'umg' && r.result === 'pending');
     if (umg && !rows.some(r => r.result === 'failed')) umgStep(ctx, task, implementer, umg, commit);
+    const arte = rows.find(r => r.checkId === 'arte' && r.result === 'running');
+    if (arte && !rows.some(r => r.result === 'failed'))
+      enqueue(ctx.db, 'review.start', {taskId: task.id, implementerRunId: implementer.id, provider: 'claude', arte: {testRunId: arte.id}}, `review.arte:${arte.id}`);
     rows = filtered<TestRun>(ctx.db, 'test_runs', {runId: run.id});
     const failed = rows.find(r => r.result === 'failed'), missing = rows.filter(r => ['skipped', 'unavailable'].includes(r.result));
     finishRun(ctx.db, run.id, failed ? 'failed' : 'done', failed ? `Falló ${failed.checkId}` : `Comprobaciones terminadas${note ? ` · ${note}` : ''}`);

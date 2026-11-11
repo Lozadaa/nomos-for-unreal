@@ -4,7 +4,8 @@ import { homedir } from 'node:os';
 
 export type WorkerProvider = 'codex' | 'claude' | 'opencode';
 /** `umgRetries`: fallos umg seguidos sin mejora medible antes de parar en una Decisión (docs/x10/umg-bucles.md). */
-export type Limits = {corrections: number; umgRetries: number; silentWarnMinutes?: number; silentActMinutes?: number};
+/** `arte`: pasadas del juez de arte por tarea visible (2; 0 lo apaga); no gastan `corrections`. */
+export type Limits = {corrections: number; umgRetries: number; arte: number; silentWarnMinutes?: number; silentActMinutes?: number};
 export type WorkerModel = 'sonnet' | 'opus' | 'haiku';
 const models=['sonnet','opus','haiku'];
 /** Tiempo muerto: cupo aparte para revisores y QA, que no compiten con los implementadores por `claude`. */
@@ -80,7 +81,7 @@ export const captureCvars = (config: SchedulerConfig): string[] => (config as {c
 export const directorConfig = (config: SchedulerConfig) => ({mode: config.director?.mode ?? (rapido(config) ? 'evento' : 'sesion'), debounceSeconds: config.director?.debounceSeconds ?? 60});
 export const limits = (config: SchedulerConfig): Limits => {
   const n = rapido(config) ? 1 : 3;
-  return {corrections: config.limits?.corrections ?? n, umgRetries: config.limits?.umgRetries ?? n};
+  return {corrections: config.limits?.corrections ?? n, umgRetries: config.limits?.umgRetries ?? n, arte: config.limits?.arte ?? 2};
 };
 /** Jam 2026-11-10: minutos sin señal de vida (salida, transcripción o archivos del árbol) para avisar y para reenviar. */
 export const silentMinutes = (config: SchedulerConfig) =>
@@ -114,7 +115,7 @@ export function readConfig(dataDir:string): SchedulerConfig & {criticalSystems?:
       || Object.entries(config.models).some(([k,v])=>!modelRoles.includes(k) || !models.includes(v as string)))) throw new Error();
     if(config.opencodeModel!==undefined && !isOpencodeModel(config.opencodeModel)) throw new Error();
     if(config.limits!==undefined && (!config.limits || typeof config.limits!=='object' || Array.isArray(config.limits)
-      || Object.entries(config.limits).some(([k,v])=>!['corrections','umgRetries','silentWarnMinutes','silentActMinutes'].includes(k) || !count(v)))) throw new Error();
+      || Object.entries(config.limits).some(([k,v])=>!['corrections','umgRetries','arte','silentWarnMinutes','silentActMinutes'].includes(k) || !count(v)))) throw new Error();
     if(config.orca!==undefined && (!config.orca || typeof config.orca!=='object' || Array.isArray(config.orca)
       || Object.entries(config.orca).some(([k,v])=>!['graceMinutes','maxWorkerMinutes','createTimeoutMs'].includes(k) || typeof v!=='number'
         || (k==='createTimeoutMs' ? !(v>0 && v<=3_600_000) : !(v>=0 && v<=24*60) || k==='maxWorkerMinutes' && v<=0)))) throw new Error();

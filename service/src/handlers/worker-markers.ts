@@ -6,13 +6,16 @@ import { join } from 'node:path';
 export type Finding={file:string;line:number;severity:string;note:string};
 /** `focus` (hito 22): «En qué fijarte» para la aprobación del usuario, opcional en DONE y en REVIEW. */
 export type Marker = {kind:'DONE';summary:string;commits:string[];tests:string;focus?:string[]} | {kind:'ASK'|'INVALID_REVIEW';question:string}
-  | {kind:'REVIEW';approved:boolean;findings:Finding[];focus?:string[]} | {kind:'SKILLS';skills:string[]};
+  | {kind:'REVIEW';approved:boolean;findings:Finding[];focus?:string[];notas?:Record<string,number>} | {kind:'SKILLS';skills:string[]};
 export const compactMarkerText=(text:string)=>text.replace(/\s/g,'');
 export function markerId(marker: Extract<Marker,{kind:'DONE'}>): string {
   return createHash('sha256').update(JSON.stringify({summary:compactMarkerText(marker.summary),
     commits:marker.commits.map(compactMarkerText),tests:marker.tests})).digest('hex');
 }
 const focus=(data:any)=>Array.isArray(data.focus)&&data.focus.every((s:unknown)=>typeof s==='string') ? {focus:data.focus.filter((s:string)=>s.trim()).slice(0,4)} : {};
+/** Juez de arte: nota de 0 a 3 por criterio (checks/arte.ts). */
+const notas=(data:any)=>data.notas && typeof data.notas==='object' && !Array.isArray(data.notas)
+  ? {notas:Object.fromEntries(Object.entries(data.notas).filter(([,v])=>typeof v==='number'))} : {};
 function decode(kind:string,text:string): Marker | undefined {
   try {
     const data=JSON.parse(text);
@@ -26,7 +29,7 @@ function decode(kind:string,text:string): Marker | undefined {
     if(kind==='REVIEW' && typeof data.approved==='boolean' && Array.isArray(data.findings)
       && data.findings.every((f:any)=>f && typeof f.file==='string'&&f.file.trim()
         &&Number.isSafeInteger(f.line)&&f.line>0&&typeof f.severity==='string'&&f.severity.trim()
-        &&typeof f.note==='string'&&f.note.trim())) return {kind:'REVIEW',approved:data.approved,findings:data.findings,...focus(data)};
+        &&typeof f.note==='string'&&f.note.trim())) return {kind:'REVIEW',approved:data.approved,findings:data.findings,...focus(data),...notas(data)};
   } catch {}
 }
 function fenceLine(line:string,fence:string): string | undefined {

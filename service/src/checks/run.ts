@@ -28,6 +28,8 @@ export type CheckDeps = {
   acabado?: boolean;
   /** false: sin comprobación imagen; `imagenScript` sustituye a revisar_imagen.py en las pruebas. */
   imagen?: boolean; imagenScript?: string;
+  /** false: sin juez de arte en el lote (pruebas de las demás comprobaciones). */
+  arte?: boolean;
 };
 /** Vida del ejecutable: `killed` = Nomos lo cerró al acabar su tiempo; si no, terminó solo a los `seconds`. */
 export type Launch = {exitCode: number | null; seconds: number; killed: boolean; error?: string};
