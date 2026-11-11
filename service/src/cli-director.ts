@@ -127,8 +127,12 @@ export async function directorCli(argv: string[]): Promise<boolean> {
   const level=group+'.'+action==='task.priority' ? rest.shift() : undefined;
   const extra=rest,needsId=!(group==='task' && action==='create' || group==='decision' && action==='list');
   if (extra.length || needsId && !rawId || !needsId && rawId) throw new Error('Uso: argumentos incorrectos');
-  const id=rawId ? encodeURIComponent(rawId) : '',dataDir=resolve(values.data ?? '.nomos');
+  const dataDir=resolve(values.data ?? '.nomos');
   const call=(path: string,data?: unknown,timeoutMs?: number)=>request(serviceInfo(dataDir),path,data,timeoutMs);
+  // el brief del director y el panel muestran 8 caracteres: `task show 0e05d115` busca la tarea que empieza así
+  const full=(group==='task' || group==='worker' && action==='start') && rawId && /^[0-9a-f]{8}$/i.test(rawId)
+    ? (await call('/tasks') as {id:string}[]).filter(t=>t.id.startsWith(rawId.toLowerCase())) : [];
+  const id=encodeURIComponent(full.length===1 ? full[0].id : rawId ?? '');
   // hito 10: lo que el director crea por un mensaje del chat se enlaza a él (sin --message, el servicio lo infiere)
   const message=values.message===undefined ? {} : {messageId:required(values.message,'--message')};
   let result: unknown;
