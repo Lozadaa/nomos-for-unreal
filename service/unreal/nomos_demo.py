@@ -80,11 +80,17 @@ def objetivos(world):
     if pawn:
         out.append(("protagonista", pawn))
     cam = unreal.GameplayStatics.get_player_camera_manager(world, 0).get_camera_location()
-    vistos = set()
-    for a in sorted(actores, key=lambda a: (a.get_actor_location() - cam).length()):
+    cerca = sorted(actores, key=lambda a: (a.get_actor_location() - cam).length())
+    # otro de la misma clase que el pawn suele ser el rival (trompos, coches, luchadores)
+    rival = next((a for a in cerca if pawn and a != pawn and a.get_class() == pawn.get_class()), None)
+    if rival:
+        out.append(("amenaza", rival))
+    vistos = {pawn.get_class().get_name()} if pawn else set()
+    for a in cerca:
         cls = a.get_class().get_name()
         if a == pawn or cls in vistos or any(w in cls for w in ("Controller", "Manager", "GameMode", "State", "HUD", "Info", "Volume",
-                                                                 "Light", "Fog", "Sky", "Camera", "PostProcess", "Brush", "Debug")):
+                                                                 "Light", "Fog", "Sky", "Camera", "PostProcess", "Brush", "Debug",
+                                                                 "PlayerStart", "Note", "Audio", "Sound")):
             continue
         _, ext = a.get_actor_bounds(False)
         if max(ext.x, ext.y, ext.z) < 1:
@@ -96,23 +102,44 @@ def objetivos(world):
     return out
 
 
+def sin_choque_de_camara(world):
+    """El barrido de la cámara libre arranca en el pivote del actor: con el pivote en el suelo (la punta de un trompo) choca
+    al empezar y la cámara queda dentro del actor. Solo el canal Camera (consultas), no la física: el juego sigue igual."""
+    for a in unreal.GameplayStatics.get_all_actors_of_class(world, unreal.Actor):
+        try:
+            for c in a.get_components_by_class(unreal.PrimitiveComponent):
+                c.set_collision_response_to_channel(unreal.CollisionChannel.ECC_CAMERA, unreal.CollisionResponseType.ECR_IGNORE)
+        except Exception:  # noqa: BLE001
+            continue
+
+
 def apuntar(actor):
     """Cámara libre orbitando al actor (view target) a tres cuartos (45° de lado, 25° desde arriba); ~50 % del alto."""
     pc = unreal.GameplayStatics.get_player_controller(state["world"], 0)
     cm = unreal.GameplayStatics.get_player_camera_manager(state["world"], 0)
-    origin, ext = actor.get_actor_bounds(False)
+    # solo lo que colisiona: estelas, indicadores o luces hijas inflan la caja entera
+    origin, ext = actor.get_actor_bounds(True)
+    if max(ext.x, ext.y, ext.z) < 1:
+        origin, ext = actor.get_actor_bounds(False)
     size = max(2 * ext.z, 1.2 * max(ext.x, ext.y), 10.0)
     half_v = math.atan(math.tan(math.radians(cm.get_fov_angle() / 2)) * 9 / 16)
     pc.set_view_target_with_blend(actor, 0.0)
     if not state.get("freecam"):
         console("camera freecam")
         state["freecam"] = True
-    cm.set_editor_property("free_cam_distance", min(size / math.tan(half_v), 8000.0))
-    try:  # que orbite el centro de la caja, no el pivote (un trompo tiene el pivote en la punta)
-        cm.set_editor_property("view_target_offset", origin - actor.get_actor_location())
-    except Exception:  # noqa: BLE001
-        pass
+    # 0,55: medido en Trompo, con 1,0 el actor ocupaba ~20 % del alto (la cámara libre no usa el FOV del juego)
+    cm.set_editor_property("free_cam_distance", min(0.55 * size / math.tan(half_v), 8000.0))
+    # que orbite el centro de la caja y no el pivote: con el pivote en el suelo (la punta de un trompo) el barrido de la
+    # cámara (caja de 12 cm) arranca dentro del suelo y la deja pegada al actor. El desplazamiento va en ejes de la cámara.
+    alto = max(origin.z - actor.get_actor_location().z, 0.0) + 15.0
+    try:
+        cm.set_editor_property("free_cam_offset", unreal.Vector(0.0, 0.0, alto))
+    except Exception as e:  # noqa: BLE001
+        report.setdefault("avisos", []).append(f"free_cam_offset: {e}")
     pc.set_control_rotation(unreal.Rotator(0.0, -25.0, actor.get_actor_rotation().yaw + 135.0))
+    return {"centro": [round(origin.x), round(origin.y), round(origin.z)], "tam": round(size), "dist": round(cm.get_editor_property("free_cam_distance")),
+            "camara": [round(v) for v in (cm.get_camera_location().x, cm.get_camera_location().y, cm.get_camera_location().z)],
+            "rot": [round(cm.get_camera_rotation().pitch, 1), round(cm.get_camera_rotation().yaw, 1)]}
 
 
 def detalle_tick(now):
@@ -123,7 +150,7 @@ def detalle_tick(now):
         apuntar(actor)
         state.update(phase="d-wait", t=now)
     elif state["phase"] == "d-wait" and now - state["t"] > 1.0:
-        apuntar(actor)  # el actor se movió (gira, rueda): se reapunta justo antes de la captura
+        report.setdefault("detalles_info", {})[nombre] = apuntar(actor)  # el actor se movió (gira, rueda): se reapunta justo antes de la captura
         state.update(before=pngs(), target=os.path.join(DIR, f"detalle-{nombre}.png"), phase="d-shot", t=now)
         console("HighResShot 1280x720")
     elif state["phase"] == "d-shot":
@@ -170,6 +197,7 @@ def tick(_dt):
                 if state["i"] >= len(SEGUNDOS):
                     if not DETALLE:
                         return finish()
+                    sin_choque_de_camara(state["world"])
                     state.update(objetivos=objetivos(state["world"]), d=0, d0=now, phase="d-aim")
             elif now - state["t"] > 20:
                 report["errors"].append(f"La captura {NOMBRES[state['i']]} no se escribió en 20 s")
