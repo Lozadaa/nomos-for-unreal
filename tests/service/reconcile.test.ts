@@ -81,6 +81,13 @@ test('lo commiteado del intento anterior entra en el árbol nuevo y el brief lo 
   await f.invoke('worker.start',{taskId:f.task.id,provider:'codex',role:'programmer',skills:[],attempt:2});
   assert.equal(readFileSync(join(first.path,'plan.md'),'utf8'),'plan de arte\n');
   assert.match(readFileSync(join(first.path,'.nomos-brief.md'),'utf8'),/## Intento anterior[\s\S]*ya está fusionado/);
+  // y el intento 3 hereda lo del 2 (la rama más reciente), no solo lo del 1
+  writeFileSync(join(first.path,'plan.md'),'plan de arte v2\n');
+  execFileSync('git',['-C',first.path,'commit','-qam','avance del intento 2']);
+  await f.invoke('worker.stop',{runId:filtered<Run>(f.db,'runs',{taskId:f.task.id}).find(r=>r.state==='running')!.id});
+  writeFileSync(f.file,JSON.stringify({...f.state(),terminalHandle:'term_3'}));
+  await f.invoke('worker.start',{taskId:f.task.id,provider:'codex',role:'programmer',skills:[],attempt:3});
+  assert.equal(readFileSync(join(first.path,'plan.md'),'utf8'),'plan de arte v2\n');
 });
 test('cancelar con un worker que no cierra reintenta cada 30 s y no toca el árbol',async t=>{
   const f=fixture(t);await f.start();const run=f.run();
