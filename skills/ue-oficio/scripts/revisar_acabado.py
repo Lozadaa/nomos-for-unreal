@@ -42,7 +42,7 @@ CARGA = re.compile(r"\b(StreamAllResources|IsFullyStreamedIn|RequestAsyncLoad|Lo
 
 def revisar(proyecto: Path, solo: list[str] | None = None, final: bool = True) -> tuple[list[str], list[str]]:
     fallos, avisos = [], []
-    fuentes = [p for p in (proyecto / "Source").rglob("*") if p.suffix in (".cpp", ".h") and "Test" not in p.name]
+    fuentes = todas = [p for p in (proyecto / "Source").rglob("*") if p.suffix in (".cpp", ".h") and "Test" not in p.name]
     if solo is not None:
         elegidos = {Path(r.replace("\\", "/")).as_posix() for r in solo}
         fuentes = [p for p in fuentes if p.relative_to(proyecto).as_posix() in elegidos]
@@ -83,6 +83,9 @@ def revisar(proyecto: Path, solo: list[str] | None = None, final: bool = True) -
     fallos += plan_de_arte(proyecto / "docs" / "direccion.md")
     if "MapsToCook" not in texto:
         avisos.append("DefaultGame.ini sin +MapsToCook: añade el mapa del juego (acabado.md, Empaquetado)")
+    # la pantalla de carga es del juego entero: con solo el diff, se busca en todo Source/ (TrompoArte: falso positivo)
+    hay_carga = hay_carga or any(CARGA.search(l.split("//", 1)[0]) for p in todas
+                                 for l in p.read_text(encoding="utf-8", errors="replace").splitlines())
     if fuentes and not hay_carga:
         fallos.append("Source/: no hay pantalla de carga que espere a las texturas (acabado.md, Pantalla de carga)")
     # solo Content/ y Fuentes/: el empaquetado (Saved/, Empaquetado/) trae fuentes del motor que no cuentan
@@ -147,6 +150,12 @@ def probar() -> None:
         (p / "Source" / "J" / "Hud.cpp").write_text("int x = 0;\n", encoding="utf-8")
         assert revisar(p, ["Source/J/Hud.cpp"], final=False) == ([], []), revisar(p, ["Source/J/Hud.cpp"], final=False)
         assert len(revisar(p, ["Source\\J\\Otra.cpp"], final=False)[0]) == 1
+        # juego entero con solo el diff: la pantalla de carga de otro archivo cuenta; un comentario, no
+        (p / "Source" / "J" / "Otra.cpp").write_text("// MoviePlayer\n", encoding="utf-8")
+        carga = lambda: [f for f in revisar(p, ["Source/J/Hud.cpp"])[0] if "pantalla de carga" in f]
+        assert carga(), "un comentario no es una pantalla de carga"
+        (p / "Source" / "J" / "Otra.cpp").write_text("Manager.RequestAsyncLoad(Rutas, Hecho); // MoviePlayer\n", encoding="utf-8")
+        assert not carga(), revisar(p, ["Source/J/Hud.cpp"])
     print("probar: ok")
 
 
