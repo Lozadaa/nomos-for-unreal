@@ -1,118 +1,111 @@
-# Nomos for Unreal
+<p align="center">
+  <img src="docs/media/nomos-banner.svg" alt="Nomos for Unreal" width="640">
+</p>
 
-Nomos for Unreal se llamó Kratos hasta el 2026-10-24 (compatibilidad con el nombre viejo hasta el 2026-11-24: [docs/aceptacion-hito11.md](docs/aceptacion-hito11.md)).
+<p align="center"><b>Haz juegos de Unreal Engine con un equipo de agentes de Claude Code: tú pides, Nomos reparte, revisa y empaqueta.</b><br>
+Para quien quiere sacar un juego pequeño (una jam, un prototipo) sin renunciar al acabado.</p>
 
-Director de producción de videojuegos Unreal Engine con IA. Es una skill de Claude Code (`/nomos`) que, desde la carpeta de un juego, levanta un servicio local y un panel web; la conversación de Claude recibe peticiones, las convierte en tareas y coordina workers (Claude Code en terminales de Orca), assets del catálogo, Unreal, pruebas, integración y cierre.
+<p align="center"><i>A production director for Unreal Engine games built on Claude Code agents: brief in, packaged game out.</i></p>
 
-Estado: MVP cerrado en el hito 7 (ver [docs/estado-entregas.md](docs/estado-entregas.md) y [docs/recorrido-mvp.md](docs/recorrido-mvp.md)). El plan está en [docs/plan-v2.md](docs/plan-v2.md); los planes por hito, en [docs/superpowers/plans](docs/superpowers/plans).
+## Hecho con Nomos
+
+<p align="center">
+  <img src="docs/media/trompo-nomos.gif" alt="Trompo, un juego de trompos hecho con Nomos" width="49%">
+  <img src="docs/media/trompo-con-y-sin-nomos.gif" alt="Trompo: sin Nomos a la izquierda, con Nomos a la derecha" width="49%">
+</p>
+<p align="center"><sub><i>Trompo</i>, hecho con Nomos · el mismo encargo sin Nomos (izquierda) y con Nomos (derecha)</sub></p>
+
+Mismo encargo, mismo PC, Unreal 5.9: un agente Opus solo frente a Nomos. Dos jueces a ciegas puntuaron capturas del `.exe`.
+
+| Trompo | Agente solo | Nomos |
+|---|---|---|
+| Nota de los jueces | 18/30 | **23,5/30** |
+| Del encargo al `.exe` | 39 min 49 s | **30 min 54 s** |
+| Fallos de acabado | 3 | **0** |
+| Intervenciones humanas | 0 | 0 |
+
+Con 30 minutos más y sin intervenciones, Nomos cerró el bucle: cámara baja, trompos grandes y tres lanzamientos.
+
+<p align="center"><img src="docs/media/trompo-antes-despues.gif" alt="Trompo: primera versión frente a 30 minutos más con Nomos" width="70%"></p>
+
+**En el primer juego Nomos perdió.** Con *Candela* el agente solo sacó 22/30 y Nomos 14/30: el juego era oscuro y no se leía.
+Por eso un juego pequeño va ahora a un solo worker, el worker y el revisor miran capturas, una comprobación mide la imagen y la
+semilla arranca con luz, cielo y cámara. Una pasada por rama y nadie jugó con ratón: datos completos y límites en
+[comparativa-trompo.md](docs/demo/comparativa-trompo.md) y [comparativa.md](docs/demo/comparativa.md).
+
+## Qué hace
+
+- **Del encargo al juego empaquetado.** Escribes lo que quieres en el chat o en el panel; el director lo convierte en tareas
+  con criterios, las reparte, pide revisión independiente y cierra con un `.exe`.
+- **Un worker por juego pequeño.** Lo que cabe en una hora lo hace un solo worker; se parte solo si hace falta.
+- **Acabado obligatorio.** Nada por defecto del motor (HUD con fuentes propias, pantalla de carga, texturas cocinadas):
+  `revisar_acabado.py` bloquea el FIN si falta algo.
+- **Una comprobación que mira la imagen.** `revisar_imagen.py` detecta negro puro, pantalla vacía o un protagonista que no se lee.
+- **Equipo sincronizado por Git.** Cada persona con su Nomos en su PC; cada minuto se trae lo que publican los demás.
+- **Build web** (WebAssembly + WebGPU) con el motor del Launcher, sin compilar Unreal desde fuente.
+- **Herramientas:** MCP de Unreal 5.9, Meshy con varias cuentas para piezas hard surface y sonido de WeLoveIndies con tu sesión.
+- **Panel local** con tarjeta de estado: qué se hace, quién lo hace y qué espera de ti.
+
+<p align="center"><img src="docs/capturas-panel-calido/inicio-escritorio-claro.png" alt="Panel de Nomos: Inicio con la tarjeta de estado" width="80%"></p>
 
 ## Requisitos
 
-- **Windows 11** con Git (Git Bash para Claude Code).
-- **Node.js 25 o posterior**: ejecuta TypeScript sin compilar y trae SQLite. El servicio no tiene dependencias npm.
-- **Claude Code** con `claude` en el PATH (los workers se lanzan con `claude --model sonnet --dangerously-skip-permissions`).
-- **Orca** abierto (probado con 1.4.207) y su CLI `orca` en el PATH: Nomos crea un worktree y un terminal por worker.
-- **Unreal Engine 5.8** (probado con 5.8.3 en `C:\Program Files\Epic Games\UE_5.8`); los plugins `ModelContextProtocol` y `AllToolsets` son opcionales.
-  El **5.9 MegaJam Preview** (2026-11-09, `UE_5.9`) es inestable según Epic y se prueba solo en una copia del juego con `unrealPath` en `.nomos/config.json`: qué cambia y qué queda sin confirmar, en [skills/ue-oficio/references/ue59-preview.md](skills/ue-oficio/references/ue59-preview.md).
-- Opcionales: Epic Games Launcher y plugin Fab (catálogo), Blender, `MESHY_API_KEY` (solo piezas hard surface).
+- **Windows 11**, **Node.js 25+**, **Git** con **Git LFS**, **Claude Code** (`claude` en el PATH).
+- **Unreal Engine 5.8 o 5.9** (el 5.9 MegaJam Preview es inestable según Epic: [ue59-preview.md](skills/ue-oficio/references/ue59-preview.md)).
+- Opcionales: [Orca](docs/workers-proveedores.md) (terminales visibles para los workers), emsdk 6.0.10 (build web),
+  Python con Pillow (comprobación de imagen), ffmpeg (vídeos), cuenta de Meshy, cuenta de WeLoveIndies.
 
-## Instalación
+## Empezar en cinco minutos
 
-1. Clona este repositorio y prepara el panel (sus dependencias viven solo en `panel/`):
+```powershell
+git clone https://github.com/Lozadaa/nomos-for-unreal nomos
+cd nomos
+npm --prefix panel ci; npm run build                  # el panel; el servicio no tiene dependencias npm
 
-   ```bash
-   git clone <repo> nomos && cd nomos
-   npm --prefix panel ci && npm run build
-   ```
-
-2. Enlaza la skill en Claude Code con una *junction* (no hace falta copiarla; los cambios del repositorio se ven al momento):
-
-   ```powershell
-   New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\nomos" -Target "C:\ruta\a\nomos\skills\nomos"
-   ```
-
-3. Comprueba el equipo desde la carpeta del juego:
-
-   ```bash
-   node C:/ruta/a/nomos/skills/nomos/scripts/nomos.ts doctor --data .nomos
-   ```
-
-   `doctor` lista Node, Orca, Unreal, plugins MCP y Fab, Launcher, Meshy, Blender, Git, el servicio (sin mostrar el token) y los dos carriles del ejecutor con su último latido. Termina con código 1 si falta algo imprescindible.
-
-### Nomos dentro del repo del juego
-
-Para que cada compañero tenga Nomos con solo clonar el juego (Git, Node ≥ 25, Claude Code y Unreal; nada más):
-
-```bash
-node service/src/cli.ts embed "C:/ruta/al/Juego"            # copia Tools/Nomos, .claude/skills, nomos.cmd/nomos.sh y la sección «Nomos» del CLAUDE.md
-node service/src/cli.ts embed "C:/ruta/al/Juego" --update   # renueva Tools/Nomos y las skills; el resto del CLAUDE.md se conserva
+node skills/nomos/scripts/nomos.ts nuevo MiJuego      # juego C++ con la semilla y Nomos dentro, en Documentos\Unreal Projects
+cd "$env:USERPROFILE\Documents\Unreal Projects\MiJuego"
+.\Scripts\compilar.ps1
+.\nomos.cmd doctor --data .nomos                      # dice qué falta y qué se pierde sin ello
+claude                                                # y dentro: /nomos
 ```
 
-No hace commit: revisa y confirma en el juego. Después, en el juego, `/nomos` o `.\nomos.cmd start --data .nomos`.
+`/nomos` levanta el servicio en `127.0.0.1`, abre el panel y espera. Manda el primer encargo por el chat, por ejemplo:
+*«Un juego de trompos: lanzas el tuyo y ganas si echas a los demás del ruedo. Cámara baja y de lado, que se lea a 1280×720.»*
 
-## Uso
+Para usar `/nomos` en un juego que no salió de `nomos nuevo`, enlaza la skill una vez:
 
-Abre Claude Code en la carpeta del juego (la que tiene el `.uproject`) y escribe `/nomos`. La skill arranca el servicio en `127.0.0.1`, abre el panel y se queda escuchando: lo que pidas en el chat de Claude o en el panel se convierte en tareas con alcance, criterios y dependencias. Desde ahí:
-
-- **Producción** muestra las tareas por etapa (pendiente → preparada → implementando → revisando → probando → integrando → cerrando → hecha), quién trabaja en cada una y por qué espera («Esperando reserva», «Depende de…», «Director en pausa», «Sin conexión»…).
-- **⌘K / Ctrl+K** busca tareas y vistas y, con una tarea abierta, lanza pruebas, la integra o la cierra.
-- **Decisiones** recoge lo que solo tú decides (presupuesto, conflictos, Orca cerrado más de 30 min…).
-- **Capacidades** comprueba de verdad cada herramienta («Comprobar ahora», «Abrir Orca»).
-
-Órdenes útiles de la CLI (`nomos` = `node <nomos>/skills/nomos/scripts/nomos.ts`): `start`, `stop`, `status`, `doctor`, `task create|review|check|integrate|finalize|continue`, `asset index|search|migrate`, `pausar`, `reanudar`.
-
-### Configuración (`<juego>/.nomos/config.json`)
-
-```json
-{
-  "concurrency": {"claude": 2, "codex": 0},
-  "defaultProvider": "claude",
-  "models": {"implementacion": "opus", "revisor": "sonnet", "qa": "sonnet", "integrador": "sonnet", "animacion": "sonnet"},
-  "targetBranch": "master",
-  "limits": {"corrections": 3},
-  "visualTolerance": 0.02,
-  "walkthrough": {"map": "/Game/Mapas/Prueba", "commands": ["stat fps", "stat unit", "r.VSync 0"], "trace": false}
-}
+```powershell
+New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\nomos" -Target "<ruta a nomos>\skills\nomos"
 ```
 
-Codex está **apagado por defecto**; para usarlo hay que darle cupo. Cada rol de Claude usa su modelo:
+o mete Nomos en el repo del juego con `node service/src/cli.ts embed "<ruta al juego>"` ([referencia](docs/referencia.md)).
 
-| Rol (`models` en config.json) | Modelo por defecto | Quién |
-|---|---|---|
-| `implementacion` | `opus` (o `workerModel` si existe) | worker de cualquier área |
-| `revisor` | `sonnet` | revisión de código |
-| `qa` | `sonnet` | QA visual tras `ui.cycle` |
-| `integrador`, `animacion` | `sonnet` | integración y animación |
+## Equipo y cuentas
 
- `visualTolerance` es la fracción de píxeles que puede cambiar una captura frente a su línea base (`<juego>/docs/baseline/`). `walkthrough` guía el recorrido del ejecutable empaquetado; `trace: true` graba una traza de Unreal Insights (unos 0,9 GB por 30 s).
+- **Jam en equipo:** [docs/jam-equipo.md](docs/jam-equipo.md) (instalar, clonar, elegir frente, prueba de 10 minutos).
+- **Meshy con varias cuentas:** `powershell -ExecutionPolicy Bypass -File scripts\guardar-claves-meshy.ps1`. Las claves se
+  cifran con DPAPI en tu usuario de Windows y no van a ningún repositorio.
+- **Sonido de WeLoveIndies:** `nomos sonido login` abre un Chrome aparte para que entres tú; luego `nomos sonido buscar`,
+  `bajar` e `importar` ([cómo](docs/investigacion/weloveindies.md)).
 
-Las rutas que aparecen en `docs/` con el nombre viejo, como `C:/Users/richa/orca/workspaces/kratos/...` o el proyecto de pruebas `KratosFabTest`, son carpetas locales reales de este equipo y lo conservan; también el contenido que Nomos ya creó dentro de los juegos (`/Game/Kratos/...`, etiquetas `KratosAnim`, `KratosCamera`).
+## Documentación
 
-## Estructura
+[Referencia técnica](docs/referencia.md) (panel, CLI, configuración, pruebas, seguridad) ·
+[skill del director](skills/nomos/SKILL.md) · [oficio de Unreal](skills/ue-oficio/SKILL.md) ·
+[build web](skills/ue-oficio/references/web.md) · [MCP de Unreal 5.9](docs/investigacion/mcp-59.md) ·
+[estado de entregas](docs/estado-entregas.md)
 
-| Carpeta | Qué hay |
-|---|---|
-| `skills/nomos` | La skill (`SKILL.md`, `scripts`, `references`, `evals`) |
-| `service` | Servicio local (Node, sin dependencias), scripts de Unreal en `service/unreal` |
-| `panel` | Panel web (Vite, React 19, Tailwind v4, shadcn/ui) |
-| `docs` | Plan, aceptaciones y auditorías por hito, capturas |
-| `tests` | Pruebas `node:test` del servicio y la CLI |
+## Estado y límites
 
-## Pruebas
+Funciona de punta a punta en un PC: encargo, workers, revisión, acabado y `.exe`. Sin probar todavía:
 
-```bash
-npm test                 # servicio y CLI (node:test)
-npm run test:panel       # Vitest del panel
-npm run build            # panel de producción
-cd panel && npx playwright test   # e2e en Chromium y Firefox con su propio servicio sembrado
-```
+- Dos máquinas reales con GitHub y Git LFS (la guía de equipo trae la prueba para hacerla).
+- El juego web en móviles, Firefox, Safari o subido a itch.io; se probó en Chromium de escritorio con WebGPU.
+- El inicio de sesión y una descarga reales de WeLoveIndies.
+- Nadie ha jugado los juegos de las comparativas con ratón ni ha oído su sonido: se midió en modo demo.
 
-`node service/src/cli.ts seed --data .nomos` crea una producción de ejemplo (12 tareas, eventos y catálogo) sin Unreal, Orca ni Meshy; los e2e corren sobre ella.
+## Licencia y créditos
 
-## Seguridad
-
-El servicio solo escucha en `127.0.0.1` y toda ruta exige `Authorization: Bearer <token>`; el token es de la carpeta de datos: vive en `<juego>/.nomos/token` (y mientras el servicio corre, en `service.json`), ambos con permisos 0o600, y no debe pegarse en chats ni tickets. Reiniciar (`nomos stop` y `nomos start`) no invalida los accesos directos: el token se conserva y el panel abierto reconecta solo. `nomos start --new-token`, con el servicio parado, lo cambia; entonces los accesos directos viejos dejan de valer y el panel dice «Sesión caducada».
-
-## Licencia
-
-MIT.
+[MIT](LICENSE). Fuentes del panel (Newsreader, Instrument Sans, Geist Mono) y de la semilla (Caveat Brush, Patrick Hand)
+bajo SIL Open Font License. Logo dibujado con Codex para este proyecto. Unreal Engine es marca de Epic Games; Nomos no está
+afiliado a Epic Games ni a Anthropic.
