@@ -25,6 +25,18 @@ queda abierto sin turno; si otro (una comprobación u otro worker) necesita Unre
 y el siguiente `ue py` lo vuelve a abrir. `nomos ue estado` y `nomos ue parar`; se cierra solo tras 10 min sin trabajo
 o si cambian `Binaries` o el `.uproject`. FASTVFX genera y captura en él.
 
+Con Unreal 5.9 y el plugin `AllToolsets` en el `.uproject` (la semilla lo trae), el caliente también atiende por el MCP
+del motor, en un puerto propio:
+
+- `nomos ue compilar --tarea <taskId>`: Live Coding. Recompila en 6-20 s sin cerrar el editor. Solo para cuerpos de
+  funciones: clases, `UPROPERTY` o `UFUNCTION` nuevos siguen pidiendo `Build.bat`. No actualiza el DLL del disco, así
+  que **antes de entregar compila una vez con `Build.bat`**. Un `check()` que salte tumba el editor (`nomos ue crash`).
+- `nomos ue captura --tarea <taskId> docs/capturas/pie.png [--env JUEGO_AUTO=1] [--espera 10] [--mapa /Game/Mapas/X]`:
+  arranca el juego dentro del editor, espera, guarda lo que se ve (con HUD) y lo para. Para mirar mientras iteras; la
+  captura que cuenta sigue siendo la del `.exe`.
+
+Sin MCP (5.8, o un juego sin el plugin) las dos órdenes lo dicen y salen con error: sigue con `Build.bat` y la captura `-game`.
+
 Para abrir Unreal por otra vía (build, empaquetado, `-game`):
 
 ```

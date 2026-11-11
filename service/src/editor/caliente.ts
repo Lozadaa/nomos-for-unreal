@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { createServer } from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createUnrealCmd, defaultUnrealCmd } from '../adapters/unreal-cmd.ts';
 import { quote, runLogged } from '../adapters/process.ts';
@@ -15,6 +16,7 @@ import { openDb } from '../db.ts';
 import { dbFile } from '../legacy.ts';
 import { enCache, plantillasRecetas, recordar, validarReceta } from './recetas.ts';
 import { carpetasCrash, ultimoCrash } from './crash.ts';
+import { mcpConnect, type Mcp } from './mcp.ts';
 
 /**
  * x10: editor caliente. En Herbalist los workers abrieron UnrealEditor-Cmd en frío 1 090 veces (21 h): la
@@ -22,7 +24,7 @@ import { carpetasCrash, ultimoCrash } from './crash.ts';
  * proyecto (o worktree) con nomos_caliente.py y cada `nomos ue py` le deja un trabajo en `Saved/NomosCaliente`.
  * Se cierra solo tras `inactivo` segundos, con `nomos ue parar` o al devolver el turno de Unreal.
  */
-export type WarmOpts = {bin?: string; baseArgs?: string[]; idleSeconds?: number; startTimeoutMs?: number};
+export type WarmOpts = {bin?: string; baseArgs?: string[]; idleSeconds?: number; startTimeoutMs?: number; mcpWaitMs?: number};
 export type WarmResult = {ok: boolean; salida: string; error: string | null; ms: number; arranque: number | null};
 type Beat = {pid: number; en: number; desde: number; trabajos: number};
 
@@ -49,14 +51,22 @@ function stale(uproject: string, since: number): boolean {
   return files.some(f => { try { return statSync(f).mtimeMs / 1000 > since; } catch { return false; } });
 }
 
-function launch(uproject: string, opts: WarmOpts): {salio: number | null} {
+/** Un puerto libre para el MCP de este editor: el 8000 por defecto puede ser del editor que tenga abierto el usuario. */
+const freePort = () => new Promise<number>((ok, ko) => {
+  const s = createServer().on('error', ko).listen(0, '127.0.0.1', () => { const {port} = s.address() as {port: number}; s.close(() => ok(port)); });
+});
+
+function launch(uproject: string, opts: WarmOpts, mcpPort: number): {salio: number | null} {
   const dir = warmDir(uproject), bin = opts.bin ?? defaultUnrealCmd;
   if (!existsSync(bin)) throw new Error('unreal_missing');
   rmSync(dir, {recursive: true, force: true});
   mkdirSync(join(dir, 'entrada'), {recursive: true});
+  writeFileSync(join(dir, 'mcp-puerto'), String(mcpPort));
   // RHI real sin ventana: FASTVFX compila shaders y lee get_statistics (con -NullRHI daría 0) y captura con SceneCapture2D.
   // -ReportExportPath: `nomos ue test` lee de ahí el index.json de cada «Automation RunTests».
   const args = [...[...(opts.baseArgs ?? []), uproject].map(quote), '-RenderOffscreen', `-ReportExportPath=${quote(join(dir, 'tests'))}`,
+    // 5.9: el plugin ModelContextProtocol arranca solo con el editor (también con -Cmd y sin ventana) [probado]; el 5.8 ignora el argumento
+    `-ModelContextProtocolPort=${mcpPort}`,
     `-ExecCmds="py import os;exec(open(os.environ['NOMOS_CALIENTE_PY']).read())"`, '-unattended', '-nopause', '-nosplash'];
   const child = spawn(bin, args, {detached: true, stdio: 'ignore', windowsHide: true, windowsVerbatimArguments: true, argv0: quote(bin),
     env: {...process.env, PYTHONUTF8: '1', NOMOS_CALIENTE: dir, NOMOS_CALIENTE_PY: script, NOMOS_CALIENTE_INACTIVO: String(opts.idleSeconds ?? 600)}});
@@ -74,7 +84,7 @@ export async function ensureWarm(uproject: string, opts: WarmOpts = {}): Promise
   if (beat && !stale(uproject, beat.desde)) return null;
   if (beat) await stopWarm(uproject);
   const t0 = Date.now();
-  const proceso = launch(uproject, opts);
+  const proceso = launch(uproject, opts, await freePort());
   for (const end = t0 + (opts.startTimeoutMs ?? 10 * 60_000); Date.now() < end; await sleep(250)) {
     if (warmBeat(uproject)) return (Date.now() - t0) / 1000;
     if (proceso.salio !== null)
@@ -104,6 +114,64 @@ export async function runWarm(uproject: string, file: string, env: Record<string
     if (pid ? !alive(pid) : !warmBeat(uproject)) { await sleep(1500); if (!existsSync(done)) throw new Error('El editor caliente se cerró durante el script'); }
   }
   throw new Error('unreal_timeout');
+}
+
+const LIVE = 'LiveCodingToolset.LiveCodingToolset', APP = 'EditorToolset.EditorAppToolset', CAP = 'SceneCaptureToolset.SceneCaptureToolset',
+  PY = 'editor_toolset.toolsets.python_scripting.PythonScriptingTools';
+
+/** El MCP del editor caliente, arrancándolo si hace falta. Solo Unreal 5.9 con `AllToolsets` en el .uproject. */
+async function warmMcp(uproject: string, opts: WarmOpts): Promise<Mcp> {
+  await ensureWarm(uproject, opts);
+  const sinMcp = 'Este editor no tiene MCP: hace falta Unreal 5.9 y el plugin AllToolsets en el .uproject (y recompilar el editor)';
+  let port: number;
+  try { port = Number(readFileSync(join(warmDir(uproject), 'mcp-puerto'), 'utf8')); } catch { throw new Error(sinMcp); }
+  // el servidor sube unos segundos después del primer latido
+  for (const end = Date.now() + (opts.mcpWaitMs ?? 20_000); ; await sleep(500)) {
+    try { return await mcpConnect(port); } catch (e) { if (Date.now() > end) throw new Error(`${sinMcp} (${e instanceof Error ? e.message : e})`); }
+  }
+}
+
+export type LiveResult = {ok: boolean; resultado: string; salida: string; ms: number};
+/** Live Coding en el editor caliente: recompila cuerpos de funciones sin cerrarlo (6-20 s frente a cerrar, Build.bat y reabrir).
+ *  No actualiza el DLL del disco y no sirve para clases, UPROPERTY o UFUNCTION nuevos: eso sigue siendo Build.bat. */
+export async function liveCompile(uproject: string, opts: WarmOpts & {timeoutMs?: number} = {}): Promise<LiveResult> {
+  const t0 = Date.now(), mcp = await warmMcp(uproject, opts);
+  if ((await mcp.call(LIVE, 'IsLiveCodingReady')).value !== true) {
+    await mcp.call(LIVE, 'EnableLiveCoding', {}, 60_000);
+    for (const end = Date.now() + 60_000; (await mcp.call(LIVE, 'IsLiveCodingReady')).value !== true; await sleep(500))
+      if (Date.now() > end) throw new Error('Live Coding no quedó listo en 60 s; compila con Build.bat');
+  }
+  const salida = String((await mcp.call(LIVE, 'CompileLiveCoding', {}, opts.timeoutMs ?? 10 * 60_000)).value ?? '');
+  const resultado = salida.match(/^Result:\s*(\w+)/m)?.[1] ?? 'Desconocido';
+  return {ok: ['Success', 'NoChanges'].includes(resultado), resultado, salida, ms: Date.now() - t0};
+}
+
+/** Captura del juego en marcha dentro del editor caliente (PIE en ventana flotante, con su HUD): 1-3 s frente a lanzar `-game`.
+ *  `env` se pone en el proceso del editor antes de arrancar (el modo demo por variable de entorno). No es el .exe empaquetado. */
+export async function capturePie(uproject: string, salida: string,
+  o: WarmOpts & {env?: Record<string, string>; esperaS?: number; mapa?: string} = {}): Promise<{ancho: number; alto: number; ms: number}> {
+  const t0 = Date.now(), mcp = await warmMcp(uproject, o);
+  const py = (code: string) => mcp.call(PY, 'execute_python', {script: {content: code, language: 'Python'}}, 120_000);
+  if ((await mcp.call(APP, 'IsPIERunning')).value === true) await mcp.call(APP, 'StopPIE', {}, 60_000);
+  if (o.mapa) await py(`unreal.EditorLoadingAndSavingUtils.load_map(${JSON.stringify(o.mapa)})`);
+  if (Object.keys(o.env ?? {}).length) await py(`import os\nos.environ.update(${JSON.stringify(o.env)})`);
+  await mcp.call(APP, 'StartPIE', {options: {playMode: 'PlayMode_InEditorFloating'}}, 120_000);
+  try {
+    const mundos = (await mcp.call(CAP, 'ListWorlds')).value as {world: {refPath: string}; worldType: string}[];
+    const world = mundos.find(w => w.worldType === 'PIE')?.world;
+    if (!world) throw new Error('El juego no llegó a arrancar en el editor (sin mundo PIE); nomos ue crash o el log dan el motivo');
+    await sleep((o.esperaS ?? 3) * 1000);
+    // el primer PIE tras abrir el editor tarda unos segundos en tener viewport [probado]: se reintenta
+    for (const end = Date.now() + 20_000; ; await sleep(1000)) {
+      try {
+        const r = await mcp.call(CAP, 'CaptureGameViewport', {world, maxResolution: 1920}, 60_000), v = r.value as {width: number; height: number};
+        if (!r.image) throw new Error('La captura no trajo imagen');
+        mkdirSync(dirname(resolve(salida)), {recursive: true});
+        writeFileSync(salida, r.image);
+        return {ancho: v.width, alto: v.height, ms: Date.now() - t0};
+      } catch (e) { if (Date.now() > end) throw e; }
+    }
+  } finally { await mcp.call(APP, 'StopPIE', {}, 60_000).catch(() => {}); }
 }
 
 /** Cierra el editor caliente del proyecto si lo hay: trabajo `salir` y, si no sale en 30 s, se mata. */
@@ -208,15 +276,18 @@ async function conTurno<T>(turno: {info: ServiceInfo; tarea: string} | null, upr
 const engineCmd = (dir: string) => { const e = gameEngine(dir); return e && 'cmd' in e ? e.cmd : undefined; };
 export async function ueCli(argv: string[]): Promise<boolean> {
   // solo si `ue` es la orden (el primer posicional): `nomos reply ID ue …` no es esto
-  const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout', '--tarea'].includes(argv[i - 1] ?? ''));
+  const first = argv.find((arg, i) => !arg.startsWith('--') && !['--data', '--env', '--proyecto', '--timeout', '--tarea', '--espera', '--mapa'].includes(argv[i - 1] ?? ''));
   if (first !== 'ue') return false;
   const {values, positionals} = parseArgs({args: argv, allowPositionals: true, options: {data: {type: 'string'},
     env: {type: 'string', multiple: true}, proyecto: {type: 'string'}, timeout: {type: 'string'}, tarea: {type: 'string'},
+    espera: {type: 'string'}, mapa: {type: 'string'},
     validar: {type: 'boolean'}, forzar: {type: 'boolean'}}});
   const [, action, file, ...extra] = positionals;
-  if (!['py', 'test', 'receta', 'recetas', 'parar', 'estado', 'crash'].includes(action) || extra.length || ['py', 'test', 'receta'].includes(action) !== !!file)
+  if (!['py', 'test', 'receta', 'recetas', 'parar', 'estado', 'crash', 'compilar', 'captura'].includes(action) || extra.length
+    || ['py', 'test', 'receta', 'captura'].includes(action) !== !!file)
     throw new Error('Uso: nomos ue py SCRIPT.py [--env K=V]… [--proyecto X.uproject] [--timeout S] | ue test FILTRO [--proyecto X] [--timeout S]'
-      + ' | ue receta RECETA.json [--validar] [--forzar] | ue recetas | ue parar | ue estado | ue crash [--proyecto X]');
+      + ' | ue receta RECETA.json [--validar] [--forzar] | ue recetas | ue parar | ue estado | ue crash [--proyecto X]'
+      + ' | ue compilar | ue captura SALIDA.png [--env K=V]… [--espera S] [--mapa /Game/…]');
   if (action === 'recetas') { console.log(JSON.stringify(plantillasRecetas, null, 2)); return true; }
   if (action === 'receta' && values.validar) {
     const v = validarReceta(JSON.parse(readFileSync(file, 'utf8')));
@@ -276,6 +347,18 @@ export async function ueCli(argv: string[]): Promise<boolean> {
     if (eq < 1) throw new Error(`--env espera CLAVE=valor: ${pair}`);
     return [pair.slice(0, eq), pair.slice(eq + 1)];
   }));
+  if (action === 'compilar') {
+    const r = await conTurno(turno, uproject, () => liveCompile(uproject, {...opts, ...timeout}));
+    console.error(`live coding: ${r.resultado} en ${(r.ms / 1000).toFixed(1)} s`);
+    if (!r.ok) { process.stdout.write(r.salida + '\n'); process.exitCode = 1; }
+    return true;
+  }
+  if (action === 'captura') {
+    const r = await conTurno(turno, uproject, () => capturePie(uproject, resolve(file),
+      {...opts, env, mapa: values.mapa, ...(values.espera ? {esperaS: Number(values.espera)} : {})}));
+    console.log(JSON.stringify({captura: resolve(file), ...r}));
+    return true;
+  }
   const result = await conTurno(turno, uproject, () => runWarm(uproject, resolve(file), env, {...opts, ...timeout}));
   console.error(result.arranque === null ? `editor caliente: ${result.ms} ms` : `editor caliente: abierto en ${result.arranque.toFixed(0)} s; script ${result.ms} ms`);
   if (result.salida) process.stdout.write(result.salida.endsWith('\n') ? result.salida : result.salida + '\n');

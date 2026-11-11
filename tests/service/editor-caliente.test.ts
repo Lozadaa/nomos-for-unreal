@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { runWarm, stopWarm, warmBeat } from '../../service/src/editor/caliente.ts';
+import { capturePie, liveCompile, runWarm, stopWarm, warmBeat } from '../../service/src/editor/caliente.ts';
 
 const fake = join(import.meta.dirname, '..', 'fakes', 'unreal-caliente.mjs');
 const opts = {bin: process.execPath, baseArgs: [fake], startTimeoutMs: 20_000};
@@ -152,4 +152,39 @@ test('x10: una comprobación con la reserva libre cierra antes el editor calient
     const dentro = await withEditor({db} as any, {dir, uproject, name: 'Juego'}, run, async () => warmBeat(uproject));
     assert.equal(dentro, null, 'la comprobación no abre su Unreal con el caliente aún abierto');
   } finally { db.close(); await stopWarm(uproject); }
+});
+
+test('mcp: ue compilar recompila en caliente sin reabrir el editor y sale con 1 si Live Coding falla', async () => {
+  const {dir, uproject} = game();
+  try {
+    await runWarm(uproject, join(dir, 'a.py'), {}, opts);
+    const pid = warmBeat(uproject)!.pid;
+    const bien = await liveCompile(uproject, opts);
+    assert.deepEqual([bien.ok, bien.resultado], [true, 'Success']);
+    assert.equal(warmBeat(uproject)!.pid, pid, 'el mismo editor');
+    mkdirSync(join(dir, 'Source')); writeFileSync(join(dir, 'Source', 'ROTO'), '');
+    const cli = join(import.meta.dirname, '..', '..', 'service', 'src', 'cli.ts');
+    const mal = spawnSync(process.execPath, [cli, 'ue', 'compilar'], {cwd: dir, env: {...process.env, NOMOS_UE_FAKE: fake}, encoding: 'utf8'});
+    assert.equal(mal.status, 1, mal.stderr); assert.match(mal.stderr, /live coding: Failure/); assert.match(mal.stdout, /error C2065/);
+  } finally { await stopWarm(uproject); }
+});
+
+test('mcp: ue captura arranca el juego en el editor con su entorno, guarda el PNG y lo para', async () => {
+  const {dir, uproject} = game();
+  try {
+    const png = join(dir, 'docs', 'capturas', 'pie.png');
+    const r = await capturePie(uproject, png, {...opts, env: {TROMPO_AUTO: '1'}, esperaS: 0});
+    assert.deepEqual([r.ancho, r.alto], [1280, 720]);
+    assert.equal(readFileSync(png).subarray(1, 4).toString(), 'PNG');
+    assert.match(readFileSync(join(dir, 'Saved', 'NomosCaliente', 'mcp-python.txt'), 'utf8'), /os\.environ\.update\(\{"TROMPO_AUTO":"1"\}\)/);
+    // el juego no queda corriendo: una segunda captura vuelve a arrancarlo en vez de fallar por «ya hay PIE»
+    await capturePie(uproject, png, {...opts, esperaS: 0});
+  } finally { await stopWarm(uproject); }
+});
+
+test('mcp: sin MCP (5.8 o sin AllToolsets) ue compilar dice qué falta en vez de colgarse', async () => {
+  const {uproject} = game();
+  process.env.NOMOS_FAKE_SIN_MCP = '1';
+  try { await assert.rejects(liveCompile(uproject, {...opts, mcpWaitMs: 1500}), /AllToolsets/); }
+  finally { delete process.env.NOMOS_FAKE_SIN_MCP; await stopWarm(uproject); }
 });

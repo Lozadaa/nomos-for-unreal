@@ -4,10 +4,10 @@
 | Un material o un efecto | Material con variación del [arsenal visual](arsenal-visual.md); efectos con `nomos fastvfx crear <receta.json> --preview` | Python nodo a nodo; en 5.9, Python sin renderer (no compila materiales) |
 | HUD y menús | UMG construido en C++, con el `UFont` compuesto en C++ ([acabado](acabado.md)) | Canvas, `DrawText`, fuentes del motor, Blueprint de widget a mano |
 | Música o un sonido | `nomos sonido buscar "<palabras en inglés>"` y `nomos sonido bajar <id> --juego .` (WeLoveIndies: deja `.wav`, licencia, receta y `CREDITOS.md`; [assets](../../nomos/references/assets.md)); sin sesión, plan B: sintetizado o MetaSound ([ue59-juego](ue59-juego.md)) | Audio de otras webs; un `.wav` sin su `.licencia.json`; descargar de más |
-| Compilar | `Build.bat` desde PowerShell, una vez por paso (50-80 s) | Bash; compilar tras cada línea |
+| Compilar | `Build.bat` desde PowerShell, una vez por paso (50-80 s). En 5.9, para retocar cuerpos de funciones, `nomos ue compilar` (Live Coding, 6-20 s) y un `Build.bat` antes de entregar | Bash; compilar tras cada línea; Live Coding para clases o `UPROPERTY` nuevos |
 | Probar reglas | Lógica en una clase C++ sin `UObject` y `nomos ue test` | Tests de física o de aspecto |
 | Probar física y aspecto | Modo demo por variable de entorno y captura | Mirar solo el editor |
-| Ver cómo quedó | Captura `-game` con su `.png.json`; del `.exe`, `captura_empaquetado.ps1` | Juzgar sin exposición manual; fiarse del editor para el empaquetado |
+| Ver cómo quedó | Mientras iteras en 5.9, `nomos ue captura salida.png --env <DEMO>=1` (el juego dentro del editor, 1-3 s). Para decidir, captura `-game` con su `.png.json`; del `.exe`, `captura_empaquetado.ps1` | Juzgar sin exposición manual; fiarse del editor para el empaquetado |
 | Empaquetar | `RunUAT BuildCookRun` una vez al final, con `DirectoriesToAlwaysCook` ([acabado](acabado.md)) | Empaquetar en cada paso |
 | Versión web (navegador) | `Scripts/empaquetar-web.ps1` (emscripten 6.0.10, motor del Launcher, sin compilar el motor) y probar con `webrun.py` ([web](web.md)) | Abrir `index.html` desde disco; compilar el motor desde fuente; Lumen o Nanite en la versión web |
 | Importar una malla | Receta `importar_malla`: mide y rechaza escalas ×100 ([importar](importar.md)) | Importar y colocar sin medir |
