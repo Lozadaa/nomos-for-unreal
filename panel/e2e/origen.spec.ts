@@ -11,7 +11,7 @@ const cli = resolve(import.meta.dirname, '../../service/src/cli.ts')
 let service: ReturnType<typeof ownService>, token: string, root: string, old: string
 const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
 const build = () => join(root, 'Build', 'Windows-actual')
-const stale = 'Esta build no incluye los últimos cambios de main'
+const stale = "This build doesn't include the latest changes on main"
 
 test.beforeAll(({ browserName }) => {
   service = ownService(browserName === 'firefox' ? 18816 : 18815, 'Juego')
@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => { await page.addInitScript(() => localStorag
 test('sin build-info.json: «Origen desconocido» discreto', async ({ page }) => {
   await page.goto(service.url(token).replace('/#', '/produccion#'))
   await expect(page.getByText(/^Última build: /)).toBeVisible()
-  await expect(page.getByText('Origen desconocido')).toBeVisible()
+  await expect(page.getByText('Unknown origin')).toBeVisible()
   await expect(page.getByText(stale)).toHaveCount(0)
 })
 
@@ -40,7 +40,7 @@ test('build de un commit anterior a main: aviso con el color de aviso, Jugar sig
   await expect(note).toBeVisible()
   expect(await note.evaluate((el) => getComputedStyle(el).color)).toBe(
     await page.evaluate(() => { const p = document.createElement('p'); p.className = 'text-warning'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c }))
-  const play = page.locator('header').getByRole('button', { name: 'Jugar' })
+  const play = page.locator('header').getByRole('button', { name: 'Play' })
   await expect(play).toBeEnabled()
   await play.hover()
   await expect(page.locator('[data-slot="tooltip-content"]')).toContainText(stale)
@@ -56,5 +56,5 @@ test('nomos build stamp con HEAD de main: al día, sin aviso', async ({ page }) 
   await page.goto(service.url(token).replace('/#', '/produccion#'))
   await expect(page.getByText(/^Última build: /)).toBeVisible()
   await expect(page.getByText(stale)).toHaveCount(0)
-  await expect(page.getByText('Origen desconocido')).toHaveCount(0)
+  await expect(page.getByText('Unknown origin')).toHaveCount(0)
 })

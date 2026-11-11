@@ -17,7 +17,7 @@ test('la primera visita muestra la guía, Esc la cierra y no vuelve tras recarga
   // Un contexto nuevo comienza sin la clave. No usar addInitScript para borrarla:
   // volvería a borrarse también en la recarga que comprueba la persistencia.
   await page.goto(url().replace('/#', '/catalogo#'))
-  const tour = page.getByRole('dialog', { name: 'Guía de Nomos' })
+  const tour = page.getByRole('dialog', { name: 'Nomos tour' })
   await expect(tour).toBeVisible()
   await expect(tour).toHaveAttribute('data-tour-target', 'director')
   await expect(tour.getByText('Aquí ves si Nomos escucha', { exact: true })).toBeVisible()
@@ -36,9 +36,9 @@ test('Ver guía desde la paleta permite recorrer los tres pasos y terminar', asy
   await page.goto(url().replace('/#', '/catalogo#'))
   await expect(page.getByRole('heading', { name: /^Catálogo/ }).first()).toBeVisible()
   await page.keyboard.press('Control+k')
-  await page.getByRole('option', { name: 'Ver guía', exact: true }).click()
+  await page.getByRole('option', { name: 'Show tour', exact: true }).click()
 
-  const tour = page.getByRole('dialog', { name: 'Guía de Nomos' })
+  const tour = page.getByRole('dialog', { name: 'Nomos tour' })
   await expect(tour).toBeVisible()
   await expect(tour).toHaveAttribute('data-tour-target', 'director')
   await expect(tour.getByText('Aquí ves si Nomos escucha', { exact: true })).toBeVisible()
@@ -63,7 +63,7 @@ test('? abre la leyenda y Esc devuelve el foco; la paleta también abre Leyenda'
   const row = page.getByRole('button', { name: /Definir salto/ })
   await row.focus()
   await page.keyboard.press('?')
-  const legend = page.getByRole('dialog', { name: 'Leyenda', exact: true })
+  const legend = page.getByRole('dialog', { name: 'Legend', exact: true })
   await expect(legend).toBeVisible()
   await expect(legend.getByRole('listitem')).toHaveCount(38)
   expect(await legend.getByRole('listitem').evaluateAll((items) => items.every((item) => {
@@ -77,7 +77,7 @@ test('? abre la leyenda y Esc devuelve el foco; la paleta también abre Leyenda'
   await expect(row).toBeFocused()
 
   await page.keyboard.press('Control+k')
-  await page.getByRole('option', { name: 'Leyenda', exact: true }).click()
+  await page.getByRole('option', { name: 'Legend', exact: true }).click()
   await expect(legend).toBeVisible()
   await expect(page.getByRole('dialog', { name: 'Menú de comandos' })).toBeHidden()
   await page.keyboard.press('Escape')
@@ -109,7 +109,7 @@ for (const field of ['título', 'búsqueda', 'descripción', 'área', 'editable'
     await control.focus()
     await expect(control).toBeFocused()
     await page.keyboard.press('?')
-    await expect(page.getByRole('dialog', { name: 'Leyenda', exact: true })).toBeHidden()
+    await expect(page.getByRole('dialog', { name: 'Legend', exact: true })).toBeHidden()
     await expect(control).toBeFocused()
   })
 }
@@ -122,7 +122,7 @@ test('? respeta un diálogo activo', async ({ page }) => {
   await expect(detail).toBeVisible()
   await page.getByRole('button', { name: 'Cerrar detalle' }).focus()
   await page.keyboard.press('?')
-  await expect(page.getByRole('dialog', { name: 'Leyenda', exact: true })).toBeHidden()
+  await expect(page.getByRole('dialog', { name: 'Legend', exact: true })).toBeHidden()
   await expect(detail).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(detail).toBeHidden()
@@ -142,7 +142,7 @@ test('con movimiento reducido el mapa refleja una actualización real sin despla
   await page.route('**/tasks', (route) => route.request().method() === 'GET'
     ? route.fulfill({ json: [task] }) : route.continue())
   await page.goto(url().replace('/#', '/produccion#'))
-  const map = page.getByRole('group', { name: 'Flujo de producción' })
+  const map = page.getByRole('group', { name: 'Production flow' })
   const point = map.locator('[data-point]')
   await expect(point).toHaveAttribute('cx', '50')
   await expect(map.getByRole('button', { name: 'Pendiente: 1', exact: true })).toBeVisible()

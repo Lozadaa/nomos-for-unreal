@@ -16,13 +16,13 @@ type Metric = 'meshyCredits' | 'elevenlabsCredits' | 'tokens' | 'buildMinutes'
 interface Summary { scope: 'workspace' | 'task'; scopeId: string; limits: Record<Metric, number | null>; spent: Record<Metric, number>; remaining: Record<Metric, number | null> }
 
 const metrics: { key: Metric; name: string; unit: string }[] = [
-  { key: 'meshyCredits', name: 'Meshy', unit: 'créditos' },
-  { key: 'elevenlabsCredits', name: 'ElevenLabs', unit: 'créditos' },
-  { key: 'tokens', name: 'Uso de los modelos de IA', unit: 'unidades' },
-  { key: 'buildMinutes', name: 'Compilaciones', unit: 'minutos' },
+  { key: 'meshyCredits', name: 'Meshy', unit: 'credits' },
+  { key: 'elevenlabsCredits', name: 'ElevenLabs', unit: 'credits' },
+  { key: 'tokens', name: 'AI model usage', unit: 'units' },
+  { key: 'buildMinutes', name: 'Builds', unit: 'minutes' },
 ]
 
-const fmt = (n: number) => new Intl.NumberFormat('es').format(n)
+const fmt = (n: number) => new Intl.NumberFormat('en').format(n)
 
 /** Editor en línea del límite de una métrica: PUT /budget con solo esa métrica. */
 function LimitEditor({ name, limit, exhausted, save }: { name: string; limit: number | null; exhausted: boolean; save: (value: number) => Promise<unknown> }) {
@@ -34,15 +34,15 @@ function LimitEditor({ name, limit, exhausted, save }: { name: string; limit: nu
   useEffect(() => { if (!editing && returning.current) { trigger.current?.focus(); returning.current = false } }, [editing])
   const parsed = Number(value)
   const valid = value.trim() !== '' && Number.isFinite(parsed) && parsed >= 0
-  const action = useAction(() => save(parsed), { success: () => { close(); return { title: `Límite de ${name} guardado` } } })
-  const label = limit === null ? 'Definir límite' : exhausted ? 'Subir límite' : 'Cambiar límite'
+  const action = useAction(() => save(parsed), { success: () => { close(); return { title: `${name} limit saved` } } })
+  const label = limit === null ? 'Set limit' : exhausted ? 'Raise limit' : 'Change limit'
   if (!editing) return <Button ref={trigger} variant="outline" size="sm" className="self-start" onClick={() => { setValue(limit === null ? '' : String(limit)); setEditing(true) }}>{label}</Button>
   return (
     <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (valid) void action.fire() }}>
-      <Input type="number" inputMode="numeric" min={0} step="any" autoFocus aria-label={`Límite de ${name}`} name="limite" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} className="w-32" />
-      <Button type="submit" size="sm" disabled={!valid || action.pending} aria-busy={action.pending}>{action.pending ? 'Guardando…' : 'Guardar'}</Button>
-      <Button type="button" variant="ghost" size="sm" disabled={action.pending} onClick={close}>Cancelar</Button>
-      {action.error && <span role="alert" className="text-xs text-error">No se guardó.</span>}
+      <Input type="number" inputMode="numeric" min={0} step="any" autoFocus aria-label={`${name} limit`} name="limite" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} className="w-32" />
+      <Button type="submit" size="sm" disabled={!valid || action.pending} aria-busy={action.pending}>{action.pending ? 'Saving…' : 'Save'}</Button>
+      <Button type="button" variant="ghost" size="sm" disabled={action.pending} onClick={close}>Cancel</Button>
+      {action.error && <span role="alert" className="text-xs text-error">Not saved.</span>}
     </form>
   )
 }
@@ -59,17 +59,17 @@ export function Meter({ name, unit, spent, limit, save }: { name: string; unit: 
       </p>
       {limit === null ? (
         <div className="flex flex-col gap-1">
-          <p className="text-sm">Sin límite definido</p>
-          <p className="text-xs text-muted-foreground">{BRAND.short} no se detendrá por gasto.</p>
+          <p className="text-sm">No limit set</p>
+          <p className="text-xs text-muted-foreground">{BRAND.short} won’t stop over spending.</p>
           {save && <LimitEditor name={name} limit={limit} exhausted={false} save={save} />}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <div role="progressbar" aria-label={`${name}: ${fmt(spent)} de ${fmt(limit)} ${unit}`} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(spent, limit)} className="self-start">
+          <div role="progressbar" aria-label={`${name}: ${fmt(spent)} of ${fmt(limit)} ${unit}`} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(spent, limit)} className="self-start">
             <Ring value={limit === 0 ? 1 : spent} max={limit === 0 ? 1 : limit} size={64} />
           </div>
-          <p className="text-sm">{exhausted ? `${name} · límite agotado` : `${name} · ${fmt(spent)} de ${fmt(limit)} ${unit}`}</p>
-          {exhausted && <p className="text-xs text-muted-foreground">{BRAND.short} te pedirá una decisión antes de seguir.</p>}
+          <p className="text-sm">{exhausted ? `${name} · limit reached` : `${name} · ${fmt(spent)} of ${fmt(limit)} ${unit}`}</p>
+          {exhausted && <p className="text-xs text-muted-foreground">{BRAND.short} will ask you before going on.</p>}
           {save && <LimitEditor name={name} limit={limit} exhausted={exhausted} save={save} />}
         </div>
       )}
@@ -83,11 +83,11 @@ export function Presupuesto() {
   const grid = useRef<HTMLDivElement>(null)
   useEffect(() => { if (creating) grid.current?.querySelector<HTMLButtonElement>('button')?.focus() }, [creating])
   const slow = useAfter(loading)
-  if (loading) return slow ? <div role="status" aria-label="Cargando el presupuesto" className="grid grid-cols-2 gap-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-40" />)}</div> : null
+  if (loading) return slow ? <div role="status" aria-label="Loading the budget" className="grid grid-cols-2 gap-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-40" />)}</div> : null
   if (!data && !creating) {
     return error === 'unknown_budget'
-      ? <EmptyState view="presupuesto" action={{ label: 'Definir límite', onClick: () => setCreating(true) }} />
-      : <p role="alert" className="text-sm text-error">No se pudo cargar el presupuesto. {humanError(new Error(error ?? ""))}</p>
+      ? <EmptyState view="presupuesto" action={{ label: 'Set limit', onClick: () => setCreating(true) }} />
+      : <p role="alert" className="text-sm text-error">Couldn’t load the budget. {humanError(new Error(error ?? ""))}</p>
   }
   // Un presupuesto nuevo usa el alcance de proyecto que admite PUT /budget.
   const summary = data ?? { scope: 'workspace', scopeId: 'workspace', limits: Object.fromEntries(metrics.map((m) => [m.key, null])), spent: Object.fromEntries(metrics.map((m) => [m.key, 0])) } as Summary

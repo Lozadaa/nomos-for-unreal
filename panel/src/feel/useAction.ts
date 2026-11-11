@@ -60,14 +60,14 @@ export function useAction<T>(run: () => Promise<T>, opts: ActionOptions<T> = {})
       const stale = (failure as { status?: number } | null)?.status === 409 && opts.reload
       toasts.error(opts.error?.(failure) ?? (stale
         ? {
-            title: 'Esta decisión ya no está vigente',
-            description: 'Cambió mientras la mirabas. Recárgala para ver el estado actual.',
-            action: { label: 'Recargar decisión', onClick: () => { opts.reload!(); restoreFocus() } },
+            title: 'This decision is out of date',
+            description: 'It changed while you were looking. Reload to see where it stands.',
+            action: { label: 'Reload decision', onClick: () => { opts.reload!(); restoreFocus() } },
           }
         : {
-            title: 'No se pudo completar la acción',
+            title: "Couldn't complete that",
             description: humanError(err),
-            action: { label: 'Reintentar', onClick: () => { void fire() } },
+            action: { label: 'Retry', onClick: () => { void fire() } },
           }))
     }
     restoreFocus()

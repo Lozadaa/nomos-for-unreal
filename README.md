@@ -64,6 +64,8 @@ Source: [docs/demo/comparativa-trompo.md](docs/demo/comparativa-trompo.md).
 | **Tooling** | Unreal 5.9 MCP, Meshy with several accounts for hard-surface props, WeLoveIndies sound with your own session. |
 | **Local panel** | What is being done, who is doing it and what is waiting on you, at a glance. |
 
+<p align="center"><img src="docs/capturas-panel-v2/inicio-escritorio-oscuro.png" alt="Nomos panel: Home with the status card" width="85%"></p>
+
 The panel is in English. The skills, the worker briefs, the CLI messages and what Nomos writes in the chat are in Spanish, which is how this project is run.
 
 ## Platform support

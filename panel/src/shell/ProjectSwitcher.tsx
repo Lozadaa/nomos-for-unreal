@@ -24,15 +24,15 @@ export function ProjectSwitcher() {
   if (!others.length) return null
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Cambiar de proyecto" />}><ChevronDown /></DropdownMenuTrigger>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Switch project" />}><ChevronDown /></DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {others.map((p) => (
           <DropdownMenuItem key={`${p.port}-${p.name}`} disabled={!p.alive} render={<a href={projectHref(p)} />}>
-            {p.name}{!p.alive && <span className="text-xs text-muted-foreground"> · parado</span>}
+            {p.name}{!p.alive && <span className="text-xs text-muted-foreground"> · stopped</span>}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link to="/proyectos" />}>Todos los proyectos</DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/proyectos" />}>All projects</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { readJson, writeAtomic } from './atomic.ts';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -48,11 +48,20 @@ function summary(dataDir: string): Pick<ProjectCard, 'liveTasks' | 'openDecision
       hasCapture: !!latestCapture(db, dataDir)};
   } catch { return {}; } finally { db.close(); }
 }
-/** La captura más reciente que existe en disco; una ruta relativa es de `<datos>/artifacts` (como en la semilla). */
-function latestCapture(db: DatabaseSync, dataDir: string): string | null {
+/** Capturas del juego que el worker y el empaquetado dejan en `main` (docs/), por si ninguna tarea registró la suya. */
+const gameShots = ['docs/empaquetado.png', 'docs/capturas/final.png', 'docs/capturas/mitad.png', 'docs/capturas/inicio.png'];
+
+/** La captura más reciente que existe en disco: la de la build jugable (`docs/empaquetado.png`), si no la última captura
+ *  registrada (una ruta relativa es de `<datos>/artifacts`, como en la semilla), si no la más nueva de `docs/capturas/`. */
+export function latestCapture(db: DatabaseSync, dataDir: string): string | null {
+  const root = dirname(resolve(dataDir));
+  const build = join(root, gameShots[0]);
+  if (existsSync(build)) return build;
   const path = db.prepare("select path from artifacts where kind='screenshot' order by created_at desc limit 1").get()?.path as string | undefined;
   const full = path && (isAbsolute(path) ? path : join(dataDir, 'artifacts', path));
-  return full && existsSync(full) ? full : null;
+  if (full && existsSync(full)) return full;
+  const shots = gameShots.slice(1).map((p) => join(root, p)).filter((p) => existsSync(p));
+  return shots.sort((x, y) => statSync(y).mtimeMs - statSync(x).mtimeMs)[0] ?? null;
 }
 
 /** La última captura de un proyecto registrado (para la portada); null si no hay. */

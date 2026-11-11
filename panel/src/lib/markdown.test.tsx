@@ -74,8 +74,8 @@ describe('Markdown legible (hito 23)', () => {
 
   it('- [x] y - [ ] salen con icono de check, sin corchetes', () => {
     md('- [x] Cae al suelo\n- [ ] Suena el golpe')
-    expect(screen.getByRole('img', { name: 'hecho' }).closest('li')).toHaveTextContent('Cae al suelo')
-    expect(screen.getByRole('img', { name: 'pendiente' }).closest('li')).toHaveTextContent('Suena el golpe')
+    expect(screen.getByRole('img', { name: 'done' }).closest('li')).toHaveTextContent('Cae al suelo')
+    expect(screen.getByRole('img', { name: 'to do' }).closest('li')).toHaveTextContent('Suena el golpe')
     expect(document.body.textContent).not.toContain('[')
   })
 
@@ -83,17 +83,17 @@ describe('Markdown legible (hito 23)', () => {
     const box = md('Texto\n\n```ts\nuno\ndos\ntres\n```')
     const details = box.querySelector('details')!
     expect(details.open).toBe(false)
-    expect(details.querySelector('summary')!.textContent).toBe('Detalle técnico · 3 líneas')
+    expect(details.querySelector('summary')!.textContent).toBe('Technical detail · 3 lines')
     expect(details.querySelector('pre')!.textContent).toBe('uno\ndos\ntres')
   })
 
   it('con clamp, un texto de más de 6 líneas se recorta con «Mostrar todo»', async () => {
     const text = Array.from({ length: 9 }, (_, i) => `línea ${i + 1}`).join('\n')
     const { container } = render(<Markdown text={text} clamp />)
-    const button = screen.getByRole('button', { name: 'Mostrar todo' })
+    const button = screen.getByRole('button', { name: 'Show all' })
     expect(container.querySelector('[class*="max-h-"]')).not.toBeNull()
     fireEvent.click(button)
-    expect(screen.getByRole('button', { name: 'Mostrar menos' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeInTheDocument()
     expect(container.querySelector('[class*="max-h-"]')).toBeNull()
     cleanup()
     render(<Markdown text="corto" clamp />)

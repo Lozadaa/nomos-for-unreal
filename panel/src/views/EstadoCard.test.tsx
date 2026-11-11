@@ -20,7 +20,7 @@ const base: Resumen = {
 const show = async (r: Resumen) => {
   vi.mocked(api).mockImplementation(async (path: string) => { if (path === '/resumen') return r; throw new Error(path) })
   render(<EstadoCard />)
-  return screen.findByRole('region', { name: 'Estado' })
+  return screen.findByRole('region', { name: 'Status' })
 }
 
 beforeEach(() => { resetStore(); vi.mocked(api).mockReset() })
@@ -29,12 +29,12 @@ afterEach(cleanup)
 describe('tarjeta de estado', () => {
   it('todo configurado: tokens, Meshy, sonido y máquina; nada por configurar', async () => {
     const card = await show(base)
-    expect(card).toHaveTextContent('1,3 M')
-    expect(card).toHaveTextContent('2300')
-    expect(card).toHaveTextContent('3 cuentas')
-    expect(within(card).getByLabelText('Sesión guardada')).toBeInTheDocument()
+    expect(card).toHaveTextContent('1.3M')
+    expect(card).toHaveTextContent('2,300')
+    expect(card).toHaveTextContent('3 accounts')
+    expect(within(card).getByLabelText('Session saved')).toBeInTheDocument()
     expect(card).toHaveTextContent('Unreal 5.9.0')
-    expect(card).toHaveTextContent('Todo configurado')
+    expect(card).toHaveTextContent('All set')
     expect(card).not.toHaveTextContent(/Codex|OpenCode/)
   })
 
@@ -45,26 +45,26 @@ describe('tarjeta de estado', () => {
     expect(card).not.toHaveTextContent('WeLoveIndies')
     const toggle = within(card).getAllByRole('button')[0]
     expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    expect(card).toHaveTextContent('Por configurar3')
+    expect(card).toHaveTextContent('To set up3')
     await userEvent.click(toggle)
     expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    expect(within(card).getByRole('heading', { name: 'Falta por configurar' })).toBeInTheDocument()
+    expect(within(card).getByRole('heading', { name: 'Still to set up' })).toBeInTheDocument()
     expect(within(card).getByText('nomos sonido login')).toBeInTheDocument()
-    expect(within(card).getByRole('button', { name: 'Copiar nomos sonido login' })).toBeInTheDocument()
-    expect(within(card).queryByRole('button', { name: /Copiar.*graphify/ })).toBeNull()
+    expect(within(card).getByRole('button', { name: 'Copy nomos sonido login' })).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: /Copy.*graphify/ })).toBeNull()
   })
 
   it('Meshy sin créditos: cifra a cero en aviso y la cuenta en rojo al abrir', async () => {
     const card = await show({ ...base, meshy: { cuentas: [{ nombre: 'env', creditos: 0 }], total: 0 }, falta: [{ que: 'Meshy sin créditos' }] })
-    expect(card).toHaveTextContent('Meshy0créditos')
+    expect(card).toHaveTextContent('Meshy0credits')
     await userEvent.click(within(card).getAllByRole('button')[0])
-    expect(within(card).getByRole('meter', { name: 'Créditos de env' })).toHaveAttribute('aria-valuenow', '0')
+    expect(within(card).getByRole('meter', { name: 'env credits' })).toHaveAttribute('aria-valuenow', '0')
   })
 
   it('disco bajo: aviso con forma además de color', async () => {
     const card = await show({ ...base, maquina: { ...base.maquina, discoLibreGb: 12.4, discoBajo: true }, falta: [{ que: 'Poco disco', comando: 'nomos clean' }] })
-    expect(card).toHaveTextContent('menos de 25 GB')
-    expect(within(card).getByRole('meter', { name: 'Disco en uso' })).toBeInTheDocument()
+    expect(card).toHaveTextContent('under 25 GB')
+    expect(within(card).getByRole('meter', { name: 'Disk in use' })).toBeInTheDocument()
   })
 
   it('nunca pinta claves ni tokens de API', async () => {

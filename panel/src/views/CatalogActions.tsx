@@ -17,13 +17,13 @@ export function versionWarning(engineVersions: string[], verifiedEngine?: string
   const short = verifiedEngine?.match(/^\d+\.\d+/)?.[0]
   if (!engineVersions.length || !verifiedEngine || !short || engineVersions.includes(short)) return null
   const declared = engineVersions.length > 1 ? `${engineVersions[0]}-${engineVersions.at(-1)}` : engineVersions[0]
-  return `Publicado para ${declared}; verificado en ${verifiedEngine}`
+  return `Published for ${declared}; verified on ${verifiedEngine}`
 }
 
 /** Una palabra visible; el aviso completo va en la ayuda (presupuesto de cinco palabras por tarjeta). */
 export function VersionWarning({ text }: { text: string }) {
   return <Tooltip><TooltipTrigger render={<span tabIndex={0} aria-label={text} title={text} className="inline-flex items-center gap-1 text-xs text-warning outline-offset-2" />}>
-    <StatusIcon value="decision" label="Aviso de versión" tone="warning" />Versión
+    <StatusIcon value="decision" label="Version warning" tone="warning" />Version
   </TooltipTrigger><TooltipContent role="tooltip">{text}</TooltipContent></Tooltip>
 }
 
@@ -32,15 +32,15 @@ export function MigrateButton({ entryId, name, project }: { entryId: string; nam
   const [requested, setRequested] = useState(false)
   const outcome = useStore((s) => s.events.findLast((e) => (e.type === 'asset.migrated' || e.type === 'asset.verify_failed') && e.payload.entryId === entryId))
   const migrate = useAction(() => sendCommand('asset.migrate', { entryId }, `migrate:${entryId}:${project}`), {
-    success: () => { setRequested(true); return { title: `Migrando ${name}`, description: `Se copia a ${project} y se verifica sin abrir el editor.` } },
+    success: () => { setRequested(true); return { title: `Migrating ${name}`, description: `Copying to ${project} and verifying without opening the editor.` } },
   })
   const failed = requested && outcome?.type === 'asset.verify_failed'
-  const label = migrate.pending ? 'Migrando…' : failed ? 'Falló' : requested ? 'Verificando' : 'Migrar'
-  const hint = failed ? 'La verificación sin GUI falló: revisa el informe en Entregas.' : requested ? 'En cola: copia y verificación sin GUI.' : `Copiar ${name} a ${project} y verificarlo sin GUI.`
-  return <Tooltip><TooltipTrigger render={<Button variant="outline" size="sm" aria-label={`Migrar ${name} a ${project}`} aria-description={hint}
+  const label = migrate.pending ? 'Migrating…' : failed ? 'Failed' : requested ? 'Verifying' : 'Migrate'
+  const hint = failed ? 'Headless verification failed. See the report in Deliveries.' : requested ? 'Queued: copy and headless verification.' : `Copy ${name} to ${project} and verify it headless.`
+  return <Tooltip><TooltipTrigger render={<Button variant="outline" size="sm" aria-label={`Migrate ${name} to ${project}`} aria-description={hint}
     disabled={migrate.pending} aria-busy={migrate.pending} aria-disabled={requested || undefined}
     onClick={() => { if (!requested) void migrate.fire() }} />}>
-    {failed && <StatusIcon value="bloqueada" label="Verificación fallida" tone="error" />}{label}
+    {failed && <StatusIcon value="bloqueada" label="Verification failed" tone="error" />}{label}
   </TooltipTrigger><TooltipContent role="tooltip">{hint}</TooltipContent></Tooltip>
 }
 
@@ -48,12 +48,12 @@ export function MigrateButton({ entryId, name, project }: { entryId: string; nam
 export function DownloadButton({ entryId, name }: { entryId: string; name: string }) {
   const [requested, setRequested] = useState(false)
   const download = useAction(() => sendCommand('asset.request_download', { entryId }, minuteKey(`download:${entryId}`)), {
-    success: () => { setRequested(true); return { title: `Abriendo Fab para ${name}`, description: 'Sigue los pasos de Descargas pendientes.' } },
+    success: () => { setRequested(true); return { title: `Opening Fab for ${name}`, description: 'Follow the steps under Pending downloads.' } },
   })
-  const hint = requested ? 'Pendiente: sigue los pasos arriba del catálogo.' : `Abrir el Launcher para añadir ${name} al proyecto cuarentena.`
-  return <Tooltip><TooltipTrigger render={<Button variant="outline" size="sm" aria-label={`Descargar ${name} desde Fab`} aria-description={hint}
+  const hint = requested ? 'Pending: follow the steps above the catalog.' : `Open the Launcher to add ${name} to the quarantine project.`
+  return <Tooltip><TooltipTrigger render={<Button variant="outline" size="sm" aria-label={`Download ${name} from Fab`} aria-description={hint}
     disabled={download.pending} aria-busy={download.pending} aria-disabled={requested || undefined}
     onClick={() => { if (!requested) void download.fire() }} />}>
-    {download.pending ? 'Abriendo…' : requested ? 'Pendiente' : 'Descargar'}
+    {download.pending ? 'Opening…' : requested ? 'Pending' : 'Download'}
   </TooltipTrigger><TooltipContent role="tooltip">{hint}</TooltipContent></Tooltip>
 }

@@ -27,8 +27,8 @@ it('cuenta texto visible y omite atributos, contenido oculto, opciones cerradas 
 it('fila semilla: siete palabras como máximo además del título/id, con área, estado y proveedor en orden', () => {
   render(<TooltipProvider><TaskRow task={task} now={Date.parse(task.updatedAt) + 120_000} open={false} onOpen={vi.fn()} /></TooltipProvider>)
   const row = screen.getByRole('button', { name: /Implementar locomoción/ })
-  expect(row).toHaveAccessibleName('Implementar locomoción, Animación, Implementando, Codex, Etapa: Implementando, Anim Worker')
-  expect(within(row).getAllByRole('img').map((el) => el.getAttribute('aria-label'))).toEqual(['Animación', 'Implementando', 'Anim Worker · Codex'])
+  expect(row).toHaveAccessibleName('Implementar locomoción, Animation, Building, Codex, Stage: Building, Anim Worker')
+  expect(within(row).getAllByRole('img').map((el) => el.getAttribute('aria-label'))).toEqual(['Animation', 'Building', 'Anim Worker · Codex'])
   const clone = row.cloneNode(true) as HTMLElement
   clone.querySelectorAll('[data-task-title], [data-task-id-text]').forEach((el) => el.remove())
   expect(visibleWords(clone)).toBeLessThanOrEqual(budgets.produccionRow)
@@ -43,7 +43,7 @@ it('el tooltip de fila explica área, estado, proveedor y etapa también con blo
   const row = screen.getByRole('button', { name: /Implementar locomoción/ })
   await act(async () => row.focus())
   const tooltip = await screen.findByRole('tooltip')
-  for (const text of ['Animación', 'Bloqueada', 'Codex', 'Implementando', 'Anim Worker', 'Falta el pack.']) expect(tooltip).toHaveTextContent(text)
+  for (const text of ['Animation', 'Blocked', 'Codex', 'Building', 'Anim Worker', 'Falta el pack.']) expect(tooltip).toHaveTextContent(text)
 })
 
 it('la ejecución en curso y la espera cambian el anillo del avatar, sin anillo aparte ni porcentaje ficticio', () => {

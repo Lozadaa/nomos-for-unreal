@@ -66,11 +66,11 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
     <Sheet open onOpenChange={(open) => { if (!open) void onClose() }}>
       <SheetContent
         showCloseButton={false}
-        aria-label={task ? `Detalle de ${task.title}` : 'Detalle de la tarea'}
+        aria-label={task ? `${task.title} details` : 'Task details'}
         className="data-[side=right]:w-[720px] data-[side=right]:max-w-[100vw] data-[side=right]:sm:max-w-[720px] gap-0 [view-transition-name:k-sheet]"
       >
         <SheetHeader className="gap-3 border-b border-subtle p-6 pr-14">
-          <SheetClose render={<Button variant="ghost" size="icon-sm" className="absolute top-4 right-4" aria-label="Cerrar detalle" />}>
+          <SheetClose render={<Button variant="ghost" size="icon-sm" className="absolute top-4 right-4" aria-label="Close details" />}>
             <XIcon aria-hidden />
           </SheetClose>
           <div className="flex items-baseline gap-3">
@@ -78,17 +78,17 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
               className="min-w-0 truncate text-lg font-semibold"
               style={{ viewTransitionName: nameFor('task', id), viewTransitionClass: 'k-title' } as React.CSSProperties}
             >
-              {task?.title ?? 'Tarea'}
+              {task?.title ?? 'Task'}
             </SheetTitle>
             <span className="shrink-0 font-mono text-xs text-muted-foreground">{shortId(id)}</span>
           </div>
           {task && (
             <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="inline-flex items-center gap-2">Área: <Glyph kind="area" value={task.area} />{areaLabel[task.area]}</span>
-              <span className="inline-flex items-center gap-2">Estado: <Glyph kind="taskState" value={statusOf(task) === 'normal' ? task.state : statusOf(task)} tone={toneOf(task)} /><StatusDot tone={toneOf(task)} />{statusText(task)}</span>
+              <span className="inline-flex items-center gap-2">Area: <Glyph kind="area" value={task.area} />{areaLabel[task.area]}</span>
+              <span className="inline-flex items-center gap-2">Status: <Glyph kind="taskState" value={statusOf(task) === 'normal' ? task.state : statusOf(task)} tone={toneOf(task)} /><StatusDot tone={toneOf(task)} />{statusText(task)}</span>
               {assigneeProvider && <span className="inline-flex items-center gap-2"><AgentAvatar id={assignee?.id ?? task.id} provider={assigneeProvider} model={assignee?.metadata?.model} name={assigneeName} ordinal={assigneeAgent?.ordinal} state={assigneeState} size={32} /><span>{assigneeName}</span><span>{providerLabel[assigneeProvider] ?? glyphFor('provider', assigneeProvider).label}</span>{assigneeRole && <Glyph kind="role" value={assigneeRole} />}</span>}
-              <span>Etapa: {stageLabel[task.state]}</span>
-              <span>Actualizada {relativeTime(task.updatedAt)}</span>
+              <span>Stage: {stageLabel[task.state]}</span>
+              <span>Updated {relativeTime(task.updatedAt)}</span>
             </SheetDescription>
           )}
           {task && <div className="pt-2"><StageStepper task={task} /></div>}
@@ -109,14 +109,14 @@ export function TaskSheet({ id, task: fromStore, agentsByRunId, onClose }: {
         </SheetHeader>
 
         {failed && !detail ? (
-          <p role="alert" className="p-6 text-sm text-error">No se pudo cargar el detalle de la tarea. Cierra el panel y vuelve a abrirlo.</p>
+          <p role="alert" className="p-6 text-sm text-error">Couldn’t load the task details. Close the panel and open it again.</p>
         ) : !detail ? (
           slow ? <SheetSkeleton /> : null
         ) : (
           <Tabs defaultValue="resumen" className="min-h-0 flex-1 gap-0">
             <TabsList variant="line" className="h-10 w-full shrink-0 justify-start gap-1 border-b border-subtle px-4">
-              {[['resumen', 'Resumen'], ['chat', 'Chat'], ['cambios', 'Cambios'], ['pruebas', 'Pruebas'], ['assets', 'Assets'], ['linea', 'Línea de tiempo'],
-                ...(detail.task.state === 'done' ? [['archivo', 'Archivo']] : [])].map(([v, label]) => (
+              {[['resumen', 'Summary'], ['chat', 'Chat'], ['cambios', 'Changes'], ['pruebas', 'Tests'], ['assets', 'Assets'], ['linea', 'Timeline'],
+                ...(detail.task.state === 'done' ? [['archivo', 'Archive']] : [])].map(([v, label]) => (
                 <TabsTrigger key={v} value={v} className="flex-none px-3">{label}</TabsTrigger>
               ))}
             </TabsList>
@@ -155,7 +155,7 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
       {detail.decision?.state === 'open' && <DecisionCard decision={detail.decision} task={task} onStale={onStale} />}
       {detail.decision && detail.decision.state === 'resolved' && (
         <p className="text-sm text-muted-foreground" role="status">
-          Elegiste {detail.decision.options.find((o) => o.id === detail.decision!.chosenOptionId)?.label ?? 'una opción'}. Se registró tu elección.
+          You chose {detail.decision.options.find((o) => o.id === detail.decision!.chosenOptionId)?.label ?? 'an option'}. Your choice is recorded.
         </p>
       )}
       {sections ? <div className="flex flex-col gap-2">{sections.map(({ title, body }) => {
@@ -163,23 +163,23 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
         return (
           <details key={title} open={openSections.includes(title)} className="group flex flex-col gap-2">
             <summary className={cn(label, 'cursor-pointer')}><span>{title}</span>
-              <span className="normal-case group-open:hidden"> · {lines} {lines === 1 ? 'línea' : 'líneas'}</span></summary>
+              <span className="normal-case group-open:hidden"> · {lines} {lines === 1 ? 'line' : 'lines'}</span></summary>
             <Markdown clamp className="mt-2 text-sm" text={body} />
           </details>
         )
       })}</div> : <section className="flex flex-col gap-2">
-        <h3 className={label}>Qué se pide</h3>
-        <Markdown clamp className="text-sm" text={task.spec || 'Esta tarea no tiene descripción.'} />
+        <h3 className={label}>What’s asked</h3>
+        <Markdown clamp className="text-sm" text={task.spec || 'This task has no description.'} />
       </section>}
       {!sections && task.acceptance.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h3 className={label}>Criterios</h3>
+          <h3 className={label}>Criteria</h3>
           <ul className="list-disc pl-5 text-sm">{task.acceptance.map((a) => <li key={a}>{a}</li>)}</ul>
         </section>
       )}
       {detail.runs.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h3 className={label}>Ejecuciones</h3>
+          <h3 className={label}>Runs</h3>
           <ul className="flex flex-col gap-1 text-sm">
             {detail.runs.map((r) => (
               <li key={r.id} className="flex items-baseline gap-3">
@@ -193,7 +193,7 @@ function Summary({ detail, task, agentsByRunId, onStale }: {
               </li>
             ))}
           </ul>
-          {!!detail.tokens?.length && <p className="text-xs text-muted-foreground">Total de la tarea: {millions(detail.tokens.reduce((n, s) => n + s.amount, 0))} de tokens</p>}
+          {!!detail.tokens?.length && <p className="text-xs text-muted-foreground">Task total: {millions(detail.tokens.reduce((n, s) => n + s.amount, 0))} tokens</p>}
         </section>
       )}
       <Attribution task={detail.task} />

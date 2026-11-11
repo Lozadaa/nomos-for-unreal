@@ -6,9 +6,9 @@ const finite = (n: number) => Number.isFinite(n) ? n : 0
 
 /** Datos del consumidor: de uno a siete carriles etiquetados con escala común. */
 export const Sparkline = memo(function Sparkline({ title, lanes, hideTitle = false }: { title: string; lanes: readonly SparklineLane[]; hideTitle?: boolean }) {
-  if (typeof title !== 'string' || !title.trim()) throw new Error('Sparkline necesita un título descriptivo')
-  if (!Array.isArray(lanes) || lanes.length < 1 || lanes.length > 7) throw new Error('Sparkline necesita entre 1 y 7 carriles')
-  if (lanes.some((lane) => typeof lane.label !== 'string' || !lane.label.trim())) throw new Error('Cada carril necesita una etiqueta')
+  if (typeof title !== 'string' || !title.trim()) throw new Error('Sparkline needs a descriptive title')
+  if (!Array.isArray(lanes) || lanes.length < 1 || lanes.length > 7) throw new Error('Sparkline needs between 1 and 7 lanes')
+  if (lanes.some((lane) => typeof lane.label !== 'string' || !lane.label.trim())) throw new Error('Every lane needs a label')
   const values = lanes.map((lane) => lane.values)
   const paths = memoSeed('sparkline', JSON.stringify(values), () => {
     let lo = 0, hi = 0

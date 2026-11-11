@@ -108,7 +108,7 @@ test('Firefox y demás navegadores sin View Transitions: la navegación entre vi
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toBeHidden()
-  await page.getByRole('button', { name: 'Más', exact: true }).click()
+  await page.getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('link', { name: /^Actividad/ }).click()
   await expect(page).toHaveURL(/actividad/)
 })

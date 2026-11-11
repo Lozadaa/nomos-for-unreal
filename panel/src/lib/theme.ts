@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from 'react'
 
-/** Claro (crema) u oscuro (tinta): sigue a prefers-color-scheme salvo que el conmutador de la cabecera haya elegido. */
+/** Oscuro (la marca) o claro (hueso): oscuro salvo que el sistema pida claro o el conmutador de la cabecera haya elegido. */
 export type Mode = 'claro' | 'oscuro'
 const KEY = 'nomos.tema'
 const listeners = new Set<() => void>()
-const media = () => (typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null)
+const media = () => (typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: light)') : null)
 const chosen = (): Mode | null => { try { const v = localStorage.getItem(KEY); return v === 'claro' || v === 'oscuro' ? v : null } catch { return null } }
-export const currentMode = (): Mode => chosen() ?? (media()?.matches ? 'oscuro' : 'claro')
+export const currentMode = (): Mode => chosen() ?? (media()?.matches ? 'claro' : 'oscuro')
 
 function apply() {
   const mode = currentMode(), root = document.documentElement
@@ -29,4 +29,4 @@ export function setMode(mode: Mode) {
   apply()
 }
 
-export const useMode = () => useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l) }, currentMode, () => 'claro' as Mode)
+export const useMode = () => useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l) }, currentMode, () => 'oscuro' as Mode)

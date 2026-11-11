@@ -14,7 +14,7 @@ test("tokens.json v2 tiene todas las claves, 10 estados de tarea y 5 del directo
   const expected = {
     color: ["primary", "primaryHover", "primaryText", "bgLayout", "bgContainer", "bgSubtle", "text", "textSecondary",
       "textTertiary", "border", "borderDefault", "borderStrong", "focus", "success", "warning", "error", "info", "neutral", "purple"],
-    font: ["sans", "serif", "mono"],
+    font: ["sans", "display", "mono"],
     size: ["xs", "sm", "md", "lg", "xl", "xxl"],
     radius: ["sm", "md", "lg"],
     layout: ["header", "drawer", "control", "tabs", "content"],
@@ -22,13 +22,13 @@ test("tokens.json v2 tiene todas las claves, 10 estados de tarea y 5 del directo
   for (const [group, keys] of Object.entries(expected)) {
     for (const key of keys) assert.ok(key in tokens[group], `falta ${group}.${key}`);
   }
-  assert.deepEqual(tokens.shadow, {}, "papel: sin sombras");
+  assert.deepEqual(tokens.shadow, {}, "marca v2: sin sombras");
   assert.deepEqual(Object.keys(tokens.colorDark), Object.keys(color), "el oscuro tiene las mismas claves");
   assert.equal(tokens.font.sans, "Instrument Sans Variable");
-  assert.equal(tokens.font.serif, "Newsreader Variable");
+  assert.equal(tokens.font.display, "Barlow Condensed");
   assert.equal(tokens.font.mono, "Geist Mono Variable");
-  assert.equal(tokens.radius.sm, 8);
-  assert.equal(tokens.radius.md, 12);
+  assert.equal(tokens.radius.sm, 2);
+  assert.equal(tokens.radius.md, 4);
   assert.deepEqual(tokens.space, [4, 8, 12, 16, 20, 24, 32, 40, 48, 64]);
   assert.equal(Object.keys(tokens.taskState).length, 10);
   assert.equal(Object.keys(tokens.directorState).length, 5);
@@ -39,22 +39,23 @@ test("tokens.json v2 tiene todas las claves, 10 estados de tarea y 5 del directo
   }
 });
 
-test("tokens.css generado coincide con el JSON y lleva los colores exactos del logo", () => {
+test("tokens.css generado coincide con el JSON y lleva los colores exactos de la marca v2", () => {
   const css = readFileSync(join(root, "design/tokens.css"), "utf8");
   assert.equal(css, buildCss(tokens), "design/tokens.css está desfasado: ejecuta `node design/build-tokens.ts`");
   execFileSync(process.execPath, [join(root, "design/build-tokens.ts")]);
   assert.equal(readFileSync(join(root, "design/tokens.css"), "utf8"), css);
   for (const line of [
-    "--k-color-bg-layout: #F5F0E8;",
-    "--k-color-text: #1F1E1D;",
-    "--k-color-primary-hover: #C96442;",
-    "--k-color-primary: #A9502F;",
+    "--k-color-bg-layout: #F2EFEA;",
+    "--k-color-text: #0B0B0C;",
+    "--k-color-primary-hover: #FF5A1F;",
+    "--k-color-primary: #B83D0B;",
+    "--k-font-display: Barlow Condensed;",
     "--k-font-sans: Instrument Sans Variable;",
     "--k-size-md: 14px;",
-    "--k-radius-sm: 8px;",
-    "--k-radius-md: 12px;",
+    "--k-radius-sm: 2px;",
+    "--k-radius-md: 4px;",
     "--k-space-9: 64px;",
-    "--k-layout-header: 56px;",
+    "--k-layout-header: 64px;",
     ".k-state-pendiente { --k-state: var(--k-color-neutral);",
     ".k-director-escuchando { --k-state: var(--k-color-success);",
     ".k-director-vigilante-caido { --k-state: var(--k-color-warning);",
@@ -62,7 +63,7 @@ test("tokens.css generado coincide con el JSON y lleva los colores exactos del l
   assert.ok(!css.includes("--k-shadow"), "no hay sombras");
 });
 
-test("contraste AA en claro (principal) y en oscuro", () => {
+test("contraste AA en oscuro (principal) y en claro", () => {
   for (const c of [color, tokens.colorDark]) {
     assert.ok(contrast(c.text, c.bgLayout) >= 4.5, "text sobre surface-primary");
     assert.ok(contrast(c.textSecondary, c.bgLayout) >= 4.5, "textSecondary sobre surface-primary");
@@ -71,8 +72,9 @@ test("contraste AA en claro (principal) y en oscuro", () => {
     assert.ok(contrast(c.textTertiary, c.bgSubtle) >= 4.5, "textTertiary sobre surface-secondary");
     assert.ok(contrast(c.primaryText, c.primary) >= 4.5, "texto de la acción primaria");
     assert.ok(contrast(c.focus, c.bgLayout) >= 3, "foco (indicador no textual, 3:1)");
-    // la arcilla exacta del logo (#C96442, primaryHover en claro) solo pinta marcas y cifras grandes: 3:1
-    assert.ok(contrast(c.primaryHover, c.bgLayout) >= 3, "acento de marca sobre el papel");
+    // la brasa del logo (#FF5A1F, primaryHover) pinta texto sobre negro (AA) y solo marcas sobre hueso (no texto)
+    if (c === tokens.colorDark) assert.ok(contrast(c.primaryHover, c.bgLayout) >= 4.5, "brasa sobre negro");
+    assert.ok(contrast(c.primary, c.bgLayout) >= 4.5, "acento de texto sobre el fondo");
     for (const k of ["success", "warning", "error", "info", "neutral"]) {
       assert.ok(contrast(c[k], c.bgLayout) >= 4.5, `${k} < 4.5:1 sobre surface-primary`);
     }

@@ -31,7 +31,7 @@ test('portada al abrir con varios proyectos; el otro juego se abre sin token en 
   await expect(page).toHaveURL(new RegExp(`^${game.origin}/`))
   await expect(page.locator('header h1')).toHaveText('BlockKings')
   await expect(page.getByText('Sin sesión')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Cambiar de proyecto' }).click()
+  await page.getByRole('button', { name: 'Switch project' }).click()
   await expect(page.getByRole('menuitem', { name: 'KratosFabTest' })).toHaveAttribute('href', `${fab.origin}/`)
   await page.waitForTimeout(300)
   if (browserName === 'chromium') await page.screenshot({ path: '../docs/capturas-10/selector-proyectos-1920.png' })

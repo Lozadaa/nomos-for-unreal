@@ -25,7 +25,7 @@ export const EmptyState = memo(function EmptyState({ view, action, message }: { 
   const routed = useInRouterContext()
   const next = action ?? defaultAction
   return <div data-empty-state={view} className="flex flex-col items-center gap-3 px-3 py-5 text-center">
-    <Icon size={48} role="img" aria-label={`${label} sin elementos`} aria-hidden={undefined} className="text-muted-foreground" />
+    <Icon size={48} role="img" aria-label={`${label}: empty`} aria-hidden={undefined} className="text-muted-foreground" />
     <p className="text-sm text-muted-foreground">{message ?? defaultMessage}</p>
     {'href' in next ? routed ? <RoutedAction action={next} /> : <a href={next.href} className={control}>{next.label}</a> : <CallbackAction action={next} />}
   </div>

@@ -67,11 +67,11 @@ export function Chat({ className, autoFocus = false }: { className?: string; aut
 
   return (
     <div className={cn('mx-auto flex h-[calc(100dvh-var(--k-header)-var(--k-tabs)-3rem)] min-h-96 w-full min-w-0 max-w-(--k-prose) flex-col overflow-x-hidden', className)}>
-      <ul aria-label={`Conversación con ${BRAND.short}`} className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto pb-4"
+      <ul aria-label={`Conversation with ${BRAND.short}`} className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto pb-4"
         onScroll={(e) => { const el = e.currentTarget; atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48 }}>
         {count === 0 && (
           <li className="m-auto">
-            <EmptyState view="chat" action={{ label: 'Escribir mensaje', onClick: () => field.current?.focus() }} />
+            <EmptyState view="chat" action={{ label: 'Write a message', onClick: () => field.current?.focus() }} />
           </li>
         )}
         {conversation.map((m) => (
@@ -84,7 +84,7 @@ export function Chat({ className, autoFocus = false }: { className?: string; aut
             {m.state === 'respondiendo' && <Typing />}
           </Fragment>
         ))}
-        {waiting.map((m) => <Bubble key={m.key} from="tu" text={m.text} fresh><span className="text-xs text-muted-foreground">Enviando…</span></Bubble>)}
+        {waiting.map((m) => <Bubble key={m.key} from="tu" text={m.text} fresh><span className="text-xs text-muted-foreground">Sending…</span></Bubble>)}
         <li ref={end} aria-hidden className="h-px" />
       </ul>
 
@@ -97,15 +97,15 @@ export function Chat({ className, autoFocus = false }: { className?: string; aut
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit() } }}
-          placeholder={`Escribe a ${BRAND.short}…`} name="mensaje" autoComplete="off"
-          aria-label={`Mensaje para ${BRAND.short}`}
+          placeholder={`Message ${BRAND.short}…`} name="mensaje" autoComplete="off"
+          aria-label={`Message for ${BRAND.short}`}
           className="min-h-20"
         />
         <div className="flex items-center gap-3">
-          {send.error && <span role="alert" className="text-xs text-error">No se envió. {humanError(send.error)}</span>}
+          {send.error && <span role="alert" className="text-xs text-error">Not sent. {humanError(send.error)}</span>}
           <span className="ml-auto text-xs text-muted-foreground"><kbd className="font-mono">Ctrl</kbd>+<kbd className="font-mono">Enter</kbd></span>
           <Button type="submit" size="sm" disabled={!text.trim() || send.pending} aria-busy={send.pending}
-            className="transition-transform duration-(--k-dur-micro) active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100">{send.pending ? 'Enviando…' : 'Enviar'}</Button>
+            className="transition-transform duration-(--k-dur-micro) active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100">{send.pending ? 'Sending…' : 'Send'}</Button>
         </div>
       </form>
     </div>

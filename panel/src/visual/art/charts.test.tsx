@@ -43,10 +43,10 @@ describe('gráficos procedurales', () => {
 
   it('Sparkline rechaza carriles sin etiqueta y títulos vacíos antes de dibujar', () => {
     for (const lane of [{ label: '', values: [1, 2] }, { label: '   ', values: [1, 2] }, { values: [1, 2] }]) {
-      expect(() => renderToStaticMarkup(<Sparkline title="Actividad por hora" lanes={[lane as { label: string; values: number[] }]} />)).toThrow(/etiqueta/i)
+      expect(() => renderToStaticMarkup(<Sparkline title="Actividad por hora" lanes={[lane as { label: string; values: number[] }]} />)).toThrow(/label/i)
     }
     for (const title of ['', '   ']) {
-      expect(() => renderToStaticMarkup(<Sparkline title={title} lanes={[{ label: 'Tareas', values: [1, 2] }]} />)).toThrow(/título/i)
+      expect(() => renderToStaticMarkup(<Sparkline title={title} lanes={[{ label: 'Tareas', values: [1, 2] }]} />)).toThrow(/title/i)
     }
   })
 
@@ -67,10 +67,10 @@ describe('gráficos procedurales', () => {
     expect(container.querySelector('title')).toHaveTextContent('a.ts · +12 / −3')
     expect(container.querySelectorAll('[stroke-dasharray]').length).toBe(2)
     rerender(<DiffBars added={12} removed={3} files={4} />)
-    expect(screen.getByRole('img', { name: 'Cambios en 4 archivos' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Changes in 4 files' })).toBeInTheDocument()
   })
 
-  it('DiffBars mantiene cada SVG ≤2 KB con muchos archivos y conserva sus nombres completos en tooltip', () => {
+  it('DiffBars mantiene cada SVG ≤2 KB con muchos files y conserva sus nombres completos en tooltip', () => {
     const files = Array.from({ length: 100 }, (_, i) => `${i}-${'ruta/&'.repeat(80)}.tsx`)
     const { container } = render(<DiffBars added={files.map(() => 12)} removed={files.map(() => 8)} files={files} />)
     for (const svg of container.querySelectorAll('svg')) expect(new TextEncoder().encode(svg.outerHTML).length).toBeLessThanOrEqual(2048)
@@ -93,17 +93,17 @@ describe('mapa de producción', () => {
   it('0 tareas conserva los ocho nodos y 200 agrupa sin dibujar puntos', () => {
     const { container, rerender } = render(<ProductionMap tasks={[]} />)
     expect(screen.getAllByRole('button')).toHaveLength(8)
-    expect(screen.getByRole('button', { name: 'Pendiente: 0' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pending: 0' })).toBeInTheDocument()
     rerender(<ProductionMap tasks={tasks(200)} />)
-    expect(screen.getByRole('button', { name: 'Pendiente: 25' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pending: 25' })).toBeInTheDocument()
     expect(container.querySelectorAll('[data-point]')).toHaveLength(0)
   })
 
   it('12 tareas muestran puntos con formas de bloqueo/decisión, 13 solo contadores', () => {
     const { container, rerender } = render(<ProductionMap tasks={tasks(12)} />)
     expect(container.querySelectorAll('[data-point]')).toHaveLength(12)
-    expect(screen.getByRole('img', { name: 'Bloqueada' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Espera decisión' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Blocked' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Needs decision' })).toBeInTheDocument()
     rerender(<ProductionMap tasks={tasks(13)} />)
     expect(container.querySelectorAll('[data-point]')).toHaveLength(0)
   })
@@ -111,7 +111,7 @@ describe('mapa de producción', () => {
   it('un nodo filtra al pulsar y con Enter o Espacio', () => {
     const select = vi.fn()
     render(<ProductionMap tasks={tasks(2)} onSelect={select} />)
-    const node = screen.getByRole('button', { name: 'Pendiente: 1' })
+    const node = screen.getByRole('button', { name: 'Pending: 1' })
     fireEvent.click(node)
     fireEvent.keyDown(node, { key: 'Enter' })
     fireEvent.keyDown(node, { key: ' ' })
@@ -120,13 +120,13 @@ describe('mapa de producción', () => {
 
   it('cada nodo expone su etapa en tooltip sin agrandar el SVG', () => {
     const { container } = render(<ProductionMap tasks={[]} />)
-    const node = screen.getByRole('button', { name: 'Pendiente: 0' })
+    const node = screen.getByRole('button', { name: 'Pending: 0' })
     fireEvent.pointerEnter(node)
-    expect(container.firstChild).toHaveAttribute('title', 'Pendiente: 0')
+    expect(container.firstChild).toHaveAttribute('title', 'Pending: 0')
     fireEvent.pointerLeave(node)
     expect(container.firstChild).not.toHaveAttribute('title')
     fireEvent.focus(node)
-    expect(container.firstChild).toHaveAttribute('title', 'Pendiente: 0')
+    expect(container.firstChild).toHaveAttribute('title', 'Pending: 0')
   })
 
   it('al cambiar una etapa usa withViewTransition; con reduce cambia sin animar', async () => {
@@ -137,11 +137,11 @@ describe('mapa de producción', () => {
     expect(transition).not.toHaveBeenCalled()
     await act(async () => rerender(<ProductionMap tasks={[{ ...first[0], state: 'done' }]} />))
     expect(transition).toHaveBeenCalledOnce()
-    expect(screen.getByRole('button', { name: 'Hecha: 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Done: 1' })).toBeInTheDocument()
     vi.stubGlobal('matchMedia', () => ({ matches: true }))
     await act(async () => rerender(<ProductionMap tasks={first} />))
     expect(transition).toHaveBeenCalledOnce()
-    expect(screen.getByRole('button', { name: 'Pendiente: 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pending: 1' })).toBeInTheDocument()
   })
 
   it('el mapa y la lista comparten una captura al actualizar juntos una etapa', async () => {
@@ -173,7 +173,7 @@ describe('mapa de producción', () => {
     await act(async () => {
       await captures[0].update()
       listDuringCapture = screen.getByTestId('list-stage').textContent
-      mapDuringCapture = Boolean(screen.queryByRole('button', { name: 'Hecha: 1' }))
+      mapDuringCapture = Boolean(screen.queryByRole('button', { name: 'Done: 1' }))
     })
     await act(async () => { captures[0].finish(); await mutation })
     // Resolver también una captura adicional defectuosa evita dejar promesas
@@ -185,7 +185,7 @@ describe('mapa de producción', () => {
     expect(transition).toHaveBeenCalledOnce()
     expect(listDuringCapture).toBe('done')
     expect(mapDuringCapture).toBe(true)
-    expect(screen.getByRole('button', { name: 'Hecha: 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Done: 1' })).toBeInTheDocument()
   })
 
   it('markup determinista y ≤ 2 KB con 0, 12 y 200 tareas', () => {
@@ -217,7 +217,7 @@ describe('mapa de producción', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true }))
     rerender(<ProductionMap tasks={[{ ...first[0], state: 'done' }]} />)
     await act(async () => { capture?.(); finish() })
-    expect(screen.getByRole('button', { name: 'Hecha: 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Done: 1' })).toBeInTheDocument()
   })
 
   it('revisa movimiento reducido otra vez después de esperar la transición de ruta', async () => {
@@ -236,7 +236,7 @@ describe('mapa de producción', () => {
     await act(async () => finish())
     delete (document as unknown as { activeViewTransition?: unknown }).activeViewTransition
     expect(transition).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Hecha: 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Done: 1' })).toBeInTheDocument()
   })
 
   it('dos mapas mantienen referencias locales distintas y cada SVG cabe en 2 KB', () => {

@@ -9,7 +9,7 @@ export function BackHome() {
   const here = views.find((v) => v.to === pathname)?.label
   return <div className="mb-5 flex items-center gap-3">
     <Link to="/" viewTransition className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground">
-      <ArrowLeft className="size-4" aria-hidden />Inicio
+      <ArrowLeft className="size-4" aria-hidden />Home
     </Link>
     {here && <><span aria-hidden className="text-muted-foreground">/</span><h2 className="text-sm font-medium">{here}</h2></>}
   </div>

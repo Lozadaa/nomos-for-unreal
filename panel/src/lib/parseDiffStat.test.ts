@@ -7,7 +7,7 @@ describe('parseDiffStat · resúmenes reales de git --stat', () => {
       .toEqual({ files: 1, added: 640, removed: 16 })
   })
 
-  it('suma todos los resúmenes concatenados de archivos tracked y untracked', () => {
+  it('suma todos los resúmenes concatenados de files tracked y untracked', () => {
     const stat = [
       ' Source/Hud.cpp | 100 +++--', ' Texture.uasset | Bin 0 -> 128 bytes',
       ' 2 files changed, 80 insertions(+), 20 deletions(-)',

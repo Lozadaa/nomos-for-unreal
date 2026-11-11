@@ -24,10 +24,10 @@ interface Capability {
 }
 
 const look: Record<Capability['state'], { tone: Tone; text: string; action: string }> = {
-  ausente: { tone: 'neutral', text: 'No instalado', action: 'Ver cómo instalar' },
-  detectado: { tone: 'info', text: 'Detectado · sin comprobar', action: 'Comprobar ahora' },
-  comprobado: { tone: 'success', text: 'Comprobado', action: 'Volver a comprobar' },
-  roto: { tone: 'error', text: 'No responde', action: 'Reintentar' },
+  ausente: { tone: 'neutral', text: 'Not installed', action: 'How to install' },
+  detectado: { tone: 'info', text: 'Detected · not checked', action: 'Check now' },
+  comprobado: { tone: 'success', text: 'Working', action: 'Check again' },
+  roto: { tone: 'error', text: 'Not responding', action: 'Retry' },
 }
 
 const capabilityProvider: Record<string, string> = {
@@ -60,13 +60,13 @@ function Row({ cap, onChecked, now }: { cap: Capability; onChecked: (cap: Capabi
           {provider && <Glyph kind="provider" value={provider} />}
           {(!provider || cap.label !== glyphFor('provider', provider).label) && <span>{cap.label}</span>}
         </span>
-        <span className="min-w-0 flex-1 truncate text-muted-foreground" title={cap.detail}>{l.text}{cap.checkedAt ? ` · revisado ${relativeTime(cap.checkedAt, now)}` : ''}</span>
+        <span className="min-w-0 flex-1 truncate text-muted-foreground" title={cap.detail}>{l.text}{cap.checkedAt ? ` · checked ${relativeTime(cap.checkedAt, now)}` : ''}</span>
         <Button variant="outline" size="sm" disabled={check.pending} aria-busy={check.pending} aria-expanded={cap.state === 'ausente' ? help : undefined} onClick={onClick}>
-          {check.pending ? 'Comprobando…' : cap.action?.label ?? l.action}
+          {check.pending ? 'Checking…' : cap.action?.label ?? l.action}
         </Button>
       </div>
-      {help && cap.state === 'ausente' && <p className="px-4 pb-3 pl-10 text-sm text-muted-foreground">{cap.detail}. Instálalo y pulsa «Comprobar ahora».</p>}
-      {check.error && <p role="alert" className="px-4 pb-3 pl-10 text-xs text-error">No se pudo comprobar. {humanError(check.error)}</p>}
+      {help && cap.state === 'ausente' && <p className="px-4 pb-3 pl-10 text-sm text-muted-foreground">{cap.detail}. Install it, then select “Check now”.</p>}
+      {check.error && <p role="alert" className="px-4 pb-3 pl-10 text-xs text-error">Couldn't check. {humanError(check.error)}</p>}
     </li>
   )
 }
@@ -97,24 +97,24 @@ export function Capacidades() {
   const slow = useAfter(loading)
   const now = useNow(10000)
 
-  if (error && !data) return <p role="alert" className="text-sm text-error">No se pudieron cargar las capacidades. {humanError(new Error(error))}</p>
-  if (loading) return slow ? <div role="status" aria-label="Cargando las capacidades" className="flex flex-col gap-2">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
+  if (error && !data) return <p role="alert" className="text-sm text-error">Couldn't load capabilities. {humanError(new Error(error))}</p>
+  if (loading) return slow ? <div role="status" aria-label="Loading capabilities" className="flex flex-col gap-2">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-14" />)}</div> : null
   return (
     <div className="flex flex-col gap-6">
-      {groups.list.length > 0 && <section aria-label="Agentes" className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium">Agentes</h2>
-        <ul aria-label="Agentes por proveedor" className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
+      {groups.list.length > 0 && <section aria-label="Agents" className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium">Agents</h2>
+        <ul aria-label="Agents by provider" className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
           {groups.list.map(({ provider, agents }) => <li key={provider} className="flex flex-col gap-3 rounded-lg border border-subtle p-4">
             <AvatarGroup agents={agents} size={48} />
-            {[...new Set(agents.map((a) => a.model).filter(Boolean))].map((model) => <p key={model} className="text-xs text-muted-foreground">Modelo {model}</p>)}
-            <ul aria-label={`Nombres de ${glyphFor('provider', provider).label}`} className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {[...new Set(agents.map((a) => a.model).filter(Boolean))].map((model) => <p key={model} className="text-xs text-muted-foreground">Model {model}</p>)}
+            <ul aria-label={`${glyphFor('provider', provider).label} agents`} className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {agents.map((agent) => <li key={agent.id} title={agentTitle(provider, agent.model, agent.skills)}>{agent.name}</li>)}
             </ul>
           </li>)}
         </ul>
       </section>}
       <EditorQueue agents={groups.named} />
-      {!data?.length ? <EmptyState view="capacidades" /> : <ul aria-label="Capacidades" className="overflow-hidden rounded-lg border border-subtle">
+      {!data?.length ? <EmptyState view="capacidades" /> : <ul aria-label="Capabilities" className="overflow-hidden rounded-lg border border-subtle">
         {data?.map((cap) => (
           <Row key={cap.id} cap={cap} now={now}
             onChecked={(next) => mutate((list) => (list ?? []).map((c) => c.id === next.id ? next : c))} />

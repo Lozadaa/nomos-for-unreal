@@ -15,9 +15,9 @@ const typing = (el: EventTarget | null): boolean => el instanceof Element
 
 /** Acciones de la tarea abierta en el detalle, con el estado en que el servicio las acepta. */
 const taskActions = [
-  { label: 'Lanzar pruebas', path: 'checks', states: ['implementando', 'revisando', 'probando'], done: 'Pruebas en cola' },
-  { label: 'Integrar', path: 'integrate', states: ['revisando', 'integrando'], done: 'Integración en cola' },
-  { label: 'Cerrar', path: 'finalize', states: ['cerrando'], done: 'Cierre en cola' },
+  { label: 'Run checks', path: 'checks', states: ['implementando', 'revisando', 'probando'], done: 'Checks queued' },
+  { label: 'Merge', path: 'integrate', states: ['revisando', 'integrando'], done: 'Merge queued' },
+  { label: 'Wrap up', path: 'finalize', states: ['cerrando'], done: 'Wrap-up queued' },
 ] as const
 
 /** ⌘K / Ctrl+K: vistas, tareas por título y acciones. No se abre mientras se escribe en un campo. */
@@ -74,18 +74,18 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused
     { success: () => ({ title: chosen.current!.done }), restoreFocus: false })
 
   return (
-    <CommandDialog open={open} onOpenChange={set} title="Menú de comandos" description="Busca una vista, una tarea o una acción">
+    <CommandDialog open={open} onOpenChange={set} title="Command menu" description="Find a view, a task or an action">
       <Command>
-      <CommandInput placeholder="Busca una vista, una tarea o una acción…" />
+      <CommandInput placeholder="Find a view, a task or an action…" />
       <CommandList>
-        <CommandEmpty>No hay resultados.</CommandEmpty>
-        <CommandGroup heading="Vistas">
+        <CommandEmpty>No results.</CommandEmpty>
+        <CommandGroup heading="Views">
           {views.map((v) => <CommandItem key={v.to} onSelect={() => go(v.to)}>{v.label}</CommandItem>)}
         </CommandGroup>
         {tasks.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Tareas">
+            <CommandGroup heading="Tasks">
               {tasks.map((t) => (
                 <CommandItem key={t.id} value={`${t.title} ${t.id}`} onSelect={() => go(`/?tarea=${encodeURIComponent(t.id)}`)}>
                   {t.title}<span className="ml-auto font-mono text-xs text-muted-foreground">{t.id.slice(0, 7)}</span>
@@ -95,17 +95,17 @@ export function CommandMenu({ tasks = [], open: controlled, onOpenChange, paused
           </>
         )}
         <CommandSeparator />
-        <CommandGroup heading="Acciones">
-          <CommandItem onSelect={() => go('/?nueva=1')}>Nueva petición</CommandItem>
-          <CommandItem disabled={!onLegend || legend.pending} onSelect={() => void legend.fire()}>Leyenda</CommandItem>
-          <CommandItem disabled={!onGuide || guide.pending} onSelect={() => void guide.fire()}>Ver guía</CommandItem>
-          <CommandItem disabled={index.pending} onSelect={() => { set(false); void index.fire() }}>Indexar</CommandItem>
-          <CommandItem disabled={paused === undefined || !onTogglePause} onSelect={() => { set(false); onTogglePause?.() }}>{paused ? 'Reanudar' : 'Pausar'}</CommandItem>
+        <CommandGroup heading="Actions">
+          <CommandItem onSelect={() => go('/?nueva=1')}>New request</CommandItem>
+          <CommandItem disabled={!onLegend || legend.pending} onSelect={() => void legend.fire()}>Legend</CommandItem>
+          <CommandItem disabled={!onGuide || guide.pending} onSelect={() => void guide.fire()}>Show tour</CommandItem>
+          <CommandItem disabled={index.pending} onSelect={() => { set(false); void index.fire() }}>Index catalog</CommandItem>
+          <CommandItem disabled={paused === undefined || !onTogglePause} onSelect={() => { set(false); onTogglePause?.() }}>{paused ? 'Resume' : 'Pause'}</CommandItem>
         </CommandGroup>
         {current && (
           <>
             <CommandSeparator />
-            <CommandGroup heading={`Tarea abierta: ${current.title}`}>
+            <CommandGroup heading={`Open task: ${current.title}`}>
               {taskActions.map((action) => (
                 <CommandItem key={action.path} disabled={runTask.pending || !(action.states as readonly string[]).includes(current.state ?? '')}
                   onSelect={() => { chosen.current = action; set(false); void runTask.fire() }}>{action.label}</CommandItem>
