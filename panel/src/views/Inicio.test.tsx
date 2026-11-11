@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Task } from '@/lib/tasks'
 
@@ -60,8 +60,8 @@ describe('Inicio', () => {
       ? [{ id: 'shot', taskId: 'Salto', kind: 'screenshot', path: 's.png', license: null, createdAt: '2026-10-23T11:00:00.000Z' }] : base(path))
     render(<TooltipProvider><RouterProvider router={createMemoryRouter([{ path: '/', element: <Inicio /> }])} /></TooltipProvider>)
     await act(async () => { await refresh() })
-    const own = await screen.findByRole('img', { name: 'Latest image of Salto' })
-    expect(own.getAttribute('src')).toContain('/artifacts/shot/file')
+    // primero sale la del juego y cambia a la propia cuando llega /artifacts: esperar al src, no al elemento
+    await waitFor(() => expect(screen.getByRole('img', { name: 'Latest image of Salto' }).getAttribute('src')).toContain('/artifacts/shot/file'))
     const game = screen.getByRole('img', { name: 'Latest image of Estatua' })
     expect(game.getAttribute('src')).toMatch(/^\/capture\?/)
     // el proyecto no tiene ninguna captura: /capture da 404 y queda la marca, no una imagen rota
