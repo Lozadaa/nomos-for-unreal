@@ -47,7 +47,12 @@ export async function finishReview(ctx:WorkerContext,run:Run,marker:Extract<Mark
     addArtifact(db,{taskId:run.taskId,runId:run.id,kind:'report',path,
       provenance:{...report,label:run.metadata.qa ? 'QA visual · informe' : arte ? 'Juez de arte · informe' : 'Revisión · informe'}});
     appendEvent(db,'review.finished',null,{taskId:run.taskId,...report});
-    if(stale) return;
+    if(stale) {
+      // TrompoArte: el responsable commiteó tras entregar y nada más lo para; se revisa lo nuevo (antes quedaba en revisando)
+      if(!current && implementer?.state==='done' && !task.decisionId && !task.blockedReason && task.state==='revisando' && !arte && !run.metadata.qa)
+        enqueue(db,'review.start',{taskId:run.taskId,implementerRunId:implementer.id},`review.restale:${run.id}`);
+      return;
+    }
     if(arte) {
       const ok=!fallos.length,result=ok || ultima ? 'passed' : 'failed',lineas=fallos.map(lineaFallo);
       updateTestRun(db,arte.testRunId,{result});
