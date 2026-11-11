@@ -6,6 +6,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createServer } from 'node:http';
 const uproject = process.argv.find(a => a.endsWith('.uproject'));
 const informe = (filtro) => filtro.includes('Falla')
   ? {succeeded: 1, succeededWithWarnings: 0, failed: 1, notRun: 0, tests: [{fullTestPath: 'Juego.Falla.Uno', state: 'Fail',
@@ -29,6 +30,40 @@ const desde = Date.now() / 1000; let ultimo = Date.now(), trabajos = 0;
 await new Promise(r => setTimeout(r, 300));
 // la inactividad cuenta desde que el editor está listo (como nomos_caliente.py tras -ExecCmds), no desde que arranca el proceso
 ultimo = Date.now();
+// MCP falso (5.9): con -ModelContextProtocolPort=N responde a initialize y a call_tool. Live Coding falla si existe
+// Source/ROTO junto al .uproject; la captura devuelve un PNG de 1×1 y solo hay mundo PIE entre StartPIE y StopPIE.
+// NOMOS_FAKE_SIN_MCP: un editor 5.8 o sin AllToolsets (no escucha).
+const puertoMcp = Number(process.argv.find(a => a.startsWith('-ModelContextProtocolPort='))?.split('=')[1]);
+if (puertoMcp && !process.env.NOMOS_FAKE_SIN_MCP) {
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  let pie = false, live = false;
+  const herramienta = (tool, args) => {
+    const valor = v => ({content: [{type: 'text', text: JSON.stringify({returnValue: v})}]});
+    if (tool === 'IsLiveCodingReady') return valor(live);
+    if (tool === 'EnableLiveCoding') { live = true; return valor(null); }
+    if (tool === 'CompileLiveCoding') return valor(existsSync(join(uproject, '..', 'Source', 'ROTO'))
+      ? 'Result: Failure\n\nCompile Output:\nTrompoSim.cpp(10): error C2065: undeclared identifier' : 'Result: Success\n\nCompile Output:\nok');
+    if (tool === 'IsPIERunning') return valor(pie);
+    if (tool === 'StartPIE') { pie = true; return valor(null); }
+    if (tool === 'StopPIE') { pie = false; return valor(null); }
+    if (tool === 'ListWorlds') return valor([{world: {refPath: '/Game/M.M'}, worldType: 'Editor'}, ...(pie ? [{world: {refPath: '/Game/UEDPIE_0_M.M'}, worldType: 'PIE'}] : [])]);
+    if (tool === 'execute_python') { writeFileSync(join(dir, 'mcp-python.txt'), args.script.content); return valor('None'); }
+    if (tool === 'CaptureGameViewport') return pie
+      ? {content: [{type: 'text', text: JSON.stringify({returnValue: {image: 'urn:toolresult:x', width: 1280, height: 720}})}, {type: 'image', mimeType: 'image/png', data: PNG}]}
+      : {isError: true, content: [{type: 'text', text: 'no Game/PIE viewport available'}]};
+    return {isError: true, content: [{type: 'text', text: `herramienta desconocida ${tool}`}]};
+  };
+  createServer((req, res) => {
+    let body = '';
+    req.on('data', d => body += d).on('end', () => {
+      const msg = JSON.parse(body);
+      res.setHeader('mcp-session-id', 'falsa'); res.setHeader('content-type', 'application/json');
+      if (msg.id === undefined) return res.writeHead(202).end();
+      const result = msg.method === 'initialize' ? {capabilities: {}} : herramienta(msg.params.arguments.tool_name, msg.params.arguments.arguments ?? {});
+      res.end(JSON.stringify({jsonrpc: '2.0', id: msg.id, result}));
+    });
+  }).listen(puertoMcp, '127.0.0.1').unref();
+}
 const timer = setInterval(() => {
   for (const f of readdirSync(entrada).filter(f => f.endsWith('.json')).sort()) {
     const job = JSON.parse(readFileSync(join(entrada, f), 'utf8')); rmSync(join(entrada, f));

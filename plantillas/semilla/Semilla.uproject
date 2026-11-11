@@ -14,6 +14,7 @@
 		{ "Name": "PythonScriptPlugin", "Enabled": true },
 		{ "Name": "EditorScriptingUtilities", "Enabled": true },
 		{ "Name": "Niagara", "Enabled": true },
-		{ "Name": "Metasound", "Enabled": true }
+		{ "Name": "Metasound", "Enabled": true },
+		{ "Name": "AllToolsets", "Enabled": true, "Optional": true, "TargetAllowList": [ "Editor" ] }
 	]
 }
